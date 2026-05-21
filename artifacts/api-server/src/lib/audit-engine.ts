@@ -1,15 +1,31 @@
 import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const client = new OpenAI({
+// --- OpenAI client (ChatGPT + fallback) ---
+const openaiClient = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY ?? "placeholder",
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? process.env.OPENAI_BASE_URL,
 });
+
+// --- Perplexity client (OpenAI-compatible) ---
+const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY ?? "";
+const perplexityClient = PERPLEXITY_API_KEY
+  ? new OpenAI({
+      apiKey: PERPLEXITY_API_KEY,
+      baseURL: "https://api.perplexity.ai",
+    })
+  : null;
+
+// --- Gemini client ---
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY ?? "";
+const geminiAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
 
 export interface AuditQueryResult {
   found: boolean;
   detail: string | null;
   score: number;
   competitors: string[];
+  simulated?: boolean;
 }
 
 export interface AuditEngineResult {
@@ -67,8 +83,9 @@ async function scrapeUrl(url: string): Promise<ScrapedData> {
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
     const title = titleMatch ? titleMatch[1]!.trim() : "";
 
-    const metaDescMatch = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)
-      ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i);
+    const metaDescMatch =
+      html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i) ??
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i);
     const metaDescription = metaDescMatch ? metaDescMatch[1]!.trim() : "";
 
     const h1Match = html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
@@ -113,7 +130,7 @@ Return exactly this JSON structure:
   "top_competitors": ["competitor1", "competitor2", "competitor3"]
 }`;
 
-    const response = await client.chat.completions.create({
+    const response = await openaiClient.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 300,
@@ -140,102 +157,208 @@ Return exactly this JSON structure:
   }
 }
 
-function generatePrompts(brandName: string, category: string, market: string, competitors: string[]): string[] {
+function generatePrompts(
+  brandName: string,
+  domain: string,
+  category: string,
+  market: string,
+  competitors: string[],
+): string[] {
   const prompts: string[] = [
-    `What is ${brandName}?`,
-    `Is ${brandName} a good ${category}? Review and recommendation.`,
-    `Best ${category} tools in ${market} — what are the top options?`,
-    `${brandName} alternatives — what should I use instead?`,
+    `What is ${brandName} (${domain})? Give me an overview of what this product does.`,
+    `Is ${brandName} a good ${category}? I am looking for honest reviews and recommendations.`,
+    `What are the best ${category} tools in ${market} right now? Please list the top options with pros and cons.`,
+    `I am looking for alternatives to ${brandName}. What similar ${category} products should I consider?`,
   ];
 
   if (competitors.length > 0) {
-    prompts.push(`${brandName} vs ${competitors[0]} — which is better?`);
+    prompts.push(
+      `Compare ${brandName} vs ${competitors[0]}. Which is better for a startup in ${market}?`,
+    );
+  } else {
+    prompts.push(
+      `Who uses ${brandName} and what do they say about it? Any notable customer reviews or case studies?`,
+    );
   }
 
   return prompts;
 }
 
-interface RawResponse {
-  prompt: string;
-  text: string;
-  system: "chatgpt" | "gemini" | "perplexity";
-}
+// --- Per-system query functions ---
 
-async function querySingleSystem(
-  prompt: string,
-  system: "chatgpt" | "gemini" | "perplexity",
-): Promise<RawResponse> {
-  const systemPrompts: Record<string, string> = {
-    chatgpt:
-      "You are ChatGPT, a helpful AI assistant. Answer questions about products, tools, and services honestly and helpfully. Recommend specific options where relevant.",
-    gemini:
-      "You are Gemini, Google's AI assistant. Answer questions about products, tools, and services with balanced, helpful information. Mention specific tools and services where relevant.",
-    perplexity:
-      "You are a search-augmented AI assistant. Answer with up-to-date, specific information about products and services. Be direct and recommend specific options.",
-  };
-
+async function queryOpenAIChatGPT(prompt: string): Promise<string> {
   try {
-    const response = await client.chat.completions.create({
+    const response = await openaiClient.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: systemPrompts[system]! },
+        {
+          role: "system",
+          content:
+            "You are ChatGPT. Answer questions about products, tools, and services accurately and helpfully. Draw on your training knowledge. Mention specific brand names and products you know about.",
+        },
         { role: "user", content: prompt },
       ],
-      max_tokens: 400,
-      temperature: system === "chatgpt" ? 0.3 : system === "gemini" ? 0.4 : 0.5,
+      max_tokens: 500,
+      temperature: 0.3,
     });
-    return { prompt, text: response.choices[0]?.message?.content ?? "", system };
+    return response.choices[0]?.message?.content ?? "";
   } catch {
-    return { prompt, text: "", system };
+    return "";
   }
+}
+
+async function queryGemini(prompt: string): Promise<{ text: string; simulated: boolean }> {
+  if (geminiAI) {
+    try {
+      const model = geminiAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const result = await model.generateContent(prompt);
+      return { text: result.response.text(), simulated: false };
+    } catch {
+      // fall through to simulated
+    }
+  }
+
+  // Fallback: OpenAI simulating Gemini
+  try {
+    const response = await openaiClient.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a helpful AI assistant. Answer questions about products, tools, and services with balanced, helpful information. Mention specific tools and services by name where you know them.",
+        },
+        { role: "user", content: prompt },
+      ],
+      max_tokens: 500,
+      temperature: 0.4,
+    });
+    return { text: response.choices[0]?.message?.content ?? "", simulated: true };
+  } catch {
+    return { text: "", simulated: true };
+  }
+}
+
+async function queryPerplexity(prompt: string): Promise<{ text: string; simulated: boolean }> {
+  if (perplexityClient) {
+    try {
+      const response = await perplexityClient.chat.completions.create({
+        model: "llama-3.1-sonar-small-128k-online",
+        stream: false,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a search-augmented AI assistant. Answer with specific, up-to-date information about products and services. Be direct and recommend specific options by name.",
+          },
+          { role: "user", content: prompt },
+        ],
+        max_tokens: 500,
+        temperature: 0.5,
+      });
+      return { text: response.choices[0]?.message?.content ?? "", simulated: false };
+    } catch {
+      // fall through to simulated
+    }
+  }
+
+  // Fallback: OpenAI simulating Perplexity
+  try {
+    const response = await openaiClient.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a search-augmented AI assistant. Answer with specific information about products and services. Be direct and recommend specific options by name.",
+        },
+        { role: "user", content: prompt },
+      ],
+      max_tokens: 500,
+      temperature: 0.5,
+    });
+    return { text: response.choices[0]?.message?.content ?? "", simulated: true };
+  } catch {
+    return { text: "", simulated: true };
+  }
+}
+
+// --- Scoring ---
+
+function buildBrandPattern(brandName: string): RegExp {
+  // Escape regex special chars, then match whole word
+  const escaped = brandName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`\\b${escaped}\\b`, "i");
+}
+
+interface ScoredResponse {
+  prompt: string;
+  text: string;
 }
 
 function calculateSystemScore(
   brandName: string,
-  responses: RawResponse[],
+  domain: string,
+  responses: ScoredResponse[],
+  simulated: boolean,
 ): AuditQueryResult {
-  const brandLower = brandName.toLowerCase();
+  const brandPattern = buildBrandPattern(brandName);
+  const domainPattern = buildBrandPattern(domain);
+
   let score = 0;
   let found = false;
   let detail: string | null = null;
-  const competitors: string[] = [];
+  const competitorSet = new Set<string>();
 
   for (const item of responses) {
-    const respLower = item.text.toLowerCase();
+    if (!item.text) continue;
 
-    if (respLower.includes(brandLower)) {
+    const matchesBrand = brandPattern.test(item.text);
+    const matchesDomain = domainPattern.test(item.text);
+    const isFound = matchesBrand || matchesDomain;
+
+    if (isFound) {
       found = true;
-      const firstMention = respLower.indexOf(brandLower);
-      const totalLength = respLower.length;
 
-      if (firstMention < totalLength * 0.3) {
-        score += 15;
-      } else {
-        score += 10;
-      }
+      // Position-based scoring: first 30% of response = 15pts, later = 10pts
+      const textLower = item.text.toLowerCase();
+      const brandLower = brandName.toLowerCase();
+      const domainLower = domain.toLowerCase();
 
+      const firstIdx = Math.min(
+        textLower.includes(brandLower) ? textLower.indexOf(brandLower) : Infinity,
+        textLower.includes(domainLower) ? textLower.indexOf(domainLower) : Infinity,
+      );
+      const totalLen = textLower.length;
+      score += firstIdx < totalLen * 0.3 ? 15 : 10;
+
+      // Extract the first sentence mentioning the brand
       if (!detail) {
-        const sentences = item.text.split(/[.!?]/);
+        const sentences = item.text.split(/[.!?]+/);
         for (const s of sentences) {
-          if (s.toLowerCase().includes(brandLower)) {
-            detail = s.trim().substring(0, 150);
-            break;
+          if (brandPattern.test(s) || domainPattern.test(s)) {
+            const trimmed = s.trim();
+            if (trimmed.length > 10) {
+              detail = trimmed.substring(0, 160);
+              break;
+            }
           }
         }
       }
     }
 
-    const compPattern = /\b([A-Z][a-z]{2,}(?:\.(?:com|io|ai|co))?)\b/g;
+    // Extract competitor mentions (capitalized proper nouns + .com/.io/.ai domains)
+    const compPattern = /\b([A-Z][a-zA-Z]{2,}(?:\.(?:com|io|ai|co|app))?)\b/g;
     let match;
     while ((match = compPattern.exec(item.text)) !== null) {
       const name = match[1]!;
       if (
-        name.toLowerCase() !== brandLower &&
-        !competitors.includes(name) &&
-        name.length > 2 &&
-        !["The", "You", "This", "That", "With", "For", "Can", "Are", "Has", "Its"].includes(name)
+        !brandPattern.test(name) &&
+        !domainPattern.test(name) &&
+        name.length > 3 &&
+        !["The", "This", "That", "With", "For", "Can", "Are", "Has", "Its", "When", "What", "Here", "They", "Some", "More", "Also", "Very"].includes(name)
       ) {
-        competitors.push(name);
+        competitorSet.add(name);
       }
     }
   }
@@ -243,10 +366,13 @@ function calculateSystemScore(
   return {
     found,
     score: Math.min(score, 33),
-    detail: found ? detail : "Not found in AI responses",
-    competitors: competitors.slice(0, 5),
+    detail: found ? (detail ?? `${brandName} was mentioned in AI responses`) : "Not found in AI responses",
+    competitors: Array.from(competitorSet).slice(0, 5),
+    simulated,
   };
 }
+
+// --- Main export ---
 
 export async function runAuditEngine(
   url: string,
@@ -255,6 +381,7 @@ export async function runAuditEngine(
   marketOverride: string | null,
 ): Promise<AuditEngineResult> {
   const scraped = await scrapeUrl(url);
+  const domain = scraped.domain;
   const catData = await detectCategory(scraped);
 
   const brandName = brandNameOverride ?? catData.brandName;
@@ -262,24 +389,29 @@ export async function runAuditEngine(
   const market = marketOverride ?? catData.market;
   const competitors = catData.competitors;
 
-  const prompts = generatePrompts(brandName, category, market, competitors);
+  const prompts = generatePrompts(brandName, domain, category, market, competitors);
 
-  const tasks: Promise<RawResponse>[] = [];
-  for (const prompt of prompts) {
-    tasks.push(querySingleSystem(prompt, "chatgpt"));
-    tasks.push(querySingleSystem(prompt, "gemini"));
-    tasks.push(querySingleSystem(prompt, "perplexity"));
-  }
+  // Run all AI queries in parallel
+  const chatgptTasks = prompts.map((p) => queryOpenAIChatGPT(p));
+  const geminiTasks = prompts.map((p) => queryGemini(p));
+  const perplexityTasks = prompts.map((p) => queryPerplexity(p));
 
-  const allResponses = await Promise.all(tasks);
+  const [chatgptTexts, geminiResults, perplexityResults] = await Promise.all([
+    Promise.all(chatgptTasks),
+    Promise.all(geminiTasks),
+    Promise.all(perplexityTasks),
+  ]);
 
-  const chatgptResponses = allResponses.filter((r) => r.system === "chatgpt");
-  const geminiResponses = allResponses.filter((r) => r.system === "gemini");
-  const perplexityResponses = allResponses.filter((r) => r.system === "perplexity");
+  const chatgptResponses = chatgptTexts.map((text, i) => ({ prompt: prompts[i]!, text }));
+  const geminiResponses = geminiResults.map((r, i) => ({ prompt: prompts[i]!, text: r.text }));
+  const perplexityResponses = perplexityResults.map((r, i) => ({ prompt: prompts[i]!, text: r.text }));
 
-  const chatgpt = calculateSystemScore(brandName, chatgptResponses);
-  const gemini = calculateSystemScore(brandName, geminiResponses);
-  const perplexity = calculateSystemScore(brandName, perplexityResponses);
+  const geminiSimulated = geminiResults.some((r) => r.simulated);
+  const perplexitySimulated = perplexityResults.some((r) => r.simulated);
+
+  const chatgpt = calculateSystemScore(brandName, domain, chatgptResponses, false);
+  const gemini = calculateSystemScore(brandName, domain, geminiResponses, geminiSimulated);
+  const perplexity = calculateSystemScore(brandName, domain, perplexityResponses, perplexitySimulated);
 
   return {
     brandName,
@@ -310,7 +442,7 @@ Gemini score: ${gemini.score}/33 — Found: ${gemini.found}
 Perplexity score: ${perplexity.score}/33 — Found: ${perplexity.found}`;
 
   try {
-    const response = await client.chat.completions.create({
+    const response = await openaiClient.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
@@ -334,7 +466,9 @@ Perplexity score: ${perplexity.score}/33 — Found: ${perplexity.found}`;
 
     return items.slice(0, 5).map((item: Record<string, unknown>) => ({
       action: String(item.action ?? ""),
-      priority: (["high", "medium", "low"].includes(String(item.priority)) ? item.priority : "medium") as "high" | "medium" | "low",
+      priority: (["high", "medium", "low"].includes(String(item.priority))
+        ? item.priority
+        : "medium") as "high" | "medium" | "low",
       effortHours: Number(item.effort_hours ?? 2),
       impactScore: Number(item.impact_score ?? 8),
       category: String(item.category ?? "content"),
