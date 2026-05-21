@@ -16,25 +16,39 @@ router.post("/audit", async (req, res): Promise<void> => {
     return;
   }
 
-  const { url, brandName, category, market } = parsed.data;
+  const { url, brandName: brandNameOverride, category: categoryOverride, market: marketOverride } = parsed.data;
   const domain = extractDomain(url);
 
   const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0] ?? req.ip ?? "unknown";
 
   try {
-    const engineResult = await runAuditEngine(url, brandName ?? null, category ?? null, market ?? null);
-    const { chatgpt, gemini, perplexity, keywordsUsed } = engineResult;
+    const engineResult = await runAuditEngine(
+      url,
+      brandNameOverride ?? null,
+      categoryOverride ?? null,
+      marketOverride ?? null,
+    );
+    const { brandName, category, market, chatgpt, gemini, perplexity, keywordsUsed } = engineResult;
 
-    const scoreTotal = Math.round((chatgpt.score + gemini.score + perplexity.score) / 3);
+    const scoreTotal = Math.min(chatgpt.score + gemini.score + perplexity.score, 100);
     const allCompetitors = [...new Set([...chatgpt.competitors, ...gemini.competitors, ...perplexity.competitors])];
-    const recommendations = generateRecommendations(chatgpt, gemini, perplexity, domain);
+
+    const recommendations = await generateRecommendations(
+      brandName,
+      domain,
+      category,
+      market,
+      chatgpt,
+      gemini,
+      perplexity,
+    );
 
     const [audit] = await db.insert(auditsTable).values({
       url,
       domain,
-      brandName: brandName ?? null,
-      category: category ?? null,
-      market: market ?? null,
+      brandName,
+      category,
+      market,
       scoreTotal,
       scoreChatgpt: chatgpt.score,
       scoreGemini: gemini.score,
@@ -47,7 +61,7 @@ router.post("/audit", async (req, res): Promise<void> => {
       perplexityDetail: perplexity.detail,
       competitorsFound: allCompetitors,
       keywordsUsed,
-      recommendations: recommendations as Record<string, unknown>[],
+      recommendations: recommendations as unknown as Record<string, unknown>[],
       ipAddress: ip,
     }).returning();
 

@@ -13,13 +13,24 @@ export interface AuditQueryResult {
 }
 
 export interface AuditEngineResult {
+  brandName: string;
+  category: string;
+  market: string;
   chatgpt: AuditQueryResult;
   gemini: AuditQueryResult;
   perplexity: AuditQueryResult;
   keywordsUsed: string[];
 }
 
-function extractDomain(url: string): string {
+export interface Recommendation {
+  action: string;
+  priority: "high" | "medium" | "low";
+  effortHours: number;
+  impactScore: number;
+  category: string;
+}
+
+export function extractDomain(url: string): string {
   try {
     const u = new URL(url.startsWith("http") ? url : `https://${url}`);
     return u.hostname.replace("www.", "");
@@ -28,167 +39,343 @@ function extractDomain(url: string): string {
   }
 }
 
-function buildPrompt(domain: string, brandName: string | null, category: string | null, market: string | null): { prompt: string; keywords: string[] } {
-  const brand = brandName ?? domain;
-  const cat = category ?? "software product";
-  const mkt = market ?? "India";
-  const keywords = [
-    `best ${cat} tools in ${mkt}`,
-    `top ${cat} startups ${mkt}`,
-    `${cat} apps recommended by AI`,
-    `alternatives to ${brand}`,
-  ];
-  const prompt = `I'm looking for the best ${cat} tools and platforms in ${mkt}. Can you recommend the top options? Is ${brand} (${domain}) one of them? What do you think of it?`;
-  return { prompt, keywords };
+interface ScrapedData {
+  domain: string;
+  title: string;
+  metaDescription: string;
+  h1: string;
+  bodyText: string;
+  success: boolean;
 }
 
-function parseResult(response: string, domain: string, brandName: string | null): AuditQueryResult {
-  const brand = (brandName ?? domain).toLowerCase();
-  const resp = response.toLowerCase();
-  const found = resp.includes(brand) || resp.includes(domain.toLowerCase());
+async function scrapeUrl(url: string): Promise<ScrapedData> {
+  const fullUrl = url.startsWith("http") ? url : `https://${url}`;
+  const domain = extractDomain(url);
 
-  const competitorPatterns = /\b([A-Z][a-z]+(?:\.(?:com|io|ai|co))?)\b/g;
-  const competitors: string[] = [];
-  let match;
-  while ((match = competitorPatterns.exec(response)) !== null) {
-    const name = match[1];
-    if (name && name.toLowerCase() !== brand && name.toLowerCase() !== domain.toLowerCase() && name.length > 2) {
-      if (!competitors.includes(name)) competitors.push(name);
-    }
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
+    const response = await fetch(fullUrl, {
+      signal: controller.signal,
+      headers: { "User-Agent": "Mozilla/5.0 GEOscore Bot/1.0" },
+    });
+    clearTimeout(timeout);
+
+    const html = await response.text();
+
+    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    const title = titleMatch ? titleMatch[1]!.trim() : "";
+
+    const metaDescMatch = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)
+      ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i);
+    const metaDescription = metaDescMatch ? metaDescMatch[1]!.trim() : "";
+
+    const h1Match = html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
+    const h1 = h1Match ? h1Match[1]!.trim() : "";
+
+    const stripped = html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const bodyText = stripped.substring(0, 600);
+
+    return { domain, title, metaDescription, h1, bodyText, success: true };
+  } catch {
+    return { domain, title: "", metaDescription: "", h1: "", bodyText: "", success: false };
+  }
+}
+
+interface CategoryData {
+  brandName: string;
+  category: string;
+  market: string;
+  competitors: string[];
+}
+
+async function detectCategory(scraped: ScrapedData): Promise<CategoryData> {
+  try {
+    const prompt = `Analyze this website and return JSON only, no other text:
+
+Domain: ${scraped.domain}
+Title: ${scraped.title}
+Description: ${scraped.metaDescription}
+H1: ${scraped.h1}
+Content: ${scraped.bodyText.substring(0, 300)}
+
+Return exactly this JSON structure:
+{
+  "brand_name": "extracted brand or product name (just the name, not the full title)",
+  "category": "one of: health app, saas tool, ecommerce, fintech, edtech, food delivery, travel, real estate, other",
+  "market": "one of: India, Global, US, UK",
+  "top_competitors": ["competitor1", "competitor2", "competitor3"]
+}`;
+
+    const response = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 300,
+      temperature: 0.2,
+      response_format: { type: "json_object" },
+    });
+
+    const text = response.choices[0]?.message?.content ?? "{}";
+    const parsed = JSON.parse(text);
+
+    return {
+      brandName: parsed.brand_name ?? scraped.domain,
+      category: parsed.category ?? "saas tool",
+      market: parsed.market ?? "India",
+      competitors: Array.isArray(parsed.top_competitors) ? parsed.top_competitors.slice(0, 3) : [],
+    };
+  } catch {
+    return {
+      brandName: scraped.domain,
+      category: "saas tool",
+      market: "India",
+      competitors: [],
+    };
+  }
+}
+
+function generatePrompts(brandName: string, category: string, market: string, competitors: string[]): string[] {
+  const prompts: string[] = [
+    `What is ${brandName}?`,
+    `Is ${brandName} a good ${category}? Review and recommendation.`,
+    `Best ${category} tools in ${market} — what are the top options?`,
+    `${brandName} alternatives — what should I use instead?`,
+  ];
+
+  if (competitors.length > 0) {
+    prompts.push(`${brandName} vs ${competitors[0]} — which is better?`);
   }
 
+  return prompts;
+}
+
+interface RawResponse {
+  prompt: string;
+  text: string;
+  system: "chatgpt" | "gemini" | "perplexity";
+}
+
+async function querySingleSystem(
+  prompt: string,
+  system: "chatgpt" | "gemini" | "perplexity",
+): Promise<RawResponse> {
+  const systemPrompts: Record<string, string> = {
+    chatgpt:
+      "You are ChatGPT, a helpful AI assistant. Answer questions about products, tools, and services honestly and helpfully. Recommend specific options where relevant.",
+    gemini:
+      "You are Gemini, Google's AI assistant. Answer questions about products, tools, and services with balanced, helpful information. Mention specific tools and services where relevant.",
+    perplexity:
+      "You are a search-augmented AI assistant. Answer with up-to-date, specific information about products and services. Be direct and recommend specific options.",
+  };
+
+  try {
+    const response = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompts[system]! },
+        { role: "user", content: prompt },
+      ],
+      max_tokens: 400,
+      temperature: system === "chatgpt" ? 0.3 : system === "gemini" ? 0.4 : 0.5,
+    });
+    return { prompt, text: response.choices[0]?.message?.content ?? "", system };
+  } catch {
+    return { prompt, text: "", system };
+  }
+}
+
+function calculateSystemScore(
+  brandName: string,
+  responses: RawResponse[],
+): AuditQueryResult {
+  const brandLower = brandName.toLowerCase();
   let score = 0;
-  if (found) {
-    score = 60;
-    if (resp.includes("recommend") || resp.includes("top") || resp.includes("best")) score += 20;
-    if (resp.includes("popular") || resp.includes("widely used")) score += 10;
-    if (resp.includes("excellent") || resp.includes("great") || resp.includes("fantastic")) score += 10;
+  let found = false;
+  let detail: string | null = null;
+  const competitors: string[] = [];
+
+  for (const item of responses) {
+    const respLower = item.text.toLowerCase();
+
+    if (respLower.includes(brandLower)) {
+      found = true;
+      const firstMention = respLower.indexOf(brandLower);
+      const totalLength = respLower.length;
+
+      if (firstMention < totalLength * 0.3) {
+        score += 15;
+      } else {
+        score += 10;
+      }
+
+      if (!detail) {
+        const sentences = item.text.split(/[.!?]/);
+        for (const s of sentences) {
+          if (s.toLowerCase().includes(brandLower)) {
+            detail = s.trim().substring(0, 150);
+            break;
+          }
+        }
+      }
+    }
+
+    const compPattern = /\b([A-Z][a-z]{2,}(?:\.(?:com|io|ai|co))?)\b/g;
+    let match;
+    while ((match = compPattern.exec(item.text)) !== null) {
+      const name = match[1]!;
+      if (
+        name.toLowerCase() !== brandLower &&
+        !competitors.includes(name) &&
+        name.length > 2 &&
+        !["The", "You", "This", "That", "With", "For", "Can", "Are", "Has", "Its"].includes(name)
+      ) {
+        competitors.push(name);
+      }
+    }
   }
 
   return {
     found,
-    detail: found ? response.substring(0, 500) : null,
-    score,
+    score: Math.min(score, 33),
+    detail: found ? detail : "Not found in AI responses",
     competitors: competitors.slice(0, 5),
   };
 }
 
-async function queryOpenAI(prompt: string, domain: string, brandName: string | null, systemLabel: string): Promise<AuditQueryResult> {
-  try {
-    const response = await client.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: `You are a helpful AI assistant. Answer the user's question about tools and products honestly.` },
-        { role: "user", content: prompt },
-      ],
-      max_tokens: 500,
-      temperature: 0.7,
-    });
-    const text = response.choices[0]?.message?.content ?? "";
-    return parseResult(text, domain, brandName);
-  } catch {
-    return { found: false, detail: `${systemLabel} query failed`, score: 0, competitors: [] };
-  }
-}
-
-async function queryGemini(prompt: string, domain: string, brandName: string | null): Promise<AuditQueryResult> {
-  // Use OpenAI-compatible endpoint as fallback since we use Replit AI integration
-  try {
-    const response = await client.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: `You are Gemini, Google's AI assistant. Answer questions about tools and products.` },
-        { role: "user", content: prompt },
-      ],
-      max_tokens: 500,
-      temperature: 0.8,
-    });
-    const text = response.choices[0]?.message?.content ?? "";
-    return parseResult(text, domain, brandName);
-  } catch {
-    return { found: false, detail: "Gemini query failed", score: 0, competitors: [] };
-  }
-}
-
-async function queryPerplexity(prompt: string, domain: string, brandName: string | null): Promise<AuditQueryResult> {
-  try {
-    const response = await client.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: `You are a search-augmented AI. Answer with up-to-date information about tools and products.` },
-        { role: "user", content: prompt },
-      ],
-      max_tokens: 500,
-      temperature: 0.9,
-    });
-    const text = response.choices[0]?.message?.content ?? "";
-    return parseResult(text, domain, brandName);
-  } catch {
-    return { found: false, detail: "Perplexity query failed", score: 0, competitors: [] };
-  }
-}
-
 export async function runAuditEngine(
   url: string,
-  brandName: string | null,
-  category: string | null,
-  market: string | null,
+  brandNameOverride: string | null,
+  categoryOverride: string | null,
+  marketOverride: string | null,
 ): Promise<AuditEngineResult> {
-  const domain = extractDomain(url);
-  const { prompt, keywords } = buildPrompt(domain, brandName, category, market);
+  const scraped = await scrapeUrl(url);
+  const catData = await detectCategory(scraped);
 
-  const [chatgpt, gemini, perplexity] = await Promise.all([
-    queryOpenAI(prompt, domain, brandName, "ChatGPT"),
-    queryGemini(prompt, domain, brandName),
-    queryPerplexity(prompt, domain, brandName),
-  ]);
+  const brandName = brandNameOverride ?? catData.brandName;
+  const category = categoryOverride ?? catData.category;
+  const market = marketOverride ?? catData.market;
+  const competitors = catData.competitors;
 
-  return { chatgpt, gemini, perplexity, keywordsUsed: keywords };
+  const prompts = generatePrompts(brandName, category, market, competitors);
+
+  const tasks: Promise<RawResponse>[] = [];
+  for (const prompt of prompts) {
+    tasks.push(querySingleSystem(prompt, "chatgpt"));
+    tasks.push(querySingleSystem(prompt, "gemini"));
+    tasks.push(querySingleSystem(prompt, "perplexity"));
+  }
+
+  const allResponses = await Promise.all(tasks);
+
+  const chatgptResponses = allResponses.filter((r) => r.system === "chatgpt");
+  const geminiResponses = allResponses.filter((r) => r.system === "gemini");
+  const perplexityResponses = allResponses.filter((r) => r.system === "perplexity");
+
+  const chatgpt = calculateSystemScore(brandName, chatgptResponses);
+  const gemini = calculateSystemScore(brandName, geminiResponses);
+  const perplexity = calculateSystemScore(brandName, perplexityResponses);
+
+  return {
+    brandName,
+    category,
+    market,
+    chatgpt,
+    gemini,
+    perplexity,
+    keywordsUsed: prompts,
+  };
 }
 
-export function generateRecommendations(chatgpt: AuditQueryResult, gemini: AuditQueryResult, perplexity: AuditQueryResult, domain: string): Array<{ title: string; description: string; priority: string; aiSystem: string }> {
-  const recs = [];
+export async function generateRecommendations(
+  brandName: string,
+  domain: string,
+  category: string,
+  market: string,
+  chatgpt: AuditQueryResult,
+  gemini: AuditQueryResult,
+  perplexity: AuditQueryResult,
+): Promise<Recommendation[]> {
+  const auditSummary = `Brand: ${brandName}
+Domain: ${domain}
+Category: ${category}
+Market: ${market}
+ChatGPT score: ${chatgpt.score}/33 — Found: ${chatgpt.found}
+Gemini score: ${gemini.score}/33 — Found: ${gemini.found}
+Perplexity score: ${perplexity.score}/33 — Found: ${perplexity.found}`;
 
-  if (!chatgpt.found) {
-    recs.push({
-      title: "Get mentioned in ChatGPT answers",
-      description: `ChatGPT hasn't recommended ${domain} yet. Publish comprehensive guides and comparison articles that position ${domain} as a category leader. Focus on high-quality backlinks from authoritative domains.`,
-      priority: "high",
-      aiSystem: "ChatGPT",
+  try {
+    const response = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a GEO (Generative Engine Optimization) expert. Generate specific, actionable recommendations. Return valid JSON only.",
+        },
+        {
+          role: "user",
+          content: `Here is the AI visibility audit for a brand:\n\n${auditSummary}\n\nGenerate exactly 5 specific actionable recommendations to improve their AI visibility. Be very specific — name exact actions, not generic advice.\n\nReturn a JSON array:\n[\n  {\n    "action": "specific 2-sentence action to take",\n    "priority": "high",\n    "effort_hours": 2,\n    "impact_score": 12,\n    "category": "citations"\n  }\n]\n\nPriority must be: high, medium, or low\nCategory must be: citations, content, technical, pr, social`,
+        },
+      ],
+      max_tokens: 800,
+      temperature: 0.4,
+      response_format: { type: "json_object" },
     });
-  }
-  if (!gemini.found) {
-    recs.push({
-      title: "Build Google knowledge graph presence",
-      description: `Gemini relies heavily on Google's knowledge graph. Create a Google Business Profile, add structured data markup (JSON-LD) to your site, and get featured in authoritative review sites.`,
-      priority: "high",
-      aiSystem: "Gemini",
-    });
-  }
-  if (!perplexity.found) {
-    recs.push({
-      title: "Increase citation-worthy content",
-      description: `Perplexity pulls from real-time web sources. Publish data-driven reports, original research, and statistics that journalists and bloggers will cite. Get listed in curated directories.`,
-      priority: "medium",
-      aiSystem: "Perplexity",
-    });
-  }
-  if (chatgpt.found && chatgpt.score < 70) {
-    recs.push({
-      title: "Improve ChatGPT recommendation rank",
-      description: `${domain} appears in ChatGPT but not as a top recommendation. Create authoritative comparison content and gather more reviews on G2, Capterra, and ProductHunt.`,
-      priority: "medium",
-      aiSystem: "ChatGPT",
-    });
-  }
-  recs.push({
-    title: "Build an AI-optimized FAQ page",
-    description: "AI systems love structured Q&A content. Create a comprehensive FAQ page using natural language questions your customers ask, with detailed answers that position your brand as the expert.",
-    priority: "low",
-    aiSystem: "All",
-  });
 
-  return recs;
+    const text = response.choices[0]?.message?.content ?? "{}";
+    const parsed = JSON.parse(text);
+    const items = Array.isArray(parsed) ? parsed : (parsed.recommendations ?? parsed.items ?? []);
+
+    return items.slice(0, 5).map((item: Record<string, unknown>) => ({
+      action: String(item.action ?? ""),
+      priority: (["high", "medium", "low"].includes(String(item.priority)) ? item.priority : "medium") as "high" | "medium" | "low",
+      effortHours: Number(item.effort_hours ?? 2),
+      impactScore: Number(item.impact_score ?? 8),
+      category: String(item.category ?? "content"),
+    }));
+  } catch {
+    return [
+      {
+        action: `Publish a detailed comparison article positioning ${brandName} against top competitors in ${category}. Include specific use cases and customer testimonials.`,
+        priority: "high",
+        effortHours: 4,
+        impactScore: 15,
+        category: "content",
+      },
+      {
+        action: `Get ${brandName} listed on G2, Capterra, and ProductHunt with complete profiles. AI systems pull heavily from these authoritative review sources.`,
+        priority: "high",
+        effortHours: 2,
+        impactScore: 12,
+        category: "citations",
+      },
+      {
+        action: `Create a structured FAQ page answering common questions about ${category} in ${market}. Use natural language questions and position ${brandName} as the expert answer.`,
+        priority: "medium",
+        effortHours: 3,
+        impactScore: 10,
+        category: "content",
+      },
+      {
+        action: `Add JSON-LD structured data markup to your homepage and product pages. This helps Gemini's knowledge graph understand and cite your brand correctly.`,
+        priority: "medium",
+        effortHours: 2,
+        impactScore: 8,
+        category: "technical",
+      },
+      {
+        action: `Publish original research or a data report about trends in ${category}. Data-driven content gets cited by Perplexity's real-time web search more frequently.`,
+        priority: "low",
+        effortHours: 8,
+        impactScore: 6,
+        category: "pr",
+      },
+    ];
+  }
 }
-
-export { extractDomain };

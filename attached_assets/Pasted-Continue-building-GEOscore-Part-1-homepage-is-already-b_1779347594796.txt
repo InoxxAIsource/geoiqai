@@ -1,0 +1,779 @@
+Continue building GEOscore. 
+Part 1 (homepage) is already built.
+Now build the audit engine backend, 
+audit result page, and paid dashboard.
+
+=== BACKEND: AUDIT ENGINE ===
+
+Create backend/services/audit_engine.py
+
+This is the core of the product. 
+Build it step by step exactly as described.
+
+--- STEP 1: URL VALIDATION & SCRAPING ---
+
+def validate_and_scrape(url: str) -> dict:
+  
+  # Clean the URL
+  if not url.startswith('http'):
+    url = 'https://' + url
+  
+  # Extract domain
+  domain = extract_domain(url)
+  
+  # Scrape homepage
+  try:
+    response = requests.get(url, timeout=8, 
+      headers={'User-Agent': 
+      'Mozilla/5.0 GEOscore Bot'})
+    soup = BeautifulSoup(response.text, 
+      'html.parser')
+    
+    title = soup.find('title').text if 
+      soup.find('title') else ''
+    meta_desc = soup.find('meta', 
+      {'name': 'description'})
+    meta_desc = meta_desc['content'] if 
+      meta_desc else ''
+    h1 = soup.find('h1').text if 
+      soup.find('h1') else ''
+    body_text = ' '.join(
+      soup.get_text().split()[:500])
+    
+    return {
+      'domain': domain,
+      'title': title,
+      'meta_description': meta_desc,
+      'h1': h1,
+      'body_text': body_text,
+      'success': True
+    }
+  except:
+    return {'domain': domain, 
+            'success': False}
+
+--- STEP 2: DATAFORSEO KEYWORD EXTRACTION ---
+
+Create backend/services/dataforseo.py
+
+import base64
+import httpx
+
+DATAFORSEO_URL = "https://api.dataforseo.com"
+
+def get_auth_header():
+  credentials = f"{DATAFORSEO_LOGIN}:{DATAFORSEO_PASSWORD}"
+  encoded = base64.b64encode(
+    credentials.encode()).decode()
+  return {"Authorization": f"Basic {encoded}",
+          "Content-Type": "application/json"}
+
+async def get_domain_keywords(domain: str, 
+                               location: int = 2356) -> list:
+  # Check Supabase cache first (7 day cache)
+  cached = await check_keyword_cache(domain)
+  if cached:
+    return cached
+  
+  payload = [{
+    "target": domain,
+    "language_code": "en",
+    "location_code": location,
+    "limit": 20,
+    "order_by": ["keyword_data.keyword_info.search_volume,desc"]
+  }]
+  
+  async with httpx.AsyncClient() as client:
+    response = await client.post(
+      f"{DATAFORSEO_URL}/v3/dataforseo_labs/"
+      f"google/ranked_keywords/live",
+      headers=get_auth_header(),
+      json=payload,
+      timeout=15
+    )
+  
+  data = response.json()
+  
+  keywords = []
+  try:
+    items = data['tasks'][0]['result'][0]['items']
+    for item in items[:10]:
+      keywords.append({
+        'keyword': item['keyword_data']['keyword'],
+        'volume': item['keyword_data']
+          ['keyword_info']['search_volume']
+      })
+  except:
+    keywords = []
+  
+  # Cache in Supabase for 7 days
+  if keywords:
+    await cache_keywords(domain, keywords)
+  
+  return keywords
+
+--- STEP 3: CATEGORY DETECTION VIA CLAUDE ---
+
+async def detect_category(scraped_data: dict, 
+                          keywords: list) -> dict:
+  
+  client = anthropic.Anthropic(
+    api_key=ANTHROPIC_API_KEY)
+  
+  prompt = f"""Analyze this website and return 
+JSON only, no other text:
+
+Title: {scraped_data.get('title', '')}
+Description: {scraped_data.get('meta_description', '')}
+H1: {scraped_data.get('h1', '')}
+Content: {scraped_data.get('body_text', '')[:300]}
+Top keywords: {[k['keyword'] for k in keywords[:5]]}
+
+Return this exact JSON structure:
+{{
+  "brand_name": "extracted brand name",
+  "category": "one of: health app, saas tool, 
+    ecommerce, fintech, edtech, food delivery, 
+    travel, real estate, other",
+  "market": "one of: India, Global, US, UK",
+  "product_description": "one sentence description",
+  "top_competitors": ["competitor1", 
+    "competitor2", "competitor3"]
+}}"""
+
+  message = client.messages.create(
+    model="claude-sonnet-4-20250514",
+    max_tokens=500,
+    messages=[{"role": "user", "content": prompt}]
+  )
+  
+  import json
+  try:
+    return json.loads(message.content[0].text)
+  except:
+    return {
+      "brand_name": scraped_data['domain'],
+      "category": "saas tool",
+      "market": "India",
+      "product_description": "",
+      "top_competitors": []
+    }
+
+--- STEP 4: PROMPT GENERATION ---
+
+def generate_prompts(brand_name: str, 
+                    category: str,
+                    market: str, 
+                    keywords: list,
+                    competitors: list,
+                    is_paid: bool) -> list:
+  
+  prompts = []
+  
+  # Brand prompts (always)
+  brand_prompts = [
+    f"What is {brand_name}?",
+    f"{brand_name} review",
+    f"Is {brand_name} good?",
+    f"{brand_name} alternatives"
+  ]
+  prompts.extend(brand_prompts[:3 
+    if not is_paid else 4])
+  
+  # Keyword prompts from DataForSEO
+  if keywords:
+    for kw in keywords[:5 if not is_paid else 10]:
+      prompts.append(kw['keyword'])
+  else:
+    # Fallback prompts
+    fallback = [
+      f"best {category} for {market}",
+      f"top {category} apps {market}",
+      f"{category} recommendations {market}"
+    ]
+    prompts.extend(fallback[:2 
+      if not is_paid else 3])
+  
+  # Competitor prompts (paid only)
+  if is_paid and competitors:
+    for comp in competitors[:2]:
+      prompts.append(
+        f"alternatives to {comp}")
+      prompts.append(
+        f"{brand_name} vs {comp}")
+  
+  return prompts
+
+--- STEP 5: QUERY AI SYSTEMS IN PARALLEL ---
+
+Create backend/services/ai_queries.py
+
+async def query_chatgpt(prompt: str) -> str:
+  client = openai.AsyncOpenAI(
+    api_key=OPENAI_API_KEY)
+  
+  response = await client.chat.completions.create(
+    model="gpt-4o-mini",
+    temperature=0.3,
+    max_tokens=500,
+    messages=[
+      {"role": "system", 
+       "content": "You are a helpful assistant. "
+       "Answer questions directly and recommend "
+       "specific products or services where relevant."},
+      {"role": "user", "content": prompt}
+    ]
+  )
+  return response.choices[0].message.content
+
+async def query_gemini(prompt: str) -> str:
+  import google.generativeai as genai
+  genai.configure(api_key=GEMINI_API_KEY)
+  model = genai.GenerativeModel('gemini-1.5-flash')
+  response = model.generate_content(prompt)
+  return response.text
+
+async def query_perplexity(prompt: str) -> str:
+  async with httpx.AsyncClient() as client:
+    response = await client.post(
+      "https://api.perplexity.ai/chat/completions",
+      headers={
+        "Authorization": f"Bearer {PERPLEXITY_API_KEY}",
+        "Content-Type": "application/json"
+      },
+      json={
+        "model": "llama-3.1-sonar-small-128k-online",
+        "messages": [
+          {"role": "system", 
+           "content": "Be precise and recommend "
+           "specific products where relevant."},
+          {"role": "user", "content": prompt}
+        ],
+        "max_tokens": 500,
+        "temperature": 0.3
+      },
+      timeout=15
+    )
+    data = response.json()
+    return data['choices'][0]['message']['content']
+
+async def run_all_queries(prompts: list) -> dict:
+  results = {
+    'chatgpt': [],
+    'gemini': [],
+    'perplexity': []
+  }
+  
+  for prompt in prompts:
+    tasks = [
+      query_chatgpt(prompt),
+      query_gemini(prompt),
+      query_perplexity(prompt)
+    ]
+    
+    responses = await asyncio.gather(
+      *tasks, return_exceptions=True)
+    
+    results['chatgpt'].append({
+      'prompt': prompt,
+      'response': responses[0] 
+        if not isinstance(responses[0], Exception) 
+        else 'timeout'
+    })
+    results['gemini'].append({
+      'prompt': prompt,
+      'response': responses[1] 
+        if not isinstance(responses[1], Exception) 
+        else 'timeout'
+    })
+    results['perplexity'].append({
+      'prompt': prompt,
+      'response': responses[2] 
+        if not isinstance(responses[2], Exception) 
+        else 'timeout'
+    })
+  
+  return results
+
+--- STEP 6: SCORE CALCULATION ---
+
+Create backend/services/score_calculator.py
+
+def calculate_score(brand_name: str, 
+                   ai_responses: list) -> dict:
+  
+  brand_lower = brand_name.lower()
+  score = 0
+  found = False
+  detail = ""
+  competitor_mentions = []
+  
+  for item in ai_responses:
+    response = item.get('response', '').lower()
+    
+    if brand_lower in response:
+      found = True
+      
+      # Position bonus
+      first_mention = response.find(brand_lower)
+      total_length = len(response)
+      
+      if first_mention < total_length * 0.3:
+        score += 15  # Found early = strong signal
+      else:
+        score += 10  # Found but buried
+      
+      # Extract detail for UI
+      sentences = response.split('.')
+      for s in sentences:
+        if brand_lower in s:
+          detail = s.strip()[:120]
+          break
+  
+  # Cap at 33 per system
+  score = min(score, 33)
+  
+  return {
+    'found': found,
+    'score': score,
+    'detail': detail if found 
+      else "Not found in AI responses",
+    'competitor_mentions': competitor_mentions
+  }
+
+def calculate_total_score(brand_name: str, 
+                          all_results: dict) -> dict:
+  
+  chatgpt_score = calculate_score(
+    brand_name, all_results['chatgpt'])
+  gemini_score = calculate_score(
+    brand_name, all_results['gemini'])
+  perplexity_score = calculate_score(
+    brand_name, all_results['perplexity'])
+  
+  total = (chatgpt_score['score'] + 
+           gemini_score['score'] + 
+           perplexity_score['score'])
+  
+  return {
+    'total': min(total, 100),
+    'chatgpt': chatgpt_score,
+    'gemini': gemini_score,
+    'perplexity': perplexity_score
+  }
+
+--- STEP 7: RECOMMENDATION GENERATION ---
+
+Create backend/services/recommendations.py
+
+async def generate_recommendations(
+  brand_name: str,
+  domain: str,
+  category: str,
+  market: str,
+  scores: dict,
+  keywords: list) -> list:
+  
+  client = anthropic.Anthropic(
+    api_key=ANTHROPIC_API_KEY)
+  
+  audit_summary = f"""
+Brand: {brand_name}
+Domain: {domain}
+Category: {category}
+Market: {market}
+ChatGPT score: {scores['chatgpt']['score']}/33 
+  — Found: {scores['chatgpt']['found']}
+Gemini score: {scores['gemini']['score']}/33 
+  — Found: {scores['gemini']['found']}
+Perplexity score: {scores['perplexity']['score']}/33 
+  — Found: {scores['perplexity']['found']}
+Top keywords: {[k['keyword'] for k in keywords[:5]]}
+"""
+
+  prompt = f"""You are a GEO (Generative Engine 
+Optimization) expert. Here is the AI visibility 
+audit for a brand:
+
+{audit_summary}
+
+Generate exactly 5 specific actionable 
+recommendations to improve their AI visibility.
+Be very specific — name exact actions, 
+not generic advice.
+
+Return JSON array only, no other text:
+[
+  {{
+    "action": "specific 2-sentence action",
+    "priority": "high",
+    "effort_hours": 2,
+    "impact_score": 12,
+    "category": "citations"
+  }}
+]
+
+Priority must be: high, medium, or low
+Category must be: citations, content, 
+                  technical, pr, social"""
+
+  message = client.messages.create(
+    model="claude-sonnet-4-20250514",
+    max_tokens=1000,
+    messages=[{"role": "user", "content": prompt}]
+  )
+  
+  import json
+  try:
+    return json.loads(message.content[0].text)
+  except:
+    return []
+
+--- STEP 8: MAIN AUDIT ROUTE ---
+
+Create backend/routers/audit.py
+
+@router.post("/api/audit")
+async def run_audit(request: AuditRequest, 
+                   req: Request):
+  
+  # Rate limiting
+  ip = req.client.host
+  if not await check_rate_limit(ip):
+    raise HTTPException(429, 
+      "Free limit reached (3/day). "
+      "Upgrade for unlimited checks.")
+  
+  # Check 24h cache
+  cached = await check_audit_cache(
+    request.domain)
+  if cached:
+    cached['from_cache'] = True
+    return cached
+  
+  # Run full pipeline
+  scraped = await validate_and_scrape(request.url)
+  keywords = await get_domain_keywords(
+    scraped['domain'])
+  category_data = await detect_category(
+    scraped, keywords)
+  
+  prompts = generate_prompts(
+    brand_name=category_data['brand_name'],
+    category=category_data['category'],
+    market=category_data['market'],
+    keywords=keywords,
+    competitors=category_data['top_competitors'],
+    is_paid=False
+  )
+  
+  ai_results = await run_all_queries(prompts)
+  scores = calculate_total_score(
+    category_data['brand_name'], ai_results)
+  
+  # Save to Supabase
+  audit_id = await save_audit(
+    scraped, category_data, 
+    keywords, scores, ai_results, ip)
+  
+  return {
+    'audit_id': audit_id,
+    'domain': scraped['domain'],
+    'brand_name': category_data['brand_name'],
+    'category': category_data['category'],
+    'market': category_data['market'],
+    'scores': scores,
+    'from_cache': False
+  }
+
+=== PAGE 2: AUDIT RESULT (/audit) ===
+
+Build frontend/src/pages/AuditResult.jsx
+
+On page load:
+1. Read URL param: ?url=domain.com
+2. Call POST /api/audit with the domain
+3. Show loading state while waiting
+
+Loading state (full page centered):
+- GEOscore logo at top
+- Animated progress steps:
+  "Scraping your website..." (check after 1s)
+  "Extracting keywords..." (check after 2s)
+  "Querying ChatGPT..." (check after 3s)
+  "Querying Gemini..." (check after 4s)
+  "Querying Perplexity..." (check after 5s)
+  "Calculating your score..." (check after 6s)
+- Each step: circle indicator goes from 
+  gray → spinning → green check
+- Progress bar at bottom filling up
+
+Result state (show after API returns):
+
+Top section:
+Left side:
+  - Domain name (font-weight 500, font-size 18px)
+  - "AI visibility audit · just now · [category] · [market]"
+    (font-size 12px, color #6b7280)
+
+Right side:
+  - Score number: big (font-size 40px font-weight 500)
+  - "/100" (font-size 16px, color #6b7280)
+  - "visibility score" label (font-size 11px)
+  - Color the number: red if <34, 
+    amber if 34-66, green if 67+
+
+Score bar (full width, height 8px, 
+border-radius 4px):
+Background: #f3f4f6
+Fill width = score% of total
+Fill color: red/amber/green based on score
+
+Metrics row (3 cards, bg #f9fafb):
+Card 1: "[X]/3 AI systems found you"
+Card 2: "Ranked #1 on ChatGPT" or "Not found"  
+Card 3: "[X] blind spots found"
+
+AI System cards (3 cards):
+Each card:
+  bg white, border 0.5px solid #e5e7eb,
+  border-radius 12px, padding 14px 16px,
+  display flex, align-items center,
+  justify-content space-between,
+  margin-bottom 10px
+
+  Left side:
+    Status icon circle (36px):
+      green bg + green check if found
+      red bg + red x if not found
+      amber bg + amber minus if partial
+    System name (font-weight 500, 14px)
+    Detail line (font-size 12px, color #6b7280)
+
+  Right side:
+    Status badge pill:
+      "Visible" — bg #E1F5EE, text #085041
+      "Invisible" — bg #FCEBEB, text #791F1F
+      "Partial" — bg #FAEEDA, text #633806
+    Score: "[X]/33 pts" 
+    (font-size 12px, color #6b7280)
+
+Locked recommendations section:
+bg #f9fafb, border 0.5px solid #e5e7eb,
+border-radius 12px, padding 24px,
+margin-top 20px, text-center
+
+  Title: "Your AI visibility fix plan is ready"
+  font-size 16px, font-weight 500
+
+  Subtitle: "5 specific actions to appear 
+  in Gemini and Perplexity"
+  font-size 13px, color #6b7280, 
+  margin-bottom 20px
+
+  Blurred preview (filter: blur(5px), 
+  pointer-events none):
+    3 fake recommendation rows showing:
+    - Red/amber/green priority dot
+    - Gray placeholder text lines
+
+  Upgrade button (full width, primary):
+  "Unlock full plan + daily monitoring — 
+  ₹3,999/mo →"
+  On click: redirect to /pricing
+
+  Divider "or"
+
+  Email capture (full width):
+  Input: "Enter your email for free weekly digest"
+  Button: "Send me the free report →"
+  On submit: POST /api/subscribe
+
+Share section:
+"Share your score:"
+Twitter/X share button with pre-filled text:
+"I just checked my AI visibility score 
+with @GEOscore — [domain] got [score]/100. 
+Check yours free at geoscore.app"
+
+=== PAGE 3: PAID DASHBOARD (/dashboard) ===
+
+Build frontend/src/pages/Dashboard.jsx
+
+Auth check on load:
+- Check Supabase session
+- If no valid session → redirect to /pricing
+
+Layout: flex row, full height
+
+LEFT SIDEBAR (160px wide, 
+border-right 0.5px solid #e5e7eb,
+bg white, padding 16px 0):
+
+Logo area (padding 0 16px 16px):
+"GEOscore" in purple
+
+Nav items (each 36px tall, 
+padding 0 16px, display flex, 
+align-items center, gap 8px,
+font-size 13px, cursor pointer):
+
+Active state: 
+  bg #EEEDFE, color #534AB7, 
+  font-weight 500,
+  border-right 2px solid #534AB7
+
+Inactive state: color #6b7280, 
+  hover bg #f9fafb
+
+Items:
+  Overview (home icon)
+  ChatGPT (robot icon)
+  Gemini (robot icon)
+  Perplexity (robot icon)
+  Fix actions (bulb icon)
+  Competitors (users icon)
+  Integrations (plug icon)
+  Settings (settings icon)
+
+MAIN CONTENT AREA 
+(flex 1, bg #f9fafb, overflow-y auto):
+
+Top bar (bg white, padding 12px 20px,
+border-bottom 0.5px solid #e5e7eb,
+display flex, justify-content space-between):
+  Left: domain name being monitored
+  Right: Bell icon + Settings icon + 
+         "Upgrade plan" button if on free
+
+OVERVIEW TAB CONTENT:
+
+Metrics row (4 cards, grid 4 col, gap 10px):
+Each metric card:
+  bg white, border 0.5px solid #e5e7eb,
+  border-radius 8px, padding 12px 16px
+
+  Card 1: 
+    Label: "Visibility score" 
+    (11px, color #6b7280)
+    Value: "33" (24px, font-weight 500)
+  
+  Card 2:
+    Label: "vs last week"
+    Value: "↓ 8" in red or "↑ 5" in green
+  
+  Card 3:
+    Label: "AI systems visible"
+    Value: "1/4"
+  
+  Card 4:
+    Label: "Competitors tracked"
+    Value: "3"
+
+Two column grid (gap 12px):
+
+LEFT CARD — Score trend:
+bg white, border 0.5px solid #e5e7eb,
+border-radius 12px, padding 16px
+
+Title: "Score trend — last 30 days"
+font-size 13px, font-weight 500
+
+Chart: use Chart.js bar chart
+Height: 120px
+Data: last 30 daily scores
+Bar color: #EEEDFE with last bar #534AB7
+X axis: dates abbreviated
+Y axis: 0 to 100
+
+Note below: "Score dropped after Gemini 
+model update on [date]"
+font-size 11px, color #9ca3af
+
+RIGHT CARD — AI system status:
+bg white, border 0.5px solid #e5e7eb,
+border-radius 12px, padding 16px
+
+Title: "AI system status today"
+
+4 rows (ChatGPT, Gemini, 
+Perplexity, Copilot):
+Each row: name + detail + badge
+Border-bottom between rows
+
+FIX ACTIONS CARD (full width):
+bg white, border 0.5px solid #e5e7eb,
+border-radius 12px, padding 16px,
+margin-top 12px
+
+Header row: 
+  "Fix actions — generated this week" 
+  (font-weight 500, 13px)
+  "Refresh" button (outlined, small, right)
+
+5 action rows:
+Each row (padding 10px 0, 
+border-bottom 0.5px solid #e5e7eb):
+  Priority badge (high/medium/low) left
+  Action text (flex 1, font-size 13px)
+  Effort: "~2 hrs" 
+  (font-size 11px, color #9ca3af)
+  Impact: "+10 pts" 
+  (font-size 11px, color #1D9E75)
+  "Done" button (outlined, 
+  height 28px, font-size 11px)
+
+On "Done" click:
+  Strike through the action text
+  Change button to green "✓ Done"
+  Save to Supabase
+
+COMPETITOR TRACKING CARD:
+bg white, border 0.5px solid #e5e7eb,
+border-radius 12px, padding 16px,
+margin-top 12px
+
+Title: "Competitors tracked"
+
+Add competitor row:
+  Input: "Enter competitor URL"
+  "Track" button
+  On add: save to monitored_brands.competitors
+
+Competitor list:
+Each competitor row:
+  Domain | ChatGPT score | 
+  Gemini score | Perplexity score | 
+  "Remove" button
+
+INTEGRATIONS CARD:
+bg white, border 0.5px solid #e5e7eb,
+border-radius 12px, padding 16px,
+margin-top 12px
+
+Title: "Connect data sources"
+Subtitle: "Use your real keywords 
+for more accurate AI visibility checks"
+
+Two integration rows:
+
+Google Search Console row:
+  GSC logo | "Google Search Console" | 
+  "Use your real Google keywords" |
+  "Connect →" button (outlined)
+  Status: gray dot "Not connected"
+
+Bing Webmaster row:
+  Bing logo | "Bing Webmaster Tools" |
+  "Track Copilot AI visibility" |
+  "Connect →" button (outlined)
+  Status: gray dot "Not connected"
+
+=== STEP 2 COMPLETE ===
+After building, test:
+1. POST /api/audit returns valid JSON
+2. Audit result page shows correct scores
+3. Loading animation works smoothly
+4. Dashboard loads after payment
+5. Chart.js renders score trend
+6. Mark done button updates correctly
