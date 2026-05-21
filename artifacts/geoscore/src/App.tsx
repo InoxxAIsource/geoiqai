@@ -1,4 +1,5 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { useEffect } from "react";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -27,24 +28,35 @@ const queryClient = new QueryClient({
   },
 });
 
+function ScrollToTop() {
+  const [location] = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [location]);
+  return null;
+}
+
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/audit" component={Audit} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/pricing" component={Pricing} />
-      <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
-      <Route path="/what-is-geo" component={WhatIsGeo} />
-      <Route path="/how-to-rank-in-chatgpt" component={HowToRankInChatGPT} />
-      <Route path="/geo-tools" component={GeoTools} />
-      <Route path="/blog/why-startup-not-showing-chatgpt" component={BlogChatGPT} />
-      <Route path="/blog" component={Blog} />
-      <Route path="/privacy" component={Privacy} />
-      <Route path="/terms" component={Terms} />
-      <Route component={NotFound} />
-    </Switch>
+    <>
+      <ScrollToTop />
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/audit" component={Audit} />
+        <Route path="/dashboard" component={Dashboard} />
+        <Route path="/pricing" component={Pricing} />
+        <Route path="/login" component={Login} />
+        <Route path="/register" component={Register} />
+        <Route path="/what-is-geo" component={WhatIsGeo} />
+        <Route path="/how-to-rank-in-chatgpt" component={HowToRankInChatGPT} />
+        <Route path="/geo-tools" component={GeoTools} />
+        <Route path="/blog/why-startup-not-showing-chatgpt" component={BlogChatGPT} />
+        <Route path="/blog" component={Blog} />
+        <Route path="/privacy" component={Privacy} />
+        <Route path="/terms" component={Terms} />
+        <Route component={NotFound} />
+      </Switch>
+    </>
   );
 }
 
