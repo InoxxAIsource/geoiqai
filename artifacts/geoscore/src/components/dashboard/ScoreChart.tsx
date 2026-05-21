@@ -48,7 +48,7 @@ export function ScoreChart({ data }: ScoreChartProps) {
             type="monotone" 
             dataKey="scoreTotal" 
             name="Overall Score" 
-            stroke="#534AB7" 
+            stroke="#4F46E5" 
             strokeWidth={3} 
             dot={{ r: 4, strokeWidth: 2 }} 
             activeDot={{ r: 6 }} 

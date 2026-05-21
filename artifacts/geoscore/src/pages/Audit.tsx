@@ -55,7 +55,7 @@ function SystemRow({
     Gemini: "#4285f4",
     Perplexity: "#22d3ee",
   };
-  const color = systemColors[system] ?? "#534AB7";
+  const color = systemColors[system] ?? "#4F46E5";
 
   return (
     <div
@@ -131,6 +131,7 @@ function SystemRow({
 }
 
 export default function Audit() {
+  useEffect(() => { document.title = "Your GEO IQ Score — GeoIQ"; }, []);
   const [, setLocation] = useLocation();
   const query = useQuery();
   const urlParam = query.get("url");
@@ -259,7 +260,7 @@ export default function Audit() {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        background: isDone ? "#10b981" : isCurrent ? "#534AB7" : "#e5e7eb",
+                        background: isDone ? "#10b981" : isCurrent ? "#4F46E5" : "#e5e7eb",
                         transition: "background 0.3s",
                       }}
                     >
@@ -274,7 +275,7 @@ export default function Audit() {
                     <span
                       style={{
                         fontSize: 14,
-                        color: isDone ? "#10b981" : isCurrent ? "#534AB7" : "#6b7280",
+                        color: isDone ? "#10b981" : isCurrent ? "#4F46E5" : "#6b7280",
                         fontWeight: isCurrent ? 500 : 400,
                       }}
                     >
@@ -289,7 +290,7 @@ export default function Audit() {
               <div
                 style={{
                   height: "100%",
-                  background: "#534AB7",
+                  background: "#4F46E5",
                   borderRadius: 4,
                   width: `${Math.round(((loadingStep + 1) / LOADING_STEPS.length) * 100)}%`,
                   transition: "width 1.5s ease",
@@ -496,7 +497,7 @@ export default function Audit() {
               </div>
 
               <Link href="/pricing">
-                <Button style={{ width: "100%", background: "#534AB7", color: "white", marginBottom: 16, height: 42 }}>
+                <Button style={{ width: "100%", background: "#4F46E5", color: "white", marginBottom: 16, height: 42 }}>
                   Unlock full GEO IQ report — ₹3,999/mo →
                 </Button>
               </Link>

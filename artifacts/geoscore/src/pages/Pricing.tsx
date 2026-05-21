@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { useCreatePaymentOrder, useGetMe, PaymentOrderInputPlan } from "@workspace/api-client-react";
@@ -27,6 +27,7 @@ function loadRazorpayScript(): Promise<void> {
 }
 
 export default function Pricing() {
+  useEffect(() => { document.title = "Pricing — GeoIQ"; }, []);
   const { isAuthenticated } = useAuthGuard();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -74,7 +75,7 @@ export default function Pricing() {
         description: planId === "starter"
           ? "GeoIQ Starter — Daily AI Visibility Monitoring"
           : "GeoIQ Agency — 10 Brands AI Monitoring",
-        theme: { color: "#534AB7" },
+        theme: { color: "#4F46E5" },
         prefill: { email: userEmail },
         handler: async (response: {
           razorpay_order_id: string;
@@ -126,10 +127,10 @@ export default function Pricing() {
       <main className="flex-1 py-20 px-4">
         <div className="max-w-4xl mx-auto text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-semibold text-text-primary mb-6">
-            Boost your GEO IQ
+            Simple, honest pricing
           </h1>
           <p className="text-lg text-text-secondary">
-            Monitor your brand across 4 AI systems daily. Get your score every week.
+            Start free. Upgrade when ready.
           </p>
         </div>
 

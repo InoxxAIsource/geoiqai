@@ -1,9 +1,11 @@
+import { useEffect } from "react";
 import { Link } from "wouter";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 
 export default function HowToRankInChatGPT() {
+  useEffect(() => { document.title = "How to Appear in ChatGPT Results — Complete Guide — GeoIQ"; }, []);
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Navbar />
@@ -107,7 +109,7 @@ export default function HowToRankInChatGPT() {
               },
             ].map((item, i) => (
               <div key={i} style={{ display: "flex", gap: 16, padding: "16px 0", borderBottom: "1px solid #f3f4f6" }}>
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#EEEDFE", color: "#534AB7", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 13, flexShrink: 0, marginTop: 2 }}>
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#EEF2FF", color: "#4F46E5", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 13, flexShrink: 0, marginTop: 2 }}>
                   {i + 1}
                 </div>
                 <div>
@@ -167,7 +169,7 @@ export default function HowToRankInChatGPT() {
             ))}
           </div>
 
-          <div style={{ background: "#534AB7", borderRadius: 16, padding: 32, textAlign: "center", marginBottom: 48 }}>
+          <div style={{ background: "#4F46E5", borderRadius: 16, padding: 32, textAlign: "center", marginBottom: 48 }}>
             <h3 style={{ color: "white", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>
               Check if ChatGPT knows your brand
             </h3>
@@ -175,17 +177,17 @@ export default function HowToRankInChatGPT() {
               Free audit. No signup. Results in 60 seconds.
             </p>
             <Link href="/">
-              <Button style={{ background: "white", color: "#534AB7", fontWeight: 600 }}>
+              <Button style={{ background: "white", color: "#4F46E5", fontWeight: 600 }}>
                 Check my score →
               </Button>
             </Link>
           </div>
 
           <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 24, display: "flex", gap: 24, flexWrap: "wrap" }}>
-            <Link href="/what-is-geo" style={{ fontSize: 14, color: "#534AB7", textDecoration: "none" }}>
+            <Link href="/what-is-geo" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
               ← What is GEO?
             </Link>
-            <Link href="/geo-tools" style={{ fontSize: 14, color: "#534AB7", textDecoration: "none" }}>
+            <Link href="/geo-tools" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
               Best GEO tools 2026 →
             </Link>
           </div>

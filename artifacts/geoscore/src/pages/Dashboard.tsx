@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
 import {
   useGetDashboardSummary,
@@ -118,6 +118,7 @@ function generateFixActions(brand: any): FixAction[] {
 }
 
 export default function Dashboard() {
+  useEffect(() => { document.title = "GEO IQ Dashboard — GeoIQ"; }, []);
   const { isAuthenticated } = useAuthGuard();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -238,7 +239,7 @@ export default function Dashboard() {
           flexShrink: 0,
         }}
       >
-        <div style={{ padding: "0 16px 16px", fontWeight: 600, fontSize: 14, color: "#534AB7" }}>GeoIQ</div>
+        <div style={{ padding: "0 16px 16px", fontWeight: 600, fontSize: 14, color: "#4F46E5" }}>GeoIQ</div>
 
         <nav style={{ flex: 1 }}>
           {NAV_ITEMS.map(({ label, icon: Icon }) => {
@@ -256,10 +257,10 @@ export default function Dashboard() {
                   gap: 8,
                   fontSize: 13,
                   cursor: "pointer",
-                  background: isActive ? "#EEEDFE" : "transparent",
-                  color: isActive ? "#534AB7" : "#6b7280",
+                  background: isActive ? "#EEF2FF" : "transparent",
+                  color: isActive ? "#4F46E5" : "#6b7280",
                   fontWeight: isActive ? 500 : 400,
-                  borderRight: isActive ? "2px solid #534AB7" : "2px solid transparent",
+                  borderRight: isActive ? "2px solid #4F46E5" : "2px solid transparent",
                   border: "none",
                   borderRightStyle: "solid",
                   borderRightWidth: isActive ? 2 : 0,
@@ -273,7 +274,7 @@ export default function Dashboard() {
                   if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent";
                 }}
               >
-                <Icon style={{ color: isActive ? "#534AB7" : "#6b7280" }} />
+                <Icon style={{ color: isActive ? "#4F46E5" : "#6b7280" }} />
                 {label}
               </button>
             );
@@ -304,7 +305,7 @@ export default function Dashboard() {
             {user?.plan === "free" && (
               <button
                 style={{
-                  background: "#534AB7",
+                  background: "#4F46E5",
                   color: "white",
                   border: "none",
                   borderRadius: 6,
@@ -324,7 +325,7 @@ export default function Dashboard() {
         <div style={{ flex: 1, overflowY: "auto", padding: 20 }}>
           {isLoading ? (
             <div style={{ display: "flex", justifyContent: "center", paddingTop: 60 }}>
-              <Loader2 style={{ width: 28, height: 28, color: "#534AB7", animation: "spin 1s linear infinite" }} />
+              <Loader2 style={{ width: 28, height: 28, color: "#4F46E5", animation: "spin 1s linear infinite" }} />
             </div>
           ) : brands?.length === 0 ? (
             <div
@@ -358,10 +359,10 @@ export default function Dashboard() {
                       fontSize: 12,
                       fontWeight: 500,
                       cursor: "pointer",
-                      background: selectedBrandId === b.id ? "#534AB7" : "white",
+                      background: selectedBrandId === b.id ? "#4F46E5" : "white",
                       color: selectedBrandId === b.id ? "white" : "#6b7280",
                       border: "0.5px solid",
-                      borderColor: selectedBrandId === b.id ? "#534AB7" : "#e5e7eb",
+                      borderColor: selectedBrandId === b.id ? "#4F46E5" : "#e5e7eb",
                     }}
                   >
                     {b.domain}
@@ -465,7 +466,7 @@ export default function Dashboard() {
                               {chartData.map((entry, index) => (
                                 <Cell
                                   key={index}
-                                  fill={entry.isLast ? "#534AB7" : "#EEEDFE"}
+                                  fill={entry.isLast ? "#4F46E5" : "#EEF2FF"}
                                 />
                               ))}
                             </Bar>
@@ -787,7 +788,7 @@ export default function Dashboard() {
                     <button
                       onClick={handleAddCompetitor}
                       style={{
-                        background: "#534AB7",
+                        background: "#4F46E5",
                         color: "white",
                         border: "none",
                         borderRadius: 6,

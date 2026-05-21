@@ -1,9 +1,11 @@
+import { useEffect } from "react";
 import { Link } from "wouter";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 
 export default function BlogChatGPT() {
+  useEffect(() => { document.title = "Why Your Startup Doesn't Show Up in ChatGPT (And How to Fix It) — GeoIQ"; }, []);
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Navbar />
@@ -26,7 +28,7 @@ export default function BlogChatGPT() {
           </p>
 
           {/* Opening hook */}
-          <blockquote style={{ borderLeft: "3px solid #534AB7", paddingLeft: 20, marginBottom: 32 }}>
+          <blockquote style={{ borderLeft: "3px solid #4F46E5", paddingLeft: 20, marginBottom: 32 }}>
             <p style={{ fontSize: 17, color: "#374151", lineHeight: 1.8, fontStyle: "italic", margin: 0 }}>
               "I asked ChatGPT 'best cricket arbitrage scanner for IPL.' My site came fourth. Fine — I could work with that. Then I asked about MealCoreAI — a product with 12,000 users and incredibly deep content about meal planning for Indian households. Gemini had never heard of it. Perplexity same. That was the moment I realized AI visibility is broken for indie founders, especially in India."
             </p>
@@ -80,14 +82,14 @@ export default function BlogChatGPT() {
             ].map((item, i) => (
               <div key={i} style={{ marginBottom: 32 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#EEEDFE", color: "#534AB7", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 13, flexShrink: 0 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#EEF2FF", color: "#4F46E5", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 13, flexShrink: 0 }}>
                     {i + 1}
                   </div>
                   <h3 style={{ fontSize: 17, fontWeight: 600, color: "#111827", margin: 0 }}>{item.cause}</h3>
                 </div>
                 <p style={{ fontSize: 15, color: "#374151", lineHeight: 1.8, marginBottom: 12, paddingLeft: 36 }}>{item.explanation}</p>
-                <div style={{ background: "#f9fafb", borderRadius: 8, padding: "12px 16px", marginLeft: 36, borderLeft: "3px solid #534AB7" }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#534AB7", textTransform: "uppercase", letterSpacing: "0.05em" }}>Fix: </span>
+                <div style={{ background: "#f9fafb", borderRadius: 8, padding: "12px 16px", marginLeft: 36, borderLeft: "3px solid #4F46E5" }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#4F46E5", textTransform: "uppercase", letterSpacing: "0.05em" }}>Fix: </span>
                   <span style={{ fontSize: 14, color: "#374151" }}>{item.fix}</span>
                 </div>
               </div>
@@ -136,7 +138,7 @@ export default function BlogChatGPT() {
               },
             ].map((item, i) => (
               <div key={i} style={{ display: "flex", gap: 16, padding: "16px 0", borderBottom: "1px solid #f3f4f6" }}>
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#EEEDFE", color: "#534AB7", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 13, flexShrink: 0, marginTop: 2 }}>
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#EEF2FF", color: "#4F46E5", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 13, flexShrink: 0, marginTop: 2 }}>
                   {i + 1}
                 </div>
                 <div style={{ flex: 1 }}>
@@ -173,7 +175,7 @@ export default function BlogChatGPT() {
             The brands winning at GEO in 2026 are the ones that started measuring first. Most of your competitors are not tracking this yet. That is your window.
           </p>
 
-          <div style={{ background: "#534AB7", borderRadius: 16, padding: 32, textAlign: "center", marginBottom: 48 }}>
+          <div style={{ background: "#4F46E5", borderRadius: 16, padding: 32, textAlign: "center", marginBottom: 48 }}>
             <h3 style={{ color: "white", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>
               Check your brand right now — free
             </h3>
@@ -181,17 +183,17 @@ export default function BlogChatGPT() {
               No signup. No email needed. See where you stand in ChatGPT, Gemini, and Perplexity in 60 seconds.
             </p>
             <Link href="/">
-              <Button style={{ background: "white", color: "#534AB7", fontWeight: 600 }}>
+              <Button style={{ background: "white", color: "#4F46E5", fontWeight: 600 }}>
                 Check my score →
               </Button>
             </Link>
           </div>
 
           <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 24, display: "flex", gap: 24, flexWrap: "wrap" }}>
-            <Link href="/what-is-geo" style={{ fontSize: 14, color: "#534AB7", textDecoration: "none" }}>
+            <Link href="/what-is-geo" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
               What is GEO? →
             </Link>
-            <Link href="/how-to-rank-in-chatgpt" style={{ fontSize: 14, color: "#534AB7", textDecoration: "none" }}>
+            <Link href="/how-to-rank-in-chatgpt" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
               Full ChatGPT ranking guide →
             </Link>
           </div>

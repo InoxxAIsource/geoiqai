@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link } from "wouter";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -104,6 +105,7 @@ function Check({ value }: { value: boolean }) {
 }
 
 export default function GeoTools() {
+  useEffect(() => { document.title = "Best GEO Tools 2026 — AI Visibility Platforms Compared — GeoIQ"; }, []);
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Navbar />
@@ -148,7 +150,7 @@ export default function GeoTools() {
               <div
                 key={tool.name}
                 style={{
-                  border: tool.highlight ? "1.5px solid #534AB7" : "1px solid #e5e7eb",
+                  border: tool.highlight ? "1.5px solid #4F46E5" : "1px solid #e5e7eb",
                   borderRadius: 12,
                   padding: 24,
                   position: "relative",
@@ -156,7 +158,7 @@ export default function GeoTools() {
                 }}
               >
                 {tool.highlight && (
-                  <div style={{ position: "absolute", top: -12, left: 20, background: "#534AB7", color: "white", fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 9999 }}>
+                  <div style={{ position: "absolute", top: -12, left: 20, background: "#4F46E5", color: "white", fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 9999 }}>
                     RECOMMENDED
                   </div>
                 )}
@@ -179,7 +181,7 @@ export default function GeoTools() {
                 </div>
                 {tool.highlight ? (
                   <Link href={tool.url}>
-                    <Button size="sm" style={{ background: "#534AB7", color: "white" }}>{tool.cta}</Button>
+                    <Button size="sm" style={{ background: "#4F46E5", color: "white" }}>{tool.cta}</Button>
                   </Link>
                 ) : (
                   <a href={tool.url} target="_blank" rel="noopener noreferrer">
@@ -200,7 +202,7 @@ export default function GeoTools() {
                 <tr style={{ background: "#f9fafb" }}>
                   <th style={{ padding: "12px 16px", textAlign: "left", borderBottom: "1px solid #e5e7eb", color: "#374151" }}>Feature</th>
                   {["GeoIQ", "Profound", "Otterly", "Peec"].map((t) => (
-                    <th key={t} style={{ padding: "12px 16px", textAlign: "center", borderBottom: "1px solid #e5e7eb", color: t === "GeoIQ" ? "#534AB7" : "#374151", fontWeight: t === "GeoIQ" ? 700 : 600 }}>
+                    <th key={t} style={{ padding: "12px 16px", textAlign: "center", borderBottom: "1px solid #e5e7eb", color: t === "GeoIQ" ? "#4F46E5" : "#374151", fontWeight: t === "GeoIQ" ? 700 : 600 }}>
                       {t}
                     </th>
                   ))}
@@ -220,7 +222,7 @@ export default function GeoTools() {
             </table>
           </div>
 
-          <div style={{ background: "#534AB7", borderRadius: 16, padding: 32, textAlign: "center", marginBottom: 48 }}>
+          <div style={{ background: "#4F46E5", borderRadius: 16, padding: 32, textAlign: "center", marginBottom: 48 }}>
             <h3 style={{ color: "white", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>
               Try GeoIQ free — no signup, instant results
             </h3>
@@ -228,7 +230,7 @@ export default function GeoTools() {
               Enter your domain and see your AI visibility score across ChatGPT, Gemini, and Perplexity in 60 seconds.
             </p>
             <Link href="/">
-              <Button style={{ background: "white", color: "#534AB7", fontWeight: 600 }}>
+              <Button style={{ background: "white", color: "#4F46E5", fontWeight: 600 }}>
                 Check my score →
               </Button>
             </Link>
@@ -247,10 +249,10 @@ export default function GeoTools() {
           </p>
 
           <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 24, display: "flex", gap: 24, flexWrap: "wrap" }}>
-            <Link href="/what-is-geo" style={{ fontSize: 14, color: "#534AB7", textDecoration: "none" }}>
+            <Link href="/what-is-geo" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
               ← What is GEO?
             </Link>
-            <Link href="/how-to-rank-in-chatgpt" style={{ fontSize: 14, color: "#534AB7", textDecoration: "none" }}>
+            <Link href="/how-to-rank-in-chatgpt" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
               How to rank in ChatGPT →
             </Link>
           </div>

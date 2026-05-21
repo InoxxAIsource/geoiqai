@@ -14,6 +14,9 @@ import WhatIsGeo from "@/pages/WhatIsGeo";
 import HowToRankInChatGPT from "@/pages/HowToRankInChatGPT";
 import GeoTools from "@/pages/GeoTools";
 import BlogChatGPT from "@/pages/BlogChatGPT";
+import Blog from "@/pages/Blog";
+import Privacy from "@/pages/Privacy";
+import Terms from "@/pages/Terms";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,6 +40,9 @@ function Router() {
       <Route path="/how-to-rank-in-chatgpt" component={HowToRankInChatGPT} />
       <Route path="/geo-tools" component={GeoTools} />
       <Route path="/blog/why-startup-not-showing-chatgpt" component={BlogChatGPT} />
+      <Route path="/blog" component={Blog} />
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/terms" component={Terms} />
       <Route component={NotFound} />
     </Switch>
   );
