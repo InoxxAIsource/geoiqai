@@ -295,10 +295,22 @@ async function queryPerplexity(prompt: string): Promise<{ text: string; simulate
 
 // --- Scoring ---
 
+// Common English words that are too generic to use as brand signals
+const GENERIC_WORDS = new Set([
+  "test","demo","example","sample","trial","temp","app","web","site","home",
+  "page","data","info","help","free","shop","store","blog","news","mail",
+  "link","work","jobs","chat","live","tech","base","core","hub","lab","go",
+]);
+
 function buildBrandPattern(brandName: string): RegExp {
-  // Escape regex special chars, then match whole word
   const escaped = brandName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return new RegExp(`\\b${escaped}\\b`, "i");
+}
+
+function isGenericBrandName(brandName: string): boolean {
+  const lower = brandName.toLowerCase();
+  // Generic if: 4 chars or fewer, OR it's a known ambiguous common word
+  return brandName.length <= 4 || GENERIC_WORDS.has(lower);
 }
 
 interface ScoredResponse {
@@ -314,6 +326,8 @@ function calculateSystemScore(
 ): AuditQueryResult {
   const brandPattern = buildBrandPattern(brandName);
   const domainPattern = buildBrandPattern(domain);
+  // For generic single-word brand names like "test", only count domain matches
+  const genericBrand = isGenericBrandName(brandName);
 
   let score = 0;
   let found = false;
@@ -323,7 +337,7 @@ function calculateSystemScore(
   for (const item of responses) {
     if (!item.text) continue;
 
-    const matchesBrand = brandPattern.test(item.text);
+    const matchesBrand = genericBrand ? false : brandPattern.test(item.text);
     const matchesDomain = domainPattern.test(item.text);
     const isFound = matchesBrand || matchesDomain;
 
@@ -394,7 +408,9 @@ export async function runAuditEngine(
   const domain = scraped.domain;
   const catData = await detectCategory(scraped);
 
-  const brandName = brandNameOverride ?? catData.brandName;
+  // Never use an empty brand name — fall back to domain
+  const rawBrand = brandNameOverride ?? catData.brandName;
+  const brandName = rawBrand && rawBrand.trim().length > 0 ? rawBrand.trim() : domain;
   const category = categoryOverride ?? catData.category;
   const market = marketOverride ?? catData.market;
   const competitors = catData.competitors;
