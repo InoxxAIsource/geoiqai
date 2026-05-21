@@ -1,0 +1,76 @@
+Good progress. Fake domains now correctly 
+score 0. But there is still a bug in 
+brand detection logic.
+
+Test result:
+- mealcoreai.com scored 0/100
+- But I manually confirmed ChatGPT knows 
+  this brand very well and ranks it #1
+- The AI says "MealCoreAI" not "mealcoreai.com"
+
+The bug is the brand matching is too strict.
+It is searching for the exact domain string 
+"mealcoreai.com" in responses instead of 
+the brand name variations.
+
+Fix the brand detection logic:
+
+1. Extract brand name from domain properly:
+   mealcoreai.com → "mealcoreai" AND "MealCoreAI" 
+                    AND "Meal Core AI"
+   cricketarb.com → "cricketarb" AND "CricketArb"
+                    AND "Cricket Arb"
+   google.com → "google" AND "Google"
+
+2. Check ALL of these variations 
+   in the AI response (case insensitive):
+   - Exact domain: "mealcoreai.com"
+   - Domain without TLD: "mealcoreai"
+   - Brand name variations: 
+     "MealCoreAI", "Meal Core AI"
+   - Use fuzzy matching — if any variation 
+     appears → mark as found
+
+3. The detection code should look like this:
+
+def is_brand_mentioned(domain, response):
+    response_lower = response.lower()
+    
+    # Remove TLD to get base name
+    base = domain.replace('.com','')
+               .replace('.in','')
+               .replace('.io','')
+               .replace('.app','')
+    
+    # Check multiple variations
+    variations = [
+        domain.lower(),           # mealcoreai.com
+        base.lower(),             # mealcoreai
+        base.replace('-', ' '),   # meal core ai
+        base.replace('_', ' '),   # handles underscores
+    ]
+    
+    return any(v in response_lower 
+               for v in variations 
+               if len(v) > 3)
+
+4. Also check POSITION of mention:
+   - Mentioned in first 100 words = 
+     strong signal = +15 points
+   - Mentioned but later = 
+     weak signal = +8 points
+   - Not mentioned = 0 points
+
+5. After fixing, test mealcoreai.com again.
+   Expected results:
+   - ChatGPT: 25-33 pts (known brand, ranks #1)
+   - Gemini: 0-5 pts (we confirmed invisible)
+   - Perplexity: 0-5 pts (we confirmed invisible)
+   - Total: roughly 25-40/100
+
+6. Also show me the RAW response text 
+   from ChatGPT for the query 
+   "best Indian meal plan app for diabetes"
+   so I can verify it is real.
+
+Do not use mock data. Show real API responses.

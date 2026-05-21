@@ -158,32 +158,24 @@ function generatePrompts(
   market: string,
   competitors: string[],
 ): string[] {
-  // Strategy: mix category-discovery prompts (no brand name) with one direct-lookup prompt.
-  // Category prompts test organic discovery — does AI mention this brand naturally?
-  // Direct-lookup prompt tests brand awareness — does AI have genuine knowledge of this brand?
-  // Negative-signal filtering (in scoring) ensures "I don't know xusjhf.com" never counts as found.
+  // RULE: No part of the brand name, domain, or domain root may appear in any prompt.
+  // Any brand token in a prompt causes AI to echo it back — triggering a false positive match.
+  // A score only counts when the AI mentions the brand completely unprompted.
   const prompts: string[] = [
-    // Category-discovery: brand name NOT mentioned, AI must surface it organically
     `What are the best ${category} tools available right now? List the top 10 options with a short description of each.`,
-    `Which ${category} platforms do you recommend for businesses in ${market}? Give me the top 5 with pros and cons.`,
-    `What ${category} software are startups using in ${market}? List the most recommended tools with brief descriptions.`,
+    `Which ${category} platforms do you recommend for startups in ${market}? Give the top 5 with pros and cons.`,
+    `I am evaluating ${category} software for a ${market} business. What are the most reputable and well-reviewed options?`,
   ];
 
   if (competitors.length > 0) {
     prompts.push(
-      `What are the top alternatives to ${competitors[0]} in the ${category} space? List the main competitors.`,
+      `What are the top alternatives to ${competitors[0]} in the ${category} space? List the main competitors with brief descriptions.`,
     );
   } else {
     prompts.push(
-      `What are the leading ${category} products right now? Include both established players and newer emerging tools.`,
+      `What are the leading ${category} products used by startups and scaleups in ${market}? Include both established and emerging tools.`,
     );
   }
-
-  // NOTE: We intentionally do NOT include a direct "What is [brand]?" prompt.
-  // Any AI will attempt to describe a domain when asked directly — even completely
-  // unknown or fake ones — producing confabulated answers that trigger false positives.
-  // The only trustworthy signal is whether the AI mentions the brand organically
-  // when asked to list the best tools in a category.
 
   return prompts;
 }
@@ -357,15 +349,72 @@ const GENERIC_WORDS = new Set([
   "link","work","jobs","chat","live","tech","base","core","hub","lab","go",
 ]);
 
-function buildBrandPattern(brandName: string): RegExp {
-  const escaped = brandName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`\\b${escaped}\\b`, "i");
+/**
+ * Build all lowercase string variations of a brand that could appear in AI responses.
+ *
+ * mealcoreai.com → ["mealcoreai.com", "mealcoreai", "meal core ai", "mealcoreai"]
+ * cricket-arb.com → ["cricket-arb.com", "cricket-arb", "cricket arb"]
+ * google.com      → ["google.com", "google"]
+ *
+ * Matching is done as simple case-insensitive substring search (after lowercasing both
+ * sides) so all of these fire on "MealCoreAI", "MEALCOREAI", "meal core ai", etc.
+ */
+function getBrandVariations(brandName: string, domain: string): string[] {
+  const vars = new Set<string>();
+
+  // 1. Full domain as typed: mealcoreai.com
+  vars.add(domain.toLowerCase());
+
+  // 2. Domain root — strip leading www + TLD: mealcoreai
+  const root = domain
+    .replace(/^www\./i, "")
+    .replace(/\.[a-z]{2,6}$/i, "")
+    .toLowerCase();
+  if (root.length > 3) vars.add(root);
+
+  // 3. Root with hyphens/underscores as spaces: cricket-arb → cricket arb
+  const rootSpaced = root.replace(/[-_]/g, " ");
+  if (rootSpaced !== root && rootSpaced.length > 3) vars.add(rootSpaced);
+
+  // 4. Exact brand name (lowercased): MealCoreAI → mealcoreai
+  const brandLower = brandName.toLowerCase();
+  if (brandLower.length > 3) vars.add(brandLower);
+
+  // 5. CamelCase split: MealCoreAI → meal core ai
+  const camelSplit = brandName
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .toLowerCase();
+  if (camelSplit !== brandLower && camelSplit.length > 3) vars.add(camelSplit);
+
+  return [...vars].filter((v) => v.trim().length > 3);
 }
 
-function isGenericBrandName(brandName: string): boolean {
-  const lower = brandName.toLowerCase();
-  // Generic if: 4 chars or fewer, OR it's a known ambiguous common word
-  return brandName.length <= 4 || GENERIC_WORDS.has(lower);
+/**
+ * Return true if any brand variation appears in the text (case-insensitive substring match).
+ * Skips variations that are common English words (would cause false positives).
+ */
+function textMatchesVariation(text: string, variations: string[]): boolean {
+  const lower = text.toLowerCase();
+  return variations
+    .filter((v) => !GENERIC_WORDS.has(v.replace(/\s/g, "")))
+    .some((v) => lower.includes(v));
+}
+
+/**
+ * Extract keywords from domain root for targeted prompts.
+ * mealcoreai → "meal" (first recognisable word ≥4 chars)
+ */
+function domainKeyword(domain: string): string {
+  const root = domain.replace(/^www\./i, "").replace(/\.[a-z]{2,6}$/i, "");
+  // Try camelCase split first
+  const words = root
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[-_]/g, " ")
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length >= 4 && !GENERIC_WORDS.has(w));
+  return words[0] ?? root;
 }
 
 interface ScoredResponse {
@@ -379,10 +428,8 @@ function calculateSystemScore(
   responses: ScoredResponse[],
   simulated: boolean,
 ): AuditQueryResult {
-  const brandPattern = buildBrandPattern(brandName);
-  const domainPattern = buildBrandPattern(domain);
-  // For generic single-word brand names like "test", only count domain matches
-  const genericBrand = isGenericBrandName(brandName);
+  // All lowercase string variations we'll look for in AI responses
+  const variations = getBrandVariations(brandName, domain);
 
   let score = 0;
   let found = false;
@@ -396,40 +443,36 @@ function calculateSystemScore(
     // even though the domain name appears literally in that disclaiming sentence.
     if (hasNegativeSignal(item.text)) continue;
 
-    const matchesBrand = genericBrand ? false : brandPattern.test(item.text);
-    const matchesDomain = domainPattern.test(item.text);
-    if (!matchesBrand && !matchesDomain) continue;
+    // Quick pre-check: does any variation appear anywhere in this response?
+    if (!textMatchesVariation(item.text, variations)) continue;
 
-    // Require a meaningful sentence — a bare URL in a list ("- xusjhf.com") without any
-    // description does not constitute genuine AI visibility. The sentence must be ≥40 chars
-    // and contain real words beyond just the brand/domain token itself.
-    const sentences = item.text.split(/[.!?\n]+/);
+    // Require a meaningful sentence — a bare URL in a list ("- mealcoreai.com") without any
+    // description does not constitute genuine AI visibility. The segment must be ≥40 chars.
+    const segments = item.text.split(/[.!?\n]+/);
     let mentionSentence: string | null = null;
     let mentionIndex = Infinity;
 
-    for (const s of sentences) {
-      if (brandPattern.test(s) || domainPattern.test(s)) {
-        const trimmed = s.replace(/^[\s\-*•#>]+/, "").trim();
-        // Must be long enough to contain a real description
-        if (trimmed.length >= 40) {
-          // Compute where this sentence starts in the full text for position scoring
-          const pos = item.text.indexOf(trimmed);
-          if (pos < mentionIndex) {
-            mentionIndex = pos;
-            mentionSentence = trimmed.substring(0, 160);
-          }
+    for (const s of segments) {
+      if (!textMatchesVariation(s, variations)) continue;
+      const trimmed = s.replace(/^[\s\-*•#>|]+/, "").trim();
+      // Must be long enough to contain a real description beyond just the name
+      if (trimmed.length >= 40) {
+        const pos = item.text.indexOf(trimmed);
+        if (pos < mentionIndex) {
+          mentionIndex = pos;
+          mentionSentence = trimmed.substring(0, 180);
         }
       }
     }
 
-    // Only count as found if AI provided a substantive description — not just a bare URL
+    // Only count as found if AI provided a substantive description — not just a bare name/URL
     if (!mentionSentence) continue;
 
     found = true;
 
-    // Position-based scoring: first 30% of response = 15pts, later = 10pts
+    // Position-based scoring: first 30% of response = 15pts, later = 8pts
     const totalLen = item.text.length;
-    score += mentionIndex < totalLen * 0.3 ? 15 : 10;
+    score += mentionIndex < totalLen * 0.3 ? 15 : 8;
 
     if (!detail) {
       detail = mentionSentence;
@@ -441,8 +484,7 @@ function calculateSystemScore(
     while ((match = compPattern.exec(item.text)) !== null) {
       const name = match[1]!;
       if (
-        !brandPattern.test(name) &&
-        !domainPattern.test(name) &&
+        !textMatchesVariation(name, variations) &&
         name.length > 3 &&
         !["The", "This", "That", "With", "For", "Can", "Are", "Has", "Its", "When", "What", "Here", "They", "Some", "More", "Also", "Very"].includes(name)
       ) {
