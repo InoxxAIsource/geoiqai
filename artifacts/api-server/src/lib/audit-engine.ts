@@ -158,14 +158,15 @@ function generatePrompts(
   market: string,
   competitors: string[],
 ): string[] {
-  // IMPORTANT: Never include the brand name or domain in prompts.
-  // We ask category-discovery questions and check if the AI mentions the brand unprompted.
-  // Mentioning the brand in the prompt would cause AI to echo it back, giving a false positive.
+  // Strategy: mix category-discovery prompts (no brand name) with one direct-lookup prompt.
+  // Category prompts test organic discovery — does AI mention this brand naturally?
+  // Direct-lookup prompt tests brand awareness — does AI have genuine knowledge of this brand?
+  // Negative-signal filtering (in scoring) ensures "I don't know xusjhf.com" never counts as found.
   const prompts: string[] = [
+    // Category-discovery: brand name NOT mentioned, AI must surface it organically
     `What are the best ${category} tools available right now? List the top 10 options with a short description of each.`,
     `Which ${category} platforms do you recommend for businesses in ${market}? Give me the top 5 with pros and cons.`,
-    `I need a ${category} solution. What are the most popular and well-reviewed options on the market today?`,
-    `What ${category} software are startups and founders using in ${market}? List the most recommended tools.`,
+    `What ${category} software are startups using in ${market}? List the most recommended tools with brief descriptions.`,
   ];
 
   if (competitors.length > 0) {
@@ -177,6 +178,12 @@ function generatePrompts(
       `What are the leading ${category} products right now? Include both established players and newer emerging tools.`,
     );
   }
+
+  // NOTE: We intentionally do NOT include a direct "What is [brand]?" prompt.
+  // Any AI will attempt to describe a domain when asked directly — even completely
+  // unknown or fake ones — producing confabulated answers that trigger false positives.
+  // The only trustworthy signal is whether the AI mentions the brand organically
+  // when asked to list the best tools in a category.
 
   return prompts;
 }
@@ -298,6 +305,51 @@ async function queryPerplexity(prompt: string): Promise<{ text: string; simulate
 
 // --- Scoring ---
 
+// Phrases that indicate the AI does NOT know this brand — even if the name appears in the response
+// (e.g. "I don't have information about xusjhf.com" still contains "xusjhf.com")
+const NEGATIVE_SIGNALS = [
+  "don't have information",
+  "do not have information",
+  "couldn't find",
+  "could not find",
+  "unable to find",
+  "no information",
+  "not familiar",
+  "not aware of",
+  "doesn't appear",
+  "does not appear",
+  "cannot find",
+  "can't find",
+  "no specific information",
+  "no details",
+  "not in my knowledge",
+  "outside my knowledge",
+  "not a well-known",
+  "doesn't seem to exist",
+  "does not seem to exist",
+  "no record",
+  "not recogni",
+  "don't recogni",
+  "fictional",
+  "made up",
+  "doesn't exist",
+  "does not exist",
+  "not real",
+  "no data",
+  "i'm not sure",
+  "i am not sure",
+  "i apologize",
+  "as of my knowledge cutoff",
+  "as of my last",
+  "i don't know",
+  "i do not know",
+];
+
+function hasNegativeSignal(text: string): boolean {
+  const lower = text.toLowerCase();
+  return NEGATIVE_SIGNALS.some((s) => lower.includes(s));
+}
+
 // Common English words that are too generic to use as brand signals
 const GENERIC_WORDS = new Set([
   "test","demo","example","sample","trial","temp","app","web","site","home",
@@ -340,38 +392,47 @@ function calculateSystemScore(
   for (const item of responses) {
     if (!item.text) continue;
 
+    // Negative-signal filter: if AI says "I don't have information about X" that's NOT a match
+    // even though the domain name appears literally in that disclaiming sentence.
+    if (hasNegativeSignal(item.text)) continue;
+
     const matchesBrand = genericBrand ? false : brandPattern.test(item.text);
     const matchesDomain = domainPattern.test(item.text);
-    const isFound = matchesBrand || matchesDomain;
+    if (!matchesBrand && !matchesDomain) continue;
 
-    if (isFound) {
-      found = true;
+    // Require a meaningful sentence — a bare URL in a list ("- xusjhf.com") without any
+    // description does not constitute genuine AI visibility. The sentence must be ≥40 chars
+    // and contain real words beyond just the brand/domain token itself.
+    const sentences = item.text.split(/[.!?\n]+/);
+    let mentionSentence: string | null = null;
+    let mentionIndex = Infinity;
 
-      // Position-based scoring: first 30% of response = 15pts, later = 10pts
-      const textLower = item.text.toLowerCase();
-      const brandLower = brandName.toLowerCase();
-      const domainLower = domain.toLowerCase();
-
-      const firstIdx = Math.min(
-        textLower.includes(brandLower) ? textLower.indexOf(brandLower) : Infinity,
-        textLower.includes(domainLower) ? textLower.indexOf(domainLower) : Infinity,
-      );
-      const totalLen = textLower.length;
-      score += firstIdx < totalLen * 0.3 ? 15 : 10;
-
-      // Extract the first sentence mentioning the brand
-      if (!detail) {
-        const sentences = item.text.split(/[.!?]+/);
-        for (const s of sentences) {
-          if (brandPattern.test(s) || domainPattern.test(s)) {
-            const trimmed = s.trim();
-            if (trimmed.length > 10) {
-              detail = trimmed.substring(0, 160);
-              break;
-            }
+    for (const s of sentences) {
+      if (brandPattern.test(s) || domainPattern.test(s)) {
+        const trimmed = s.replace(/^[\s\-*•#>]+/, "").trim();
+        // Must be long enough to contain a real description
+        if (trimmed.length >= 40) {
+          // Compute where this sentence starts in the full text for position scoring
+          const pos = item.text.indexOf(trimmed);
+          if (pos < mentionIndex) {
+            mentionIndex = pos;
+            mentionSentence = trimmed.substring(0, 160);
           }
         }
       }
+    }
+
+    // Only count as found if AI provided a substantive description — not just a bare URL
+    if (!mentionSentence) continue;
+
+    found = true;
+
+    // Position-based scoring: first 30% of response = 15pts, later = 10pts
+    const totalLen = item.text.length;
+    score += mentionIndex < totalLen * 0.3 ? 15 : 10;
+
+    if (!detail) {
+      detail = mentionSentence;
     }
 
     // Extract competitor mentions (capitalized proper nouns + .com/.io/.ai domains)
