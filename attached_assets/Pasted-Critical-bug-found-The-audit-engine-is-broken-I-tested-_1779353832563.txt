@@ -1,0 +1,66 @@
+Critical bug found. The audit engine is broken.
+
+I tested with a completely fake URL "xusjhf.com" 
+that does not exist anywhere on the internet.
+
+It returned:
+- Score: 99/100
+- ChatGPT: Visible 33/33
+- Gemini: Visible 33/33  
+- Perplexity: Visible 33/33
+- Detail: "xusjhf.com was mentioned in AI responses"
+
+This is clearly wrong. A fake domain that 
+does not exist should score 0/100 on all 
+three systems.
+
+This tells me the audit engine is NOT making 
+real API calls. It is either:
+1. Returning hardcoded mock data
+2. Marking any domain mention as "found" 
+   even when the AI says it does not exist
+3. The string matching is broken — finding 
+   the domain in the prompt text itself 
+   not in the AI response
+
+Fix this properly:
+
+1. Show me the exact code in ai_queries.py 
+   or equivalent that makes the actual 
+   API calls to ChatGPT, Gemini, Perplexity
+
+2. Show me the exact scoring logic that 
+   checks if the brand was found
+
+3. Fix the scoring logic:
+   - Query each AI system with real API calls
+   - Only mark as "found" if the AI response 
+     genuinely mentions the brand positively
+   - A domain mentioned in the PROMPT should 
+     NOT count as found in the response
+   - If API call fails or times out → 
+     score 0 for that system, show "Could not check"
+   - Never return mock data or fallback scores
+
+4. After fixing, test these three URLs 
+   and show me the RAW API response text 
+   from each AI system:
+   
+   Test 1: xusjhf.com 
+   Expected: 0/100, all systems show Invisible
+   
+   Test 2: mealcoreai.com
+   Expected: ChatGPT visible, 
+   Gemini and Perplexity invisible or low
+   
+   Test 3: google.com
+   Expected: high score, all systems know it
+
+5. Show me the actual raw text responses 
+   from ChatGPT, Gemini and Perplexity 
+   for xusjhf.com so I can verify 
+   real API calls are happening
+
+Do not move on until xusjhf.com scores 
+0/100 and google.com scores 70+/100.
+These are the ground truth tests.

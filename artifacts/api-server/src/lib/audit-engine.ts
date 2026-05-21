@@ -158,20 +158,23 @@ function generatePrompts(
   market: string,
   competitors: string[],
 ): string[] {
+  // IMPORTANT: Never include the brand name or domain in prompts.
+  // We ask category-discovery questions and check if the AI mentions the brand unprompted.
+  // Mentioning the brand in the prompt would cause AI to echo it back, giving a false positive.
   const prompts: string[] = [
-    `What is ${brandName} (${domain})? Give me an overview of what this product does.`,
-    `Is ${brandName} a good ${category}? I am looking for honest reviews and recommendations.`,
-    `What are the best ${category} tools in ${market} right now? Please list the top options with pros and cons.`,
-    `I am looking for alternatives to ${brandName}. What similar ${category} products should I consider?`,
+    `What are the best ${category} tools available right now? List the top 10 options with a short description of each.`,
+    `Which ${category} platforms do you recommend for businesses in ${market}? Give me the top 5 with pros and cons.`,
+    `I need a ${category} solution. What are the most popular and well-reviewed options on the market today?`,
+    `What ${category} software are startups and founders using in ${market}? List the most recommended tools.`,
   ];
 
   if (competitors.length > 0) {
     prompts.push(
-      `Compare ${brandName} vs ${competitors[0]}. Which is better for a startup in ${market}?`,
+      `What are the top alternatives to ${competitors[0]} in the ${category} space? List the main competitors.`,
     );
   } else {
     prompts.push(
-      `Who uses ${brandName} and what do they say about it? Any notable customer reviews or case studies?`,
+      `What are the leading ${category} products right now? Include both established players and newer emerging tools.`,
     );
   }
 
