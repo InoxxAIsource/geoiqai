@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, emailSubscribersTable } from "@workspace/db";
 import { EmailSubscribeBody } from "@workspace/api-zod";
+import { sendSubscribeConfirmation } from "../lib/email-service";
 
 const router: IRouter = Router();
 
@@ -19,6 +20,9 @@ router.post("/email/subscribe", async (req, res): Promise<void> => {
       domain: domain ?? null,
       auditId: auditId ?? null,
     }).onConflictDoNothing();
+
+    // Send confirmation email in background
+    sendSubscribeConfirmation(email, domain ?? undefined).catch(() => {});
 
     res.json({ success: true });
   } catch (err) {

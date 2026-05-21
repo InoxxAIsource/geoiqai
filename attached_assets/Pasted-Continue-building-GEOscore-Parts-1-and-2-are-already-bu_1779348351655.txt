@@ -1,0 +1,755 @@
+Continue building GEOscore.
+Parts 1 and 2 are already built.
+Now add Razorpay payments, email system,
+SEO pages, and background monitoring jobs.
+
+=== RAZORPAY INTEGRATION ===
+
+Install: pip install razorpay
+
+Create backend/services/razorpay_service.py
+
+import razorpay
+import hmac
+import hashlib
+
+client = razorpay.Client(
+  auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+
+--- CREATE SUBSCRIPTION PLAN ---
+(Run once to create plans in Razorpay)
+
+def create_plans():
+  starter_plan = client.plan.create({
+    "period": "monthly",
+    "interval": 1,
+    "item": {
+      "name": "GEOscore Starter",
+      "amount": 399900,  # ₹3,999 in paise
+      "currency": "INR",
+      "description": "Daily AI visibility monitoring"
+    }
+  })
+  
+  agency_plan = client.plan.create({
+    "period": "monthly",
+    "interval": 1,
+    "item": {
+      "name": "GEOscore Agency",
+      "amount": 1199900,  # ₹11,999 in paise
+      "currency": "INR",
+      "description": "10 brands AI monitoring"
+    }
+  })
+  
+  return starter_plan, agency_plan
+
+--- CREATE SUBSCRIPTION ---
+
+def create_subscription(plan_id: str, 
+                        email: str) -> dict:
+  
+  # Create or get Razorpay customer
+  customer = client.customer.create({
+    "name": email.split('@')[0],
+    "email": email,
+    "notify": {
+      "sms": False,
+      "email": True
+    }
+  })
+  
+  subscription = client.subscription.create({
+    "plan_id": plan_id,
+    "customer_notify": 1,
+    "quantity": 1,
+    "total_count": 12,  # 12 months
+    "customer_id": customer['id'],
+    "addons": [],
+    "notes": {
+      "email": email
+    }
+  })
+  
+  return {
+    "subscription_id": subscription['id'],
+    "razorpay_key": RAZORPAY_KEY_ID,
+    "customer_id": customer['id']
+  }
+
+--- VERIFY PAYMENT SIGNATURE ---
+
+def verify_payment(razorpay_payment_id: str,
+                  razorpay_subscription_id: str,
+                  razorpay_signature: str) -> bool:
+  
+  message = f"{razorpay_payment_id}|{razorpay_subscription_id}"
+  
+  generated_signature = hmac.new(
+    RAZORPAY_KEY_SECRET.encode(),
+    message.encode(),
+    hashlib.sha256
+  ).hexdigest()
+  
+  return generated_signature == razorpay_signature
+
+--- PAYMENT ROUTES ---
+
+Create backend/routers/payment.py
+
+@router.post("/api/payment/create-subscription")
+async def create_subscription_endpoint(
+  request: SubscriptionRequest):
+  
+  plan_id = (RAZORPAY_STARTER_PLAN_ID 
+    if request.plan == 'starter' 
+    else RAZORPAY_AGENCY_PLAN_ID)
+  
+  subscription = razorpay_service.create_subscription(
+    plan_id, request.email)
+  
+  return subscription
+
+@router.post("/api/payment/verify")
+async def verify_payment_endpoint(
+  request: PaymentVerifyRequest):
+  
+  is_valid = razorpay_service.verify_payment(
+    request.razorpay_payment_id,
+    request.razorpay_subscription_id,
+    request.razorpay_signature
+  )
+  
+  if not is_valid:
+    raise HTTPException(400, 
+      "Payment verification failed")
+  
+  # Create or update user in Supabase
+  user = await create_or_update_user(
+    email=request.email,
+    razorpay_subscription_id=
+      request.razorpay_subscription_id,
+    plan=request.plan
+  )
+  
+  # Send welcome email
+  await send_welcome_email(request.email)
+  
+  # Create monitored brand entry
+  if request.domain:
+    await create_monitored_brand(
+      user_id=user['id'],
+      domain=request.domain
+    )
+  
+  return {"success": True, 
+          "redirect": "/dashboard"}
+
+@router.post("/api/payment/webhook")
+async def razorpay_webhook(
+  request: Request):
+  
+  # Verify webhook signature
+  webhook_body = await request.body()
+  signature = request.headers.get(
+    'X-Razorpay-Signature')
+  
+  expected = hmac.new(
+    RAZORPAY_WEBHOOK_SECRET.encode(),
+    webhook_body,
+    hashlib.sha256
+  ).hexdigest()
+  
+  if signature != expected:
+    raise HTTPException(400, "Invalid signature")
+  
+  data = await request.json()
+  event = data.get('event')
+  
+  if event == 'subscription.activated':
+    await handle_subscription_activated(data)
+  elif event == 'subscription.cancelled':
+    await handle_subscription_cancelled(data)
+  elif event == 'payment.failed':
+    await handle_payment_failed(data)
+  
+  return {"status": "ok"}
+
+--- FRONTEND RAZORPAY CHECKOUT ---
+
+In frontend, when user clicks upgrade:
+
+1. Call POST /api/payment/create-subscription
+   with email and plan
+2. Load Razorpay checkout script:
+   <script src="https://checkout.razorpay.com/v1/checkout.js">
+
+3. Open Razorpay modal:
+
+const options = {
+  key: data.razorpay_key,
+  subscription_id: data.subscription_id,
+  name: "GEOscore",
+  description: "AI Visibility Monitoring",
+  image: "/logo.png",
+  prefill: {
+    email: userEmail
+  },
+  theme: {
+    color: "#534AB7"
+  },
+  handler: function(response) {
+    // Call verify endpoint
+    fetch('/api/payment/verify', {
+      method: 'POST',
+      body: JSON.stringify({
+        razorpay_payment_id: 
+          response.razorpay_payment_id,
+        razorpay_subscription_id: 
+          response.razorpay_subscription_id,
+        razorpay_signature: 
+          response.razorpay_signature,
+        email: userEmail,
+        plan: selectedPlan,
+        domain: auditedDomain
+      })
+    })
+    .then(r => r.json())
+    .then(d => {
+      if(d.success) {
+        window.location.href = '/dashboard'
+      }
+    })
+  }
+}
+
+const rzp = new Razorpay(options)
+rzp.open()
+
+=== EMAIL SYSTEM (Resend) ===
+
+Create backend/services/email_service.py
+
+import resend
+resend.api_key = RESEND_API_KEY
+
+--- WELCOME EMAIL ---
+
+async def send_welcome_email(email: str, 
+                             domain: str):
+  resend.Emails.send({
+    "from": "GEOscore <hello@geoscore.app>",
+    "to": email,
+    "subject": "Welcome to GEOscore — "
+               "here is what happens next",
+    "html": f"""
+    <div style="font-family:Inter,sans-serif;
+    max-width:560px;margin:0 auto;padding:32px 24px">
+      
+      <h2 style="color:#534AB7;font-size:22px;
+      font-weight:500;margin-bottom:8px">
+        Welcome to GEOscore
+      </h2>
+      
+      <p style="color:#6b7280;font-size:15px;
+      line-height:1.6;margin-bottom:24px">
+        We are now monitoring <strong>{domain}</strong> 
+        across ChatGPT, Gemini, Perplexity, 
+        and Bing Copilot every day.
+      </p>
+      
+      <div style="background:#f9fafb;
+      border-radius:12px;padding:20px;
+      margin-bottom:24px">
+        <p style="font-size:13px;
+        color:#374151;margin:0 0 12px">
+          <strong>What happens next:</strong>
+        </p>
+        <p style="font-size:13px;color:#6b7280;
+        margin:0 0 8px">
+          ✓ First full audit runs tonight
+        </p>
+        <p style="font-size:13px;color:#6b7280;
+        margin:0 0 8px">
+          ✓ Your weekly digest arrives 
+          every Monday morning
+        </p>
+        <p style="font-size:13px;color:#6b7280;
+        margin:0">
+          ✓ Instant alerts if a competitor 
+          appears in a new AI system
+        </p>
+      </div>
+      
+      <a href="{APP_URL}/dashboard" 
+      style="display:block;background:#534AB7;
+      color:white;text-decoration:none;
+      text-align:center;padding:14px;
+      border-radius:8px;font-size:14px;
+      font-weight:500">
+        Go to your dashboard →
+      </a>
+      
+      <p style="font-size:12px;color:#9ca3af;
+      margin-top:24px;text-align:center">
+        GEOscore · Built for founders in India
+      </p>
+    </div>
+    """
+  })
+
+--- WEEKLY DIGEST EMAIL ---
+
+async def send_weekly_digest(
+  email: str, 
+  domain: str,
+  current_score: int,
+  last_score: int,
+  ai_status: dict,
+  top_recommendations: list):
+  
+  score_change = current_score - last_score
+  change_text = (f"↑ {score_change} points" 
+    if score_change > 0 
+    else f"↓ {abs(score_change)} points")
+  change_color = ("#1D9E75" if score_change >= 0 
+    else "#E24B4A")
+  
+  reco_html = ""
+  for i, reco in enumerate(
+    top_recommendations[:3], 1):
+    reco_html += f"""
+    <div style="padding:10px 0;
+    border-bottom:0.5px solid #e5e7eb">
+      <span style="font-size:11px;
+      color:#6b7280">#{i}</span>
+      <p style="font-size:13px;
+      color:#374151;margin:4px 0 0">
+        {reco['action']}
+      </p>
+    </div>"""
+  
+  resend.Emails.send({
+    "from": "GEOscore <hello@geoscore.app>",
+    "to": email,
+    "subject": f"Your AI visibility report — "
+               f"{domain} — "
+               f"Week of {get_current_week()}",
+    "html": f"""
+    <div style="font-family:Inter,sans-serif;
+    max-width:560px;margin:0 auto;padding:32px 24px">
+      
+      <p style="font-size:13px;color:#6b7280;
+      margin-bottom:4px">Weekly report for</p>
+      <h2 style="font-size:20px;font-weight:500;
+      margin-bottom:24px">{domain}</h2>
+      
+      <div style="display:flex;gap:16px;
+      margin-bottom:24px">
+        <div style="flex:1;background:#f9fafb;
+        border-radius:12px;padding:16px;
+        text-align:center">
+          <p style="font-size:11px;color:#6b7280;
+          margin-bottom:8px">This week</p>
+          <p style="font-size:32px;
+          font-weight:500;color:#1a1a1a;
+          margin:0">{current_score}</p>
+          <p style="font-size:12px;
+          color:{change_color};margin-top:4px">
+            {change_text}
+          </p>
+        </div>
+      </div>
+      
+      <p style="font-size:13px;font-weight:500;
+      margin-bottom:12px">AI system status</p>
+      
+      <div style="background:#f9fafb;
+      border-radius:8px;padding:16px;
+      margin-bottom:24px">
+        <p style="font-size:13px;margin:0 0 8px">
+          ChatGPT: {'✓ Visible' 
+            if ai_status['chatgpt'] 
+            else '✗ Invisible'}
+        </p>
+        <p style="font-size:13px;margin:0 0 8px">
+          Gemini: {'✓ Visible' 
+            if ai_status['gemini'] 
+            else '✗ Invisible'}
+        </p>
+        <p style="font-size:13px;margin:0">
+          Perplexity: {'✓ Visible' 
+            if ai_status['perplexity'] 
+            else '✗ Invisible'}
+        </p>
+      </div>
+      
+      <p style="font-size:13px;font-weight:500;
+      margin-bottom:12px">
+        Top fix actions this week
+      </p>
+      {reco_html}
+      
+      <a href="{APP_URL}/dashboard" 
+      style="display:block;background:#534AB7;
+      color:white;text-decoration:none;
+      text-align:center;padding:14px;
+      border-radius:8px;font-size:14px;
+      margin-top:24px">
+        View full dashboard →
+      </a>
+      
+      <p style="font-size:11px;color:#9ca3af;
+      text-align:center;margin-top:24px">
+        <a href="{APP_URL}/unsubscribe?email={email}" 
+        style="color:#9ca3af">Unsubscribe</a>
+      </p>
+    </div>
+    """
+  })
+
+=== SEO PAGES ===
+
+Build all 4 pages with complete 
+real content (1500+ words each).
+
+--- /what-is-geo ---
+
+Full article covering:
+
+H1: "What is Generative Engine Optimization (GEO)?"
+
+Intro (200 words):
+GEO is the practice of optimizing your 
+brand and content to appear in AI-generated 
+answers from systems like ChatGPT, Gemini, 
+Perplexity, and Bing Copilot. Just as SEO 
+helped brands rank in Google's blue links, 
+GEO helps brands get recommended by AI systems 
+that now answer millions of questions daily.
+
+H2: "Why GEO matters in 2026"
+- Perplexity serves 15M+ daily queries
+- ChatGPT has 200M+ weekly users
+- Google's AI Overviews appear on 
+  40%+ of searches now
+- Users trust AI recommendations more 
+  than ad results
+
+H2: "How is GEO different from SEO?"
+Comparison table:
+| Aspect | SEO | GEO |
+| Goal | Rank in blue links | 
+  Get mentioned in AI answers |
+| Signal | Backlinks + keywords | 
+  Citations + authority |
+| Tracking | Search Console | 
+  AI monitoring tools |
+| Timeline | Weeks to months | 
+  Days to weeks |
+
+H2: "How AI systems decide what to recommend"
+- Training data coverage
+- Third-party citations and mentions
+- Structured, factual content
+- Brand consistency across the web
+- Wikipedia and knowledge graph presence
+
+H2: "5 steps to improve your GEO score"
+Step 1: Get a baseline (use GEOscore free tool)
+Step 2: Build citations on authoritative sites
+Step 3: Optimize your brand description
+Step 4: Create quotable, factual content
+Step 5: Monitor and iterate weekly
+
+CTA box (purple bg, white text, centered):
+"Check your GEO score free in 60 seconds"
+[Check my score →] button
+
+H2: "GEO for Indian startups"
+Specific section about Indian market:
+- Why Gemini matters especially in India
+- Google AI Overviews in Indian markets
+- Building citations on Indian platforms
+
+Conclusion (100 words)
+
+Schema markup:
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "What is GEO...",
+  "author": {"@type": "Organization", 
+             "name": "GEOscore"},
+  "datePublished": "2026-01-01"
+}
+</script>
+
+--- /how-to-rank-in-chatgpt ---
+
+H1: "How to Appear in ChatGPT Results: 
+A Complete Founder's Guide"
+
+H2: "How ChatGPT retrieves information"
+H2: "What signals ChatGPT trusts"
+H2: "Step-by-step optimization guide"
+  - Step 1: Claim your brand on authoritative sites
+  - Step 2: Write a clear factual About page
+  - Step 3: Get covered in publications 
+    ChatGPT cites
+  - Step 4: Build consistent NAP 
+    (Name, Address, Phone) signals
+  - Step 5: Create content that answers 
+    questions in your niche
+H2: "How to track your ChatGPT visibility"
+H2: "Common mistakes founders make"
+
+CTA: "Check if ChatGPT knows your brand →"
+
+--- /geo-tools ---
+
+H1: "Best GEO Tools 2026: 
+AI Visibility Platforms Compared"
+
+Intro: Why you need a GEO tool
+
+Tool cards (4 tools):
+
+GEOscore (us):
+  Best for: Founders and startups, India market
+  Price: Free audit + ₹3,999/mo
+  Key features: Real-time monitoring, 
+  DataForSEO integration, Razorpay payments,
+  weekly digest, competitor tracking
+  Rating: ★★★★★
+
+Profound.com:
+  Best for: Enterprise brands
+  Price: $99+/mo USD
+  Key features: Brand monitoring, 
+  share of voice tracking
+  Rating: ★★★★
+
+Otterly.ai:
+  Best for: Agencies
+  Price: $49+/mo USD
+  Key features: Multi-brand tracking,
+  white label reports
+  Rating: ★★★
+
+Peec.ai:
+  Best for: B2B SaaS
+  Price: $79+/mo USD
+  Key features: Competitor comparison,
+  prompt testing
+  Rating: ★★★
+
+Feature comparison table (HTML table):
+Features vs tools grid showing 
+checkmarks for each feature
+
+CTA: "Try GEOscore free — 
+no signup, instant results →"
+
+--- /blog/why-startup-not-showing-chatgpt ---
+
+H1: "Why Your Startup Doesn't Show Up in 
+ChatGPT (And How to Fix It)"
+
+Personal story format:
+
+Opening hook:
+"I asked ChatGPT 'best cricket arb scanner 
+for IPL'. My site came 4th. Then I asked 
+about MealCoreAI — a product with 12,000 users 
+and deep content. Gemini had never heard of it. 
+Perplexity same. That was the moment I realized 
+AI visibility is broken for indie founders."
+
+H2: "The discovery"
+H2: "Why this happens"
+  - AI training data gaps
+  - Citation scarcity for new brands
+  - Geographic blind spots 
+    (India especially)
+H2: "What you can do today (free)"
+  - 5 immediate actions anyone can take
+H2: "How to track it going forward"
+  - Use GEOscore free tool
+  - Set up weekly monitoring
+
+CTA: "Check your brand right now — free →"
+
+=== BACKGROUND MONITORING JOBS ===
+
+Create backend/services/scheduler.py
+
+from apscheduler.schedulers.asyncio import (
+  AsyncIOScheduler)
+
+scheduler = AsyncIOScheduler()
+
+--- DAILY MONITORING JOB ---
+(Runs 2am UTC every day)
+
+@scheduler.scheduled_job('cron', hour=2, minute=0)
+async def daily_monitoring_job():
+  
+  # Get all active paid users
+  users = await get_active_paid_users()
+  
+  for user in users:
+    brands = await get_user_brands(user['id'])
+    
+    for brand in brands:
+      try:
+        # Run full audit
+        keywords = await get_domain_keywords(
+          brand['domain'])
+        category_data = {
+          'brand_name': brand['brand_name'],
+          'category': brand['category'],
+          'market': brand['market'],
+          'top_competitors': brand['competitors']
+        }
+        
+        prompts = generate_prompts(
+          brand_name=brand['brand_name'],
+          category=brand['category'],
+          market=brand['market'],
+          keywords=keywords,
+          competitors=brand['competitors'],
+          is_paid=True
+        )
+        
+        ai_results = await run_all_queries(prompts)
+        scores = calculate_total_score(
+          brand['brand_name'], ai_results)
+        
+        # Get yesterday's score
+        yesterday_score = await get_yesterday_score(
+          brand['id'])
+        
+        # Save today's score
+        await save_daily_score(
+          brand_id=brand['id'],
+          scores=scores
+        )
+        
+        # Generate new recommendations 
+        # if Monday
+        from datetime import datetime
+        if datetime.now().weekday() == 0:
+          recommendations = await (
+            generate_recommendations(
+              brand['brand_name'],
+              brand['domain'],
+              brand['category'],
+              brand['market'],
+              scores,
+              keywords
+            ))
+          await save_recommendations(
+            brand['id'], recommendations)
+          
+          # Send weekly digest
+          await send_weekly_digest(
+            email=user['email'],
+            domain=brand['domain'],
+            current_score=scores['total'],
+            last_score=yesterday_score,
+            ai_status={
+              'chatgpt': scores['chatgpt']['found'],
+              'gemini': scores['gemini']['found'],
+              'perplexity': 
+                scores['perplexity']['found']
+            },
+            top_recommendations=recommendations[:3]
+          )
+        
+        # Score drop alert 
+        # (if dropped more than 10 points)
+        if (yesterday_score and 
+            yesterday_score - scores['total'] > 10):
+          await send_score_drop_alert(
+            email=user['email'],
+            domain=brand['domain'],
+            old_score=yesterday_score,
+            new_score=scores['total']
+          )
+          
+      except Exception as e:
+        print(f"Error monitoring {brand['domain']}: 
+              {e}")
+        continue
+
+# Start scheduler in main.py
+scheduler.start()
+
+=== MAIN.PY FINAL SETUP ===
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from routers import audit, auth, dashboard, 
+                   payment, email
+from services.scheduler import scheduler
+
+app = FastAPI(title="GEOscore API")
+
+app.add_middleware(
+  CORSMiddleware,
+  allow_origins=[FRONTEND_URL],
+  allow_credentials=True,
+  allow_methods=["*"],
+  allow_headers=["*"]
+)
+
+app.include_router(audit.router)
+app.include_router(auth.router)
+app.include_router(dashboard.router)
+app.include_router(payment.router)
+app.include_router(email.router)
+
+@app.on_event("startup")
+async def startup():
+  scheduler.start()
+
+@app.on_event("shutdown")  
+async def shutdown():
+  scheduler.shutdown()
+
+@app.get("/health")
+async def health():
+  return {"status": "ok", 
+          "app": "GEOscore"}
+
+=== FINAL CHECKLIST ===
+
+Test everything in this order:
+
+1. Homepage URL input → /audit?url=mealcoreai.com
+2. Audit runs and returns real scores
+3. Loading animation shows all steps
+4. Audit result page shows correct data
+5. Email capture saves to Supabase
+6. Razorpay checkout opens correctly
+7. Payment verification works
+8. Dashboard loads after payment
+9. Score chart renders in Chart.js
+10. Mark done saves to Supabase
+11. Weekly email sends correctly
+12. Daily cron job runs without errors
+13. All 4 SEO pages have full content
+14. Mobile layout works on all pages
+15. Rate limiting blocks after 3 free audits
+
+=== DO NOT BUILD YET ===
+Save for Month 2:
+- GSC OAuth actual connection
+- Bing Webmaster OAuth
+- Copilot monitoring 
+  (show as "coming soon" badge)
+- White label PDF reports
+- API access for developers
+- Team member seats

@@ -10,6 +10,10 @@ import Dashboard from "@/pages/Dashboard";
 import Pricing from "@/pages/Pricing";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
+import WhatIsGeo from "@/pages/WhatIsGeo";
+import HowToRankInChatGPT from "@/pages/HowToRankInChatGPT";
+import GeoTools from "@/pages/GeoTools";
+import BlogChatGPT from "@/pages/BlogChatGPT";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,6 +33,10 @@ function Router() {
       <Route path="/pricing" component={Pricing} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/what-is-geo" component={WhatIsGeo} />
+      <Route path="/how-to-rank-in-chatgpt" component={HowToRankInChatGPT} />
+      <Route path="/geo-tools" component={GeoTools} />
+      <Route path="/blog/why-startup-not-showing-chatgpt" component={BlogChatGPT} />
       <Route component={NotFound} />
     </Switch>
   );

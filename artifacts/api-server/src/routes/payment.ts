@@ -4,6 +4,7 @@ import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { CreatePaymentOrderBody, VerifyPaymentBody } from "@workspace/api-zod";
 import { requireAuth, type AuthRequest } from "../lib/auth";
+import { sendWelcomeEmail } from "../lib/email-service";
 
 const router: IRouter = Router();
 
@@ -79,6 +80,9 @@ router.post("/payment/verify", requireAuth, async (req, res): Promise<void> => {
     .set({ plan })
     .where(eq(usersTable.id, user.id))
     .returning();
+
+  // Send welcome email in background (don't block response)
+  sendWelcomeEmail(updated!.email, updated!.email.split("@")[0] ?? "your brand").catch(() => {});
 
   res.json({
     id: updated!.id,
