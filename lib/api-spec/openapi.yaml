@@ -375,6 +375,14 @@ components:
           type: array
           items:
             type: string
+        keywordsFromDataforseo:
+          type: integer
+        keywordsFilteredOut:
+          type: integer
+        fromCache:
+          type: boolean
+        cachedHoursAgo:
+          type: integer
         recommendations:
           type: array
           items:

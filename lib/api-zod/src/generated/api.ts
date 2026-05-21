@@ -46,6 +46,10 @@ export const RunAuditResponse = zod.object({
   "perplexityDetail": zod.string().nullish(),
   "competitorsFound": zod.array(zod.string()).optional(),
   "keywordsUsed": zod.array(zod.string()).optional(),
+  "keywordsFromDataforseo": zod.number().optional(),
+  "keywordsFilteredOut": zod.number().optional(),
+  "fromCache": zod.boolean().optional(),
+  "cachedHoursAgo": zod.number().optional(),
   "recommendations": zod.array(zod.object({
   "title": zod.string(),
   "description": zod.string(),
@@ -82,6 +86,10 @@ export const GetAuditResponse = zod.object({
   "perplexityDetail": zod.string().nullish(),
   "competitorsFound": zod.array(zod.string()).optional(),
   "keywordsUsed": zod.array(zod.string()).optional(),
+  "keywordsFromDataforseo": zod.number().optional(),
+  "keywordsFilteredOut": zod.number().optional(),
+  "fromCache": zod.boolean().optional(),
+  "cachedHoursAgo": zod.number().optional(),
   "recommendations": zod.array(zod.object({
   "title": zod.string(),
   "description": zod.string(),

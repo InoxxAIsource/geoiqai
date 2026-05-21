@@ -60,6 +60,10 @@ export interface AuditResult {
   perplexityDetail?: string | null;
   competitorsFound?: string[];
   keywordsUsed?: string[];
+  keywordsFromDataforseo?: number;
+  keywordsFilteredOut?: number;
+  fromCache?: boolean;
+  cachedHoursAgo?: number;
   recommendations?: Recommendation[];
   createdAt: string;
 }

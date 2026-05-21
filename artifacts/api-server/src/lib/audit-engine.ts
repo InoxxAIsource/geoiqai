@@ -31,6 +31,8 @@ export interface AuditEngineResult {
   gemini: AuditQueryResult;
   perplexity: AuditQueryResult;
   keywordsUsed: string[];
+  keywordsFromDataforseo: number;
+  keywordsFilteredOut: number;
 }
 
 export interface Recommendation {
@@ -548,6 +550,12 @@ const NAVIGATION_KW = /\b(login|log in|log-in|sign in|sign-up|signup|sign up|reg
  *   3. Is NOT a price/date/news informational query
  *   4. Is NOT a navigation query (login, signup, etc.)
  */
+interface KeywordPromptResult {
+  prompts: string[];
+  keywordsFromDataforseo: number;
+  keywordsFilteredOut: number;
+}
+
 function buildKeywordPrompts(
   keywords: Array<{ keyword: string }>,
   brandName: string,
@@ -555,7 +563,7 @@ function buildKeywordPrompts(
   category: string,
   market: string,
   competitors: string[],
-): string[] {
+): KeywordPromptResult {
   const base = generatePrompts(brandName, domain, category, market, competitors);
 
   const variations = getBrandVariations(brandName, domain);
@@ -577,7 +585,15 @@ function buildKeywordPrompts(
     return `What are the best tools or platforms for ${kw}? List the top options with a brief description of each.`;
   });
 
-  return [...base, ...extra];
+  console.log(
+    `[DataForSEO] ${domain} — ${keywords.length} fetched, ${keywords.length - topical.length} filtered out (branded/informational/navigational), ${topical.length} topical passed, ${extra.length} added as bonus prompts`,
+  );
+
+  return {
+    prompts: [...base, ...extra],
+    keywordsFromDataforseo: keywords.length,
+    keywordsFilteredOut: keywords.length - topical.length,
+  };
 }
 
 // --- Main export ---
@@ -610,9 +626,19 @@ export async function runAuditEngine(
   // RULE: brand name MUST NOT appear in any prompt. Brand name in a prompt causes
   // the AI to echo it back, creating a false-positive match. Score only counts when
   // the AI mentions the brand completely unprompted.
-  const prompts = dfsKeywords.length > 0
-    ? buildKeywordPrompts(dfsKeywords, brandName, domain, category, market, competitors)
-    : generatePrompts(brandName, domain, category, market, competitors);
+  let keywordsFromDataforseo = 0;
+  let keywordsFilteredOut = 0;
+  let prompts: string[];
+
+  if (dfsKeywords.length > 0) {
+    const kpResult = buildKeywordPrompts(dfsKeywords, brandName, domain, category, market, competitors);
+    prompts = kpResult.prompts;
+    keywordsFromDataforseo = kpResult.keywordsFromDataforseo;
+    keywordsFilteredOut = kpResult.keywordsFilteredOut;
+  } else {
+    prompts = generatePrompts(brandName, domain, category, market, competitors);
+    console.log(`[DataForSEO] ${domain} — no keywords from DataForSEO, using category-based prompts`);
+  }
 
   // Run all AI queries in parallel
   const chatgptTasks = prompts.map((p) => queryOpenAIChatGPT(p));
@@ -644,6 +670,8 @@ export async function runAuditEngine(
     gemini,
     perplexity,
     keywordsUsed: prompts,
+    keywordsFromDataforseo,
+    keywordsFilteredOut,
   };
 }
 
