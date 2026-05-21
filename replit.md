@@ -1,44 +1,65 @@
-# [Project name]
+# GEOscore
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+An AI Visibility Platform that helps startups and founders track how their brand appears in ChatGPT, Gemini, and Perplexity — like Google Search Console for AI search systems.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080)
+- `pnpm --filter @workspace/geoscore run dev` — run the frontend (port 22117)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Required env: `DATABASE_URL` — Postgres connection string (auto-provisioned)
+- Required env: `AI_INTEGRATIONS_OPENAI_BASE_URL`, `AI_INTEGRATIONS_OPENAI_API_KEY` — Replit AI integration (auto-provisioned)
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
+- Frontend: React + Vite + Tailwind CSS + Wouter routing
+- API: Express 5 (Node.js)
 - DB: PostgreSQL + Drizzle ORM
 - Validation: Zod (`zod/v4`), `drizzle-zod`
+- AI: Replit AI Integrations (OpenAI-compatible) for audit engine
+- Payments: Razorpay (set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET)
 - API codegen: Orval (from OpenAPI spec)
 - Build: esbuild (CJS bundle)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- **API spec**: `lib/api-spec/openapi.yaml` — single source of truth for all API contracts
+- **DB schema**: `lib/db/src/schema/` — users, audits, monitored_brands, daily_scores, email_subscribers, rate_limits
+- **Backend routes**: `artifacts/api-server/src/routes/` — audit, auth, dashboard, scores, payment, email
+- **Frontend pages**: `artifacts/geoscore/src/pages/` — Home, Audit, Dashboard, Pricing, Login, Register
+- **Design tokens**: `artifacts/geoscore/src/index.css` — GEOscore purple brand system
+- **Audit engine**: `artifacts/api-server/src/lib/audit-engine.ts` — AI query logic
+- **Auth utilities**: `artifacts/api-server/src/lib/auth.ts` — token-based auth
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Auth uses a custom HMAC-SHA256 token (not JWT) stored in localStorage. Frontend sets `Authorization: Bearer <token>` via `setAuthTokenGetter` from `@workspace/api-client-react`.
+- The audit engine calls OpenAI (via Replit AI integration) three times per audit to simulate ChatGPT, Gemini, and Perplexity responses. In production, plug in separate Gemini and Perplexity API keys for real responses.
+- Payments use Razorpay (Indian payment gateway) — set `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` to enable.
+- All API shapes are contract-first (OpenAPI → codegen → Zod schemas + React Query hooks).
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Free public audit: Enter any domain, get an AI visibility score (0-100) across ChatGPT, Gemini, and Perplexity in ~15 seconds
+- Authenticated dashboard: Monitor multiple brands, track daily score trends, see competitor analysis
+- Pricing: Free / Starter (₹3,999/mo) / Agency (₹11,999/mo) with Razorpay checkout
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- INR pricing (Indian market focus)
+- No emojis in UI
+- Primary brand color: #534AB7 (purple)
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Always run `pnpm --filter @workspace/api-spec run codegen` after changing `openapi.yaml`, then rebuild the API server
+- Always run `pnpm run typecheck:libs` after changing DB schema files (before API server typechecks will pass)
+- Razorpay payments require `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` env vars — payments return 503 without them
+- The audit engine uses Replit AI integration by default — for real multi-AI comparisons, add `GEMINI_API_KEY` and `PERPLEXITY_API_KEY` and update `audit-engine.ts`
 
 ## Pointers
 

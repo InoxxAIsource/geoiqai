@@ -1,15 +1,27 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: GEOscore API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: audit
+    description: AI visibility audit operations
+  - name: auth
+    description: Authentication operations
+  - name: dashboard
+    description: Dashboard and monitored brands
+  - name: scores
+    description: Score history
+  - name: payment
+    description: Payment operations
+  - name: email
+    description: Email subscription operations
+
 paths:
   /healthz:
     get:
@@ -24,6 +36,255 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /audit:
+    post:
+      operationId: runAudit
+      tags: [audit]
+      summary: Run an AI visibility audit for a domain
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuditInput"
+      responses:
+        "200":
+          description: Audit result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditResult"
+        "429":
+          description: Rate limit exceeded
+
+  /audit/{id}:
+    get:
+      operationId: getAudit
+      tags: [audit]
+      summary: Get a specific audit by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Audit result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditResult"
+        "404":
+          description: Audit not found
+
+  /audit/recent:
+    get:
+      operationId: getRecentAudits
+      tags: [audit]
+      summary: Get recent public audits for demo purposes
+      responses:
+        "200":
+          description: List of recent audits
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditSummary"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "409":
+          description: Email already exists
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+
+  /dashboard/brands:
+    get:
+      operationId: getMonitoredBrands
+      tags: [dashboard]
+      summary: Get all monitored brands for the current user
+      responses:
+        "200":
+          description: List of monitored brands
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MonitoredBrand"
+    post:
+      operationId: addMonitoredBrand
+      tags: [dashboard]
+      summary: Add a brand to monitor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MonitoredBrandInput"
+      responses:
+        "201":
+          description: Brand added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonitoredBrand"
+
+  /dashboard/brands/{id}:
+    delete:
+      operationId: removeMonitoredBrand
+      tags: [dashboard]
+      summary: Remove a monitored brand
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Brand removed
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get dashboard summary stats for current user
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /scores/{brandId}:
+    get:
+      operationId: getBrandScores
+      tags: [scores]
+      summary: Get score history for a monitored brand
+      parameters:
+        - name: brandId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Score history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DailyScore"
+
+  /payment/create-order:
+    post:
+      operationId: createPaymentOrder
+      tags: [payment]
+      summary: Create a Razorpay payment order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentOrderInput"
+      responses:
+        "200":
+          description: Payment order created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentOrder"
+
+  /payment/verify:
+    post:
+      operationId: verifyPayment
+      tags: [payment]
+      summary: Verify and activate a completed payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentVerifyInput"
+      responses:
+        "200":
+          description: Payment verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /email/subscribe:
+    post:
+      operationId: emailSubscribe
+      tags: [email]
+      summary: Subscribe an email to audit results digest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailSubscribeInput"
+      responses:
+        "200":
+          description: Subscribed successfully
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +295,289 @@ components:
       required:
         - status
 
+    AuditInput:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+        brandName:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+        market:
+          type: ["string", "null"]
+
+    AuditResult:
+      type: object
+      required: [id, url, domain, scoreTotal, scoreChatgpt, scoreGemini, scorePerplexity, chatgptFound, geminiFound, perplexityFound, createdAt]
+      properties:
+        id:
+          type: string
+        url:
+          type: string
+        domain:
+          type: string
+        brandName:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+        market:
+          type: ["string", "null"]
+        scoreTotal:
+          type: integer
+        scoreChatgpt:
+          type: integer
+        scoreGemini:
+          type: integer
+        scorePerplexity:
+          type: integer
+        chatgptFound:
+          type: boolean
+        geminiFound:
+          type: boolean
+        perplexityFound:
+          type: boolean
+        chatgptDetail:
+          type: ["string", "null"]
+        geminiDetail:
+          type: ["string", "null"]
+        perplexityDetail:
+          type: ["string", "null"]
+        competitorsFound:
+          type: array
+          items:
+            type: string
+        keywordsUsed:
+          type: array
+          items:
+            type: string
+        recommendations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Recommendation"
+        createdAt:
+          type: string
+
+    AuditSummary:
+      type: object
+      required: [id, domain, scoreTotal, createdAt]
+      properties:
+        id:
+          type: string
+        domain:
+          type: string
+        brandName:
+          type: ["string", "null"]
+        scoreTotal:
+          type: integer
+        scoreChatgpt:
+          type: integer
+        scoreGemini:
+          type: integer
+        scorePerplexity:
+          type: integer
+        chatgptFound:
+          type: boolean
+        geminiFound:
+          type: boolean
+        perplexityFound:
+          type: boolean
+        createdAt:
+          type: string
+
+    Recommendation:
+      type: object
+      required: [title, description, priority, aiSystem]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+          enum: [high, medium, low]
+        aiSystem:
+          type: string
+
+    RegisterInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+
+    User:
+      type: object
+      required: [id, email, plan, createdAt]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        plan:
+          type: string
+          enum: [free, starter, agency]
+        createdAt:
+          type: string
+
+    MonitoredBrand:
+      type: object
+      required: [id, domain, createdAt]
+      properties:
+        id:
+          type: string
+        domain:
+          type: string
+        brandName:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+        market:
+          type: ["string", "null"]
+        keywords:
+          type: array
+          items:
+            type: string
+        competitors:
+          type: array
+          items:
+            type: string
+        latestScore:
+          type: ["integer", "null"]
+        latestScoreChatgpt:
+          type: ["integer", "null"]
+        latestScoreGemini:
+          type: ["integer", "null"]
+        latestScorePerplexity:
+          type: ["integer", "null"]
+        lastChecked:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    MonitoredBrandInput:
+      type: object
+      required: [domain]
+      properties:
+        domain:
+          type: string
+        brandName:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+        market:
+          type: ["string", "null"]
+        keywords:
+          type: array
+          items:
+            type: string
+        competitors:
+          type: array
+          items:
+            type: string
+
+    DashboardSummary:
+      type: object
+      required: [totalBrands, avgScore, brandsWithImprovement, totalAuditsRun]
+      properties:
+        totalBrands:
+          type: integer
+        avgScore:
+          type: integer
+        brandsWithImprovement:
+          type: integer
+        totalAuditsRun:
+          type: integer
+        topBrand:
+          type: ["string", "null"]
+        topBrandScore:
+          type: ["integer", "null"]
+
+    DailyScore:
+      type: object
+      required: [id, brandId, date, scoreTotal, scoreChatgpt, scoreGemini, scorePerplexity]
+      properties:
+        id:
+          type: string
+        brandId:
+          type: string
+        date:
+          type: string
+        scoreTotal:
+          type: integer
+        scoreChatgpt:
+          type: integer
+        scoreGemini:
+          type: integer
+        scorePerplexity:
+          type: integer
+        recommendations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Recommendation"
+
+    PaymentOrderInput:
+      type: object
+      required: [plan]
+      properties:
+        plan:
+          type: string
+          enum: [starter, agency]
+
+    PaymentOrder:
+      type: object
+      required: [orderId, amount, currency, keyId]
+      properties:
+        orderId:
+          type: string
+        amount:
+          type: integer
+        currency:
+          type: string
+        keyId:
+          type: string
+
+    PaymentVerifyInput:
+      type: object
+      required: [razorpayOrderId, razorpayPaymentId, razorpaySignature, plan]
+      properties:
+        razorpayOrderId:
+          type: string
+        razorpayPaymentId:
+          type: string
+        razorpaySignature:
+          type: string
+        plan:
+          type: string
+
+    EmailSubscribeInput:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+        domain:
+          type: ["string", "null"]
+        auditId:
+          type: ["string", "null"]

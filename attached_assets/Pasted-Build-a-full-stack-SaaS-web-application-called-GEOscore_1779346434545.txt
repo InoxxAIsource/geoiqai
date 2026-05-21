@@ -1,0 +1,485 @@
+Build a full-stack SaaS web application called "GEOscore" 
+— an AI Visibility Platform that helps startups and founders 
+track how their brand appears in ChatGPT, Gemini, and 
+Perplexity. Think of it as Google Search Console but 
+for AI search systems.
+
+=== TECH STACK ===
+Frontend: React + Tailwind CSS
+Backend: FastAPI (Python)
+Database: Supabase (PostgreSQL)
+Payments: Razorpay (Indian payment gateway)
+Email: Resend
+Hosting: Replit
+
+=== PROJECT STRUCTURE ===
+Create this folder structure:
+
+geoscore/
+├── frontend/
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── Home.jsx
+│   │   │   ├── AuditResult.jsx
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── Pricing.jsx
+│   │   │   └── seo/
+│   │   │       ├── WhatIsGeo.jsx
+│   │   │       ├── HowToRankChatGPT.jsx
+│   │   │       ├── GeoTools.jsx
+│   │   │       └── BlogPost.jsx
+│   │   ├── components/
+│   │   │   ├── Navbar.jsx
+│   │   │   ├── Footer.jsx
+│   │   │   ├── AuditCard.jsx
+│   │   │   ├── ScoreBar.jsx
+│   │   │   ├── AISystemCard.jsx
+│   │   │   └── RecommendationCard.jsx
+│   │   ├── lib/
+│   │   │   ├── api.js
+│   │   │   └── supabase.js
+│   │   └── App.jsx
+├── backend/
+│   ├── main.py
+│   ├── routers/
+│   │   ├── audit.py
+│   │   ├── auth.py
+│   │   ├── dashboard.py
+│   │   ├── payment.py
+│   │   └── email.py
+│   ├── services/
+│   │   ├── audit_engine.py
+│   │   ├── dataforseo.py
+│   │   ├── ai_queries.py
+│   │   ├── score_calculator.py
+│   │   ├── recommendations.py
+│   │   └── razorpay_service.py
+│   ├── models/
+│   │   └── schemas.py
+│   └── database/
+│       └── supabase_client.py
+└── requirements.txt
+
+=== ENVIRONMENT VARIABLES ===
+Create .env file with these keys:
+
+# AI APIs
+OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
+GEMINI_API_KEY=
+PERPLEXITY_API_KEY=
+
+# SEO Data
+DATAFORSEO_LOGIN=
+DATAFORSEO_PASSWORD=
+
+# Database
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_KEY=
+
+# Payments — Razorpay
+RAZORPAY_KEY_ID=
+RAZORPAY_KEY_SECRET=
+RAZORPAY_STARTER_PLAN_ID=
+RAZORPAY_AGENCY_PLAN_ID=
+RAZORPAY_WEBHOOK_SECRET=
+
+# Email
+RESEND_API_KEY=
+
+# App
+APP_URL=https://geoscore.replit.app
+SECRET_KEY=generate_random_32_char_string
+FRONTEND_URL=https://geoscore.replit.app
+
+=== REQUIREMENTS.TXT ===
+fastapi
+uvicorn
+supabase
+httpx
+anthropic
+openai
+google-generativeai
+razorpay
+resend
+python-dotenv
+beautifulsoup4
+requests
+apscheduler
+python-jose
+passlib
+pydantic
+asyncio
+
+=== DATABASE SCHEMA ===
+Create all these tables in Supabase.
+Run these SQL commands in Supabase SQL editor:
+
+-- Users table
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT UNIQUE NOT NULL,
+  razorpay_customer_id TEXT,
+  razorpay_subscription_id TEXT,
+  plan TEXT DEFAULT 'free',
+  created_at TIMESTAMP DEFAULT NOW(),
+  last_login TIMESTAMP
+);
+
+-- Audits table
+CREATE TABLE audits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  url TEXT NOT NULL,
+  domain TEXT NOT NULL,
+  brand_name TEXT,
+  category TEXT,
+  market TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  score_total INTEGER DEFAULT 0,
+  score_chatgpt INTEGER DEFAULT 0,
+  score_gemini INTEGER DEFAULT 0,
+  score_perplexity INTEGER DEFAULT 0,
+  chatgpt_found BOOLEAN DEFAULT FALSE,
+  gemini_found BOOLEAN DEFAULT FALSE,
+  perplexity_found BOOLEAN DEFAULT FALSE,
+  chatgpt_detail TEXT,
+  gemini_detail TEXT,
+  perplexity_detail TEXT,
+  competitors_found JSONB DEFAULT '[]',
+  keywords_used JSONB DEFAULT '[]',
+  raw_results JSONB DEFAULT '{}',
+  ip_address TEXT,
+  is_paid BOOLEAN DEFAULT FALSE
+);
+
+-- Monitored brands table
+CREATE TABLE monitored_brands (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id),
+  domain TEXT NOT NULL,
+  brand_name TEXT,
+  category TEXT,
+  market TEXT,
+  keywords JSONB DEFAULT '[]',
+  competitors JSONB DEFAULT '[]',
+  dataforseo_keywords JSONB DEFAULT '[]',
+  gsc_connected BOOLEAN DEFAULT FALSE,
+  bing_connected BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  last_checked TIMESTAMP
+);
+
+-- Daily scores table
+CREATE TABLE daily_scores (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  brand_id UUID REFERENCES monitored_brands(id),
+  date DATE NOT NULL,
+  score_total INTEGER DEFAULT 0,
+  score_chatgpt INTEGER DEFAULT 0,
+  score_gemini INTEGER DEFAULT 0,
+  score_perplexity INTEGER DEFAULT 0,
+  recommendations JSONB DEFAULT '[]',
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Email subscribers table
+CREATE TABLE email_subscribers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT UNIQUE NOT NULL,
+  domain TEXT,
+  audit_id UUID REFERENCES audits(id),
+  subscribed_at TIMESTAMP DEFAULT NOW(),
+  unsubscribed_at TIMESTAMP
+);
+
+-- IP rate limiting table
+CREATE TABLE rate_limits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ip_address TEXT NOT NULL,
+  audit_count INTEGER DEFAULT 1,
+  date DATE DEFAULT CURRENT_DATE,
+  UNIQUE(ip_address, date)
+);
+
+=== BRAND & DESIGN SYSTEM ===
+Apply these design tokens everywhere:
+
+Colors:
+--primary: #534AB7
+--primary-light: #EEEDFE
+--primary-dark: #3C3489
+--success: #1D9E75
+--success-light: #E1F5EE
+--danger: #E24B4A
+--danger-light: #FCEBEB
+--warning: #BA7517
+--warning-light: #FAEEDA
+--text-primary: #1a1a1a
+--text-secondary: #6b7280
+--text-tertiary: #9ca3af
+--border: #e5e7eb
+--bg-primary: #ffffff
+--bg-secondary: #f9fafb
+--bg-tertiary: #f3f4f6
+
+Typography:
+Font: Inter (import from Google Fonts)
+H1: 32px weight 500
+H2: 24px weight 500
+H3: 18px weight 500
+Body: 15px weight 400
+Small: 13px weight 400
+Tiny: 11px weight 400
+
+Spacing:
+Border radius cards: 12px
+Border radius buttons: 8px
+Border radius badges: 20px
+Card border: 0.5px solid #e5e7eb
+Card padding: 16px 20px
+
+Buttons:
+Primary: bg #534AB7, text white, 
+         hover bg #3C3489, height 40px
+Outlined: border #534AB7, text #534AB7, 
+          hover bg #EEEDFE, height 40px
+Danger: bg #E24B4A, text white, height 40px
+
+=== PAGE 1: HOMEPAGE (/) ===
+
+Build Home.jsx with these exact sections:
+
+--- NAVBAR ---
+<nav> fixed top, white bg, 
+border-bottom 0.5px solid #e5e7eb, z-index 50
+
+Left: "GEOscore" text logo in #534AB7, 
+      font-size 18px font-weight 600
+Center (desktop only): 
+  How it works | Pricing | Blog | What is GEO
+Right: "Sign in" button (outlined purple)
+
+Mobile: hamburger menu with dropdown
+
+--- HERO SECTION ---
+Full width, white bg, 
+padding top 80px bottom 60px, text-center
+
+Badge (small pill, centered):
+bg #EEEDFE, text #3C3489, 
+text: "New — AI search is replacing Google"
+font-size 12px, padding 4px 14px, 
+border-radius 20px, margin-bottom 20px
+
+H1: "Is your startup invisible in AI search?"
+font-size 32px, font-weight 500, 
+max-width 520px, margin auto, 
+line-height 1.25, margin-bottom 14px
+
+Subtitle: "Check how ChatGPT, Gemini & Perplexity 
+see your brand — free in 60 seconds. 
+No signup needed."
+font-size 15px, color #6b7280, 
+max-width 420px, margin auto, 
+margin-bottom 32px
+
+Audit input card:
+bg white, border 0.5px solid #e5e7eb, 
+border-radius 12px, padding 20px, 
+max-width 480px, margin auto
+
+  Inside card:
+  - Row: [URL input] [Check now button]
+  - Input: placeholder "Enter your website 
+    e.g. mealcoreai.com"
+    height 40px, border 0.5px solid #e5e7eb,
+    border-radius 8px, padding 0 14px,
+    font-size 14px, flex 1
+  - Button: "Check now →" 
+    bg #534AB7, text white, 
+    height 40px, padding 0 20px,
+    border-radius 8px, no border,
+    font-size 14px, cursor pointer
+    On click: validate URL, 
+    navigate to /audit?url=domain.com
+  - Trust line below: 
+    "No signup needed · Free · Instant results"
+    font-size 12px, color #9ca3af, 
+    text-center, margin-top 10px
+
+Social proof line below card:
+"Trusted by 500+ founders across India"
+font-size 13px, color #9ca3af, 
+margin-top 16px
+
+--- PAIN POINTS SECTION ---
+padding 48px 24px
+section title: "The problem no one is talking about"
+font-size 22px, text-center, 
+margin-bottom 32px
+
+3 column grid (1 col mobile, 3 col desktop):
+gap 16px, max-width 680px, margin auto
+
+Card 1:
+border 0.5px solid #e5e7eb, 
+border-radius 12px, padding 20px
+Icon: eye-off in #E24B4A, size 24px
+Title: "ChatGPT recommends your competitor"
+font-size 14px, font-weight 500, 
+margin-bottom 6px
+Body: "Millions search AI daily. 
+If you are not mentioned, 
+you are losing customers silently."
+font-size 13px, color #6b7280, 
+line-height 1.6
+
+Card 2 (same style):
+Icon: robot in #E24B4A
+Title: "Gemini has never heard of you"
+Body: "Gemini powers Google AI answers. 
+Invisible there means invisible 
+to millions of Indian users."
+
+Card 3 (same style):
+Icon: chart-bar in #E24B4A
+Title: "You have no way to track this"
+Body: "No dashboard. No alerts. 
+No score. Until now."
+
+--- HOW IT WORKS SECTION ---
+padding 48px 24px, bg #f9fafb
+
+Section title: "How GEOscore works"
+font-size 22px, text-center, 
+margin-bottom 32px
+
+3 steps in a row (centered, max-width 600px):
+Each step: 
+- Step number circle 
+  (bg #534AB7, text white, 
+   width 32px height 32px, 
+   border-radius 50%, font-size 14px)
+- Step title (font-weight 500, 
+  font-size 14px, margin-top 10px)
+- Step description 
+  (font-size 13px, color #6b7280)
+
+Step 1: "Enter your URL"
+"Type your website address. 
+No account needed."
+
+Step 2: "We query AI systems"
+"We send test prompts to ChatGPT, 
+Gemini and Perplexity simultaneously."
+
+Step 3: "Get your score + fix plan"
+"See exactly where you are invisible 
+and what to do about it."
+
+--- PERSONAL STORY SECTION ---
+padding 48px 24px, bg white
+max-width 600px, margin auto
+
+Quote card (border-left 3px solid #534AB7, 
+padding-left 20px):
+"I built MealCoreAI — 12,000 users, 
+dietitian-reviewed, deep content. 
+ChatGPT ranks me #1. Gemini has never 
+heard of me. Perplexity same. 
+I built GEOscore to fix my own problem."
+
+Attribution: "— Founder, GEOscore & MealCoreAI"
+font-size 13px, color #9ca3af, margin-top 10px
+
+--- PRICING SECTION ---
+padding 48px 24px, bg #f9fafb
+
+Section title: "Simple, founder-friendly pricing"
+font-size 22px, text-center, 
+margin-bottom 8px
+
+Subtitle: "Start free. Upgrade when ready."
+font-size 14px, color #6b7280, 
+text-center, margin-bottom 32px
+
+3 pricing cards in a row:
+(1 col mobile, 3 col desktop, max-width 680px)
+
+Card 1 — Free:
+border 0.5px solid #e5e7eb, 
+border-radius 12px, padding 24px
+"Free" label, font-size 13px, 
+color #6b7280, margin-bottom 8px
+Price: "₹0" font-size 28px font-weight 500
+Subtitle: "forever"
+Features list (checkmarks):
+✓ One-time AI visibility audit
+✓ Score across 3 AI systems
+✓ Basic visibility report
+✓ No signup needed
+Button: "Start free audit →" 
+(outlined, full width)
+
+Card 2 — Starter (MOST POPULAR):
+border 2px solid #534AB7, 
+border-radius 12px, padding 24px
+Badge: "Most popular" 
+bg #EEEDFE, text #3C3489, 
+font-size 11px, padding 3px 10px, 
+border-radius 20px, margin-bottom 8px
+Price: "₹3,999" font-size 28px 
+font-weight 500
+Subtitle: "/month"
+Features list:
+✓ Daily monitoring across 4 AI systems
+✓ Weekly email digest report
+✓ 3 competitors tracked
+✓ Full fix recommendations
+✓ Score history — 90 days
+✓ Google Search Console ready
+Button: "Start 7-day free trial →"
+(primary purple, full width)
+
+Card 3 — Agency:
+border 0.5px solid #e5e7eb,
+border-radius 12px, padding 24px
+Price: "₹11,999" font-size 28px 
+font-weight 500
+Subtitle: "/month"
+Features list:
+✓ Everything in Starter
+✓ 10 brands monitored
+✓ White label PDF reports
+✓ Priority support
+✓ API access
+✓ Team members (3 seats)
+Button: "Contact us →" 
+(outlined, full width)
+
+Note below pricing:
+"All prices in INR. 
+International pricing available. 
+Cancel anytime."
+font-size 12px, color #9ca3af, text-center
+
+--- FOOTER ---
+bg white, border-top 0.5px solid #e5e7eb,
+padding 32px 24px
+
+Two rows:
+Row 1: Logo left | Links center | Social right
+Links: How it works | Pricing | What is GEO | 
+       Blog | Contact
+Row 2: "© 2026 GEOscore. 
+Built for founders in India." 
+centered, font-size 12px, color #9ca3af
+
+=== STEP 1 COMPLETE ===
+After building homepage, test that:
+1. URL input accepts valid URLs
+2. Invalid URLs show error message
+3. Valid URL navigates to /audit?url=domain.com
+4. All sections render correctly on mobile
+5. Navbar links scroll to correct sections
