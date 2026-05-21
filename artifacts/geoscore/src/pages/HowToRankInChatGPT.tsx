@@ -5,7 +5,7 @@ import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 
 export default function HowToRankInChatGPT() {
-  useEffect(() => { document.title = "How to Appear in ChatGPT Results — Complete Guide — GeoIQ"; }, []);
+  useEffect(() => { document.title = "How to Appear in ChatGPT Results | Complete Guide | GeoIQ"; }, []);
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Navbar />
@@ -26,11 +26,11 @@ export default function HowToRankInChatGPT() {
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 24 }}>
-            Getting your startup mentioned by ChatGPT is one of the highest-leverage distribution moves available to founders in 2026. When someone asks ChatGPT for a recommendation in your category, they get one synthesized answer — not a list of ten blue links. If your brand is in that answer, you have a direct line to an engaged, high-intent user. If you are not, you are effectively invisible to that query forever.
+            Getting your startup mentioned by ChatGPT is one of the highest-leverage distribution moves available to founders in 2026. When someone asks ChatGPT for a recommendation in your category, they get one synthesized answer, not a list of ten blue links. If your brand is in that answer, you have a direct line to an engaged, high-intent user. If you are not, you are effectively invisible to that query forever.
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 40 }}>
-            This guide explains exactly how ChatGPT decides what to recommend, and what you can do — starting today — to get your brand into those answers.
+            This guide explains exactly how ChatGPT decides what to recommend, and what you can do, starting today, to get your brand into those answers.
           </p>
 
           <h2 style={{ fontSize: 22, fontWeight: 600, color: "#111827", marginBottom: 16 }}>
@@ -38,7 +38,7 @@ export default function HowToRankInChatGPT() {
           </h2>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 16 }}>
-            ChatGPT is a large language model trained on a large corpus of text collected from the internet, books, and curated datasets. Unlike Google, it does not do a fresh search every time you ask it a question — it draws on the patterns and facts it learned during training, plus (in its browsing-enabled mode) real-time web results.
+            ChatGPT is a large language model trained on a large corpus of text collected from the internet, books, and curated datasets. Unlike Google, it does not do a fresh search every time you ask it a question, it draws on the patterns and facts it learned during training, plus (in its browsing-enabled mode) real-time web results.
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 16 }}>
@@ -46,7 +46,7 @@ export default function HowToRankInChatGPT() {
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 40 }}>
-            ChatGPT's browsing mode (available in GPT-4o and later) can retrieve real-time information, but it still prioritizes pages it considers authoritative. The same principles that make a page rank well for Google's crawler — domain authority, inbound links, clear structured content — also make a page more likely to be retrieved and cited by ChatGPT's browser.
+            ChatGPT's browsing mode (available in GPT-4o and later) can retrieve real-time information, but it still prioritizes pages it considers authoritative. The same principles that make a page rank well for Google's crawler, domain authority, inbound links, clear structured content, also make a page more likely to be retrieved and cited by ChatGPT's browser.
           </p>
 
           <h2 style={{ fontSize: 22, fontWeight: 600, color: "#111827", marginBottom: 16 }}>
@@ -64,12 +64,12 @@ export default function HowToRankInChatGPT() {
                 detail: "More recent training data carries more weight, especially for a fast-moving category like AI tools or fintech. Coverage from 2024-2026 in relevant publications will be more impactful than old mentions from 2020, even from authoritative sources.",
               },
               {
-                signal: "Context of mentions — are you recommended or just listed?",
+                signal: "Context of mentions, are you recommended or just listed?",
                 detail: "Being mentioned as a recommendation ('founders should check out X') is more powerful than being listed as an option. Reviews, case studies, and comparisons that position your brand favorably carry more signal than plain directory listings.",
               },
               {
                 signal: "Consistency of brand description across sources",
-                detail: "If different sources describe your product differently — one calls it a CRM, another calls it a sales tool — ChatGPT builds an uncertain picture. Consistent, precise descriptions compound across sources.",
+                detail: "If different sources describe your product differently, one calls it a CRM, another calls it a sales tool, ChatGPT builds an uncertain picture. Consistent, precise descriptions compound across sources.",
               },
             ].map((item, i) => (
               <div key={i} style={{ padding: "16px 0", borderBottom: "1px solid #f3f4f6" }}>
@@ -93,7 +93,7 @@ export default function HowToRankInChatGPT() {
               },
               {
                 title: "Write a clear, factual About page",
-                body: "Your About page should contain a precise one-paragraph description of what your product does, who it serves, and what makes it different — in plain language. Avoid jargon and marketing superlatives. Write the paragraph you would want ChatGPT to read aloud if someone asked 'what is [your brand]?' Include specific numbers: users, countries, use cases.",
+                body: "Your About page should contain a precise one-paragraph description of what your product does, who it serves, and what makes it different, in plain language. Avoid jargon and marketing superlatives. Write the paragraph you would want ChatGPT to read aloud if someone asked 'what is [your brand]?' Include specific numbers: users, countries, use cases.",
               },
               {
                 title: "Get covered in publications ChatGPT cites",
@@ -101,7 +101,7 @@ export default function HowToRankInChatGPT() {
               },
               {
                 title: "Build consistent NAP signals",
-                body: "NAP stands for Name, Address, Phone — a concept borrowed from local SEO. For AI visibility, extend this to: your brand name (exact spelling, capitalization), your tagline (one consistent version), your category label (pick one and use it everywhere), and your founding year. AI systems build their understanding of your brand by aggregating mentions across the web.",
+                body: "NAP stands for Name, Address, Phone, a concept borrowed from local SEO. For AI visibility, extend this to: your brand name (exact spelling, capitalization), your tagline (one consistent version), your category label (pick one and use it everywhere), and your founding year. AI systems build their understanding of your brand by aggregating mentions across the web.",
               },
               {
                 title: "Create content that answers questions in your niche",
@@ -127,11 +127,11 @@ export default function HowToRankInChatGPT() {
           </h2>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 16 }}>
-            Tracking ChatGPT visibility manually is tedious — you have to open ChatGPT, ask a dozen different prompts, and note whether your brand appeared. That takes 30 minutes per audit, gives you no historical trend data, and cannot be done consistently.
+            Tracking ChatGPT visibility manually is tedious, you have to open ChatGPT, ask a dozen different prompts, and note whether your brand appeared. That takes 30 minutes per audit, gives you no historical trend data, and cannot be done consistently.
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 40 }}>
-            GeoIQ automates this. It runs multiple prompts across ChatGPT, Gemini, and Perplexity every day, calculates a 0-100 visibility score per system, and sends you a weekly digest with score changes. When your ChatGPT score drops — because a competitor got new coverage or a model update changed the weights — you get an alert so you can act fast.
+            GeoIQ automates this. It runs multiple prompts across ChatGPT, Gemini, and Perplexity every day, calculates a 0-100 visibility score per system, and sends you a weekly digest with score changes. When your ChatGPT score drops, because a competitor got new coverage or a model update changed the weights, you get an alert so you can act fast.
           </p>
 
           <h2 style={{ fontSize: 22, fontWeight: 600, color: "#111827", marginBottom: 16 }}>
@@ -150,7 +150,7 @@ export default function HowToRankInChatGPT() {
               },
               {
                 mistake: "Waiting until you have a big press hit",
-                fix: "Small, consistent mentions across many sources outperform one big TechCrunch article. Start building citations from 10 niche directories and review sites — that creates a web of references ChatGPT can triangulate.",
+                fix: "Small, consistent mentions across many sources outperform one big TechCrunch article. Start building citations from 10 niche directories and review sites, that creates a web of references ChatGPT can triangulate.",
               },
               {
                 mistake: "Not tracking changes over time",

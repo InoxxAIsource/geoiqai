@@ -113,7 +113,7 @@ function SystemRow({
 }
 
 export default function Audit() {
-  useEffect(() => { document.title = "Your GEO IQ Score — GeoIQ"; }, []);
+  useEffect(() => { document.title = "Your GEO IQ Score | GeoIQ"; }, []);
   const [, setLocation] = useLocation();
   const query = useQuery();
   const urlParam = query.get("url");
@@ -169,7 +169,7 @@ export default function Audit() {
   };
 
   const shareText = auditResult
-    ? `I just checked my GEO IQ score with GeoIQ — ${auditResult.domain} got ${auditResult.scoreTotal}/100. Check yours free at geoiqai.com`
+    ? `I just checked my GEO IQ score with GeoIQ, ${auditResult.domain} got ${auditResult.scoreTotal}/100. Check yours free at geoiqai.com`
     : "";
   const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
 
@@ -355,7 +355,7 @@ export default function Audit() {
               </div>
               <Link href="/pricing">
                 <Button style={{ width: "100%", background: "#4F46E5", color: "white", marginBottom: 16, height: 42 }}>
-                  Unlock full GEO IQ report — ₹3,999/mo →
+                  Unlock full GEO IQ report, ₹3,999/mo →
                 </Button>
               </Link>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, fontSize: 13, color: "#9ca3af" }}>

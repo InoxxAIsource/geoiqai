@@ -118,7 +118,7 @@ function generateFixActions(brand: any): FixAction[] {
 }
 
 export default function Dashboard() {
-  useEffect(() => { document.title = "GEO IQ Dashboard — GeoIQ"; }, []);
+  useEffect(() => { document.title = "GEO IQ Dashboard | GeoIQ"; }, []);
   const { isAuthenticated } = useAuthGuard();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -384,7 +384,7 @@ export default function Dashboard() {
                       {
                         label: "vs last week",
                         value: weekChange === null ? (
-                          <span style={{ fontSize: 24, fontWeight: 500, color: "#9ca3af" }}>—</span>
+                          <span style={{ fontSize: 24, fontWeight: 500, color: "#9ca3af" }}>-</span>
                         ) : (
                           <span
                             style={{
@@ -437,7 +437,7 @@ export default function Dashboard() {
                       }}
                     >
                       <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 12 }}>
-                        Score trend — last 30 days
+                        Score trend, last 30 days
                       </div>
                       {chartData.length > 0 ? (
                         <ResponsiveContainer width="100%" height={120}>
@@ -564,7 +564,7 @@ export default function Dashboard() {
                       Keywords we are monitoring
                     </div>
                     <div style={{ fontSize: 12, color: "#6b7280" }}>
-                      Real search queries your audience types — and whether your brand appears in each AI system when those queries are asked.
+                      Real search queries your audience types, and whether your brand appears in each AI system when those queries are asked.
                     </div>
                   </div>
 
@@ -685,7 +685,7 @@ export default function Dashboard() {
                     }}
                   >
                     <div style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>
-                      Fix actions — generated this week
+                      Fix actions, generated this week
                     </div>
                     <button
                       onClick={() => {
@@ -833,7 +833,7 @@ export default function Dashboard() {
                             <td style={{ padding: "10px 0", fontSize: 13, color: "#374151", borderBottom: "0.5px solid #f9fafb" }}>
                               {comp}
                             </td>
-                            {["—", "—", "—"].map((val, i) => (
+                            {["-", "-", "-"].map((val, i) => (
                               <td
                                 key={i}
                                 style={{

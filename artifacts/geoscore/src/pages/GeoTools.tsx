@@ -99,13 +99,13 @@ function Stars({ count }: { count: number }) {
 function Check({ value }: { value: boolean }) {
   return (
     <span style={{ color: value ? "#10b981" : "#d1d5db", fontSize: 16, fontWeight: 600 }}>
-      {value ? "✓" : "—"}
+      {value ? "✓" : "-"}
     </span>
   );
 }
 
 export default function GeoTools() {
-  useEffect(() => { document.title = "Best GEO Tools 2026 — AI Visibility Platforms Compared — GeoIQ"; }, []);
+  useEffect(() => { document.title = "Best GEO Tools 2026 | AI Visibility Platforms Compared | GeoIQ"; }, []);
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Navbar />
@@ -126,7 +126,7 @@ export default function GeoTools() {
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 24 }}>
-            As AI search becomes the dominant way users discover products and services, a new category of tools has emerged to help brands track and improve their AI visibility. These platforms — called GEO (Generative Engine Optimization) tools — work like Google Search Console but for ChatGPT, Gemini, and Perplexity.
+            As AI search becomes the dominant way users discover products and services, a new category of tools has emerged to help brands track and improve their AI visibility. These platforms, called GEO (Generative Engine Optimization) tools, work like Google Search Console but for ChatGPT, Gemini, and Perplexity.
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 40 }}>
@@ -138,7 +138,7 @@ export default function GeoTools() {
           </h2>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 40 }}>
-            Checking AI visibility manually means opening ChatGPT, typing dozens of prompts, noting whether your brand appeared, and doing that across three or four different systems. Even a single manual audit takes 30-45 minutes. Doing it weekly means two hours per month of tedious manual work with no historical data and no alerts when things change. A GEO tool automates this entirely — running hundreds of prompts daily and delivering the results as a clean score with trend charts.
+            Checking AI visibility manually means opening ChatGPT, typing dozens of prompts, noting whether your brand appeared, and doing that across three or four different systems. Even a single manual audit takes 30-45 minutes. Doing it weekly means two hours per month of tedious manual work with no historical data and no alerts when things change. A GEO tool automates this entirely, running hundreds of prompts daily and delivering the results as a clean score with trend charts.
           </p>
 
           <h2 style={{ fontSize: 22, fontWeight: 600, color: "#111827", marginBottom: 24 }}>
@@ -224,7 +224,7 @@ export default function GeoTools() {
 
           <div style={{ background: "#4F46E5", borderRadius: 16, padding: 32, textAlign: "center", marginBottom: 48 }}>
             <h3 style={{ color: "white", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>
-              Try GeoIQ free — no signup, instant results
+              Try GeoIQ free, no signup, instant results
             </h3>
             <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 14, marginBottom: 20 }}>
               Enter your domain and see your AI visibility score across ChatGPT, Gemini, and Perplexity in 60 seconds.

@@ -5,7 +5,7 @@ import { Footer } from "@/components/layout/Footer";
 
 export default function Blog() {
   useEffect(() => {
-    document.title = "Blog — GeoIQ";
+    document.title = "Blog | GeoIQ";
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute("content", "GEO insights, AI visibility tips, and founder stories from the GeoIQ team.");
   }, []);
@@ -71,7 +71,7 @@ export default function Blog() {
                 </h2>
                 <p style={{ fontSize: 15, color: "#6B7280", lineHeight: 1.6, margin: 0 }}>
                   Most founders assume that if they have a strong SEO presence, AI systems like ChatGPT will
-                  recommend them. This is wrong. Here's why — and what you can do about it today.
+                  recommend them. This is wrong. Here's why, and what you can do about it today.
                 </p>
                 <div style={{ marginTop: 16, fontSize: 14, fontWeight: 500, color: "#4F46E5" }}>
                   Read article →

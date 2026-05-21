@@ -5,7 +5,7 @@ import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 
 export default function WhatIsGeo() {
-  useEffect(() => { document.title = "What is GEO? Generative Engine Optimization Explained — GeoIQ"; }, []);
+  useEffect(() => { document.title = "What is GEO? Generative Engine Optimization Explained | GeoIQ"; }, []);
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Navbar />
@@ -41,11 +41,11 @@ export default function WhatIsGeo() {
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 24 }}>
-            GEO — Generative Engine Optimization — is the practice of optimizing your brand and content to appear in AI-generated answers from systems like ChatGPT, Gemini, Perplexity, and Bing Copilot. Just as SEO helped brands rank in Google's blue links through the 2000s and 2010s, GEO helps brands get recommended by AI systems that now answer millions of questions every day.
+            GEO, Generative Engine Optimization, is the practice of optimizing your brand and content to appear in AI-generated answers from systems like ChatGPT, Gemini, Perplexity, and Bing Copilot. Just as SEO helped brands rank in Google's blue links through the 2000s and 2010s, GEO helps brands get recommended by AI systems that now answer millions of questions every day.
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 40 }}>
-            The shift is significant. When someone asks ChatGPT "best project management tool for a 10-person startup in India," they are not clicking through ten blue links. They are reading one answer. If your brand is not in that answer, you are invisible — even if you rank #1 on Google for the same query. That is the core problem GEO solves.
+            The shift is significant. When someone asks ChatGPT "best project management tool for a 10-person startup in India," they are not clicking through ten blue links. They are reading one answer. If your brand is not in that answer, you are invisible, even if you rank #1 on Google for the same query. That is the core problem GEO solves.
           </p>
 
           <h2 style={{ fontSize: 22, fontWeight: 600, color: "#111827", marginBottom: 16 }}>
@@ -53,7 +53,7 @@ export default function WhatIsGeo() {
           </h2>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 16 }}>
-            The numbers are no longer small. Perplexity serves over 15 million daily queries. ChatGPT has more than 200 million weekly active users. Google's AI Overviews — the AI-generated summaries that appear above search results — now appear on over 40% of all searches, and that percentage is growing every month.
+            The numbers are no longer small. Perplexity serves over 15 million daily queries. ChatGPT has more than 200 million weekly active users. Google's AI Overviews, the AI-generated summaries that appear above search results, now appear on over 40% of all searches, and that percentage is growing every month.
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 16 }}>
@@ -110,11 +110,11 @@ export default function WhatIsGeo() {
             {[
               {
                 title: "Training data coverage",
-                body: "ChatGPT's knowledge comes from its training data, which includes web crawls, books, and curated datasets. If your brand appeared in authoritative sources before the training cutoff — tech blogs, news articles, industry directories — it is more likely to be in the model's memory.",
+                body: "ChatGPT's knowledge comes from its training data, which includes web crawls, books, and curated datasets. If your brand appeared in authoritative sources before the training cutoff, tech blogs, news articles, industry directories, it is more likely to be in the model's memory.",
               },
               {
                 title: "Third-party citations and mentions",
-                body: "All AI systems weight third-party mentions heavily. A review on G2, a mention in TechCrunch, a ProductHunt launch that got traction — these signals tell AI systems your brand is real and relevant. First-party content (your own website) carries far less weight.",
+                body: "All AI systems weight third-party mentions heavily. A review on G2, a mention in TechCrunch, a ProductHunt launch that got traction, these signals tell AI systems your brand is real and relevant. First-party content (your own website) carries far less weight.",
               },
               {
                 title: "Structured, factual content",
@@ -203,15 +203,15 @@ export default function WhatIsGeo() {
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 16 }}>
-            Gemini is particularly important for India. Since Gemini is Google's model and Android dominates India's smartphone market, Gemini will increasingly become the default AI interface for hundreds of millions of Indian users. Getting into Gemini's knowledge graph now — through Google Business Profile, structured data markup, and coverage in Google-indexed Indian publications — is a significant early advantage.
+            Gemini is particularly important for India. Since Gemini is Google's model and Android dominates India's smartphone market, Gemini will increasingly become the default AI interface for hundreds of millions of Indian users. Getting into Gemini's knowledge graph now, through Google Business Profile, structured data markup, and coverage in Google-indexed Indian publications, is a significant early advantage.
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 16 }}>
-            Building citations on Indian platforms matters specifically for Gemini: YourStory articles, Inc42 features, Entrackr coverage, and StartupStories mentions all feed into Google's understanding of Indian startups. These are not just PR wins — they are GEO signals.
+            Building citations on Indian platforms matters specifically for Gemini: YourStory articles, Inc42 features, Entrackr coverage, and StartupStories mentions all feed into Google's understanding of Indian startups. These are not just PR wins, they are GEO signals.
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 40 }}>
-            The good news: the Indian GEO landscape is early. Most Indian SaaS founders are not yet thinking about AI visibility, which means the opportunity to be the brand that AI systems recommend in your category is real and available right now — before your competitors wake up to it.
+            The good news: the Indian GEO landscape is early. Most Indian SaaS founders are not yet thinking about AI visibility, which means the opportunity to be the brand that AI systems recommend in your category is real and available right now, before your competitors wake up to it.
           </p>
 
           <h2 style={{ fontSize: 22, fontWeight: 600, color: "#111827", marginBottom: 16 }}>
@@ -219,7 +219,7 @@ export default function WhatIsGeo() {
           </h2>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 40 }}>
-            GEO is not a replacement for SEO — it is an additional layer that becomes more important as AI search captures a larger share of information-seeking behavior. The brands that invest in GEO now will have a compounding advantage: early citations lead to more AI mentions, which lead to more brand searches, which lead to more backlinks, which improves both SEO and GEO simultaneously. Start with a free audit, understand your baseline, and begin building the citations that will put you in the AI answer.
+            GEO is not a replacement for SEO, it is an additional layer that becomes more important as AI search captures a larger share of information-seeking behavior. The brands that invest in GEO now will have a compounding advantage: early citations lead to more AI mentions, which lead to more brand searches, which lead to more backlinks, which improves both SEO and GEO simultaneously. Start with a free audit, understand your baseline, and begin building the citations that will put you in the AI answer.
           </p>
 
           <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 24, display: "flex", gap: 24, flexWrap: "wrap" }}>

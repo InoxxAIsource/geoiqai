@@ -27,7 +27,7 @@ function loadRazorpayScript(): Promise<void> {
 }
 
 export default function Pricing() {
-  useEffect(() => { document.title = "Pricing — GeoIQ"; }, []);
+  useEffect(() => { document.title = "Pricing | GeoIQ"; }, []);
   const { isAuthenticated } = useAuthGuard();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -73,8 +73,8 @@ export default function Pricing() {
         order_id: order.orderId,
         name: "GeoIQ",
         description: planId === "starter"
-          ? "GeoIQ Starter — Daily AI Visibility Monitoring"
-          : "GeoIQ Agency — 10 Brands AI Monitoring",
+          ? "GeoIQ Starter, Daily AI Visibility Monitoring"
+          : "GeoIQ Agency, 10 Brands AI Monitoring",
         theme: { color: "#4F46E5" },
         prefill: { email: userEmail },
         handler: async (response: {
@@ -149,7 +149,7 @@ export default function Pricing() {
             {[
               {
                 q: "What is GEO?",
-                a: "Generative Engine Optimization (GEO) is the process of optimizing your brand's presence in AI search engines like ChatGPT, Gemini, and Perplexity — so you get recommended when users ask about your category.",
+                a: "Generative Engine Optimization (GEO) is the process of optimizing your brand's presence in AI search engines like ChatGPT, Gemini, and Perplexity, so you get recommended when users ask about your category.",
               },
               {
                 q: "Is the free audit really free? No credit card?",

@@ -5,7 +5,7 @@ import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 
 export default function BlogChatGPT() {
-  useEffect(() => { document.title = "Why Your Startup Doesn't Show Up in ChatGPT (And How to Fix It) — GeoIQ"; }, []);
+  useEffect(() => { document.title = "Why Your Startup Doesn't Show Up in ChatGPT (And How to Fix It) | GeoIQ"; }, []);
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Navbar />
@@ -30,12 +30,12 @@ export default function BlogChatGPT() {
           {/* Opening hook */}
           <blockquote style={{ borderLeft: "3px solid #4F46E5", paddingLeft: 20, marginBottom: 32 }}>
             <p style={{ fontSize: 17, color: "#374151", lineHeight: 1.8, fontStyle: "italic", margin: 0 }}>
-              "I asked ChatGPT 'best cricket arbitrage scanner for IPL.' My site came fourth. Fine — I could work with that. Then I asked about MealCoreAI — a product with 12,000 users and incredibly deep content about meal planning for Indian households. Gemini had never heard of it. Perplexity same. That was the moment I realized AI visibility is broken for indie founders, especially in India."
+              "I asked ChatGPT 'best cricket arbitrage scanner for IPL.' My site came fourth. Fine, I could work with that. Then I asked about MealCoreAI, a product with 12,000 users and incredibly deep content about meal planning for Indian households. Gemini had never heard of it. Perplexity same. That was the moment I realized AI visibility is broken for indie founders, especially in India."
             </p>
           </blockquote>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 40 }}>
-            That conversation changed how I thought about distribution. We had been pouring energy into SEO, into content, into building a product people actually used — and AI search had no idea we existed. Not because our product was bad. Because we had not learned to speak the language AI systems use to discover brands.
+            That conversation changed how I thought about distribution. We had been pouring energy into SEO, into content, into building a product people actually used, and AI search had no idea we existed. Not because our product was bad. Because we had not learned to speak the language AI systems use to discover brands.
           </p>
 
           <h2 style={{ fontSize: 22, fontWeight: 600, color: "#111827", marginBottom: 16 }}>
@@ -43,7 +43,7 @@ export default function BlogChatGPT() {
           </h2>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 16 }}>
-            I started running systematic tests. I would ask ChatGPT, Gemini, and Perplexity the same questions in different formats — "best tool for X," "recommend something for Y," "what do founders use for Z." Then I would note which brands came up, how consistently, and how they were described.
+            I started running systematic tests. I would ask ChatGPT, Gemini, and Perplexity the same questions in different formats, "best tool for X," "recommend something for Y," "what do founders use for Z." Then I would note which brands came up, how consistently, and how they were described.
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 16 }}>
@@ -51,7 +51,7 @@ export default function BlogChatGPT() {
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 40 }}>
-            This was not SEO. SEO rewards the page. GEO rewards the brand. The optimization target is different, the signals are different, and — critically — the measurement is different.
+            This was not SEO. SEO rewards the page. GEO rewards the brand. The optimization target is different, the signals are different, and, critically, the measurement is different.
           </p>
 
           <h2 style={{ fontSize: 22, fontWeight: 600, color: "#111827", marginBottom: 16 }}>
@@ -66,13 +66,13 @@ export default function BlogChatGPT() {
             {[
               {
                 cause: "AI training data gaps",
-                explanation: "ChatGPT and Gemini are trained on web data collected up to a certain cutoff date. If your startup launched recently, or if your early growth happened quietly without press coverage, you may simply not be in the training data. The model does not know you exist — not because you are unworthy of mention, but because you never made it into the data pipelines that trained the model.",
-                fix: "The fix for training data gaps is a long-term play: get into as many indexed, authoritative web sources as possible before the next training cycle. But for Perplexity, which uses real-time search, the fix is immediate — any indexed page that mentions your brand is fair game today.",
+                explanation: "ChatGPT and Gemini are trained on web data collected up to a certain cutoff date. If your startup launched recently, or if your early growth happened quietly without press coverage, you may simply not be in the training data. The model does not know you exist, not because you are unworthy of mention, but because you never made it into the data pipelines that trained the model.",
+                fix: "The fix for training data gaps is a long-term play: get into as many indexed, authoritative web sources as possible before the next training cycle. But for Perplexity, which uses real-time search, the fix is immediate, any indexed page that mentions your brand is fair game today.",
               },
               {
                 cause: "Citation scarcity for new brands",
-                explanation: "AI systems do not just check if a brand exists — they check how many independent sources validate it. A brand with one mention (its own website) looks like an unverified claim. A brand with 30 independent mentions across review sites, news articles, and community discussions looks established. Most early-stage startups have only first-party content — their own website, their own social media — which AI systems discount heavily.",
-                fix: "Third-party citations are the single highest-leverage thing you can do for GEO. G2, ProductHunt, Hacker News Show HN posts, relevant Subreddits, newsletter features — each of these is a citation that tells AI systems your brand is real and relevant.",
+                explanation: "AI systems do not just check if a brand exists, they check how many independent sources validate it. A brand with one mention (its own website) looks like an unverified claim. A brand with 30 independent mentions across review sites, news articles, and community discussions looks established. Most early-stage startups have only first-party content, their own website, their own social media, which AI systems discount heavily.",
+                fix: "Third-party citations are the single highest-leverage thing you can do for GEO. G2, ProductHunt, Hacker News Show HN posts, relevant Subreddits, newsletter features, each of these is a citation that tells AI systems your brand is real and relevant.",
               },
               {
                 cause: "Geographic blind spots",
@@ -116,7 +116,7 @@ export default function BlogChatGPT() {
                 action: "Launch on ProductHunt",
                 time: "1 day",
                 impact: "High",
-                detail: "A ProductHunt listing — even without a huge launch — gives you a permanent, indexed page that gets picked up by AI training data. Write a clear, factual description of what your product does.",
+                detail: "A ProductHunt listing, even without a huge launch, gives you a permanent, indexed page that gets picked up by AI training data. Write a clear, factual description of what your product does.",
               },
               {
                 action: "Post a Show HN on Hacker News",
@@ -164,11 +164,11 @@ export default function BlogChatGPT() {
           </h2>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 16 }}>
-            The five actions above will improve your AI visibility. But without measurement, you have no idea if they are working or how quickly. AI systems update their responses — a brand that was invisible last month might be visible today because of new coverage, or vice versa because of a model update that changed how the system weights information.
+            The five actions above will improve your AI visibility. But without measurement, you have no idea if they are working or how quickly. AI systems update their responses, a brand that was invisible last month might be visible today because of new coverage, or vice versa because of a model update that changed how the system weights information.
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 24 }}>
-            Use GeoIQ's free tool to check your baseline right now — it takes 60 seconds and requires no account. Then, if you want daily monitoring and weekly alerts, upgrade to a paid plan. The weekly digest tells you your score change, which AI systems you gained or lost visibility on, and what specific actions are likely to move the needle most for your brand.
+            Use GeoIQ's free tool to check your baseline right now, it takes 60 seconds and requires no account. Then, if you want daily monitoring and weekly alerts, upgrade to a paid plan. The weekly digest tells you your score change, which AI systems you gained or lost visibility on, and what specific actions are likely to move the needle most for your brand.
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 40 }}>
@@ -177,7 +177,7 @@ export default function BlogChatGPT() {
 
           <div style={{ background: "#4F46E5", borderRadius: 16, padding: 32, textAlign: "center", marginBottom: 48 }}>
             <h3 style={{ color: "white", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>
-              Check your brand right now — free
+              Check your brand right now, free
             </h3>
             <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 14, marginBottom: 20 }}>
               No signup. No email needed. See where you stand in ChatGPT, Gemini, and Perplexity in 60 seconds.

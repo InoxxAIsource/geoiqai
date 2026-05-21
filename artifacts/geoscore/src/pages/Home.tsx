@@ -130,7 +130,7 @@ export default function Home() {
               lineHeight: 1.6,
             }}
           >
-            Find out how ChatGPT, Gemini &amp; Perplexity see your brand — free in 60
+            Find out how ChatGPT, Gemini &amp; Perplexity see your brand, free in 60
             seconds. No signup needed.
           </p>
 
@@ -570,7 +570,7 @@ export default function Home() {
               Even well-known brands are mostly invisible
             </h2>
             <p style={{ fontSize: 18, color: "#6B7280", maxWidth: 560, margin: "0 auto", lineHeight: 1.6 }}>
-              These are live audit results from real domains — not estimates. Run them yourself.
+              These are live audit results from real domains, not estimates. Run them yourself.
             </p>
           </div>
 

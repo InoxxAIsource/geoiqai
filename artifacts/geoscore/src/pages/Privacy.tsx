@@ -35,7 +35,7 @@ const SECTIONS = [
 
 export default function Privacy() {
   useEffect(() => {
-    document.title = "Privacy Policy — GeoIQ";
+    document.title = "Privacy Policy | GeoIQ";
   }, []);
 
   return (

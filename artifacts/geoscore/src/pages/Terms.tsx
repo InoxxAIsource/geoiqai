@@ -39,7 +39,7 @@ const SECTIONS = [
 
 export default function Terms() {
   useEffect(() => {
-    document.title = "Terms of Service — GeoIQ";
+    document.title = "Terms of Service | GeoIQ";
   }, []);
 
   return (
