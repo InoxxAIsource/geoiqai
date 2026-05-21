@@ -1,0 +1,92 @@
+Critical bug — reddit.com scores 0/100 
+on GEOscore. Reddit is one of the most 
+well-known websites on the internet and 
+should score 85+/100.
+
+This reveals multiple bugs. Fix all of them:
+
+BUG 1 — Brand name extraction
+Current code extracts brand from domain 
+by removing TLD only.
+reddit.com → "reddit" ✓ (this part works)
+
+But the matching must check ALL of these:
+- "reddit.com"
+- "reddit" 
+- "Reddit"
+- "Reddit.com"
+Case insensitive matching for all variations.
+
+BUG 2 — Prompt generation for platforms
+For well-known platforms and brands, 
+generic category prompts fail completely.
+
+Add a known brands list with 
+platform-specific prompts:
+
+KNOWN_PLATFORMS = {
+  "reddit": [
+    "What is Reddit?",
+    "Reddit communities for discussion",
+    "best social discussion platforms",
+    "Reddit vs other forums"
+  ],
+  "google": [
+    "What is Google?",
+    "best search engines",
+    "Google products and services"
+  ],
+  "youtube": [
+    "What is YouTube?",
+    "best video platforms",
+    "YouTube for content creators"
+  ],
+  "twitter": [
+    "What is Twitter?",
+    "best social media platforms",
+    "Twitter for news"
+  ],
+  "linkedin": [
+    "What is LinkedIn?",
+    "best professional networks",
+    "LinkedIn for jobs"
+  ]
+}
+
+If domain base name matches a known platform,
+use platform-specific prompts instead of 
+generated ones.
+
+BUG 3 — Category detection for major brands
+If DataForSEO returns 1M+ monthly searches
+for the domain → automatically classify as
+"major brand" and use higher base score 
+calculation.
+
+BUG 4 — Score calibration
+Current scoring only gives points when 
+brand appears in AI response.
+But for major platforms ChatGPT always 
+knows them — the issue is prompt relevance.
+
+Add fallback: if brand appears in ANY 
+of the 5 prompts responses → count it.
+Currently it might require ALL prompts 
+to match which is too strict.
+
+After fixing test these and show 
+expected vs actual scores:
+
+reddit.com → expected 85-95/100
+youtube.com → expected 85-95/100  
+mealcoreai.com → expected 25-40/100
+cricketarb.com → expected 10-20/100
+xusjhf.com → expected 0/100
+
+Show me the RAW response text from 
+ChatGPT for "What is Reddit?" so I can 
+confirm real API calls are happening.
+
+The scoring must reflect real world 
+AI visibility — not just technical 
+string matching failures.

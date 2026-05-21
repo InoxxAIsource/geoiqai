@@ -119,7 +119,7 @@ Content: ${scraped.bodyText.substring(0, 300)}
 Return exactly this JSON structure:
 {
   "brand_name": "extracted brand or product name (just the name, not the full title)",
-  "category": "one of: health app, saas tool, ecommerce, fintech, edtech, food delivery, travel, real estate, other",
+  "category": "one of: social media, video platform, search engine, discussion forum, news media, entertainment, ecommerce, saas tool, health app, fintech, edtech, developer tool, productivity, food delivery, travel, real estate, other",
   "market": "one of: India, Global, US, UK",
   "top_competitors": ["competitor1", "competitor2", "competitor3"]
 }`;
@@ -161,19 +161,44 @@ function generatePrompts(
   // RULE: No part of the brand name, domain, or domain root may appear in any prompt.
   // Any brand token in a prompt causes AI to echo it back — triggering a false positive match.
   // A score only counts when the AI mentions the brand completely unprompted.
+
+  // Human-readable noun phrase for each category, used in natural-language prompts.
+  // "other" maps to a broad phrase so AI lists well-known platforms rather than
+  // responding with "I don't understand what 'other tools' means".
+  const CATEGORY_NOUN: Record<string, string> = {
+    "social media":     "social media platforms and communities",
+    "video platform":   "online video platforms",
+    "search engine":    "search engines and web discovery tools",
+    "discussion forum": "online discussion and community platforms",
+    "news media":       "news and media platforms",
+    "entertainment":    "entertainment and streaming platforms",
+    "ecommerce":        "ecommerce and online shopping platforms",
+    "saas tool":        "SaaS tools and cloud software",
+    "health app":       "health, fitness, and wellness apps",
+    "fintech":          "fintech and financial software platforms",
+    "edtech":           "edtech and online learning platforms",
+    "developer tool":   "developer tools and infrastructure platforms",
+    "productivity":     "productivity and collaboration tools",
+    "food delivery":    "food delivery and restaurant tech platforms",
+    "travel":           "travel and hospitality platforms",
+    "real estate":      "real estate and property tech platforms",
+    "other":            "popular internet platforms and online services",
+  };
+  const noun = CATEGORY_NOUN[category] ?? `${category} platforms`;
+
   const prompts: string[] = [
-    `What are the best ${category} tools available right now? List the top 10 options with a short description of each.`,
-    `Which ${category} platforms do you recommend for startups in ${market}? Give the top 5 with pros and cons.`,
-    `I am evaluating ${category} software for a ${market} business. What are the most reputable and well-reviewed options?`,
+    `What are the most popular and well-known ${noun} available today? List the top 10 with a short description of each.`,
+    `Which ${noun} do you recommend for users in ${market}? Give the top 5 with pros and cons.`,
+    `I am looking for the best ${noun}. What are the most reputable and widely used options right now?`,
   ];
 
   if (competitors.length > 0) {
     prompts.push(
-      `What are the top alternatives to ${competitors[0]} in the ${category} space? List the main competitors with brief descriptions.`,
+      `What are the top alternatives to ${competitors[0]}? List similar ${noun} with brief descriptions.`,
     );
   } else {
     prompts.push(
-      `What are the leading ${category} products used by startups and scaleups in ${market}? Include both established and emerging tools.`,
+      `What are the leading ${noun} used by businesses and individuals in ${market}? Include both established and emerging options.`,
     );
   }
 
