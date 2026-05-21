@@ -528,13 +528,56 @@ function calculateSystemScore(
   };
 }
 
+// Informational query patterns (price, date, news) — not useful for product discovery
+const INFORMATIONAL_KW = /\b(price|rate|today|news|history|definition|meaning|live|current|latest|update|forecast|chart|vs\b|compare|review|tutorial|guide|how to|what is|when is|why is)\b/i;
+// Navigation intent — user is looking for a login/signup page, not discovering tools
+const NAVIGATION_KW = /\b(login|log in|log-in|sign in|sign-up|signup|sign up|register|download|install|account|password|reset|forgot|contact|support|careers|jobs)\b/i;
+
 /**
- * Build prompts from DataForSEO keywords.
- * Keywords are real user search queries — they test whether the brand surfaces
- * organically when users search for its actual topics.
+ * Extract topical (non-branded, non-informational, non-navigational) keywords from
+ * DataForSEO results and use them as supplemental prompts alongside the standard
+ * category-based prompts.
+ *
+ * Strategy: category prompts are always the backbone (accurate, battle-tested).
+ * DataForSEO topical keywords ADD up to 2 bonus prompts when they pass quality filters.
+ * This preserves score accuracy while adding topical signal for brands with good keywords.
+ *
+ * A keyword passes quality filters when it:
+ *   1. Does NOT contain any brand variation
+ *   2. Is at least 2 words long (single-word queries carry no product-category signal)
+ *   3. Is NOT a price/date/news informational query
+ *   4. Is NOT a navigation query (login, signup, etc.)
  */
-function buildKeywordPrompts(keywords: Array<{ keyword: string }>): string[] {
-  return keywords.slice(0, 10).map((k) => k.keyword);
+function buildKeywordPrompts(
+  keywords: Array<{ keyword: string }>,
+  brandName: string,
+  domain: string,
+  category: string,
+  market: string,
+  competitors: string[],
+): string[] {
+  const base = generatePrompts(brandName, domain, category, market, competitors);
+
+  const variations = getBrandVariations(brandName, domain);
+  const root = domain.replace(/^www\./i, "").replace(/\.[a-z]{2,6}$/i, "").toLowerCase();
+
+  const topical = keywords.filter((k) => {
+    const kw = k.keyword.toLowerCase();
+    if (variations.some((v) => kw.includes(v))) return false;
+    if (root.length > 3 && kw.includes(root)) return false;
+    if (kw.trim().split(/\s+/).length < 2) return false;
+    if (INFORMATIONAL_KW.test(kw)) return false;
+    if (NAVIGATION_KW.test(kw)) return false;
+    return true;
+  });
+
+  const extra = topical.slice(0, 2).map((k) => {
+    const kw = k.keyword;
+    if (/^(what|how|which|where|when|who|why|is|are|can|does|do)\b/i.test(kw)) return kw;
+    return `What are the best tools or platforms for ${kw}? List the top options with a brief description of each.`;
+  });
+
+  return [...base, ...extra];
 }
 
 // --- Main export ---
@@ -568,7 +611,7 @@ export async function runAuditEngine(
   // the AI to echo it back, creating a false-positive match. Score only counts when
   // the AI mentions the brand completely unprompted.
   const prompts = dfsKeywords.length > 0
-    ? buildKeywordPrompts(dfsKeywords)
+    ? buildKeywordPrompts(dfsKeywords, brandName, domain, category, market, competitors)
     : generatePrompts(brandName, domain, category, market, competitors);
 
   // Run all AI queries in parallel
