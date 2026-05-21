@@ -20,7 +20,7 @@ export default function HowToRankInChatGPT() {
           </h1>
 
           <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 40 }}>
-            By GEOscore Team · Updated May 2026 · 10 min read
+            By GeoIQ Team · Updated May 2026 · 10 min read
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 24 }}>
@@ -129,7 +129,7 @@ export default function HowToRankInChatGPT() {
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 40 }}>
-            GEOscore automates this. It runs multiple prompts across ChatGPT, Gemini, and Perplexity every day, calculates a 0-100 visibility score per system, and sends you a weekly digest with score changes. When your ChatGPT score drops — because a competitor got new coverage or a model update changed the weights — you get an alert so you can act fast.
+            GeoIQ automates this. It runs multiple prompts across ChatGPT, Gemini, and Perplexity every day, calculates a 0-100 visibility score per system, and sends you a weekly digest with score changes. When your ChatGPT score drops — because a competitor got new coverage or a model update changed the weights — you get an alert so you can act fast.
           </p>
 
           <h2 style={{ fontSize: 22, fontWeight: 600, color: "#111827", marginBottom: 16 }}>

@@ -70,10 +70,10 @@ export default function Pricing() {
         amount: order.amount,
         currency: order.currency,
         order_id: order.orderId,
-        name: "GEOscore",
+        name: "GeoIQ",
         description: planId === "starter"
-          ? "GEOscore Starter — Daily AI Visibility Monitoring"
-          : "GEOscore Agency — 10 Brands AI Monitoring",
+          ? "GeoIQ Starter — Daily AI Visibility Monitoring"
+          : "GeoIQ Agency — 10 Brands AI Monitoring",
         theme: { color: "#534AB7" },
         prefill: { email: userEmail },
         handler: async (response: {
@@ -126,10 +126,10 @@ export default function Pricing() {
       <main className="flex-1 py-20 px-4">
         <div className="max-w-4xl mx-auto text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-semibold text-text-primary mb-6">
-            Simple, transparent pricing
+            Boost your GEO IQ
           </h1>
           <p className="text-lg text-text-secondary">
-            No hidden fees. Just the insights you need to dominate AI search.
+            Monitor your brand across 4 AI systems daily. Get your score every week.
           </p>
         </div>
 

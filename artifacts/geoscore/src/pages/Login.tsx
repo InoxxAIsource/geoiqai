@@ -49,7 +49,7 @@ export default function Login() {
       <main className="flex-1 flex items-center justify-center bg-bg-secondary p-4">
         <div className="w-full max-w-md bg-card p-8 rounded-xl border border-border shadow-sm">
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-semibold text-text-primary">Sign in to GEOscore</h1>
+            <h1 className="text-2xl font-semibold text-text-primary">Sign in to GeoIQ</h1>
             <p className="text-text-secondary text-sm mt-2">Welcome back to your command center</p>
           </div>
 

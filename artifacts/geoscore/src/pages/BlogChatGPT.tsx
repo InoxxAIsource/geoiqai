@@ -22,7 +22,7 @@ export default function BlogChatGPT() {
           </h1>
 
           <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 40 }}>
-            By GEOscore Team · May 2026 · 9 min read
+            By GeoIQ Team · May 2026 · 9 min read
           </p>
 
           {/* Opening hook */}
@@ -166,7 +166,7 @@ export default function BlogChatGPT() {
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 24 }}>
-            Use GEOscore's free tool to check your baseline right now — it takes 60 seconds and requires no account. Then, if you want daily monitoring and weekly alerts, upgrade to a paid plan. The weekly digest tells you your score change, which AI systems you gained or lost visibility on, and what specific actions are likely to move the needle most for your brand.
+            Use GeoIQ's free tool to check your baseline right now — it takes 60 seconds and requires no account. Then, if you want daily monitoring and weekly alerts, upgrade to a paid plan. The weekly digest tells you your score change, which AI systems you gained or lost visibility on, and what specific actions are likely to move the needle most for your brand.
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 40 }}>

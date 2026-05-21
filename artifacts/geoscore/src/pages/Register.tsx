@@ -34,7 +34,7 @@ export default function Register() {
     registerMutation.mutate({ data: values }, {
       onSuccess: (res) => {
         setToken(res.token);
-        toast({ title: "Account created", description: "Welcome to GEOscore." });
+        toast({ title: "Account created", description: "Welcome to GeoIQ." });
         setLocation("/dashboard");
       },
       onError: () => {

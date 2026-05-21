@@ -124,7 +124,7 @@ function SystemRow({
         >
           {badge.label}
         </span>
-        <span style={{ fontSize: 12, color: "#6b7280" }}>{score}/33 pts</span>
+        <span style={{ fontSize: 12, color: "#6b7280" }}>{system} IQ: {score}/33</span>
       </div>
     </div>
   );
@@ -205,7 +205,7 @@ export default function Audit() {
   };
 
   const shareText = auditResult
-    ? `I just checked my AI visibility score with GEOscore — ${auditResult.domain} got ${auditResult.scoreTotal}/100. Check yours free at geoscore.app`
+    ? `I just checked my GEO IQ score with GeoIQ — ${auditResult.domain} got ${auditResult.scoreTotal}/100. Check yours free at geoiqai.com`
     : "";
   const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
 
@@ -228,7 +228,7 @@ export default function Audit() {
             }}
           >
             <div style={{ marginBottom: 8, fontWeight: 600, fontSize: 22, color: "#111827", textAlign: "center" }}>
-              GEOscore
+              GeoIQ
             </div>
             <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 40, textAlign: "center" }}>
               Analyzing {urlParam}
@@ -346,7 +346,7 @@ export default function Audit() {
                   </span>
                   <span style={{ fontSize: 16, color: "#6b7280" }}>/100</span>
                 </div>
-                <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>visibility score</div>
+                <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>GEO IQ score</div>
               </div>
             </div>
 
@@ -432,7 +432,7 @@ export default function Audit() {
               }}
             >
               <div style={{ fontSize: 16, fontWeight: 500, color: "#111827", marginBottom: 6 }}>
-                Your AI visibility fix plan is ready
+                Boost your GEO IQ
               </div>
               <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 20 }}>
                 5 specific actions to appear in Gemini and Perplexity
@@ -497,7 +497,7 @@ export default function Audit() {
 
               <Link href="/pricing">
                 <Button style={{ width: "100%", background: "#534AB7", color: "white", marginBottom: 16, height: 42 }}>
-                  Unlock full plan + daily monitoring — ₹3,999/mo →
+                  Unlock full GEO IQ report — ₹3,999/mo →
                 </Button>
               </Link>
 

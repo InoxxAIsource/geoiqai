@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 
 const tools = [
   {
-    name: "GEOscore",
+    name: "GeoIQ",
     tagline: "Best for founders and startups in India",
     price: "Free audit + ₹3,999/mo",
     features: [
@@ -120,7 +120,7 @@ export default function GeoTools() {
           </h1>
 
           <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 40 }}>
-            By GEOscore Team · Updated May 2026 · 7 min read
+            By GeoIQ Team · Updated May 2026 · 7 min read
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 24 }}>
@@ -199,8 +199,8 @@ export default function GeoTools() {
               <thead>
                 <tr style={{ background: "#f9fafb" }}>
                   <th style={{ padding: "12px 16px", textAlign: "left", borderBottom: "1px solid #e5e7eb", color: "#374151" }}>Feature</th>
-                  {["GEOscore", "Profound", "Otterly", "Peec"].map((t) => (
-                    <th key={t} style={{ padding: "12px 16px", textAlign: "center", borderBottom: "1px solid #e5e7eb", color: t === "GEOscore" ? "#534AB7" : "#374151", fontWeight: t === "GEOscore" ? 700 : 600 }}>
+                  {["GeoIQ", "Profound", "Otterly", "Peec"].map((t) => (
+                    <th key={t} style={{ padding: "12px 16px", textAlign: "center", borderBottom: "1px solid #e5e7eb", color: t === "GeoIQ" ? "#534AB7" : "#374151", fontWeight: t === "GeoIQ" ? 700 : 600 }}>
                       {t}
                     </th>
                   ))}
@@ -222,7 +222,7 @@ export default function GeoTools() {
 
           <div style={{ background: "#534AB7", borderRadius: 16, padding: 32, textAlign: "center", marginBottom: 48 }}>
             <h3 style={{ color: "white", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>
-              Try GEOscore free — no signup, instant results
+              Try GeoIQ free — no signup, instant results
             </h3>
             <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 14, marginBottom: 20 }}>
               Enter your domain and see your AI visibility score across ChatGPT, Gemini, and Perplexity in 60 seconds.
@@ -239,7 +239,7 @@ export default function GeoTools() {
           </h2>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 16 }}>
-            For most early-stage founders and startups, GEOscore is the obvious starting point: the free audit requires no signup and gives you immediate data on where you stand. If you are building a product for Indian users, the INR pricing and India-specific monitoring (Gemini focus, Indian publication citations) make it the most directly useful tool.
+            For most early-stage founders and startups, GeoIQ is the obvious starting point: the free audit requires no signup and gives you immediate data on where you stand. If you are building a product for Indian users, the INR pricing and India-specific monitoring (Gemini focus, Indian publication citations) make it the most directly useful tool.
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 40 }}>

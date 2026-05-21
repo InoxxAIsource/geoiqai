@@ -1,4 +1,4 @@
-# GEOscore
+# GeoIQ
 
 An AI Visibility Platform that helps startups and founders track how their brand appears in ChatGPT, Gemini, and Perplexity — like Google Search Console for AI search systems.
 

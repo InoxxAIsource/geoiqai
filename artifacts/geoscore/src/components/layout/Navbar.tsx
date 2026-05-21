@@ -9,7 +9,7 @@ export function Navbar() {
     <nav className="border-b bg-background sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="font-semibold text-primary text-xl tracking-tight">
-          GEOscore
+          GeoIQ
         </Link>
         <div className="hidden md:flex items-center gap-6">
           <Link href="/#how-it-works" className="text-sm font-medium text-text-secondary hover:text-text-primary transition-colors">How it works</Link>

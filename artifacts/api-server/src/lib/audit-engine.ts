@@ -71,7 +71,7 @@ async function scrapeUrl(url: string): Promise<ScrapedData> {
 
     const response = await fetch(fullUrl, {
       signal: controller.signal,
-      headers: { "User-Agent": "Mozilla/5.0 GEOscore Bot/1.0" },
+      headers: { "User-Agent": "Mozilla/5.0 GeoIQ Bot/1.0" },
     });
     clearTimeout(timeout);
 

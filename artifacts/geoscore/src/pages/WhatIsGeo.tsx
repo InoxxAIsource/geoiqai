@@ -16,7 +16,7 @@ export default function WhatIsGeo() {
                 "@context": "https://schema.org",
                 "@type": "Article",
                 headline: "What is Generative Engine Optimization (GEO)?",
-                author: { "@type": "Organization", name: "GEOscore" },
+                author: { "@type": "Organization", name: "GeoIQ" },
                 datePublished: "2026-01-01",
                 description:
                   "GEO is the practice of optimizing your brand to appear in AI-generated answers from ChatGPT, Gemini, and Perplexity.",
@@ -35,7 +35,7 @@ export default function WhatIsGeo() {
           </h1>
 
           <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 40 }}>
-            By GEOscore Team · Updated May 2026 · 8 min read
+            By GeoIQ Team · Updated May 2026 · 8 min read
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 24 }}>
@@ -116,7 +116,7 @@ export default function WhatIsGeo() {
               },
               {
                 title: "Structured, factual content",
-                body: "AI systems love content they can parse cleanly into facts. Precise claims like \"GEOscore monitors 3 AI systems daily\" are easier for models to retain and cite than vague marketing language like \"the best AI visibility platform.\"",
+                body: "AI systems love content they can parse cleanly into facts. Precise claims like \"GeoIQ monitors 3 AI systems daily\" are easier for models to retain and cite than vague marketing language like \"the best AI visibility platform.\"",
               },
               {
                 title: "Brand consistency across the web",
@@ -144,7 +144,7 @@ export default function WhatIsGeo() {
             {[
               {
                 step: "Get a baseline score",
-                desc: "Use GEOscore's free tool to check your current AI visibility across ChatGPT, Gemini, and Perplexity. You cannot improve what you do not measure. The free audit takes 60 seconds and shows you exactly which systems know your brand and which do not.",
+                desc: "Use GeoIQ's free tool to check your current AI visibility across ChatGPT, Gemini, and Perplexity. You cannot improve what you do not measure. The free audit takes 60 seconds and shows you exactly which systems know your brand and which do not.",
               },
               {
                 step: "Build citations on authoritative sites",

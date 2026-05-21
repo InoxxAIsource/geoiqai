@@ -22,7 +22,7 @@ const plans: PricingPlan[] = [
     description: "Perfect for a quick health check.",
     features: [
       "1 AI Search Audit per month",
-      "Overall GEOscore",
+      "Overall GEO IQ score",
       "Basic recommendations",
       "No historical tracking"
     ]

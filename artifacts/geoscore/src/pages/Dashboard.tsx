@@ -238,7 +238,7 @@ export default function Dashboard() {
           flexShrink: 0,
         }}
       >
-        <div style={{ padding: "0 16px 16px", fontWeight: 600, fontSize: 14, color: "#534AB7" }}>GEOscore</div>
+        <div style={{ padding: "0 16px 16px", fontWeight: 600, fontSize: 14, color: "#534AB7" }}>GeoIQ</div>
 
         <nav style={{ flex: 1 }}>
           {NAV_ITEMS.map(({ label, icon: Icon }) => {

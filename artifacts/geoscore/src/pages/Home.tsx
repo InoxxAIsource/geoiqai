@@ -35,11 +35,11 @@ export default function Home() {
           </div>
           
           <h1 className="text-5xl md:text-6xl font-semibold text-text-primary mb-6 tracking-tight max-w-4xl mx-auto leading-tight">
-            Is your startup invisible in <span className="text-primary">AI search?</span>
+            What's your brand's <span className="text-primary">GEO IQ?</span>
           </h1>
           
           <p className="text-xl text-text-secondary mb-10 max-w-2xl mx-auto">
-            Check how often ChatGPT, Gemini, and Perplexity recommend your brand over competitors. Get your free AI visibility audit in 60 seconds.
+            Find out how ChatGPT, Gemini &amp; Perplexity see your brand — free in 60 seconds. No signup needed.
           </p>
 
           <Card className="max-w-2xl mx-auto p-2 bg-card shadow-lg border-primary/20 mb-8 rounded-2xl">
@@ -56,7 +56,7 @@ export default function Home() {
                 />
               </div>
               <Button type="submit" className="h-14 px-8 text-lg rounded-xl shrink-0" disabled={!url.trim()}>
-                Check now <ArrowRight className="ml-2 w-5 h-5" />
+                Check my GEO IQ <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </form>
           </Card>
@@ -258,7 +258,7 @@ export default function Home() {
         {/* How it works */}
         <section id="how-it-works" className="py-24 px-4 max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-semibold text-text-primary mb-4">How GEOscore works</h2>
+            <h2 className="text-3xl font-semibold text-text-primary mb-4">How GeoIQ works</h2>
             <p className="text-text-secondary text-lg max-w-2xl mx-auto">We reverse-engineer AI recommendation engines to give you actionable visibility data.</p>
           </div>
 
@@ -268,7 +268,7 @@ export default function Home() {
             {[
               { step: "1", title: "Query Engines", desc: "We programmatically query ChatGPT, Gemini, and Perplexity with buyer-intent prompts in your niche." },
               { step: "2", title: "Analyze Context", desc: "We analyze the responses to see if your brand is recommended, mentioned, or ignored completely." },
-              { step: "3", title: "Score & Monitor", desc: "We calculate your GEOscore and track it daily so you can measure the impact of your marketing." }
+              { step: "3", title: "Score & Monitor", desc: "We calculate your GEO IQ and track it daily so you can measure the impact of your marketing." }
             ].map((item, i) => (
               <div key={i} className="relative z-10 text-center flex flex-col items-center">
                 <div className="w-24 h-24 rounded-full bg-card border-4 border-bg-secondary shadow-md flex items-center justify-center text-2xl font-bold text-primary mb-6">
@@ -285,13 +285,13 @@ export default function Home() {
         <section className="py-24 bg-primary text-primary-foreground px-4">
           <div className="max-w-4xl mx-auto text-center">
             <blockquote className="text-2xl md:text-4xl font-medium leading-tight mb-10">
-              "I built MealCoreAI to 12,000 users, but our growth stalled. Turns out, Perplexity was telling our exact target audience to use our competitor. I built GEOscore to fix my own problem."
+              "I built MealCoreAI to 12,000 users, but our growth stalled. Turns out, Perplexity was telling our exact target audience to use our competitor. I built GeoIQ to fix my own problem."
             </blockquote>
             <div className="flex items-center justify-center gap-4">
               <div className="w-14 h-14 rounded-full bg-primary-dark border-2 border-white/20"></div>
               <div className="text-left">
                 <div className="font-semibold text-lg">Aarav Patel</div>
-                <div className="text-primary-light">Founder, GEOscore</div>
+                <div className="text-primary-light">Founder, GeoIQ</div>
               </div>
             </div>
           </div>
@@ -300,8 +300,8 @@ export default function Home() {
         {/* Pricing Preview */}
         <section className="py-24 px-4 bg-bg-secondary">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-semibold text-text-primary mb-4">Start monitoring today</h2>
-            <p className="text-text-secondary text-lg max-w-2xl mx-auto">Stop guessing what AI thinks of your startup.</p>
+            <h2 className="text-3xl font-semibold text-text-primary mb-4">Boost your GEO IQ</h2>
+            <p className="text-text-secondary text-lg max-w-2xl mx-auto">Monitor your brand across 4 AI systems daily. Get your score every week.</p>
           </div>
           <PricingCards />
         </section>

@@ -1,6 +1,6 @@
 const RESEND_API_KEY = process.env.RESEND_API_KEY ?? "";
-const FROM_EMAIL = "GEOscore <hello@geoscore.app>";
-const APP_URL = process.env.APP_URL ?? "https://geoscore.app";
+const FROM_EMAIL = "GeoIQ <hello@geoiqai.com>";
+const APP_URL = process.env.APP_URL ?? "https://geoiqai.com";
 
 async function sendEmail(to: string, subject: string, html: string): Promise<void> {
   if (!RESEND_API_KEY) {
@@ -25,7 +25,7 @@ async function sendEmail(to: string, subject: string, html: string): Promise<voi
 export async function sendWelcomeEmail(email: string, domain: string): Promise<void> {
   const html = `
 <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
-  <h2 style="color:#534AB7;font-size:22px;font-weight:500;margin-bottom:8px">Welcome to GEOscore</h2>
+  <h2 style="color:#534AB7;font-size:22px;font-weight:500;margin-bottom:8px">Welcome to GeoIQ</h2>
   <p style="color:#6b7280;font-size:15px;line-height:1.6;margin-bottom:24px">
     We are now monitoring <strong>${domain}</strong> across ChatGPT, Gemini, Perplexity, and Bing Copilot every day.
   </p>
@@ -38,10 +38,10 @@ export async function sendWelcomeEmail(email: string, domain: string): Promise<v
   <a href="${APP_URL}/dashboard" style="display:block;background:#534AB7;color:white;text-decoration:none;text-align:center;padding:14px;border-radius:8px;font-size:14px;font-weight:500">
     Go to your dashboard →
   </a>
-  <p style="font-size:12px;color:#9ca3af;margin-top:24px;text-align:center">GEOscore · Built for founders in India</p>
+  <p style="font-size:12px;color:#9ca3af;margin-top:24px;text-align:center">GeoIQ · Built for founders in India</p>
 </div>`;
 
-  await sendEmail(email, "Welcome to GEOscore — here is what happens next", html);
+  await sendEmail(email, "Welcome to GeoIQ — let's boost your score", html);
 }
 
 export async function sendWeeklyDigest(
@@ -95,7 +95,7 @@ export async function sendWeeklyDigest(
 
   await sendEmail(
     email,
-    `Your AI visibility report — ${domain} — Week of ${week}`,
+    `Your GEO IQ report — ${domain}`,
     html,
   );
 }
@@ -111,8 +111,8 @@ export async function sendSubscribeConfirmation(email: string, domain?: string):
   <a href="${APP_URL}/pricing" style="display:block;background:#534AB7;color:white;text-decoration:none;text-align:center;padding:14px;border-radius:8px;font-size:14px;font-weight:500">
     Upgrade for daily monitoring →
   </a>
-  <p style="font-size:12px;color:#9ca3af;margin-top:24px;text-align:center">GEOscore · Built for founders in India</p>
+  <p style="font-size:12px;color:#9ca3af;margin-top:24px;text-align:center">GeoIQ · Built for founders in India</p>
 </div>`;
 
-  await sendEmail(email, `Your GEOscore weekly digest is confirmed`, html);
+  await sendEmail(email, `Your GEO IQ digest is confirmed`, html);
 }

@@ -5,7 +5,7 @@ export function Footer() {
     <footer className="border-t bg-background py-12">
       <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
         <div>
-          <div className="font-semibold text-primary text-xl mb-4">GEOscore</div>
+          <div className="font-semibold text-primary text-xl mb-4">GeoIQ</div>
           <p className="text-text-secondary text-sm">
             The command center for your startup's AI visibility. Track, optimize, and dominate AI search systems like ChatGPT, Gemini, and Perplexity.
           </p>
@@ -36,7 +36,7 @@ export function Footer() {
         </div>
       </div>
       <div className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t flex flex-col md:flex-row items-center justify-between">
-        <p className="text-sm text-text-tertiary">© {new Date().getFullYear()} GEOscore. All rights reserved.</p>
+        <p className="text-sm text-text-tertiary">© 2026 GeoIQ. geoiqai.com</p>
         <p className="text-sm text-text-tertiary mt-2 md:mt-0">Built for Indian founders.</p>
       </div>
     </footer>
