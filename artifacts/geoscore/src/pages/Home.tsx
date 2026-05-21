@@ -6,7 +6,7 @@ import { PricingCards } from "@/components/pricing/PricingCards";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Search, TrendingUp, Target, Eye, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Search, TrendingUp, Target, Eye, ArrowRight, CheckCircle2, AlertTriangle } from "lucide-react";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -110,6 +110,148 @@ export default function Home() {
                 <p className="text-text-secondary leading-relaxed">Search Console is useless for AI systems. You have no dashboard to know if your PR and content are actually working.</p>
               </Card>
             </div>
+          </div>
+        </section>
+
+        {/* Real Examples Section */}
+        <section className="py-24 px-4 max-w-7xl mx-auto">
+          <div className="text-center mb-14">
+            <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-3">Real audit results</p>
+            <h2 className="text-3xl font-semibold text-text-primary mb-4">Even well-known brands are mostly invisible</h2>
+            <p className="text-text-secondary text-lg max-w-2xl mx-auto">These are live audit results from real domains — not estimates.</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
+            {/* Card 1 — Notion */}
+            <Card className="p-6 flex flex-col gap-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="font-semibold text-text-primary text-lg">notion.so</div>
+                  <div className="text-xs text-text-tertiary mt-0.5">SaaS tool · Global</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-bold text-warning">24</div>
+                  <div className="text-xs text-text-tertiary">/100</div>
+                </div>
+              </div>
+              <div className="w-full bg-border rounded-full h-2">
+                <div className="bg-warning h-2 rounded-full" style={{ width: "24%" }} />
+              </div>
+              <div className="text-xs text-text-tertiary italic">Used by 30M+ people worldwide</div>
+              <div className="flex flex-col gap-1.5 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-text-secondary">ChatGPT</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning">Partial</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-text-secondary">Gemini</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-destructive/10 text-destructive">Invisible</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-text-secondary">Perplexity</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-destructive/10 text-destructive">Invisible</span>
+                </div>
+              </div>
+              <p className="text-sm text-text-secondary border-t border-border pt-4 leading-relaxed">
+                30 million users. Still mostly invisible in AI search.
+              </p>
+            </Card>
+
+            {/* Card 2 — Groww */}
+            <Card className="p-6 flex flex-col gap-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="font-semibold text-text-primary text-lg">groww.in</div>
+                  <div className="text-xs text-text-tertiary mt-0.5">Fintech · India</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-bold text-warning">38</div>
+                  <div className="text-xs text-text-tertiary">/100</div>
+                </div>
+              </div>
+              <div className="w-full bg-border rounded-full h-2">
+                <div className="bg-warning h-2 rounded-full" style={{ width: "38%" }} />
+              </div>
+              <div className="text-xs text-text-tertiary italic">India's most downloaded investment app</div>
+              <div className="flex flex-col gap-1.5 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-text-secondary">ChatGPT</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning">Partial</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-text-secondary">Gemini</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-destructive/10 text-destructive">Invisible</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-text-secondary">Perplexity</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning">Partial</span>
+                </div>
+              </div>
+              <p className="text-sm text-text-secondary border-t border-border pt-4 leading-relaxed">
+                India's most trusted investment app. Missing from most AI answers.
+              </p>
+            </Card>
+
+            {/* Card 3 — Lemlist */}
+            <Card className="p-6 flex flex-col gap-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="font-semibold text-text-primary text-lg">lemlist.com</div>
+                  <div className="text-xs text-text-tertiary mt-0.5">SaaS tool · Global</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-bold text-destructive">0</div>
+                  <div className="text-xs text-text-tertiary">/100</div>
+                </div>
+              </div>
+              <div className="w-full bg-border rounded-full h-2">
+                <div className="bg-destructive h-2 rounded-full" style={{ width: "0%" }} />
+              </div>
+              <div className="text-xs text-text-tertiary italic">Popular sales tool with massive content marketing</div>
+              <div className="flex flex-col gap-1.5 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-text-secondary">ChatGPT</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-destructive/10 text-destructive">Invisible</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-text-secondary">Gemini</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-destructive/10 text-destructive">Invisible</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-text-secondary">Perplexity</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-destructive/10 text-destructive">Invisible</span>
+                </div>
+              </div>
+              <p className="text-sm text-text-secondary border-t border-border pt-4 leading-relaxed">
+                Huge blog. Strong SEO. Active community. Zero AI visibility. SEO does not equal GEO.
+              </p>
+            </Card>
+          </div>
+
+          {/* Insight Banner */}
+          <div
+            className="rounded-xl text-center px-6 py-6"
+            style={{ background: "#fff8f0", border: "0.5px solid #FAEEDA" }}
+          >
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <AlertTriangle className="w-5 h-5" style={{ color: "#F59E0B" }} />
+              <h3 className="text-lg font-medium" style={{ color: "#633806" }}>SEO does not equal GEO</h3>
+            </div>
+            <p className="text-sm leading-relaxed mx-auto max-w-[480px]" style={{ color: "#854F0B", lineHeight: "1.7" }}>
+              Lemlist has thousands of blog posts, strong backlinks, and a massive SEO presence.
+              It still scores 0/100 for AI visibility.
+              Google rankings and AI recommendations are completely separate signals.
+            </p>
+            <Button
+              className="mt-5 px-6 h-11 rounded-xl text-sm font-medium"
+              style={{ background: "#534AB7", color: "#fff" }}
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            >
+              Check your AI visibility free
+              <ArrowRight className="ml-2 w-4 h-4" />
+            </Button>
           </div>
         </section>
 
