@@ -23,8 +23,27 @@ function FooterLink({ href, children, external }: { href: string; children: Reac
     onMouseEnter: (e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "white"),
     onMouseLeave: (e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = "rgba(255,255,255,0.6)"),
   };
-  if (external) {
+
+  const handleHashClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    e.preventDefault();
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      window.location.href = href;
+    }
+  };
+
+  if (external || href.startsWith("mailto:")) {
     return <a href={href} style={linkStyle} {...handlers}>{children}</a>;
+  }
+  if (href.startsWith("/#")) {
+    const id = href.slice(2);
+    return (
+      <a href={href} style={linkStyle} onClick={(e) => handleHashClick(e, id)} {...handlers}>
+        {children}
+      </a>
+    );
   }
   return (
     <Link href={href} style={linkStyle} {...handlers}>

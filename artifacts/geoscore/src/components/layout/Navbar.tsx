@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
 
 const NAV_LINKS = [
-  { label: "How it works", href: "/#how-it-works" },
+  { label: "How it works", href: "/#how-it-works", scrollId: "how-it-works" },
   { label: "Pricing", href: "/pricing" },
   { label: "Blog", href: "/blog" },
   { label: "What is GEO", href: "/what-is-geo" },
@@ -11,8 +11,22 @@ const NAV_LINKS = [
 
 export function Navbar() {
   const { isAuthenticated } = useAuthGuard();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const handleScrollLink = (e: React.MouseEvent, scrollId: string) => {
+    e.preventDefault();
+    setMobileOpen(false);
+    const el = document.getElementById(scrollId);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      setLocation("/");
+      setTimeout(() => {
+        document.getElementById(scrollId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 400);
+    }
+  };
 
   const handleStartFree = () => {
     const input = document.getElementById("hero-input") as HTMLInputElement | null;
@@ -62,22 +76,41 @@ export function Navbar() {
         </Link>
 
         <div className="hidden md:flex" style={{ alignItems: "center", gap: 32 }}>
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              style={{
-                fontSize: 14,
-                color: "#4B5563",
-                textDecoration: "none",
-                transition: "color 150ms",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#111827")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "#4B5563")}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {NAV_LINKS.map((link) =>
+            link.scrollId ? (
+              <a
+                key={link.label}
+                href={link.href}
+                onClick={(e) => handleScrollLink(e, link.scrollId!)}
+                style={{
+                  fontSize: 14,
+                  color: "#4B5563",
+                  textDecoration: "none",
+                  transition: "color 150ms",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#111827")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "#4B5563")}
+              >
+                {link.label}
+              </a>
+            ) : (
+              <Link
+                key={link.label}
+                href={link.href}
+                style={{
+                  fontSize: 14,
+                  color: "#4B5563",
+                  textDecoration: "none",
+                  transition: "color 150ms",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#111827")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "#4B5563")}
+              >
+                {link.label}
+              </Link>
+            )
+          )}
         </div>
 
         <div className="hidden md:flex" style={{ alignItems: "center" }}>
@@ -171,23 +204,42 @@ export function Navbar() {
             padding: "12px 24px 20px",
           }}
         >
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              onClick={() => setMobileOpen(false)}
-              style={{
-                display: "block",
-                padding: "11px 0",
-                fontSize: 15,
-                color: "#374151",
-                textDecoration: "none",
-                borderBottom: "1px solid #F9FAFB",
-              }}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {NAV_LINKS.map((link) =>
+            link.scrollId ? (
+              <a
+                key={link.label}
+                href={link.href}
+                onClick={(e) => handleScrollLink(e, link.scrollId!)}
+                style={{
+                  display: "block",
+                  padding: "11px 0",
+                  fontSize: 15,
+                  color: "#374151",
+                  textDecoration: "none",
+                  borderBottom: "1px solid #F9FAFB",
+                  cursor: "pointer",
+                }}
+              >
+                {link.label}
+              </a>
+            ) : (
+              <Link
+                key={link.label}
+                href={link.href}
+                onClick={() => setMobileOpen(false)}
+                style={{
+                  display: "block",
+                  padding: "11px 0",
+                  fontSize: 15,
+                  color: "#374151",
+                  textDecoration: "none",
+                  borderBottom: "1px solid #F9FAFB",
+                }}
+              >
+                {link.label}
+              </Link>
+            )
+          )}
           <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
             {isAuthenticated ? (
               <Link
