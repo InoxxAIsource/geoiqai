@@ -1,0 +1,226 @@
+The audit loading screen needs to feel 
+thrilling and dramatic — like a live 
+intelligence scan happening in real time.
+Currently it feels like a boring loader.
+
+Redesign the entire loading/analyzing 
+screen with these changes:
+
+=== BACKGROUND ===
+Change from white to dark:
+background: #0F0F1A
+(deep dark navy — feels like 
+a command center)
+
+=== HEADER ===
+Top center:
+GeoIQ logo in purple #4F46E5
+
+Below logo:
+"Scanning {domain}" 
+font-size: 20px
+font-weight: 600
+color: white
+
+Animated subtitle that cycles 
+through these phrases every 2 seconds:
+"Querying AI systems..."
+"Analyzing brand signals..."
+"Checking ChatGPT responses..."
+"Cross-referencing Gemini data..."
+"Computing your GEO IQ..."
+font-size: 14px
+color: #6B7280
+transition: fade in/out
+
+=== LIVE TERMINAL FEED ===
+Add a terminal-style scrolling log 
+below the subtitle:
+
+Monospace font (font-family: 
+'Courier New', monospace)
+font-size: 12px
+height: 120px
+overflow: hidden
+background: #1A1A2E
+border: 1px solid #2D2D4E
+border-radius: 8px
+padding: 12px
+margin: 20px auto
+max-width: 400px
+
+Show live scrolling messages 
+appearing one by one:
+(each appears with 600ms delay)
+
+> Connecting to OpenAI API...
+> Scraping {domain} homepage...
+> Detected: {category} · {market}
+> DataForSEO: fetching keywords...
+> Found 15 keywords for {domain}
+> Running prompt: "What is {brand}?"
+> ChatGPT response received (1.2s)
+> Running prompt: "best {category} tool"
+> Gemini response received (2.1s)
+> Checking brand mentions...
+> "{brand}" found in ChatGPT ✓
+> "{brand}" not found in Gemini ✗
+> Running Perplexity query...
+> Perplexity response received (1.8s)
+> Calculating GEO IQ score...
+> Score computation complete.
+
+Text colors:
+Lines starting with > : #4ADE80 (green)
+Lines with ✓ : #4ADE80 (green)
+Lines with ✗ : #F87171 (red)
+Lines with "..." : #94A3B8 (gray)
+Cursor blinking at end: 
+  animate cursor █ blink 1s infinite
+
+=== PROGRESS STEPS ===
+Keep the 6 steps but redesign:
+
+Each step has 3 states:
+
+PENDING state:
+Circle: 32px, border 2px solid #2D2D4E
+bg: transparent
+Icon: gray dot
+Text: color #4B5563
+
+ACTIVE state (currently running):
+Circle: 32px, bg #4F46E5
+Animated: pulse ring around circle
+  (box-shadow: 0 0 0 4px 
+   rgba(79,70,229,0.3))
+  animate pulse 1s infinite
+Icon: spinning loader (white)
+Text: color white, font-weight 500
+Add live timer next to text: 
+  "(2.3s)" counting up in real time
+
+COMPLETE state:
+Circle: 32px, bg #059669
+Icon: checkmark ✓
+Text: color #4ADE80
+Add completion time: 
+  "(done in 1.8s)"
+  font-size 11px, color #6B7280
+
+Steps:
+1. Scraping your website
+2. Extracting keywords  
+3. Querying ChatGPT
+4. Querying Gemini
+5. Querying Perplexity
+6. Computing your GEO IQ
+
+=== PROGRESS BAR ===
+Position: bottom of screen, 
+  fixed, full width
+Height: 4px (thin)
+background: #1A1A2E
+Fill: animated gradient:
+  background: linear-gradient(90deg, 
+    #4F46E5, #7C3AED, #06B6D4)
+  background-size: 200% 100%
+  animate: shimmer left to right
+  width: increases as steps complete
+
+=== AI SYSTEM STATUS CARDS ===
+Add 3 mini cards below steps:
+
+Show in a row (3 columns):
+Each card: 
+  bg: #1A1A2E
+  border: 1px solid #2D2D4E
+  border-radius: 8px
+  padding: 10px 12px
+  text-center
+
+Card 1 — ChatGPT:
+  Logo: "🤖" or favicon
+  Name: "ChatGPT"
+  Status changes:
+  Pending: gray dot "Waiting..."
+  Active: blue pulse "Querying..."
+  Complete: green check + score 
+    e.g. "8/33 pts"
+
+Card 2 — Gemini (same pattern)
+Card 3 — Perplexity (same pattern)
+
+When a system completes — 
+card animates: 
+  scale 1.0 → 1.05 → 1.0 
+  (quick pop effect)
+  border color flashes green
+
+=== DRAMATIC REVEAL ===
+When all 6 steps complete:
+
+1. Terminal log shows:
+   "> GEO IQ Score computed: {score}/100"
+   "> Generating recommendations..."
+   "> Analysis complete. ✓"
+
+2. Progress bar fills to 100% 
+   with a flash effect
+
+3. All 3 AI cards show final scores
+
+4. After 1 second pause — 
+   screen transitions to results:
+   NOT a hard redirect — 
+   animate the dark screen 
+   sliding UP while results 
+   slide UP from below
+   (transform: translateY animation)
+
+5. Results page background: white
+   (contrast with dark loading screen
+   makes the reveal feel dramatic)
+
+=== COPY UPDATES ===
+Change loading text from:
+"Analyzing {domain}" 
+To:
+"Running GEO IQ scan on {domain}"
+
+Change subtitle from generic to:
+"Checking how ChatGPT, Gemini & 
+Perplexity describe your brand"
+
+=== MOBILE ===
+All of the above must work 
+perfectly on mobile:
+- Terminal: full width, 
+  smaller font (11px)
+- Steps: left-aligned on mobile
+- AI cards: 3 columns still 
+  (they are small enough)
+- Progress bar: same
+
+=== SOUND (optional, off by default) ===
+Add a subtle "scan complete" 
+notification when each step finishes.
+Use Web Audio API — no external files:
+
+function playBeep() {
+  const ctx = new AudioContext()
+  const osc = ctx.createOscillator()
+  const gain = ctx.createGain()
+  osc.connect(gain)
+  gain.connect(ctx.destination)
+  osc.frequency.value = 800
+  gain.gain.value = 0.1
+  osc.start()
+  osc.stop(ctx.currentTime + 0.1)
+}
+
+Call playBeep() each time a 
+step completes.
+Add mute toggle (🔇/🔊) 
+top right corner.
+Default: muted.
