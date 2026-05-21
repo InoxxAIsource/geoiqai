@@ -7,14 +7,8 @@ const openaiClient = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? process.env.OPENAI_BASE_URL,
 });
 
-// --- Perplexity client (OpenAI-compatible) ---
-const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY ?? "";
-const perplexityClient = PERPLEXITY_API_KEY
-  ? new OpenAI({
-      apiKey: PERPLEXITY_API_KEY,
-      baseURL: "https://api.perplexity.ai",
-    })
-  : null;
+// --- Perplexity via RapidAPI ---
+const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY ?? "";
 
 // --- Gemini client ---
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY ?? "";
@@ -240,29 +234,45 @@ async function queryGemini(prompt: string): Promise<{ text: string; simulated: b
 }
 
 async function queryPerplexity(prompt: string): Promise<{ text: string; simulated: boolean }> {
-  if (perplexityClient) {
+  if (RAPIDAPI_KEY) {
     try {
-      const response = await perplexityClient.chat.completions.create({
-        model: "llama-3.1-sonar-small-128k-online",
-        stream: false,
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a search-augmented AI assistant. Answer with specific, up-to-date information about products and services. Be direct and recommend specific options by name.",
-          },
-          { role: "user", content: prompt },
-        ],
-        max_tokens: 500,
-        temperature: 0.5,
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
+
+      const res = await fetch("https://perplexity2.p.rapidapi.com/", {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          "Content-Type": "application/json",
+          "x-rapidapi-host": "perplexity2.p.rapidapi.com",
+          "x-rapidapi-key": RAPIDAPI_KEY,
+        },
+        body: JSON.stringify({ content: prompt }),
       });
-      return { text: response.choices[0]?.message?.content ?? "", simulated: false };
+      clearTimeout(timeout);
+
+      if (res.ok) {
+        const data = await res.json() as Record<string, unknown>;
+        // RapidAPI Perplexity returns text in various shapes — try common fields
+        const text =
+          (typeof data.answer === "string" ? data.answer : null) ??
+          (typeof data.response === "string" ? data.response : null) ??
+          (typeof data.text === "string" ? data.text : null) ??
+          (typeof data.content === "string" ? data.content : null) ??
+          (typeof data.output === "string" ? data.output : null) ??
+          (typeof data.result === "string" ? data.result : null) ??
+          (Array.isArray(data.choices)
+            ? ((data.choices[0] as Record<string, unknown>)?.message as Record<string, unknown>)?.content as string ?? ""
+            : "") ??
+          "";
+        if (text) return { text, simulated: false };
+      }
     } catch {
       // fall through to simulated
     }
   }
 
-  // Fallback: OpenAI simulating Perplexity
+  // Fallback: OpenAI when RAPIDAPI_KEY is not set
   try {
     const response = await openaiClient.chat.completions.create({
       model: "gpt-4o-mini",

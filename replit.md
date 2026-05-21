@@ -12,6 +12,11 @@ An AI Visibility Platform that helps startups and founders track how their brand
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string (auto-provisioned)
 - Required env: `AI_INTEGRATIONS_OPENAI_BASE_URL`, `AI_INTEGRATIONS_OPENAI_API_KEY` — Replit AI integration (auto-provisioned)
+- Optional env: `RAPIDAPI_KEY` — RapidAPI key for real Perplexity calls via `perplexity2.p.rapidapi.com` (falls back to OpenAI simulation without it)
+- Optional env: `GEMINI_API_KEY` — Google Generative AI key for real Gemini calls (falls back to OpenAI simulation without it)
+- Optional env: `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` — Razorpay payment gateway (payments return 503 without them)
+- Optional env: `RESEND_API_KEY` — Resend for transactional email (silently skips sending without it)
+- Optional env: `APP_URL` — Public app URL used in email links (defaults to `https://geoscore.app`)
 
 ## Stack
 
