@@ -146,6 +146,15 @@ export interface MonitoredBrandInput {
   competitors?: string[];
 }
 
+export interface KeywordVisibility {
+  keyword: string;
+  volume: number;
+  competition?: number;
+  chatgptVisible?: boolean;
+  geminiVisible?: boolean;
+  perplexityVisible?: boolean;
+}
+
 export interface DashboardSummary {
   totalBrands: number;
   avgScore: number;

@@ -14,6 +14,7 @@ export * from './dailyScore';
 export * from './dashboardSummary';
 export * from './emailSubscribeInput';
 export * from './healthStatus';
+export * from './keywordVisibility';
 export * from './loginInput';
 export * from './monitoredBrand';
 export * from './monitoredBrandInput';

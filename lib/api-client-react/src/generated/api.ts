@@ -28,6 +28,7 @@ import type {
   DashboardSummary,
   EmailSubscribeInput,
   HealthStatus,
+  KeywordVisibility,
   LoginInput,
   MonitoredBrand,
   MonitoredBrandInput,
@@ -719,6 +720,83 @@ export const useAddMonitoredBrand = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getAddMonitoredBrandMutationOptions(options));
     }
+
+export const getGetBrandKeywordsUrl = (id: string,) => {
+
+
+
+
+  return `/api/dashboard/brands/${id}/keywords`
+}
+
+/**
+ * @summary Get DataForSEO keyword data for a monitored brand
+ */
+export const getBrandKeywords = async (id: string, options?: RequestInit): Promise<KeywordVisibility[]> => {
+
+  return customFetch<KeywordVisibility[]>(getGetBrandKeywordsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBrandKeywordsQueryKey = (id: string,) => {
+    return [
+    `/api/dashboard/brands/${id}/keywords`
+    ] as const;
+    }
+
+
+export const getGetBrandKeywordsQueryOptions = <TData = Awaited<ReturnType<typeof getBrandKeywords>>, TError = ErrorType<void>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBrandKeywords>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBrandKeywordsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBrandKeywords>>> = ({ signal }) => getBrandKeywords(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBrandKeywords>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBrandKeywordsQueryResult = NonNullable<Awaited<ReturnType<typeof getBrandKeywords>>>
+export type GetBrandKeywordsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get DataForSEO keyword data for a monitored brand
+ */
+
+export function useGetBrandKeywords<TData = Awaited<ReturnType<typeof getBrandKeywords>>, TError = ErrorType<void>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBrandKeywords>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBrandKeywordsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getRemoveMonitoredBrandUrl = (id: string,) => {
 

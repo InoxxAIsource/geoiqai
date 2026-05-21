@@ -4,6 +4,7 @@ import {
   useGetDashboardSummary,
   useGetMonitoredBrands,
   useGetBrandScores,
+  useGetBrandKeywords,
   useGetMe,
   useRemoveMonitoredBrand,
   getGetMonitoredBrandsQueryKey,
@@ -21,15 +22,16 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { Loader2, Bell, Settings, Home, Bot, Lightbulb, Users, Plug, ChevronRight } from "lucide-react";
+import { Loader2, Bell, Settings, Home, Bot, Lightbulb, Users, Plug, ChevronRight, Target } from "lucide-react";
 
-type NavTab = "Overview" | "ChatGPT" | "Gemini" | "Perplexity" | "Fix Actions" | "Competitors" | "Integrations" | "Settings";
+type NavTab = "Overview" | "ChatGPT" | "Gemini" | "Perplexity" | "Keywords" | "Fix Actions" | "Competitors" | "Integrations" | "Settings";
 
 const NAV_ITEMS: { label: NavTab; icon: React.FC<{ style?: React.CSSProperties }> }[] = [
   { label: "Overview", icon: ({ style }) => <Home style={{ width: 15, height: 15, ...style }} /> },
   { label: "ChatGPT", icon: ({ style }) => <Bot style={{ width: 15, height: 15, ...style }} /> },
   { label: "Gemini", icon: ({ style }) => <Bot style={{ width: 15, height: 15, ...style }} /> },
   { label: "Perplexity", icon: ({ style }) => <Bot style={{ width: 15, height: 15, ...style }} /> },
+  { label: "Keywords", icon: ({ style }) => <Target style={{ width: 15, height: 15, ...style }} /> },
   { label: "Fix Actions", icon: ({ style }) => <Lightbulb style={{ width: 15, height: 15, ...style }} /> },
   { label: "Competitors", icon: ({ style }) => <Users style={{ width: 15, height: 15, ...style }} /> },
   { label: "Integrations", icon: ({ style }) => <Plug style={{ width: 15, height: 15, ...style }} /> },
@@ -146,6 +148,11 @@ export default function Dashboard() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: scores } = useGetBrandScores(selectedBrandId!, {
+    query: { enabled: !!selectedBrandId && isAuthenticated } as any,
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: brandKeywords } = useGetBrandKeywords(selectedBrandId!, {
     query: { enabled: !!selectedBrandId && isAuthenticated } as any,
   });
 
@@ -538,6 +545,123 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </>
+              )}
+
+              {/* KEYWORDS TAB */}
+              {activeTab === "Keywords" && (
+                <div
+                  style={{
+                    background: "white",
+                    border: "0.5px solid #e5e7eb",
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 12,
+                  }}
+                >
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 4 }}>
+                      Keywords we are monitoring
+                    </div>
+                    <div style={{ fontSize: 12, color: "#6b7280" }}>
+                      Real search queries your audience types — and whether your brand appears in each AI system when those queries are asked.
+                    </div>
+                  </div>
+
+                  {!brandKeywords || brandKeywords.length === 0 ? (
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "32px 0",
+                        color: "#9ca3af",
+                        fontSize: 13,
+                      }}
+                    >
+                      <Target style={{ width: 32, height: 32, margin: "0 auto 12px", opacity: 0.3 }} />
+                      <div style={{ fontWeight: 500, color: "#374151", marginBottom: 6 }}>No keyword data yet</div>
+                      <div style={{ fontSize: 12 }}>
+                        Keyword data is fetched automatically when your next audit runs.
+                        It requires DataForSEO credentials to be configured.
+                      </div>
+                    </div>
+                  ) : (
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr>
+                          {["Keyword", "Monthly searches", "ChatGPT", "Gemini", "Perplexity"].map((h) => (
+                            <th
+                              key={h}
+                              style={{
+                                textAlign: "left",
+                                fontSize: 11,
+                                color: "#9ca3af",
+                                fontWeight: 500,
+                                padding: "0 12px 8px 0",
+                                borderBottom: "0.5px solid #f3f4f6",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {brandKeywords.map((kw, i) => {
+                          const isLast = i === brandKeywords.length - 1;
+                          const VisBadge = ({ visible }: { visible: boolean }) => (
+                            <span
+                              style={{
+                                background: visible ? "#E1F5EE" : "#FCEBEB",
+                                color: visible ? "#085041" : "#791F1F",
+                                borderRadius: 9999,
+                                padding: "2px 8px",
+                                fontSize: 11,
+                                fontWeight: 500,
+                              }}
+                            >
+                              {visible ? "Visible" : "Not found"}
+                            </span>
+                          );
+                          return (
+                            <tr key={kw.keyword}>
+                              <td
+                                style={{
+                                  padding: "10px 12px 10px 0",
+                                  fontSize: 13,
+                                  color: "#374151",
+                                  borderBottom: isLast ? "none" : "0.5px solid #f9fafb",
+                                  maxWidth: 260,
+                                }}
+                              >
+                                {kw.keyword}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "10px 12px 10px 0",
+                                  fontSize: 13,
+                                  color: "#374151",
+                                  borderBottom: isLast ? "none" : "0.5px solid #f9fafb",
+                                  fontVariantNumeric: "tabular-nums",
+                                }}
+                              >
+                                {kw.volume.toLocaleString("en-IN")}/mo
+                              </td>
+                              <td style={{ padding: "10px 12px 10px 0", borderBottom: isLast ? "none" : "0.5px solid #f9fafb" }}>
+                                <VisBadge visible={kw.chatgptVisible ?? false} />
+                              </td>
+                              <td style={{ padding: "10px 12px 10px 0", borderBottom: isLast ? "none" : "0.5px solid #f9fafb" }}>
+                                <VisBadge visible={kw.geminiVisible ?? false} />
+                              </td>
+                              <td style={{ padding: "10px 0", borderBottom: isLast ? "none" : "0.5px solid #f9fafb" }}>
+                                <VisBadge visible={kw.perplexityVisible ?? false} />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
               )}
 
               {/* FIX ACTIONS TAB */}

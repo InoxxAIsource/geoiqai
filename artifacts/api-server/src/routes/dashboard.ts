@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { db, monitoredBrandsTable, dailyScoresTable, auditsTable } from "@workspace/db";
-import { eq, desc, and, count, avg } from "drizzle-orm";
+import { db, monitoredBrandsTable, dailyScoresTable, auditsTable, keywordCacheTable } from "@workspace/db";
+import { eq, desc, and, count } from "drizzle-orm";
 import { AddMonitoredBrandBody, RemoveMonitoredBrandParams } from "@workspace/api-zod";
 import { requireAuth, type AuthRequest } from "../lib/auth";
 
@@ -152,6 +152,57 @@ router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> =>
     topBrand,
     topBrandScore,
   });
+});
+
+router.get("/dashboard/brands/:id/keywords", requireAuth, async (req, res): Promise<void> => {
+  const user = (req as AuthRequest).user;
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+  const [brand] = await db
+    .select()
+    .from(monitoredBrandsTable)
+    .where(and(eq(monitoredBrandsTable.id, rawId!), eq(monitoredBrandsTable.userId, user.id)))
+    .limit(1);
+
+  if (!brand) {
+    res.status(404).json({ error: "Brand not found" });
+    return;
+  }
+
+  // Get latest score for visibility data
+  const [latestScore] = await db
+    .select()
+    .from(dailyScoresTable)
+    .where(eq(dailyScoresTable.brandId, brand.id))
+    .orderBy(desc(dailyScoresTable.date))
+    .limit(1);
+
+  const chatgptVisible = (latestScore?.scoreChatgpt ?? 0) > 0;
+  const geminiVisible = (latestScore?.scoreGemini ?? 0) > 0;
+  const perplexityVisible = (latestScore?.scorePerplexity ?? 0) > 0;
+
+  // Look up keyword cache by domain
+  const [cache] = await db
+    .select()
+    .from(keywordCacheTable)
+    .where(eq(keywordCacheTable.domain, brand.domain))
+    .limit(1);
+
+  if (!cache || cache.keywords.length === 0) {
+    res.json([]);
+    return;
+  }
+
+  const result = cache.keywords.map((kw) => ({
+    keyword: kw.keyword,
+    volume: kw.volume,
+    competition: kw.competition,
+    chatgptVisible,
+    geminiVisible,
+    perplexityVisible,
+  }));
+
+  res.json(result);
 });
 
 export default router;

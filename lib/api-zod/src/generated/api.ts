@@ -185,6 +185,24 @@ export const AddMonitoredBrandBody = zod.object({
 
 
 /**
+ * @summary Get DataForSEO keyword data for a monitored brand
+ */
+export const GetBrandKeywordsParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetBrandKeywordsResponseItem = zod.object({
+  "keyword": zod.string(),
+  "volume": zod.number(),
+  "competition": zod.number().optional(),
+  "chatgptVisible": zod.boolean().optional(),
+  "geminiVisible": zod.boolean().optional(),
+  "perplexityVisible": zod.boolean().optional()
+})
+export const GetBrandKeywordsResponse = zod.array(GetBrandKeywordsResponseItem)
+
+
+/**
  * @summary Remove a monitored brand
  */
 export const RemoveMonitoredBrandParams = zod.object({

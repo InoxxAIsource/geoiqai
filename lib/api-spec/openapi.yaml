@@ -183,6 +183,29 @@ paths:
               schema:
                 $ref: "#/components/schemas/MonitoredBrand"
 
+  /dashboard/brands/{id}/keywords:
+    get:
+      operationId: getBrandKeywords
+      tags: [dashboard]
+      summary: Get DataForSEO keyword data for a monitored brand
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cached keyword data with per-system visibility
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/KeywordVisibility"
+        "404":
+          description: Brand not found
+
   /dashboard/brands/{id}:
     delete:
       operationId: removeMonitoredBrand
@@ -496,6 +519,23 @@ components:
           type: array
           items:
             type: string
+
+    KeywordVisibility:
+      type: object
+      required: [keyword, volume]
+      properties:
+        keyword:
+          type: string
+        volume:
+          type: integer
+        competition:
+          type: number
+        chatgptVisible:
+          type: boolean
+        geminiVisible:
+          type: boolean
+        perplexityVisible:
+          type: boolean
 
     DashboardSummary:
       type: object
