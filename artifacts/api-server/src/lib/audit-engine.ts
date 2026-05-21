@@ -529,25 +529,12 @@ function calculateSystemScore(
 }
 
 /**
- * Build brand-direct prompts — these test whether AI has substantive knowledge
- * about the brand when asked directly. A fake/unknown brand returns a negative-signal
- * response ("I don't have information about X") which scores 0.
- */
-function buildBrandPrompts(brandName: string, market: string): string[] {
-  return [
-    `What is ${brandName} and what does it do? Give me a detailed overview.`,
-    `What do users say about ${brandName}? Is it worth using?`,
-    `What are the best alternatives to ${brandName} available in ${market}?`,
-  ];
-}
-
-/**
  * Build prompts from DataForSEO keywords.
  * Keywords are real user search queries — they test whether the brand surfaces
  * organically when users search for its actual topics.
  */
 function buildKeywordPrompts(keywords: Array<{ keyword: string }>): string[] {
-  return keywords.slice(0, 7).map((k) => k.keyword);
+  return keywords.slice(0, 10).map((k) => k.keyword);
 }
 
 // --- Main export ---
@@ -575,14 +562,14 @@ export async function runAuditEngine(
   const competitors = catData.competitors;
 
   // Prompt assembly — fallback chain:
-  //   1. Brand-direct prompts (always included)
-  //   2. DataForSEO real keyword prompts (if available)
-  //   3. Category-based generic prompts (fallback when DataForSEO returns nothing)
-  const brandPrompts = buildBrandPrompts(brandName, market);
-  const keywordPrompts = dfsKeywords.length > 0
+  //   1. DataForSEO real keyword prompts (if available) — real user search queries
+  //   2. Category-based generic prompts (fallback when DataForSEO returns nothing)
+  // RULE: brand name MUST NOT appear in any prompt. Brand name in a prompt causes
+  // the AI to echo it back, creating a false-positive match. Score only counts when
+  // the AI mentions the brand completely unprompted.
+  const prompts = dfsKeywords.length > 0
     ? buildKeywordPrompts(dfsKeywords)
     : generatePrompts(brandName, domain, category, market, competitors);
-  const prompts = [...brandPrompts, ...keywordPrompts];
 
   // Run all AI queries in parallel
   const chatgptTasks = prompts.map((p) => queryOpenAIChatGPT(p));
