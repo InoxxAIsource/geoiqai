@@ -238,7 +238,8 @@ export default function Pricing() {
                   )}
                 </Button>
                 <p style={{ fontSize: 11, color: "#9ca3af", textAlign: "center", marginTop: 12 }}>
-                  Monthly subscription, cancel anytime. Secured by Razorpay.
+                  Monthly subscription, cancel anytime. Secured by Razorpay.<br />
+                  Razorpay processes payments in INR - the amount shown in the checkout reflects the USD equivalent.
                 </p>
               </div>
             )}

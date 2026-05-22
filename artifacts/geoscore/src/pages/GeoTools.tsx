@@ -16,7 +16,7 @@ const tools = [
       "Weekly email digest",
       "Competitor tracking",
       "AI-generated fix actions",
-      "Razorpay payments (INR)",
+      "Razorpay payments",
       "India market optimized",
     ],
     rating: 5,
@@ -77,7 +77,7 @@ const tools = [
 
 const comparisonRows = [
   { feature: "Free audit (no signup)", geoscore: true, profound: false, otterly: false, peec: false },
-  { feature: "INR pricing", geoscore: true, profound: false, otterly: false, peec: false },
+  { feature: "USD pricing", geoscore: true, profound: true, otterly: true, peec: true },
   { feature: "ChatGPT monitoring", geoscore: true, profound: true, otterly: true, peec: true },
   { feature: "Gemini monitoring", geoscore: true, profound: true, otterly: true, peec: false },
   { feature: "Perplexity monitoring", geoscore: true, profound: true, otterly: false, peec: true },
@@ -241,7 +241,7 @@ export default function GeoTools() {
           </h2>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 16 }}>
-            For most early-stage founders and startups, GeoIQ is the obvious starting point: the free audit requires no signup and gives you immediate data on where you stand. If you are building a product for Indian users, the INR pricing and India-specific monitoring (Gemini focus, Indian publication citations) make it the most directly useful tool.
+            For most early-stage founders and startups, GeoIQ is the obvious starting point: the free audit requires no signup and gives you immediate data on where you stand. The USD pricing, India-specific monitoring (Gemini focus, Indian publication citations), and Razorpay checkout make it the most directly useful tool for founders in India and globally.
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 40 }}>
