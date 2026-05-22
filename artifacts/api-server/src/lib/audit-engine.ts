@@ -265,19 +265,58 @@ interface CategoryData {
   competitors: string[];
 }
 
-async function detectCategory(scraped: ScrapedData): Promise<CategoryData> {
-  try {
-    const prompt = `Analyze this website and return JSON only, no other text:
+const VALID_CATEGORIES = new Set([
+  "social media", "video platform", "search engine", "discussion forum",
+  "news media", "entertainment", "ecommerce", "saas tool", "health app",
+  "fintech", "edtech", "developer tool", "productivity", "food delivery",
+  "travel", "real estate", "other",
+]);
 
-Domain: ${scraped.domain}
+// Domains with these TLDs are almost always tech/SaaS products.
+// Skip the AI classification step and default directly rather than risk a mis-class.
+const TECH_TLDS = new Set([".ai", ".io", ".dev", ".app", ".so", ".xyz", ".tools", ".tech"]);
+
+function domainSafeDefault(domain: string): string {
+  const lower = domain.toLowerCase();
+  for (const tld of TECH_TLDS) {
+    if (lower.endsWith(tld)) return "saas tool";
+  }
+  return "saas tool";
+}
+
+async function detectCategory(scraped: ScrapedData): Promise<CategoryData> {
+  const domain = scraped.domain;
+
+  // If the scrape failed or returned almost nothing, skip the AI call entirely.
+  // A mis-classification on thin/empty content is worse than a safe default.
+  const hasContent = scraped.success && (scraped.title.length > 0 || scraped.metaDescription.length > 0 || scraped.bodyText.length > 20);
+
+  if (!hasContent) {
+    return {
+      brandName: domain,
+      category: domainSafeDefault(domain),
+      market: "India",
+      competitors: [],
+    };
+  }
+
+  try {
+    const prompt = `Analyze this website and return JSON only, no other text.
+
+Domain: ${domain}
 Title: ${scraped.title}
 Description: ${scraped.metaDescription}
 H1: ${scraped.h1}
-Content: ${scraped.bodyText.substring(0, 300)}
+Content preview: ${scraped.bodyText.substring(0, 400)}
 
-Return exactly this JSON structure:
+Rules:
+- Only use the page title, description, h1, and content to pick the category. Do not infer from the domain name alone.
+- If the page describes a software tool, API, AI product, or online service for businesses or developers, use "saas tool" or "developer tool".
+- Only use "news media" if the page content clearly shows a news publication or media outlet with articles and journalism.
+
+Return exactly this JSON:
 {
-  "brand_name": "extracted brand or product name (just the name, not the full title)",
+  "brand_name": "the product or brand name (short, not the full page title)",
   "category": "one of: social media, video platform, search engine, discussion forum, news media, entertainment, ecommerce, saas tool, health app, fintech, edtech, developer tool, productivity, food delivery, travel, real estate, other",
   "market": "one of: India, Global, US, UK",
   "top_competitors": ["competitor1", "competitor2", "competitor3"]
@@ -287,23 +326,29 @@ Return exactly this JSON structure:
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 300,
-      temperature: 0.2,
+      temperature: 0.1,
       response_format: { type: "json_object" },
     });
 
     const text = response.choices[0]?.message?.content ?? "{}";
     const parsed = JSON.parse(text);
 
+    // Validate the returned category is a known value. Reject anything unrecognised.
+    const rawCategory = typeof parsed.category === "string" ? parsed.category.toLowerCase().trim() : "";
+    const category = VALID_CATEGORIES.has(rawCategory) ? rawCategory : domainSafeDefault(domain);
+
     return {
-      brandName: parsed.brand_name ?? scraped.domain,
-      category: parsed.category ?? "saas tool",
+      brandName: typeof parsed.brand_name === "string" && parsed.brand_name.length > 0
+        ? parsed.brand_name
+        : domain,
+      category,
       market: parsed.market ?? "India",
       competitors: Array.isArray(parsed.top_competitors) ? parsed.top_competitors.slice(0, 3) : [],
     };
   } catch {
     return {
-      brandName: scraped.domain,
-      category: "saas tool",
+      brandName: domain,
+      category: domainSafeDefault(domain),
       market: "India",
       competitors: [],
     };
