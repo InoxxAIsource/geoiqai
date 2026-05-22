@@ -70,7 +70,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 export async function requirePaidAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
-    res.status(401).json({ error: "Dashboard is for paid subscribers only. Start for Rs 3,999/month.", requiresPaid: true });
+    res.status(401).json({ error: "Dashboard is for paid subscribers only. Start for $49/month.", requiresPaid: true });
     return;
   }
   const token = authHeader.substring(7);
@@ -85,7 +85,7 @@ export async function requirePaidAuth(req: Request, res: Response, next: NextFun
     return;
   }
   if (user.plan === "free") {
-    res.status(403).json({ error: "Dashboard is for paid subscribers only. Start for Rs 3,999/month.", requiresPaid: true });
+    res.status(403).json({ error: "Dashboard is for paid subscribers only. Start for $49/month.", requiresPaid: true });
     return;
   }
   (req as Request & { user: typeof user }).user = user;

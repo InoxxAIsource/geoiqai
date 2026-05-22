@@ -8,7 +8,7 @@ const tools = [
   {
     name: "GeoIQ",
     tagline: "Best for founders and startups in India",
-    price: "Free audit + ₹3,999/mo",
+    price: "Free audit + $49/mo",
     features: [
       "Free unlimited public audits",
       "ChatGPT, Gemini, Perplexity monitoring",

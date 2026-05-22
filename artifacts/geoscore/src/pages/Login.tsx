@@ -84,7 +84,7 @@ export default function Login() {
               <div className="mt-6 text-center text-sm text-text-secondary">
                 No paid account?{" "}
                 <Link href="/pricing" className="text-primary hover:underline font-medium">
-                  Start for Rs 3,999/month
+                  Start for $49/month
                 </Link>
               </div>
             </>

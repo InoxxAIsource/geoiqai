@@ -18,7 +18,7 @@ const plans: PricingPlan[] = [
   {
     id: "free",
     name: "Free Audit",
-    price: "Rs 0",
+    price: "$0",
     period: "",
     description: "Check any brand right now, no card needed.",
     isOutline: true,
@@ -35,7 +35,7 @@ const plans: PricingPlan[] = [
   {
     id: "starter",
     name: "Starter",
-    price: "Rs 3,999",
+    price: "$49",
     period: "/month",
     description: "For founders who want to stay ahead of AI search.",
     isPopular: true,
@@ -55,7 +55,7 @@ const plans: PricingPlan[] = [
   {
     id: "agency",
     name: "Agency",
-    price: "Rs 9,999",
+    price: "$129",
     period: "/month",
     description: "For agencies managing multiple brands.",
     isOutline: true,
