@@ -1,0 +1,3 @@
+# GeoIQ
+
+AI Visibility Platform
