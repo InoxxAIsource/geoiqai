@@ -916,20 +916,33 @@ export async function runAuditEngine(
     console.log(`[DataForSEO] ${domain} — no keywords from DataForSEO, using category-based prompts`);
   }
 
-  // Run all AI queries + technical audit in parallel (5 engines)
+  // Direct brand query — used only for display ("what did [AI] say about you")
+  // This is separate from scoring prompts which must never name the brand.
+  const directPrompt = `What is ${brandName}? Tell me what it does, who it's for, and what it's known for. If you don't have specific information about it, say so honestly.`;
+
+  // Run all AI queries + technical audit + direct brand queries all in parallel
   const chatgptTasks = prompts.map((p) => queryOpenAIChatGPT(p));
   const geminiTasks = prompts.map((p) => queryGemini(p));
   const perplexityTasks = prompts.map((p) => queryPerplexity(p));
   const claudeTasks = prompts.map((p) => queryClaude(p));
   const grokTasks = prompts.map((p) => queryGrok(p));
 
-  const [chatgptTexts, geminiResults, perplexityResults, claudeResults, grokResults, technicalAudit] = await Promise.all([
+  const [
+    chatgptTexts, geminiResults, perplexityResults, claudeResults, grokResults,
+    technicalAudit,
+    directChatgpt, directGemini, directPerplexity, directClaude, directGrok,
+  ] = await Promise.all([
     Promise.all(chatgptTasks),
     Promise.all(geminiTasks),
     Promise.all(perplexityTasks),
     Promise.all(claudeTasks),
     Promise.all(grokTasks),
     runTechnicalAudit(domain, scraped.rawHtml, scraped.bodyText),
+    queryOpenAIChatGPT(directPrompt),
+    queryGemini(directPrompt),
+    queryPerplexity(directPrompt),
+    queryClaude(directPrompt),
+    queryGrok(directPrompt),
   ]);
 
   const chatgptResponses = chatgptTexts.map((text, i) => ({ prompt: prompts[i]!, text }));
@@ -949,12 +962,12 @@ export async function runAuditEngine(
   const claude = calculateSystemScore(brandName, domain, claudeResponses, claudeSimulated);
   const grok = calculateSystemScore(brandName, domain, grokResponses, grokSimulated);
 
-  // Concatenate all non-empty responses per system for display
-  const rawChatgptResponse = chatgptTexts.filter((t) => t.trim()).join("\n\n---\n\n");
-  const rawGeminiResponse = geminiResults.map((r) => r.text).filter((t) => t.trim()).join("\n\n---\n\n");
-  const rawPerplexityResponse = perplexityResults.map((r) => r.text).filter((t) => t.trim()).join("\n\n---\n\n");
-  const rawClaudeResponse = claudeResults.map((r) => r.text).filter((t) => t.trim()).join("\n\n---\n\n");
-  const rawGrokResponse = grokResults.map((r) => r.text).filter((t) => t.trim()).join("\n\n---\n\n");
+  // Use direct brand responses for display — these show what each AI actually knows about the brand
+  const rawChatgptResponse = directChatgpt.trim() || chatgptTexts.filter((t) => t.trim())[0] || "";
+  const rawGeminiResponse = directGemini.text.trim() || geminiResults.map((r) => r.text).filter((t) => t.trim())[0] || "";
+  const rawPerplexityResponse = directPerplexity.text.trim() || perplexityResults.map((r) => r.text).filter((t) => t.trim())[0] || "";
+  const rawClaudeResponse = directClaude.text.trim() || claudeResults.map((r) => r.text).filter((t) => t.trim())[0] || "";
+  const rawGrokResponse = directGrok.text.trim() || grokResults.map((r) => r.text).filter((t) => t.trim())[0] || "";
 
   return {
     brandName,
