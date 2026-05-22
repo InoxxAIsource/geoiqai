@@ -87,9 +87,38 @@ interface ScrapedData {
   title: string;
   metaDescription: string;
   h1: string;
+  headings: string[];
   bodyText: string;
   rawHtml: string;
   success: boolean;
+}
+
+// Fetch rendered page text via Jina AI Reader (handles SPAs, returns clean markdown).
+// Falls back gracefully if Jina is unavailable or times out.
+async function fetchJinaText(fullUrl: string): Promise<string> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    const res = await fetch(`https://r.jina.ai/${fullUrl}`, {
+      signal: controller.signal,
+      headers: {
+        "Accept": "text/plain",
+        "X-Return-Format": "text",
+      },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return "";
+    const text = await res.text();
+    // Jina prepends metadata lines like "Title:", "URL:", "Published:", strip them
+    const lines = text.split("\n");
+    const contentStart = lines.findIndex(
+      (l, i) => i > 0 && l.trim() !== "" && !l.startsWith("Title:") && !l.startsWith("URL:") && !l.startsWith("Published:") && !l.startsWith("Description:")
+    );
+    const body = contentStart >= 0 ? lines.slice(contentStart).join("\n").trim() : text.trim();
+    return body.substring(0, 5000);
+  } catch {
+    return "";
+  }
 }
 
 async function scrapeUrl(url: string): Promise<ScrapedData> {
@@ -119,17 +148,33 @@ async function scrapeUrl(url: string): Promise<ScrapedData> {
     const h1Match = html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
     const h1 = h1Match ? h1Match[1]!.trim() : "";
 
+    // Extract all h2/h3 headings for richer context
+    const headingMatches = html.matchAll(/<h[23][^>]*>([^<]+)<\/h[23]>/gi);
+    const headings = [...headingMatches]
+      .map((m) => m[1]!.trim())
+      .filter((h) => h.length > 2 && h.length < 120)
+      .slice(0, 20);
+
     const stripped = html
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
       .replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ")
       .trim();
-    const bodyText = stripped.substring(0, 600);
+    // Keep up to 4000 chars — enough for a real content summary
+    const rawBodyText = stripped.substring(0, 4000);
 
-    return { domain, title, metaDescription, h1, bodyText, rawHtml: html, success: true };
+    // If the raw scrape yielded very little (SPA / JS-rendered site), use Jina reader
+    // which renders JavaScript and returns clean text. Run in parallel with the raw scrape.
+    const jinaText = rawBodyText.replace(/\s+/g, " ").trim().length < 200
+      ? await fetchJinaText(fullUrl)
+      : "";
+
+    const bodyText = jinaText || rawBodyText;
+
+    return { domain, title, metaDescription, h1, headings, bodyText, rawHtml: html, success: true };
   } catch {
-    return { domain, title: "", metaDescription: "", h1: "", bodyText: "", rawHtml: "", success: false };
+    return { domain, title: "", metaDescription: "", h1: "", headings: [], bodyText: "", rawHtml: "", success: false };
   }
 }
 
@@ -918,7 +963,29 @@ export async function runAuditEngine(
 
   // Direct brand query — used only for display ("what did [AI] say about you")
   // This is separate from scoring prompts which must never name the brand.
-  const directPrompt = `What is ${brandName}? Tell me what it does, who it's for, and what it's known for. If you don't have specific information about it, say so honestly.`;
+  // We inject real scraped website content so the AI summarizes actual site copy,
+  // not just whatever its training data happens to know about the brand name.
+  const siteContext = scraped.success
+    ? [
+        scraped.title ? `Page title: ${scraped.title}` : "",
+        scraped.metaDescription ? `Meta description: ${scraped.metaDescription}` : "",
+        scraped.h1 ? `Main heading: ${scraped.h1}` : "",
+        scraped.headings.length > 0 ? `Section headings: ${scraped.headings.join(" | ")}` : "",
+        scraped.bodyText ? `Website content:\n${scraped.bodyText}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n")
+    : "";
+
+  // For training-data engines (ChatGPT, Gemini, Claude, Grok): inject scraped site content
+  // so they summarise the real website rather than guessing from training data alone.
+  const trainingDataDirectPrompt = siteContext
+    ? `Below is content scraped directly from the website ${brandName} (${domain}):\n\n${siteContext}\n\nBased on this website content, summarize what ${brandName} is, what it does, who it is for, and what its key features or offerings are. Write a clear, factual summary based only on what the site says.`
+    : `Based on your training data, what do you know about ${brandName} at ${domain}? If you don't have specific information, say so clearly.`;
+
+  // For Perplexity (live web search): let it search the web rather than being given scraped content.
+  // A clean web-search style query gives the most accurate live visibility signal.
+  const perplexityDirectPrompt = `Search the web for ${brandName} (${domain}) and tell me: what does this brand do, who is it for, and what is it currently known for online? If you can visit their website, please do. Give me a current, factual summary.`;
 
   // Run all AI queries + technical audit + direct brand queries all in parallel
   const chatgptTasks = prompts.map((p) => queryOpenAIChatGPT(p));
@@ -938,11 +1005,11 @@ export async function runAuditEngine(
     Promise.all(claudeTasks),
     Promise.all(grokTasks),
     runTechnicalAudit(domain, scraped.rawHtml, scraped.bodyText),
-    queryOpenAIChatGPT(directPrompt),
-    queryGemini(directPrompt),
-    queryPerplexity(directPrompt),
-    queryClaude(directPrompt),
-    queryGrok(directPrompt),
+    queryOpenAIChatGPT(trainingDataDirectPrompt),
+    queryGemini(trainingDataDirectPrompt),
+    queryPerplexity(perplexityDirectPrompt),
+    queryClaude(trainingDataDirectPrompt),
+    queryGrok(trainingDataDirectPrompt),
   ]);
 
   const chatgptResponses = chatgptTexts.map((text, i) => ({ prompt: prompts[i]!, text }));
@@ -1014,11 +1081,11 @@ Perplexity score: ${perplexity.score}/33 — Found: ${perplexity.found}`;
         {
           role: "system",
           content:
-            "You are a GEO (Generative Engine Optimization) expert. Generate specific, actionable recommendations. Return valid JSON only.",
+            "You are a GEO (Generative Engine Optimization) expert. You understand a critical distinction: ChatGPT and Gemini answer from training data (cutoff ~2023-2024) so new brands won't appear until the next training run. Perplexity searches the live web in real time. Generate specific, actionable recommendations that reflect this reality — some actions have immediate impact on Perplexity, others take 3-6 months to affect ChatGPT/Gemini training. Be honest about timelines. Return valid JSON only.",
         },
         {
           role: "user",
-          content: `Here is the AI visibility audit for a brand:\n\n${auditSummary}\n\nGenerate exactly 5 specific actionable recommendations to improve their AI visibility. Be very specific — name exact actions, not generic advice.\n\nReturn a JSON array:\n[\n  {\n    "action": "specific 2-sentence action to take",\n    "priority": "high",\n    "effort_hours": 2,\n    "impact_score": 12,\n    "category": "citations"\n  }\n]\n\nPriority must be: high, medium, or low\nCategory must be: citations, content, technical, pr, social`,
+          content: `Here is the AI visibility audit for a brand:\n\n${auditSummary}\n\nGenerate exactly 5 specific actionable recommendations to improve their AI visibility. Be very specific — name exact actions, not generic advice. For each recommendation, make clear whether it has immediate impact (Perplexity/live web, within days) or long-term impact (ChatGPT/Gemini training data, 3-6 months).\n\nFor citations: mention that Crunchbase, Product Hunt, G2, TechCrunch, and Reddit are heavily included in AI training datasets.\nFor technical: mention that llms.txt and structured data help Perplexity crawl immediately.\n\nReturn a JSON array:\n[\n  {\n    "action": "specific 2-sentence action including WHY it helps and the expected timeline",\n    "priority": "high",\n    "effort_hours": 2,\n    "impact_score": 12,\n    "category": "citations",\n    "timeline": "immediate"\n  }\n]\n\nPriority must be: high, medium, or low\nCategory must be: citations, content, technical, pr, social\ntimeline must be: immediate (affects Perplexity now) or longterm (affects ChatGPT/Gemini in 3-6 months)`,
         },
       ],
       max_tokens: 800,

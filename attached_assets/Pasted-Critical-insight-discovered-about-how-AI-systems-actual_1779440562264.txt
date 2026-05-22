@@ -1,0 +1,303 @@
+Critical insight discovered about 
+how AI systems actually work.
+Fix the audit engine and UI to 
+reflect this accurately.
+
+=== THE REAL PROBLEM ===
+
+ChatGPT and Gemini do NOT crawl 
+websites live. They answer from 
+training data with a cutoff date.
+
+Only Perplexity uses live web search.
+
+This means:
+- New brands score 0 not because 
+  their site is bad
+- They score 0 because they are not 
+  in AI training data yet
+- The fix is getting CITED by sources
+  that AI training data includes
+
+=== FIX 1: PERPLEXITY QUERIES ===
+
+Perplexity uses live web search.
+Update Perplexity queries to be 
+web-search style to get accurate results.
+
+Current wrong approach:
+Sending "What is manus.im?" to Perplexity
+— this just searches for the brand name
+
+New correct approach for Perplexity:
+Send category-based discovery queries
+that force Perplexity to search the web:
+
+"best {category} tools {year}"
+"top {category} software recommendations"
+"{competitor1} alternatives"
+"review of {brand_name}"
+"is {brand_name} good for {use_case}"
+
+Also send one direct brand query:
+"What is {brand_name} {domain}?"
+— Perplexity will crawl the site 
+  for this one
+
+This gives real-time web visibility data.
+
+=== FIX 2: ADD TRAINING DATA INDICATOR ===
+
+Update the AI system cards to show 
+WHY a brand is not found:
+
+New status labels:
+
+For ChatGPT/Gemini showing 0:
+Show label: "Not in training data"
+Color: orange #F97316
+Detail: "ChatGPT answers from training 
+data (cutoff Oct 2023). Your brand 
+is too new to be included yet."
+
+For Perplexity showing 0:
+Show label: "Not found on web"
+Color: red #DC2626
+Detail: "Perplexity searches the live web.
+Your brand has insufficient web 
+presence to appear in results."
+
+This is a crucial distinction because:
+- Not in training data = wait + 
+  build citations for next training run
+- Not found on web = fix website + 
+  build web presence NOW
+
+=== FIX 3: SEPARATE SCORES ===
+
+Split the score into two components:
+
+1. Training Data Score (ChatGPT + Gemini)
+   "Are you in AI memory?"
+   Out of 50 points
+   
+2. Live Web Score (Perplexity)
+   "Are you findable on the web now?"
+   Out of 50 points
+
+Total GEO IQ = Training + Live scores
+
+Show both clearly:
+"AI Memory Score: 0/50"
+"Live Web Score: 8/50"
+"Total GEO IQ: 8/100"
+
+This gives users two different 
+improvement paths:
+- Improve AI Memory → 
+  build citations, get press, 
+  wait for training updates
+- Improve Live Web → 
+  fix technical issues, add content,
+  get web mentions NOW
+
+=== FIX 4: SMARTER CATEGORY PROMPTS ===
+
+For Perplexity (live web search),
+use these specific prompt templates
+that force it to search and find 
+your domain:
+
+Template 1 — Direct site reference:
+"What does {brand_name} at {domain} do?
+Please visit their website and 
+summarize what they offer."
+
+Template 2 — Category search:
+"Search for the best {category} tools 
+in {year} and tell me if {brand_name} 
+appears in any results"
+
+Template 3 — Competitor comparison:
+"Compare {brand_name} with 
+{competitor1} and {competitor2}"
+
+For ChatGPT/Gemini (training data):
+Keep current prompts — they reflect 
+real training data awareness.
+But add context to prompt:
+"Based on your training data, 
+what do you know about {brand_name} 
+at {domain}? If you don't have 
+specific information, say so clearly."
+
+This forces ChatGPT to be honest 
+about whether it knows the brand
+rather than giving generic 
+category descriptions.
+
+=== FIX 5: EXPLAIN TO USERS ===
+
+Add an info box on audit result page:
+
+Title: "How AI systems see your brand"
+
+Content:
+"ChatGPT and Gemini answer from 
+training data — like a snapshot 
+of the internet taken in 2023-2024. 
+If your brand is newer than this 
+or lacks web citations, they won't 
+know you exist yet.
+
+Perplexity searches the live web — 
+it can find you right now if you 
+have sufficient web presence.
+
+Your GeoIQ score measures both:
+🧠 Training data awareness (ChatGPT + Gemini)
+🌐 Live web visibility (Perplexity)
+
+Improving your score means building 
+web presence that gets you into the 
+NEXT training data update AND 
+appearing in live web searches today."
+
+Show this as a collapsible 
+info box with ℹ️ icon.
+
+=== FIX 6: RECOMMENDATIONS UPDATE ===
+
+Update all recommendations to 
+reflect this reality:
+
+For brands scoring 0 on ChatGPT/Gemini:
+
+Old recommendation:
+"Get more citations" — too vague
+
+New recommendation:
+"Build citations that feed AI training data"
+
+Explain why each action helps:
+
+Crunchbase:
+"ChatGPT and Gemini are trained on 
+Crunchbase data. A profile here 
+directly increases your chance of 
+appearing in the next training update.
+Impact: Visible in ChatGPT within 
+3-6 months of next training run"
+
+Product Hunt:
+"Product Hunt is indexed heavily 
+in AI training datasets. A listing 
+here is one of the strongest signals 
+for getting into AI memory.
+Impact: Visible in ChatGPT/Gemini 
+within 2-4 months"
+
+Press mentions:
+"TechCrunch, Mashable, VentureBeat 
+articles are in AI training data. 
+One mention here is worth 100 
+smaller site mentions.
+Impact: Strong training data signal"
+
+Reddit mentions:
+"Reddit data is included in GPT 
+training. A thread about your brand 
+on r/MachineLearning or similar 
+will feed into next training run.
+Impact: Good signal, 
+2-4 months to appear"
+
+For brands scoring 0 on Perplexity:
+
+"Perplexity searches the web live.
+Here is why it cannot find you:
+[Based on technical audit results]
+
+Fix these NOW for immediate impact:
+→ Your content is too thin 
+  (Perplexity needs quotable content)
+→ No external sites mention you
+  (Perplexity follows citations)
+→ Your robots.txt may block crawling"
+
+=== FIX 7: WEEK 1-2 ROADMAP UPDATE ===
+
+Update Week 1-2 tasks to separate 
+quick wins (Perplexity) from 
+longer plays (ChatGPT/Gemini):
+
+IMMEDIATE (affects Perplexity now):
+→ Technical fixes — llms.txt, robots.txt
+→ Add quotable content to homepage
+→ Fix thin content pages
+→ Get 3 web mentions this week
+
+3-6 MONTH PLAYS (affects ChatGPT/Gemini):
+→ Crunchbase profile
+→ Product Hunt listing
+→ Press mentions
+→ Reddit presence
+
+Label each task clearly:
+"⚡ Immediate impact — Perplexity"
+"🕐 Long-term — ChatGPT/Gemini training"
+
+=== TEST AFTER FIXING ===
+
+Test with manus.im:
+
+Show new split score:
+AI Memory Score: X/50 
+  (ChatGPT + Gemini)
+Live Web Score: X/50
+  (Perplexity)
+Total GEO IQ: X/100
+
+Show correct status labels:
+ChatGPT: "Not in training data" 
+  or "Found in training data"
+Gemini: same
+Perplexity: "Not found on web" 
+  or "Found on web"
+
+Show updated Perplexity query:
+"What does Manus AI at manus.im do?"
+Show raw response — did Perplexity 
+actually visit the site?
+
+Show updated recommendations 
+with timing labels:
+"⚡ Immediate" vs "🕐 3-6 months"
+
+=== ALSO UPDATE HOMEPAGE COPY ===
+
+Update homepage to reflect this insight:
+
+Old sub-headline:
+"Check how ChatGPT, Gemini & Perplexity 
+see your brand"
+
+New sub-headline:
+"Find out if AI systems have you 
+in their memory — and if the 
+live web can find you today"
+
+Add to how it works section:
+"We check two things:
+🧠 AI Memory — are you in 
+   ChatGPT and Gemini training data?
+🌐 Live Web — can Perplexity 
+   find you on the web right now?
+Most brands fail both. 
+GeoIQ shows you exactly why 
+and what to do about it."
+
+This is a more honest and more 
+educational product.
+Users understand the problem better
+and trust the recommendations more.

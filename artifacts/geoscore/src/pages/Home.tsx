@@ -125,13 +125,12 @@ export default function Home() {
             style={{
               fontSize: 18,
               color: "#6B7280",
-              maxWidth: 480,
+              maxWidth: 520,
               margin: "0 auto 36px",
               lineHeight: 1.6,
             }}
           >
-            Find out how ChatGPT, Gemini &amp; Perplexity see your brand, free in 60
-            seconds. No signup needed.
+            Find out if AI systems have you in their memory, and if the live web can find you today. Free in 60 seconds, no signup needed.
           </p>
 
           <form

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, XCircle, Loader2, ExternalLink, ChevronDown, ChevronUp, Copy, Check, AlertTriangle } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, ExternalLink, ChevronDown, ChevronUp, Copy, Check, AlertTriangle, Info } from "lucide-react";
 
 const emailSchema = z.object({
   email: z.string().email("Valid email required"),
@@ -69,11 +69,13 @@ function getScoreColor(score: number): string {
   return "#10b981";
 }
 
-function getUnderstandingLabel(score: number): { label: string; color: string; bg: string } {
+// isLiveWeb=true means Perplexity (real-time web search), false means training-data engines
+function getUnderstandingLabel(score: number, isLiveWeb = false): { label: string; color: string; bg: string } {
   if (score >= 25) return { label: "Strong understanding", color: "#059669", bg: "#ecfdf5" };
   if (score >= 10) return { label: "Partial understanding", color: "#D97706", bg: "#fffbeb" };
-  if (score >= 1)  return { label: "No current info", color: "#DC2626", bg: "#fef2f2" };
-  return { label: "Unknown or unclear", color: "#DC2626", bg: "#fef2f2" };
+  if (score >= 1)  return { label: "Mentioned briefly", color: "#D97706", bg: "#fffbeb" };
+  if (isLiveWeb)   return { label: "Not found on web", color: "#DC2626", bg: "#fef2f2" };
+  return { label: "Not in training data", color: "#F97316", bg: "#fff7ed" };
 }
 
 function formatTimestamp(isoString: string): string {
@@ -115,14 +117,57 @@ const ENGINE_CONFIG: Record<string, { color: string; barColor: string; label: st
   Grok:       { color: "#374151", barColor: "linear-gradient(90deg,#1f2937,#374151)", label: "Grok says:" },
 };
 
+function AiExplainerBox({ aiMemoryScore, liveWebScore }: { aiMemoryScore: number; liveWebScore: number }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ background: "#f0f4ff", border: "0.5px solid #c7d2fe", borderRadius: 10, marginBottom: 12, overflow: "hidden" }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Info style={{ width: 14, height: 14, color: "#4F46E5", flexShrink: 0 }} />
+          <span style={{ fontSize: 12, fontWeight: 600, color: "#4F46E5" }}>How AI systems see your brand</span>
+        </div>
+        {open ? <ChevronUp style={{ width: 13, height: 13, color: "#6366f1" }} /> : <ChevronDown style={{ width: 13, height: 13, color: "#6366f1" }} />}
+      </button>
+      {open && (
+        <div style={{ padding: "0 14px 14px", borderTop: "0.5px solid #c7d2fe" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12, marginBottom: 12 }}>
+            <div style={{ background: "white", border: "0.5px solid #c7d2fe", borderRadius: 8, padding: "10px 12px" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#4F46E5", marginBottom: 4 }}>AI Memory Score: {aiMemoryScore}/50</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#111827", marginBottom: 4 }}>ChatGPT + Gemini</div>
+              <div style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.5 }}>
+                These answer from training data, like a snapshot of the internet taken in 2023-2024. If your brand is newer than that, or lacks citations in sources they were trained on, they won't know you exist yet.
+              </div>
+              <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 6 }}>To improve: Crunchbase, Product Hunt, press coverage, Reddit. Takes 3-6 months.</div>
+            </div>
+            <div style={{ background: "white", border: "0.5px solid #c7d2fe", borderRadius: 8, padding: "10px 12px" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#9333ea", marginBottom: 4 }}>Live Web Score: {liveWebScore}/50</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#111827", marginBottom: 4 }}>Perplexity</div>
+              <div style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.5 }}>
+                Perplexity searches the live web in real time. It can find you right now if you have sufficient web presence and your site is indexable. Score 0 here means fix your web presence first.
+              </div>
+              <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 6 }}>To improve: fix technical issues, add content, get web mentions. Impact within days.</div>
+            </div>
+          </div>
+          <div style={{ fontSize: 11, color: "#4F46E5", fontWeight: 500 }}>
+            Two different problems, two different timelines. Your roadmap below covers both.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SystemCard({
-  system, found, score, detail, rawResponse, checkedAt, simulated,
+  system, found, score, detail, rawResponse, checkedAt, simulated, isLiveWeb,
 }: {
   system: string; found: boolean; score: number; detail?: string | null;
-  rawResponse?: string | null; checkedAt: string; simulated?: boolean;
+  rawResponse?: string | null; checkedAt: string; simulated?: boolean; isLiveWeb?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const understanding = getUnderstandingLabel(score);
+  const understanding = getUnderstandingLabel(score, isLiveWeb);
   const scaledScore = Math.round((score / 33) * 100);
   const cfg = ENGINE_CONFIG[system] ?? { color: "#4F46E5", barColor: "linear-gradient(90deg,#4F46E5,#7C3AED)", label: `${system} says:` };
 
@@ -173,7 +218,9 @@ function SystemCard({
         <div style={{ fontSize: 12, color: found ? "#4b5563" : "#9ca3af", lineHeight: 1.5 }}>
           {found && detail
             ? detail.substring(0, 110) + (detail.length > 110 ? "..." : "")
-            : "Not mentioned when AI systems were asked about your category"}
+            : isLiveWeb
+              ? "Not found when Perplexity searched the live web for your category"
+              : "Not in training data - not yet cited in sources AI systems learn from"}
         </div>
       </div>
 
@@ -428,6 +475,12 @@ export default function Audit() {
   const aiContribution = hasTechnicalData ? Math.round(aiVisibilityScore * 0.6) : null;
   const techContribution = hasTechnicalData ? Math.round((scoreTechnical ?? 0) * 0.4) : null;
 
+  // Split score: AI Memory (ChatGPT + Gemini) vs Live Web (Perplexity), each /50
+  const aiMemoryScore = Math.round(
+    ((auditResult?.scoreChatgpt ?? 0) + (auditResult?.scoreGemini ?? 0)) / 66 * 50
+  );
+  const liveWebScore = Math.round((auditResult?.scorePerplexity ?? 0) / 33 * 50);
+
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#f9fafb" }}>
       <style>{FINGER_TAP_CSS}</style>
@@ -512,47 +565,36 @@ export default function Audit() {
               </div>
               <div style={{ textAlign: "right" }}>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 4, justifyContent: "flex-end" }}>
-                  <span style={{ fontSize: 40, fontWeight: 500, color: getScoreColor(auditResult.scoreTotal), lineHeight: 1 }}>
-                    {auditResult.scoreTotal}
+                  <span style={{ fontSize: 40, fontWeight: 500, color: getScoreColor(aiMemoryScore + liveWebScore), lineHeight: 1 }}>
+                    {aiMemoryScore + liveWebScore}
                   </span>
                   <span style={{ fontSize: 16, color: "#6b7280" }}>/100</span>
                 </div>
                 <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>GEO IQ score</div>
-                {hasTechnicalData && (
-                  <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4, textAlign: "right" }}>
-                    <span style={{ color: "#4F46E5" }}>AI Visibility: {aiContribution}/60</span>
-                    <span style={{ color: "#9ca3af", margin: "0 4px" }}>+</span>
-                    <span style={{ color: "#7C3AED" }}>Technical: {techContribution}/40</span>
-                  </div>
-                )}
+                <div style={{ fontSize: 11, color: "#6b7280", marginTop: 5, textAlign: "right", lineHeight: 1.6 }}>
+                  <span style={{ color: "#4F46E5", display: "block" }}>AI Memory: {aiMemoryScore}/50 (ChatGPT + Gemini)</span>
+                  <span style={{ color: "#9333ea", display: "block" }}>Live Web: {liveWebScore}/50 (Perplexity)</span>
+                </div>
               </div>
             </div>
 
-            {/* Score Bar */}
+            {/* Score Bar — split between AI Memory and Live Web */}
             <div style={{ height: 8, background: "#f3f4f6", borderRadius: 4, overflow: "hidden", marginBottom: 8 }}>
-              {hasTechnicalData ? (
-                <div style={{ height: "100%", display: "flex", borderRadius: 4, overflow: "hidden" }}>
-                  <div style={{ width: `${aiContribution}%`, background: "#4F46E5", transition: "width 0.8s ease" }} />
-                  <div style={{ width: `${techContribution}%`, background: "#7C3AED", transition: "width 0.8s ease" }} />
-                </div>
-              ) : (
-                <div style={{ height: "100%", width: `${auditResult.scoreTotal}%`, background: getScoreColor(auditResult.scoreTotal), borderRadius: 4, transition: "width 0.8s ease" }} />
-              )}
-            </div>
-            {hasTechnicalData ? (
-              <div style={{ display: "flex", gap: 16, marginBottom: 20 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#6b7280" }}>
-                  <span style={{ width: 8, height: 8, background: "#4F46E5", borderRadius: 2, flexShrink: 0 }} />
-                  AI Visibility ({aiContribution}/60)
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#6b7280" }}>
-                  <span style={{ width: 8, height: 8, background: "#7C3AED", borderRadius: 2, flexShrink: 0 }} />
-                  Technical GEO ({techContribution}/40)
-                </div>
+              <div style={{ height: "100%", display: "flex", borderRadius: 4, overflow: "hidden" }}>
+                <div style={{ width: `${aiMemoryScore}%`, background: "#4F46E5", transition: "width 0.8s ease" }} />
+                <div style={{ width: `${liveWebScore}%`, background: "#9333ea", transition: "width 0.8s ease" }} />
               </div>
-            ) : (
-              <div style={{ marginBottom: 20 }} />
-            )}
+            </div>
+            <div style={{ display: "flex", gap: 16, marginBottom: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#6b7280" }}>
+                <span style={{ width: 8, height: 8, background: "#4F46E5", borderRadius: 2, flexShrink: 0 }} />
+                AI Memory ({aiMemoryScore}/50) - ChatGPT + Gemini
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#6b7280" }}>
+                <span style={{ width: 8, height: 8, background: "#9333ea", borderRadius: 2, flexShrink: 0 }} />
+                Live Web ({liveWebScore}/50) - Perplexity
+              </div>
+            </div>
 
             {/* 3 Summary Cards */}
             {(() => {
@@ -585,11 +627,15 @@ export default function Audit() {
                   5 engines checked
                 </div>
               </div>
+
+              {/* How AI systems work — collapsible explainer */}
+              <AiExplainerBox aiMemoryScore={aiMemoryScore} liveWebScore={liveWebScore} />
+
               <SystemCard system="ChatGPT" found={auditResult.chatgptFound} score={auditResult.scoreChatgpt} detail={auditResult.chatgptDetail} rawResponse={auditResult.chatgptRawResponse} checkedAt={auditResult.createdAt} />
               <SystemCard system="Gemini" found={auditResult.geminiFound} score={auditResult.scoreGemini} detail={auditResult.geminiDetail} rawResponse={auditResult.geminiRawResponse} checkedAt={auditResult.createdAt} />
-              <SystemCard system="Perplexity" found={auditResult.perplexityFound} score={auditResult.scorePerplexity} detail={auditResult.perplexityDetail} rawResponse={auditResult.perplexityRawResponse} checkedAt={auditResult.createdAt} />
+              <SystemCard system="Perplexity" found={auditResult.perplexityFound} score={auditResult.scorePerplexity} detail={auditResult.perplexityDetail} rawResponse={auditResult.perplexityRawResponse} checkedAt={auditResult.createdAt} isLiveWeb />
               <SystemCard system="Claude" found={auditResult.claudeFound ?? false} score={auditResult.scoreClaude ?? 0} detail={auditResult.claudeDetail} rawResponse={auditResult.claudeRawResponse} checkedAt={auditResult.createdAt} simulated />
-              <SystemCard system="Grok" found={auditResult.grokFound ?? false} score={auditResult.scoreGrok ?? 0} detail={auditResult.grokDetail} rawResponse={auditResult.grokRawResponse} checkedAt={auditResult.createdAt} simulated />
+              <SystemCard system="Grok" found={auditResult.grokFound ?? false} score={auditResult.scoreGrok ?? 0} detail={auditResult.grokDetail} rawResponse={auditResult.grokRawResponse} checkedAt={auditResult.createdAt} />
             </div>
 
             {/* Section 02: Technical GEO Audit */}
