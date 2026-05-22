@@ -29,34 +29,10 @@ const LOADING_STEPS = [
   "Computing your GEO IQ",
 ];
 
-const FINGER_TAP_CSS = `
-@keyframes finger-drum {
-  0%   { transform: translateY(0px)  rotate(0deg); }
-  7%   { transform: translateY(-14px) rotate(-2.5deg); }
-  14%  { transform: translateY(2px)  rotate(0.5deg); }
-  22%  { transform: translateY(-10px) rotate(-2deg); }
-  29%  { transform: translateY(1px)  rotate(0deg); }
-  38%  { transform: translateY(-12px) rotate(-2.5deg); }
-  45%  { transform: translateY(2px)  rotate(0.5deg); }
-  54%  { transform: translateY(-7px)  rotate(-1.5deg); }
-  61%  { transform: translateY(0px)  rotate(0deg); }
-  100% { transform: translateY(0px)  rotate(0deg); }
-}
-@keyframes tap-shadow {
-  0%,61%,100% { transform: scaleX(1);   opacity: 0.18; }
-  7%,22%,38%,54% { transform: scaleX(0.7); opacity: 0.08; }
-  14%,29%,45%,61% { transform: scaleX(1.1); opacity: 0.22; }
-}
+const LOADING_CSS = `
 @keyframes audit-fade-in {
   from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
-}
-.finger-drum-anim {
-  animation: finger-drum 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  transform-origin: bottom center;
-}
-.tap-shadow-anim {
-  animation: tap-shadow 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 .audit-result-anim {
   animation: audit-fade-in 0.45s ease forwards;
@@ -679,31 +655,14 @@ export default function Audit() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#f9fafb" }}>
-      <style>{FINGER_TAP_CSS}</style>
+      <style>{LOADING_CSS}</style>
       <Navbar />
 
       <main style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 16px" }}>
 
         {/* Loading state */}
         {runAuditMutation.isPending && (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 40, width: "100%", maxWidth: 440 }}>
-            <div style={{ position: "relative", marginBottom: 32, userSelect: "none" }}>
-              <img
-                src="/fingers-tapping.jpeg"
-                alt="Scanning..."
-                className="finger-drum-anim"
-                style={{ width: 200, height: "auto", display: "block", filter: "grayscale(0.1) contrast(1.05)" }}
-              />
-              <div
-                className="tap-shadow-anim"
-                style={{
-                  position: "absolute", bottom: -8, left: "50%",
-                  transform: "translateX(-50%)", width: 160, height: 12,
-                  borderRadius: "50%",
-                  background: "radial-gradient(ellipse, rgba(0,0,0,0.25) 0%, transparent 70%)",
-                }}
-              />
-            </div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 60, width: "100%", maxWidth: 440 }}>
             <div style={{ fontWeight: 700, fontSize: 18, color: "#111827", textAlign: "center", marginBottom: 6 }}>
               Hang tight...
             </div>
@@ -737,26 +696,9 @@ export default function Audit() {
           </div>
         )}
 
-        {/* Retrying with email state - same rich loading UI */}
+        {/* Retrying with email state */}
         {retrying && (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 40, width: "100%", maxWidth: 440 }}>
-            <div style={{ position: "relative", marginBottom: 32, userSelect: "none" }}>
-              <img
-                src="/fingers-tapping.jpeg"
-                alt="Scanning..."
-                className="finger-drum-anim"
-                style={{ width: 200, height: "auto", display: "block", filter: "grayscale(0.1) contrast(1.05)" }}
-              />
-              <div
-                className="tap-shadow-anim"
-                style={{
-                  position: "absolute", bottom: -8, left: "50%",
-                  transform: "translateX(-50%)", width: 160, height: 12,
-                  borderRadius: "50%",
-                  background: "radial-gradient(ellipse, rgba(0,0,0,0.25) 0%, transparent 70%)",
-                }}
-              />
-            </div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 60, width: "100%", maxWidth: 440 }}>
             <div style={{ fontWeight: 700, fontSize: 18, color: "#111827", textAlign: "center", marginBottom: 6 }}>
               Hang tight...
             </div>
