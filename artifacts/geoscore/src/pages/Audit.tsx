@@ -688,9 +688,9 @@ export default function Audit() {
                       Most brands reach 50+ GEO IQ in 30 days with our roadmap.
                     </div>
                     <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 20 }}>Rs 3,999/month - cancel anytime</div>
-                    <Link href="/pricing">
+                    <Link href={roadmapUrl}>
                       <Button style={{ width: "100%", background: "#4F46E5", color: "white", height: 48, fontSize: 15, fontWeight: 600, marginBottom: 16, maxWidth: 400 }}>
-                        Unlock full roadmap
+                        View my full roadmap
                       </Button>
                     </Link>
                     <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 12 }}>or get free weekly digest updates</div>

@@ -1,0 +1,354 @@
+Run a complete audit of everything 
+built in GeoIQ so far.
+Check every feature systematically 
+and report honestly on what works,
+what is broken, and what is missing.
+
+=== AUDIT 1: CORE AUDIT ENGINE ===
+
+Test these 5 domains and show 
+exact results for each:
+
+1. manus.im
+2. notion.so
+3. mealcoreai.com
+4. searchless.ai
+5. xusjhf.com (fake domain)
+
+For each domain show:
+- Category detected
+- Market detected
+- DataForSEO keywords found (count)
+- Keywords filtered out (count)
+- Prompts actually used (list them)
+- ChatGPT raw response (first 200 chars)
+- Gemini raw response (first 200 chars)
+- Perplexity raw response (first 200 chars)
+- Score breakdown per AI system
+- Total GEO IQ score
+- Cache hit or fresh audit
+- Time taken
+
+Expected results:
+manus.im → low score 0-15
+notion.so → 24/100 (cached)
+mealcoreai.com → 0/100 (cached)
+searchless.ai → low but not 0 
+                after category fix
+xusjhf.com → 0/100
+
+Flag any domain that gives 
+unexpected results.
+
+=== AUDIT 2: TECHNICAL GEO CHECKS ===
+
+For manus.im specifically check:
+
+□ robots.txt check working?
+  - Did it fetch manus.im/robots.txt?
+  - Did it detect AI crawler rules?
+  - What score did it give?
+
+□ llms.txt check working?
+  - Did it fetch manus.im/llms.txt?
+  - File exists or not?
+  - What score did it give?
+
+□ Schema markup check working?
+  - Did it find JSON-LD in homepage?
+  - What type found or missing?
+  - What score did it give?
+
+□ Content structure check working?
+  - Word count detected?
+  - H1 H2 detected?
+  - What score did it give?
+
+□ Entity consistency check working?
+  - Social links found or missing?
+  - What score did it give?
+
+Show me the technical audit 
+section exactly as it appears 
+in the UI for manus.im
+
+=== AUDIT 3: GEO FILE GENERATION ===
+
+For manus.im verify these 3 files 
+are being generated correctly:
+
+□ llms.txt generated?
+  - Show first 10 lines of generated content
+  - Is brand name correct?
+  - Is description populated?
+  - Are key pages listed?
+
+□ robots.txt additions generated?
+  - Show generated content
+  - Does it include all AI crawlers:
+    GPTBot, ChatGPT-User, PerplexityBot,
+    Claude-Web, anthropic-ai, ClaudeBot
+
+□ Schema JSON generated?
+  - Show generated JSON
+  - Is @type Organization?
+  - Is brand name correct?
+  - Is URL correct?
+
+If any file generation is broken
+fix it immediately and show result.
+
+=== AUDIT 4: PAYWALL AND ROADMAP ===
+
+Check the free vs paid structure:
+
+FREE USER VIEW — verify:
+□ Score shows correctly
+□ Per AI system breakdown shows
+□ Technical audit pass/fail shows
+□ 4-week roadmap preview shows
+  (week labels visible, tasks locked)
+□ Upgrade CTA shows correctly
+□ Email capture shows
+□ GEO files download works 
+  (llms.txt, robots.txt, Schema)
+□ Raw AI responses show
+  (expandable section)
+
+PAID USER VIEW — verify:
+□ Week 1-2 tasks show with 
+  full instructions
+□ Week 2-3 tasks show
+□ Week 3-4 tasks show  
+□ Week 4-5 tasks show
+□ Copy buttons work
+□ Mark complete works
+□ Progress tracking shows
+□ Generated content is specific 
+  to the brand — not generic
+
+If paid features not built yet
+tell me exactly what is missing
+so I can prioritise.
+
+=== AUDIT 5: UI AND DESIGN ===
+
+Check every page visually:
+
+Homepage:
+□ Font — Inter loading correctly?
+□ Hero section looks modern?
+□ Grid background subtle?
+□ Audit input card looks clean?
+□ Brand example cards show 
+  Notion/Groww/Lemlist with correct scores?
+□ Company favicons loading?
+□ Pricing section shows 3 tiers?
+□ Footer dark bg with working links?
+□ Mobile responsive at 375px?
+
+Loading/scanning screen:
+□ Dark background #0F0F1A?
+□ Terminal feed scrolling?
+□ Step indicators working?
+  (pending → active → complete)
+□ Live timer counting up?
+□ Progress bar filling?
+□ AI system cards showing?
+□ Dramatic reveal animation?
+
+Audit result page:
+□ Score number shows correctly?
+□ Score color — red/amber/green?
+□ Score bar fills correctly?
+□ AI system cards with badges?
+□ Understanding labels show?
+  (Strong/Partial/Unknown/No info)
+□ Raw AI response expandable?
+□ Technical audit section shows?
+□ GEO files section shows?
+□ Roadmap preview shows?
+□ Upgrade CTA shows?
+
+Dashboard (paid):
+□ Sidebar navigation works?
+□ All tabs clickable?
+□ Score trend chart renders?
+□ Week tabs show?
+□ Task cards expand?
+□ Mark complete works?
+□ Progress tracker updates?
+
+=== AUDIT 6: INTERNAL LINKS ===
+
+Check every link on every page:
+
+Navbar:
+□ "How it works" → scrolls to section
+□ "Pricing" → scrolls to pricing
+□ "Blog" → /blog page loads
+□ "What is GEO" → /what-is-geo loads
+□ "Sign in" → /login loads
+
+Homepage CTAs:
+□ "Check my GEO IQ →" → 
+   focuses URL input
+□ "Unlock full plan →" → /pricing
+□ "Start free audit →" → 
+   focuses URL input
+
+Footer links (test every single one):
+□ Free Audit → homepage
+□ Pricing → pricing section
+□ Dashboard → /dashboard
+□ What is GEO → /what-is-geo
+□ How to rank in ChatGPT → 
+   /how-to-rank-in-chatgpt
+□ GEO Tools → /geo-tools
+□ Blog → /blog/...
+□ About → /about
+□ Contact → mailto link
+□ Privacy Policy → /privacy
+□ Terms of Service → /terms
+
+SEO pages (check all load):
+□ /what-is-geo → loads with content?
+□ /how-to-rank-in-chatgpt → loads?
+□ /geo-tools → loads?
+□ /blog/why-startup-not-showing-chatgpt
+   → loads?
+
+Report every broken link with 
+exact URL and what happens 
+when clicked.
+
+=== AUDIT 7: METADATA ===
+
+Check page source for each page:
+
+Homepage:
+□ <title> tag correct?
+□ <meta name="description"> present?
+□ <meta property="og:title"> present?
+□ <meta property="og:description"> present?
+□ <meta property="og:image"> present?
+□ <meta name="twitter:card"> present?
+□ Schema.org JSON-LD present?
+
+/what-is-geo:
+□ Unique title tag?
+□ Unique meta description?
+□ Article Schema markup?
+
+/how-to-rank-in-chatgpt:
+□ Unique title tag?
+□ Unique meta description?
+
+Show me the actual title and 
+description for each page.
+Flag any that are missing or 
+using default/duplicate text.
+
+=== AUDIT 8: API AND COSTS ===
+
+Check all API integrations:
+
+□ OpenAI — working?
+  Last successful call: when?
+  
+□ Gemini — working?
+  Last successful call: when?
+  
+□ Perplexity (RapidAPI) — working?
+  Last successful call: when?
+  
+□ Anthropic Claude — working?
+  (for category detection + 
+   recommendation generation)
+  Last successful call: when?
+
+□ DataForSEO — working?
+  Last successful call: when?
+  Balance remaining: show if available
+
+□ Resend — configured?
+  Test email sending: working?
+
+□ Razorpay — keys added?
+  Test mode active?
+  Subscription plans created?
+
+For any API showing errors
+show the exact error message.
+
+=== AUDIT 9: DATABASE ===
+
+Check Supabase tables exist 
+and have correct structure:
+
+□ audits table — exists?
+  Row count: how many test audits?
+  
+□ users table — exists?
+
+□ monitored_brands table — exists?
+
+□ daily_scores table — exists?
+
+□ email_subscribers table — exists?
+
+□ rate_limits table — exists?
+
+□ keyword_cache table — exists?
+  Cached domains: how many?
+
+Show any tables that are missing
+or have schema issues.
+
+=== AUDIT 10: PERFORMANCE ===
+
+Test these performance metrics:
+
+□ Fresh audit time for notion.so
+  (should be 12-15 seconds)
+  
+□ Cached audit time for notion.so
+  (should be under 100ms)
+  
+□ Homepage load time
+  (should be under 2 seconds)
+  
+□ Audit result page load time
+
+□ Rate limiting working?
+  Try 4 audits from same IP
+  4th should be blocked with 
+  correct error message
+
+=== FINAL REPORT FORMAT ===
+
+After checking everything give me:
+
+WORKING CORRECTLY ✅
+List every feature confirmed working
+
+BROKEN OR BUGGY ❌  
+List every issue with exact description
+
+NOT BUILT YET ⏳
+List every feature from our 
+conversation that was planned 
+but not yet implemented
+
+PRIORITY FIX ORDER
+Rank the broken/missing items:
+1. Fix this first (blocks users)
+2. Fix this second (hurts conversion)
+3. Fix this third (nice to have)
+
+READY TO LAUNCH? 
+Give me a honest yes/no with reason.
+
+What needs to be done before 
+first paying customer?
+List maximum 5 things.

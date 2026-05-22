@@ -1,11 +1,13 @@
 import { Router, type IRouter } from "express";
-import { db, auditsTable } from "@workspace/db";
-import { eq, desc, and, gt } from "drizzle-orm";
+import { db, auditsTable, rateLimitsTable } from "@workspace/db";
+import { eq, desc, and, gt, sql } from "drizzle-orm";
 import {
   RunAuditBody,
   GetAuditParams,
 } from "@workspace/api-zod";
 import { runAuditEngine, generateRecommendations, extractDomain, type TechnicalAuditResult } from "../lib/audit-engine";
+
+const FREE_AUDITS_PER_DAY = 3;
 
 const router: IRouter = Router();
 
@@ -87,8 +89,23 @@ router.post("/audit", async (req, res): Promise<void> => {
         { domain, cachedAuditId: cachedAudit.id, hoursAgo },
         `${domain} — returning cached audit (${hoursAgo}h ago)`,
       );
-      console.log(`[Audit cache] ${domain} — returning cached audit (${hoursAgo}h ago) — DataForSEO not called`);
       res.json(serializeAudit(cachedAudit, { fromCache: true, cachedHoursAgo: hoursAgo }));
+      return;
+    }
+
+    // --- Rate limit: max FREE_AUDITS_PER_DAY fresh audits per IP per day ---
+    const today = new Date().toISOString().slice(0, 10);
+    const [rateRow] = await db
+      .select()
+      .from(rateLimitsTable)
+      .where(and(eq(rateLimitsTable.ipAddress, ip), eq(rateLimitsTable.date, today)))
+      .limit(1);
+
+    if (rateRow && rateRow.auditCount >= FREE_AUDITS_PER_DAY) {
+      res.status(429).json({
+        error: `You have run ${FREE_AUDITS_PER_DAY} free audits today. Try a different domain or come back tomorrow.`,
+        retryAfter: "24h",
+      });
       return;
     }
 
@@ -176,6 +193,15 @@ router.post("/audit", async (req, res): Promise<void> => {
       recommendations: recommendations as unknown as Record<string, unknown>[],
       ipAddress: ip,
     }).returning();
+
+    // --- Increment rate limit counter ---
+    await db
+      .insert(rateLimitsTable)
+      .values({ ipAddress: ip, auditCount: 1, date: today })
+      .onConflictDoUpdate({
+        target: [rateLimitsTable.ipAddress, rateLimitsTable.date],
+        set: { auditCount: sql`${rateLimitsTable.auditCount} + 1` },
+      });
 
     res.json({
       ...serializeAudit(audit!),
