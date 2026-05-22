@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -19,9 +18,12 @@ const loginSchema = z.object({
 
 export default function Login() {
   const [, setLocation] = useLocation();
+  const search = useSearch();
   const { toast } = useToast();
   const loginMutation = useLogin();
-  
+
+  const redirectTo = new URLSearchParams(search).get("redirect") ?? "/dashboard";
+
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -35,7 +37,7 @@ export default function Login() {
       onSuccess: (res) => {
         setToken(res.token);
         toast({ title: "Welcome back", description: "Successfully logged in." });
-        setLocation("/dashboard");
+        setLocation(redirectTo);
       },
       onError: () => {
         toast({ title: "Error", description: "Invalid credentials. Please try again.", variant: "destructive" });
@@ -88,9 +90,12 @@ export default function Login() {
           </Form>
 
           <div className="mt-6 text-center text-sm text-text-secondary">
-            Don't have an account?{" "}
-            <Link href="/register" className="text-primary hover:underline font-medium">
-              Create one
+            Don&apos;t have an account?{" "}
+            <Link
+              href={`/register${search ? `?${search}` : ""}`}
+              className="text-primary hover:underline font-medium"
+            >
+              Create one free
             </Link>
           </div>
         </div>

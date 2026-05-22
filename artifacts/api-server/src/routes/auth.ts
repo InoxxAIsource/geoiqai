@@ -3,6 +3,7 @@ import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { RegisterBody, LoginBody } from "@workspace/api-zod";
 import { hashPassword, verifyPassword, createToken, requireAuth, type AuthRequest } from "../lib/auth";
+import { sendWelcomeEmail } from "../lib/email";
 
 const router: IRouter = Router();
 
@@ -26,12 +27,16 @@ router.post("/auth/register", async (req, res): Promise<void> => {
 
   const token = createToken(user!.id);
 
+  // Fire and forget - non-fatal if it fails
+  void sendWelcomeEmail(user!.email);
+
   res.status(201).json({
     token,
     user: {
       id: user!.id,
       email: user!.email,
       plan: user!.plan,
+      auditCount: user!.auditCount,
       createdAt: user!.createdAt.toISOString(),
     },
   });

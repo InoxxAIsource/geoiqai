@@ -60,4 +60,4 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   next();
 }
 
-export type AuthRequest = Request & { user: { id: string; email: string; plan: string; createdAt: Date; lastLogin: Date | null; passwordHash: string } };
+export type AuthRequest = Request & { user: { id: string; email: string; plan: string; auditCount: number; createdAt: Date; lastLogin: Date | null; passwordHash: string } };

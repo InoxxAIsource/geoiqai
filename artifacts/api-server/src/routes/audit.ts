@@ -1,13 +1,14 @@
 import { Router, type IRouter } from "express";
-import { db, auditsTable, rateLimitsTable } from "@workspace/db";
+import { db, auditsTable, usersTable } from "@workspace/db";
 import { eq, desc, and, gt, sql } from "drizzle-orm";
 import {
   RunAuditBody,
   GetAuditParams,
 } from "@workspace/api-zod";
 import { runAuditEngine, generateRecommendations, extractDomain, type TechnicalAuditResult } from "../lib/audit-engine";
+import { requireAuth, type AuthRequest } from "../lib/auth";
 
-const FREE_AUDITS_PER_DAY = 3;
+const FREE_AUDIT_LIMIT = 5;
 
 const router: IRouter = Router();
 
@@ -61,20 +62,19 @@ function serializeAudit(
   };
 }
 
-router.post("/audit", async (req, res): Promise<void> => {
+router.post("/audit", requireAuth, async (req, res): Promise<void> => {
   const parsed = RunAuditBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
 
+  const user = (req as AuthRequest).user;
   const { url, brandName: brandNameOverride, category: categoryOverride, market: marketOverride } = parsed.data;
   const domain = extractDomain(url);
 
-  const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0] ?? req.ip ?? "unknown";
-
   try {
-    // --- Cache check: return existing audit if within 24 hours ---
+    // --- Cache check: return existing audit if within 24 hours (does not count against limit) ---
     const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const [cachedAudit] = await db
       .select()
@@ -93,18 +93,11 @@ router.post("/audit", async (req, res): Promise<void> => {
       return;
     }
 
-    // --- Rate limit: max FREE_AUDITS_PER_DAY fresh audits per IP per day ---
-    const today = new Date().toISOString().slice(0, 10);
-    const [rateRow] = await db
-      .select()
-      .from(rateLimitsTable)
-      .where(and(eq(rateLimitsTable.ipAddress, ip), eq(rateLimitsTable.date, today)))
-      .limit(1);
-
-    if (rateRow && rateRow.auditCount >= FREE_AUDITS_PER_DAY) {
+    // --- Per-account free limit check (free plan only) ---
+    if (user.plan === "free" && user.auditCount >= FREE_AUDIT_LIMIT) {
       res.status(429).json({
-        error: `You have run ${FREE_AUDITS_PER_DAY} free audits today. Try a different domain or come back tomorrow.`,
-        retryAfter: "24h",
+        error: `You have used all ${FREE_AUDIT_LIMIT} free audits. Upgrade to Starter to keep running checks.`,
+        upgradeRequired: true,
       });
       return;
     }
@@ -136,7 +129,6 @@ router.post("/audit", async (req, res): Promise<void> => {
       technicalAudit,
     } = engineResult;
 
-    // AI visibility: normalise across all 5 engines (each scores 0-33 max)
     const rawAiTotal = chatgpt.score + gemini.score + perplexity.score + claude.score + grok.score;
     const aiVisibilityScore = Math.min(Math.round(rawAiTotal * 100 / (5 * 33)), 100);
     const scoreTechnical = technicalAudit.overallScore;
@@ -191,17 +183,16 @@ router.post("/audit", async (req, res): Promise<void> => {
         technicalAudit,
       },
       recommendations: recommendations as unknown as Record<string, unknown>[],
-      ipAddress: ip,
+      ipAddress: req.headers["x-forwarded-for"]
+        ? (req.headers["x-forwarded-for"] as string).split(",")[0]
+        : (req.ip ?? "unknown"),
     }).returning();
 
-    // --- Increment rate limit counter ---
+    // Increment user's audit count
     await db
-      .insert(rateLimitsTable)
-      .values({ ipAddress: ip, auditCount: 1, date: today })
-      .onConflictDoUpdate({
-        target: [rateLimitsTable.ipAddress, rateLimitsTable.date],
-        set: { auditCount: sql`${rateLimitsTable.auditCount} + 1` },
-      });
+      .update(usersTable)
+      .set({ auditCount: sql`${usersTable.auditCount} + 1` })
+      .where(eq(usersTable.id, user.id));
 
     res.json({
       ...serializeAudit(audit!),

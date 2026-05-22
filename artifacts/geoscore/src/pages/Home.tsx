@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { PricingCards } from "@/components/pricing/PricingCards";
+import { getToken } from "@/lib/auth";
 
 const PRIMARY = "#4F46E5";
 const PRIMARY_HOVER = "#4338CA";
@@ -14,9 +15,14 @@ export default function Home() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (url.trim()) {
-      setLocation(`/audit?url=${encodeURIComponent(url.trim())}`);
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    if (!getToken()) {
+      const redirect = `/audit?url=${encodeURIComponent(trimmed)}`;
+      setLocation(`/register?redirect=${encodeURIComponent(redirect)}`);
+      return;
     }
+    setLocation(`/audit?url=${encodeURIComponent(trimmed)}`);
   };
 
   const scrollToInput = (value?: string) => {

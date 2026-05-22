@@ -412,6 +412,7 @@ export default function Audit() {
   const [auditResult, setAuditResult] = useState<any>(null);
   const [loadingStep, setLoadingStep] = useState(0);
   const [doneSteps, setDoneSteps] = useState<boolean[]>(LOADING_STEPS.map(() => false));
+  const [auditError, setAuditError] = useState<{ type: "auth" | "limit" | "generic"; message?: string } | null>(null);
 
   const emailForm = useForm<z.infer<typeof emailSchema>>({
     resolver: zodResolver(emailSchema),
@@ -423,8 +424,21 @@ export default function Audit() {
     runAuditMutation.mutate(
       { data: { url: urlParam } },
       {
-        onSuccess: (data) => setAuditResult(data),
-        onError: () => toast({ title: "Audit failed", description: "Could not analyze the domain. Please try again.", variant: "destructive" }),
+        onSuccess: (data) => { setAuditError(null); setAuditResult(data); },
+        onError: (err: unknown) => {
+          const status = (err as any)?.status ?? (err as any)?.response?.status;
+          const body = (err as any)?.body ?? (err as any)?.data ?? {};
+          if (status === 401) {
+            const redirect = `/audit?url=${encodeURIComponent(urlParam!)}`;
+            setLocation(`/login?redirect=${encodeURIComponent(redirect)}`);
+            return;
+          }
+          if (status === 429 && body?.upgradeRequired) {
+            setAuditError({ type: "limit", message: body.error });
+            return;
+          }
+          setAuditError({ type: "generic" });
+        },
       },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -542,12 +556,38 @@ export default function Audit() {
         )}
 
         {/* Error state */}
-        {runAuditMutation.isError && (
-          <div style={{ textAlign: "center", paddingTop: 80 }}>
-            <XCircle style={{ width: 48, height: 48, color: "#ef4444", margin: "0 auto 16px" }} />
-            <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Audit Failed</h2>
-            <p style={{ color: "#6b7280", marginBottom: 24 }}>We could not analyze {urlParam}. Please try again.</p>
-            <Button onClick={() => runAuditMutation.mutate({ data: { url: urlParam! } })}>Try Again</Button>
+        {auditError && (
+          <div style={{ textAlign: "center", paddingTop: 80, maxWidth: 420, margin: "0 auto" }}>
+            {auditError.type === "limit" ? (
+              <>
+                <div style={{ width: 56, height: 56, background: "#fef3c7", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+                  <AlertTriangle style={{ width: 28, height: 28, color: "#d97706" }} />
+                </div>
+                <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>You have used all 5 free audits</h2>
+                <p style={{ color: "#6b7280", marginBottom: 28, lineHeight: 1.6 }}>
+                  Free accounts get 5 audits. Upgrade to Starter to keep running checks and unlock the full monitoring dashboard.
+                </p>
+                <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+                  <Button onClick={() => setLocation("/pricing")} style={{ background: "#4F46E5", color: "white" }}>
+                    See pricing
+                  </Button>
+                  <Button variant="outline" onClick={() => setLocation("/")}>
+                    Back to home
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ width: 56, height: 56, background: "#fee2e2", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+                  <XCircle style={{ width: 28, height: 28, color: "#ef4444" }} />
+                </div>
+                <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Audit failed</h2>
+                <p style={{ color: "#6b7280", marginBottom: 24 }}>Could not analyze {urlParam}. Please try again.</p>
+                <Button onClick={() => { setAuditError(null); runAuditMutation.mutate({ data: { url: urlParam! } }); }}>
+                  Try again
+                </Button>
+              </>
+            )}
           </div>
         )}
 

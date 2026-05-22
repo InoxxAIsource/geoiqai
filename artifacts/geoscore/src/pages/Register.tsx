@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -19,9 +18,12 @@ const registerSchema = z.object({
 
 export default function Register() {
   const [, setLocation] = useLocation();
+  const search = useSearch();
   const { toast } = useToast();
   const registerMutation = useRegister();
-  
+
+  const redirectTo = new URLSearchParams(search).get("redirect") ?? "/dashboard";
+
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -34,11 +36,16 @@ export default function Register() {
     registerMutation.mutate({ data: values }, {
       onSuccess: (res) => {
         setToken(res.token);
-        toast({ title: "Account created", description: "Welcome to GeoIQ." });
-        setLocation("/dashboard");
+        toast({ title: "Account created", description: "Welcome to GeoIQ. You have 5 free audits to start." });
+        setLocation(redirectTo);
       },
-      onError: () => {
-        toast({ title: "Error", description: "Registration failed. Please try again.", variant: "destructive" });
+      onError: (err: unknown) => {
+        const msg = err instanceof Error ? err.message : "";
+        toast({
+          title: "Registration failed",
+          description: msg.includes("409") || msg.toLowerCase().includes("already") ? "An account with this email already exists." : "Something went wrong. Please try again.",
+          variant: "destructive"
+        });
       }
     });
   };
@@ -50,7 +57,7 @@ export default function Register() {
         <div className="w-full max-w-md bg-card p-8 rounded-xl border border-border shadow-sm">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-semibold text-text-primary">Create your account</h1>
-            <p className="text-text-secondary text-sm mt-2">Start tracking your AI visibility today</p>
+            <p className="text-text-secondary text-sm mt-2">Free to start - 5 audits included, no card needed</p>
           </div>
 
           <Form {...form}>
@@ -89,7 +96,10 @@ export default function Register() {
 
           <div className="mt-6 text-center text-sm text-text-secondary">
             Already have an account?{" "}
-            <Link href="/login" className="text-primary hover:underline font-medium">
+            <Link
+              href={`/login${search ? `?${search}` : ""}`}
+              className="text-primary hover:underline font-medium"
+            >
               Sign in
             </Link>
           </div>
