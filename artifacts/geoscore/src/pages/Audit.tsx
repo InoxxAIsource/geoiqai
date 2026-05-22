@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useRunAudit, useEmailSubscribe } from "@workspace/api-client-react";
+import { useRunAudit, useEmailSubscribe, useGetMe } from "@workspace/api-client-react";
 import { useQuery } from "@/hooks/use-query";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -639,53 +639,80 @@ export default function Audit() {
               />
             </div>
 
-            {/* Section 04: Boost */}
-            <div style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 12, padding: 24, marginBottom: 20, textAlign: "center" }}>
-              <div style={{ fontSize: 16, fontWeight: 500, color: "#111827", marginBottom: 6 }}>Boost your GEO IQ</div>
-              <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 20 }}>
-                5 specific actions to appear in Gemini and Perplexity
-              </div>
-              <div style={{ filter: "blur(5px)", pointerEvents: "none", marginBottom: 20, textAlign: "left" }}>
-                {[
-                  { dot: "#ef4444", w1: 280, w2: 220 },
-                  { dot: "#f59e0b", w1: 240, w2: 200 },
-                  { dot: "#10b981", w1: 260, w2: 180 },
-                ].map((row, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 0", borderBottom: i < 2 ? "0.5px solid #e5e7eb" : "none" }}>
-                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: row.dot, marginTop: 5, flexShrink: 0 }} />
-                    <div>
-                      <div style={{ height: 12, background: "#d1d5db", borderRadius: 4, width: row.w1, marginBottom: 6 }} />
-                      <div style={{ height: 10, background: "#e5e7eb", borderRadius: 4, width: row.w2 }} />
+            {/* Section 04: GEO IQ Roadmap */}
+            {(() => {
+              const MILESTONES = [
+                { week: "Week 1-2", label: "Foundation", target: "20+ GEO IQ", from: 0, to: 20, teaser: "4 technical fixes + 3 citation tasks" },
+                { week: "Week 2-3", label: "Content", target: "30+ GEO IQ", from: 20, to: 30, teaser: "2 content pieces + metadata fixes" },
+                { week: "Week 3-4", label: "Authority", target: "50+ GEO IQ", from: 30, to: 50, teaser: "Reddit strategy + comparison content" },
+                { week: "Week 4-5", label: "PR", target: "80+ GEO IQ", from: 50, to: 80, teaser: "Newsletter outreach + competitor gap closing" },
+              ];
+              const roadmapUrl = `/roadmap?auditId=${auditResult.id}&brand=${encodeURIComponent(auditResult.domain)}`;
+              return (
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 4 }}>Your GEO IQ Visibility Roadmap</div>
+                    <div style={{ fontSize: 13, color: "#6b7280" }}>
+                      Based on your score of {auditResult.scoreTotal}/100, here is how long it takes to improve
                     </div>
                   </div>
-                ))}
-              </div>
-              <Link href="/pricing">
-                <Button style={{ width: "100%", background: "#4F46E5", color: "white", marginBottom: 16, height: 42 }}>
-                  Unlock full GEO IQ report, Rs 3,999/mo
-                </Button>
-              </Link>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, fontSize: 13, color: "#9ca3af" }}>
-                <div style={{ flex: 1, height: "0.5px", background: "#e5e7eb" }} />
-                or
-                <div style={{ flex: 1, height: "0.5px", background: "#e5e7eb" }} />
-              </div>
-              <Form {...emailForm}>
-                <form onSubmit={emailForm.handleSubmit(onSubscribe)} style={{ display: "flex", gap: 8 }}>
-                  <FormField control={emailForm.control} name="email" render={({ field }) => (
-                    <FormItem style={{ flex: 1 }}>
-                      <FormControl>
-                        <Input placeholder="Enter your email for free weekly digest" style={{ background: "white" }} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <Button type="submit" variant="outline" disabled={subscribeMutation.isPending} style={{ whiteSpace: "nowrap", flexShrink: 0 }}>
-                    {subscribeMutation.isPending ? "Sending..." : "Send me the free report"}
-                  </Button>
-                </form>
-              </Form>
-            </div>
+
+                  {/* 4 milestone cards */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }}>
+                    {MILESTONES.map((m) => (
+                      <div key={m.label} style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: "12px 12px 10px", position: "relative" }}>
+                        <div style={{ position: "absolute", top: 10, right: 10 }}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                          </svg>
+                        </div>
+                        <div style={{ fontSize: 10, color: "#9ca3af", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: 4 }}>{m.week}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 2 }}>{m.target}</div>
+                        <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 8 }}>{m.label}</div>
+                        <div style={{ height: 4, background: "#f3f4f6", borderRadius: 2, marginBottom: 8, overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: "0%", background: "#ef4444", borderRadius: 2 }} />
+                        </div>
+                        <div style={{ fontSize: 11, color: "#9ca3af", lineHeight: 1.4 }}>{m.teaser}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Upgrade box */}
+                  <div style={{ background: "#0f172a", border: "1px solid #4F46E5", borderRadius: 12, padding: "24px", textAlign: "center" }}>
+                    <div style={{ fontSize: 18, fontWeight: 600, color: "white", marginBottom: 10 }}>
+                      Unlock your complete execution roadmap
+                    </div>
+                    <div style={{ fontSize: 13, color: "#9CA3AF", marginBottom: 8, lineHeight: 1.6, maxWidth: 460, margin: "0 auto 8px" }}>
+                      Get exact tasks, direct URLs, generated content and keyword suggestions for all 4 weeks.
+                      Most brands reach 50+ GEO IQ in 30 days with our roadmap.
+                    </div>
+                    <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 20 }}>Rs 3,999/month - cancel anytime</div>
+                    <Link href="/pricing">
+                      <Button style={{ width: "100%", background: "#4F46E5", color: "white", height: 48, fontSize: 15, fontWeight: 600, marginBottom: 16, maxWidth: 400 }}>
+                        Unlock full roadmap
+                      </Button>
+                    </Link>
+                    <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 12 }}>or get free weekly digest updates</div>
+                    <Form {...emailForm}>
+                      <form onSubmit={emailForm.handleSubmit(onSubscribe)} style={{ display: "flex", gap: 8, maxWidth: 400, margin: "0 auto" }}>
+                        <FormField control={emailForm.control} name="email" render={({ field }) => (
+                          <FormItem style={{ flex: 1 }}>
+                            <FormControl>
+                              <Input placeholder="your@email.com" style={{ background: "#1e293b", border: "0.5px solid #334155", color: "white" }} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                        <Button type="submit" variant="outline" disabled={subscribeMutation.isPending} style={{ whiteSpace: "nowrap", flexShrink: 0, borderColor: "#334155", color: "#9CA3AF" }}>
+                          {subscribeMutation.isPending ? "..." : "Subscribe"}
+                        </Button>
+                      </form>
+                    </Form>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Share */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 0", borderTop: "0.5px solid #e5e7eb" }}>

@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useGetMe } from "@workspace/api-client-react";
 import { CheckCircle2, Circle, ChevronDown, ChevronUp, ExternalLink, Copy, Check, Lock, ArrowLeft } from "lucide-react";
-import Navbar from "@/components/Navbar";
-import { getAuthToken } from "@/lib/auth";
+import { Navbar } from "@/components/layout/Navbar";
+import { getToken } from "@/lib/auth";
 
 interface TaskContent {
   type: string;
@@ -120,14 +120,14 @@ function TaskContentBlock({ content, brandName }: { content: TaskContent; brandN
   if (content.type === "code") {
     return (
       <div style={{ marginTop: 10 }}>
-        {content.instruction && <p style={{ fontSize: 13, color: "#374151", marginBottom: 8 }}>{content.instruction as string}</p>}
-        {content.code && <CodeBlock code={content.code as string} />}
+        {!!content.instruction && <p style={{ fontSize: 13, color: "#374151", marginBottom: 8 }}>{content.instruction as string}</p>}
+        {!!content.code && <CodeBlock code={content.code as string} />}
         {Array.isArray(content.steps) && (
           <ol style={{ margin: "10px 0 0", paddingLeft: 18, fontSize: 13, color: "#374151", lineHeight: 1.8 }}>
             {(content.steps as string[]).map((s, i) => <li key={i}>{s}</li>)}
           </ol>
         )}
-        {content.testUrl && (
+        {!!content.testUrl && (
           <a href={content.testUrl as string} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "#4F46E5", marginTop: 8, textDecoration: "none" }}>
             Test at: {content.testUrl as string} <ExternalLink style={{ width: 11, height: 11 }} />
           </a>
@@ -139,15 +139,15 @@ function TaskContentBlock({ content, brandName }: { content: TaskContent; brandN
   if (content.type === "copy") {
     return (
       <div style={{ marginTop: 10 }}>
-        {content.label && <p style={{ fontSize: 13, color: "#374151", marginBottom: 6 }}>{content.label as string}</p>}
+        {!!content.label && <p style={{ fontSize: 13, color: "#374151", marginBottom: 6 }}>{content.label as string}</p>}
         <div style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "12px 14px", fontSize: 13, color: "#111827", lineHeight: 1.65, position: "relative" }}>
           {content.text as string}
           <div style={{ marginTop: 8 }}>
             <CopyBtn text={content.text as string} />
           </div>
         </div>
-        {content.instruction && <p style={{ fontSize: 12, color: "#6b7280", marginTop: 8, lineHeight: 1.5 }}>{content.instruction as string}</p>}
-        {content.categories && <p style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>Categories to select: <strong>{content.categories as string}</strong></p>}
+        {!!content.instruction && <p style={{ fontSize: 12, color: "#6b7280", marginTop: 8, lineHeight: 1.5 }}>{content.instruction as string}</p>}
+        {!!content.categories && <p style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>Categories to select: <strong>{content.categories as string}</strong></p>}
       </div>
     );
   }
@@ -156,7 +156,7 @@ function TaskContentBlock({ content, brandName }: { content: TaskContent; brandN
     return (
       <div style={{ marginTop: 10 }}>
         <BeforeAfterBlock current={content.current as string} suggested={content.suggested as string} />
-        {content.instruction && <p style={{ fontSize: 12, color: "#6b7280", marginTop: 8 }}>{content.instruction as string}</p>}
+        {!!content.instruction && <p style={{ fontSize: 12, color: "#6b7280", marginTop: 8 }}>{content.instruction as string}</p>}
       </div>
     );
   }
@@ -193,7 +193,7 @@ function TaskContentBlock({ content, brandName }: { content: TaskContent; brandN
     const items = (content.items ?? []) as Array<{ label: string; url: string }>;
     return (
       <div style={{ marginTop: 10 }}>
-        {content.intro && <p style={{ fontSize: 13, color: "#374151", marginBottom: 10, lineHeight: 1.5 }}>{content.intro as string}</p>}
+        {!!content.intro && <p style={{ fontSize: 13, color: "#374151", marginBottom: 10, lineHeight: 1.5 }}>{content.intro as string}</p>}
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {items.map((item) => (
             <div key={item.url} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "8px 12px" }}>
@@ -456,7 +456,7 @@ export default function Roadmap() {
 
   useEffect(() => {
     if (!auditId) { setError("No audit ID provided"); setLoading(false); return; }
-    const token = getAuthToken();
+    const token = getToken();
     if (!token) { setError("Sign in to view your roadmap"); setLoading(false); return; }
 
     fetch(`/api/roadmap/${auditId}`, {
@@ -480,7 +480,7 @@ export default function Roadmap() {
   async function toggleTask(taskId: string) {
     if (!auditId || toggling) return;
     setToggling(taskId);
-    const token = getAuthToken();
+    const token = getToken();
     try {
       const r = await fetch(`/api/roadmap/${auditId}/tasks/${taskId}/complete`, {
         method: "POST",

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db, auditsTable, roadmapTasksTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
-import { requireAuth } from "../lib/auth";
+import { requireAuth, type AuthRequest } from "../lib/auth";
 import {
   generateRoadmapAiContent,
   buildRoadmapWeeks,
@@ -12,7 +12,7 @@ import {
 const router = Router();
 
 router.get("/roadmap/:auditId", requireAuth, async (req, res) => {
-  const user = req.user!;
+  const user = (req as AuthRequest).user;
   if (user.plan === "free") {
     res.status(403).json({ error: "Upgrade to Starter or Agency to access the execution roadmap" });
     return;
@@ -72,13 +72,14 @@ router.get("/roadmap/:auditId", requireAuth, async (req, res) => {
 });
 
 router.post("/roadmap/:auditId/tasks/:taskId/complete", requireAuth, async (req, res) => {
-  const user = req.user!;
+  const user = (req as AuthRequest).user;
   if (user.plan === "free") {
     res.status(403).json({ error: "Upgrade required" });
     return;
   }
 
-  const { auditId, taskId } = req.params;
+  const auditId = req.params.auditId as string;
+  const taskId = req.params.taskId as string;
 
   const existing = await db
     .select()
@@ -106,8 +107,8 @@ router.post("/roadmap/:auditId/tasks/:taskId/complete", requireAuth, async (req,
   } else {
     await db.insert(roadmapTasksTable).values({
       userId: user.id,
-      auditId,
-      taskId,
+      auditId: auditId,
+      taskId: taskId,
     });
     res.json({ taskId, completed: true });
   }
