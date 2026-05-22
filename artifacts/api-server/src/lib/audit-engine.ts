@@ -8,6 +8,12 @@ const openaiClient = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? process.env.OPENAI_BASE_URL,
 });
 
+// --- xAI client (real Grok) ---
+const XAI_API_KEY = process.env.XAI_API_KEY ?? "";
+const xaiClient = XAI_API_KEY
+  ? new OpenAI({ apiKey: XAI_API_KEY, baseURL: "https://api.x.ai/v1" })
+  : null;
+
 // --- Perplexity via RapidAPI ---
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY ?? "";
 
@@ -488,8 +494,12 @@ async function queryPerplexity(prompt: string): Promise<{ text: string; simulate
 
       if (res.ok) {
         const data = await res.json() as Record<string, unknown>;
-        // RapidAPI Perplexity returns text in various shapes — try common fields
+        // RapidAPI perplexity2 returns: choices.content.parts[0].text
+        const choices = data.choices as Record<string, unknown> | undefined;
+        const parts = (choices?.content as Record<string, unknown>)?.parts as Array<Record<string, unknown>> | undefined;
+        const partsText = typeof parts?.[0]?.text === "string" ? parts[0].text : null;
         const text =
+          partsText ??
           (typeof data.answer === "string" ? data.answer : null) ??
           (typeof data.response === "string" ? data.response : null) ??
           (typeof data.text === "string" ? data.text : null) ??
@@ -551,7 +561,24 @@ async function queryClaude(prompt: string): Promise<{ text: string; simulated: b
 }
 
 async function queryGrok(prompt: string): Promise<{ text: string; simulated: boolean }> {
-  // Simulate Grok via OpenAI. Set XAI_API_KEY for real Grok responses.
+  if (xaiClient) {
+    try {
+      const response = await xaiClient.chat.completions.create({
+        model: "grok-3-fast-beta",
+        messages: [
+          { role: "system", content: "You are Grok, an AI assistant made by xAI. Answer questions about products, tools, and services with direct, honest information. Name specific products and services where you know them." },
+          { role: "user", content: prompt },
+        ],
+        max_tokens: 500,
+        temperature: 0.35,
+      });
+      return { text: response.choices[0]?.message?.content ?? "", simulated: false };
+    } catch {
+      // fall through to simulated
+    }
+  }
+
+  // Fallback: OpenAI simulating Grok
   try {
     const response = await openaiClient.chat.completions.create({
       model: "gpt-4o-mini",
