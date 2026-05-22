@@ -2,11 +2,11 @@ import { Router, type IRouter } from "express";
 import { db, monitoredBrandsTable, dailyScoresTable, auditsTable, keywordCacheTable } from "@workspace/db";
 import { eq, desc, and, count } from "drizzle-orm";
 import { AddMonitoredBrandBody, RemoveMonitoredBrandParams } from "@workspace/api-zod";
-import { requireAuth, type AuthRequest } from "../lib/auth";
+import { requirePaidAuth, type AuthRequest } from "../lib/auth";
 
 const router: IRouter = Router();
 
-router.get("/dashboard/brands", requireAuth, async (req, res): Promise<void> => {
+router.get("/dashboard/brands", requirePaidAuth, async (req, res): Promise<void> => {
   const user = (req as AuthRequest).user;
 
   const brands = await db.select().from(monitoredBrandsTable)
@@ -39,7 +39,7 @@ router.get("/dashboard/brands", requireAuth, async (req, res): Promise<void> => 
   res.json(brandsWithScores);
 });
 
-router.post("/dashboard/brands", requireAuth, async (req, res): Promise<void> => {
+router.post("/dashboard/brands", requirePaidAuth, async (req, res): Promise<void> => {
   const user = (req as AuthRequest).user;
   const parsed = AddMonitoredBrandBody.safeParse(req.body);
   if (!parsed.success) {
@@ -76,7 +76,7 @@ router.post("/dashboard/brands", requireAuth, async (req, res): Promise<void> =>
   });
 });
 
-router.delete("/dashboard/brands/:id", requireAuth, async (req, res): Promise<void> => {
+router.delete("/dashboard/brands/:id", requirePaidAuth, async (req, res): Promise<void> => {
   const user = (req as AuthRequest).user;
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = RemoveMonitoredBrandParams.safeParse({ id: rawId });
@@ -98,7 +98,7 @@ router.delete("/dashboard/brands/:id", requireAuth, async (req, res): Promise<vo
   res.sendStatus(204);
 });
 
-router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> => {
+router.get("/dashboard/summary", requirePaidAuth, async (req, res): Promise<void> => {
   const user = (req as AuthRequest).user;
 
   const brands = await db.select().from(monitoredBrandsTable)
@@ -108,14 +108,7 @@ router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> =>
   const totalAuditsRun = auditCountResult?.count ?? 0;
 
   if (brands.length === 0) {
-    res.json({
-      totalBrands: 0,
-      avgScore: 0,
-      brandsWithImprovement: 0,
-      totalAuditsRun: Number(totalAuditsRun),
-      topBrand: null,
-      topBrandScore: null,
-    });
+    res.json({ totalBrands: 0, avgScore: 0, brandsWithImprovement: 0, totalAuditsRun: Number(totalAuditsRun), topBrand: null, topBrandScore: null });
     return;
   }
 
@@ -154,7 +147,7 @@ router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> =>
   });
 });
 
-router.get("/dashboard/brands/:id/keywords", requireAuth, async (req, res): Promise<void> => {
+router.get("/dashboard/brands/:id/keywords", requirePaidAuth, async (req, res): Promise<void> => {
   const user = (req as AuthRequest).user;
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
@@ -169,10 +162,7 @@ router.get("/dashboard/brands/:id/keywords", requireAuth, async (req, res): Prom
     return;
   }
 
-  // Get latest score for visibility data
-  const [latestScore] = await db
-    .select()
-    .from(dailyScoresTable)
+  const [latestScore] = await db.select().from(dailyScoresTable)
     .where(eq(dailyScoresTable.brandId, brand.id))
     .orderBy(desc(dailyScoresTable.date))
     .limit(1);
@@ -181,28 +171,21 @@ router.get("/dashboard/brands/:id/keywords", requireAuth, async (req, res): Prom
   const geminiVisible = (latestScore?.scoreGemini ?? 0) > 0;
   const perplexityVisible = (latestScore?.scorePerplexity ?? 0) > 0;
 
-  // Look up keyword cache by domain
-  const [cache] = await db
-    .select()
-    .from(keywordCacheTable)
-    .where(eq(keywordCacheTable.domain, brand.domain))
-    .limit(1);
+  const [cache] = await db.select().from(keywordCacheTable).where(eq(keywordCacheTable.domain, brand.domain)).limit(1);
 
   if (!cache || cache.keywords.length === 0) {
     res.json([]);
     return;
   }
 
-  const result = cache.keywords.map((kw) => ({
+  res.json(cache.keywords.map((kw) => ({
     keyword: kw.keyword,
     volume: kw.volume,
     competition: kw.competition,
     chatgptVisible,
     geminiVisible,
     perplexityVisible,
-  }));
-
-  res.json(result);
+  })));
 });
 
 export default router;

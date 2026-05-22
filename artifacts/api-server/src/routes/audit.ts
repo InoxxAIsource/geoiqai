@@ -1,18 +1,18 @@
 import { Router, type IRouter } from "express";
-import { db, auditsTable, usersTable } from "@workspace/db";
+import { db, auditsTable, rateLimitsTable, emailSubscribersTable, usersTable } from "@workspace/db";
 import { eq, desc, and, gt, sql } from "drizzle-orm";
 import {
   RunAuditBody,
   GetAuditParams,
 } from "@workspace/api-zod";
 import { runAuditEngine, generateRecommendations, extractDomain, type TechnicalAuditResult } from "../lib/audit-engine";
-import { requireAuth, type AuthRequest } from "../lib/auth";
+import { verifyToken } from "../lib/auth";
 
-const FREE_AUDIT_LIMIT = 5;
+const FREE_IP_AUDITS_PER_DAY = 2;
+const FREE_EMAIL_AUDITS_PER_MONTH = 5;
 
 const router: IRouter = Router();
 
-/** Serialize an audit row to the API response shape. */
 function serializeAudit(
   audit: typeof auditsTable.$inferSelect,
   extra?: { fromCache: boolean; cachedHoursAgo?: number },
@@ -62,19 +62,20 @@ function serializeAudit(
   };
 }
 
-router.post("/audit", requireAuth, async (req, res): Promise<void> => {
+router.post("/audit", async (req, res): Promise<void> => {
   const parsed = RunAuditBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
 
-  const user = (req as AuthRequest).user;
   const { url, brandName: brandNameOverride, category: categoryOverride, market: marketOverride } = parsed.data;
   const domain = extractDomain(url);
+  const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ?? req.ip ?? "unknown";
+  const subscriberEmail = (req.headers["x-subscriber-email"] as string)?.trim() ?? "";
 
   try {
-    // --- Cache check: return existing audit if within 24 hours (does not count against limit) ---
+    // Layer 0: Cache check - 24h, never counts against rate limit
     const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const [cachedAudit] = await db
       .select()
@@ -85,24 +86,70 @@ router.post("/audit", requireAuth, async (req, res): Promise<void> => {
 
     if (cachedAudit) {
       const hoursAgo = Math.floor((Date.now() - cachedAudit.createdAt.getTime()) / (60 * 60 * 1000));
-      req.log.info(
-        { domain, cachedAuditId: cachedAudit.id, hoursAgo },
-        `${domain} — returning cached audit (${hoursAgo}h ago)`,
-      );
+      req.log.info({ domain, hoursAgo }, `${domain} - returning cached audit`);
       res.json(serializeAudit(cachedAudit, { fromCache: true, cachedHoursAgo: hoursAgo }));
       return;
     }
 
-    // --- Per-account free limit check (free plan only) ---
-    if (user.plan === "free" && user.auditCount >= FREE_AUDIT_LIMIT) {
-      res.status(429).json({
-        error: `You have used all ${FREE_AUDIT_LIMIT} free audits. Upgrade to Starter to keep running checks.`,
-        upgradeRequired: true,
-      });
-      return;
+    // Layer 1: Check for paid user via optional bearer token - skip all limits
+    let isPaidUser = false;
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith("Bearer ")) {
+      const userId = verifyToken(authHeader.substring(7));
+      if (userId) {
+        const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+        if (user && user.plan !== "free") {
+          isPaidUser = true;
+        }
+      }
     }
 
-    // --- Fresh audit ---
+    if (!isPaidUser) {
+      // Layer 2: IP rate limit (2 fresh audits per IP per day)
+      const today = new Date().toISOString().slice(0, 10);
+      const [rateRow] = await db
+        .select()
+        .from(rateLimitsTable)
+        .where(and(eq(rateLimitsTable.ipAddress, ip), eq(rateLimitsTable.date, today)))
+        .limit(1);
+
+      const ipCount = rateRow?.auditCount ?? 0;
+
+      if (ipCount >= FREE_IP_AUDITS_PER_DAY) {
+        if (!subscriberEmail) {
+          // No email - prompt for email capture
+          res.status(429).json({
+            error: `You have used your ${FREE_IP_AUDITS_PER_DAY} free audits today. Enter your email for ${FREE_EMAIL_AUDITS_PER_MONTH} audits per month free.`,
+            rateLimitType: "ip",
+            emailRequired: true,
+          });
+          return;
+        }
+
+        // Layer 3: Email subscriber monthly limit (5/month)
+        const [subscriber] = await db
+          .select()
+          .from(emailSubscribersTable)
+          .where(eq(emailSubscribersTable.email, subscriberEmail))
+          .limit(1);
+
+        if (subscriber) {
+          const nowDate = new Date().toISOString().slice(0, 10);
+          if (subscriber.auditCountMonth >= FREE_EMAIL_AUDITS_PER_MONTH && subscriber.monthResetDate > nowDate) {
+            const resetFormatted = new Date(subscriber.monthResetDate).toLocaleDateString("en-IN", { day: "numeric", month: "long" });
+            res.status(429).json({
+              error: `You have used all ${FREE_EMAIL_AUDITS_PER_MONTH} free audits this month. Resets on ${resetFormatted}. Upgrade for unlimited.`,
+              rateLimitType: "email",
+              upgradeRequired: true,
+              resetsAt: subscriber.monthResetDate,
+            });
+            return;
+          }
+        }
+      }
+    }
+
+    // Run fresh audit
     const engineResult = await runAuditEngine(
       url,
       brandNameOverride ?? null,
@@ -110,22 +157,10 @@ router.post("/audit", requireAuth, async (req, res): Promise<void> => {
       marketOverride ?? null,
     );
     const {
-      brandName,
-      category,
-      market,
-      chatgpt,
-      gemini,
-      perplexity,
-      claude,
-      grok,
-      keywordsUsed,
-      keywordsFromDataforseo,
-      keywordsFilteredOut,
-      rawChatgptResponse,
-      rawGeminiResponse,
-      rawPerplexityResponse,
-      rawClaudeResponse,
-      rawGrokResponse,
+      brandName, category, market,
+      chatgpt, gemini, perplexity, claude, grok,
+      keywordsUsed, keywordsFromDataforseo, keywordsFilteredOut,
+      rawChatgptResponse, rawGeminiResponse, rawPerplexityResponse, rawClaudeResponse, rawGrokResponse,
       technicalAudit,
     } = engineResult;
 
@@ -135,72 +170,58 @@ router.post("/audit", requireAuth, async (req, res): Promise<void> => {
     const scoreTotal = Math.round(aiVisibilityScore * 0.6 + scoreTechnical * 0.4);
     const allCompetitors = [...new Set([...chatgpt.competitors, ...gemini.competitors, ...perplexity.competitors, ...claude.competitors, ...grok.competitors])];
 
-    const recommendations = await generateRecommendations(
-      brandName,
-      domain,
-      category,
-      market,
-      chatgpt,
-      gemini,
-      perplexity,
-    );
+    const recommendations = await generateRecommendations(brandName, domain, category, market, chatgpt, gemini, perplexity);
 
     const [audit] = await db.insert(auditsTable).values({
-      url,
-      domain,
-      brandName,
-      category,
-      market,
-      scoreTotal,
-      scoreChatgpt: chatgpt.score,
-      scoreGemini: gemini.score,
-      scorePerplexity: perplexity.score,
-      chatgptFound: chatgpt.found,
-      geminiFound: gemini.found,
-      perplexityFound: perplexity.found,
-      chatgptDetail: chatgpt.detail,
-      geminiDetail: gemini.detail,
-      perplexityDetail: perplexity.detail,
-      competitorsFound: allCompetitors,
-      keywordsUsed,
+      url, domain, brandName, category, market, scoreTotal,
+      scoreChatgpt: chatgpt.score, scoreGemini: gemini.score, scorePerplexity: perplexity.score,
+      chatgptFound: chatgpt.found, geminiFound: gemini.found, perplexityFound: perplexity.found,
+      chatgptDetail: chatgpt.detail, geminiDetail: gemini.detail, perplexityDetail: perplexity.detail,
+      competitorsFound: allCompetitors, keywordsUsed,
       rawResults: {
-        keywordsFromDataforseo,
-        keywordsFilteredOut,
+        keywordsFromDataforseo, keywordsFilteredOut,
         keywordsReason: keywordsFilteredOut > 0 ? "branded/informational/navigational" : "none filtered",
-        scoreAiVisibility: aiVisibilityScore,
-        scoreTechnical,
-        scoreClaude: claude.score,
-        scoreGrok: grok.score,
-        claudeFound: claude.found,
-        grokFound: grok.found,
-        claudeDetail: claude.detail,
-        grokDetail: grok.detail,
-        chatgptRawResponse: rawChatgptResponse,
-        geminiRawResponse: rawGeminiResponse,
-        perplexityRawResponse: rawPerplexityResponse,
-        claudeRawResponse: rawClaudeResponse,
-        grokRawResponse: rawGrokResponse,
-        technicalAudit,
+        scoreAiVisibility: aiVisibilityScore, scoreTechnical,
+        scoreClaude: claude.score, scoreGrok: grok.score,
+        claudeFound: claude.found, grokFound: grok.found,
+        claudeDetail: claude.detail, grokDetail: grok.detail,
+        chatgptRawResponse: rawChatgptResponse, geminiRawResponse: rawGeminiResponse,
+        perplexityRawResponse: rawPerplexityResponse, claudeRawResponse: rawClaudeResponse,
+        grokRawResponse: rawGrokResponse, technicalAudit,
       },
       recommendations: recommendations as unknown as Record<string, unknown>[],
-      ipAddress: req.headers["x-forwarded-for"]
-        ? (req.headers["x-forwarded-for"] as string).split(",")[0]
-        : (req.ip ?? "unknown"),
+      ipAddress: ip,
     }).returning();
 
-    // Increment user's audit count
-    await db
-      .update(usersTable)
-      .set({ auditCount: sql`${usersTable.auditCount} + 1` })
-      .where(eq(usersTable.id, user.id));
+    // Increment rate counters (only for non-paid users)
+    if (!isPaidUser) {
+      const today = new Date().toISOString().slice(0, 10);
+      const [rateRow] = await db
+        .select()
+        .from(rateLimitsTable)
+        .where(and(eq(rateLimitsTable.ipAddress, ip), eq(rateLimitsTable.date, today)))
+        .limit(1);
+      const ipCount = rateRow?.auditCount ?? 0;
 
-    res.json({
-      ...serializeAudit(audit!),
-      keywordsFromDataforseo,
-      keywordsFilteredOut,
-      recommendations,
-      fromCache: false,
-    });
+      if (ipCount >= FREE_IP_AUDITS_PER_DAY && subscriberEmail) {
+        // Consumed from email allowance
+        await db
+          .update(emailSubscribersTable)
+          .set({ auditCountMonth: sql`${emailSubscribersTable.auditCountMonth} + 1`, auditId: audit!.id })
+          .where(eq(emailSubscribersTable.email, subscriberEmail));
+      } else {
+        // Consumed from IP allowance
+        await db
+          .insert(rateLimitsTable)
+          .values({ ipAddress: ip, auditCount: 1, date: today })
+          .onConflictDoUpdate({
+            target: [rateLimitsTable.ipAddress, rateLimitsTable.date],
+            set: { auditCount: sql`${rateLimitsTable.auditCount} + 1` },
+          });
+      }
+    }
+
+    res.json({ ...serializeAudit(audit!), recommendations, fromCache: false });
   } catch (err) {
     req.log.error({ err }, "Audit failed");
     res.status(500).json({ error: "Audit failed" });
@@ -210,21 +231,12 @@ router.post("/audit", requireAuth, async (req, res): Promise<void> => {
 router.get("/audit/recent", async (req, res): Promise<void> => {
   try {
     const audits = await db.select({
-      id: auditsTable.id,
-      domain: auditsTable.domain,
-      brandName: auditsTable.brandName,
-      scoreTotal: auditsTable.scoreTotal,
-      scoreChatgpt: auditsTable.scoreChatgpt,
-      scoreGemini: auditsTable.scoreGemini,
-      scorePerplexity: auditsTable.scorePerplexity,
-      chatgptFound: auditsTable.chatgptFound,
-      geminiFound: auditsTable.geminiFound,
-      perplexityFound: auditsTable.perplexityFound,
-      createdAt: auditsTable.createdAt,
-    }).from(auditsTable)
-      .orderBy(desc(auditsTable.createdAt))
-      .limit(10);
-
+      id: auditsTable.id, domain: auditsTable.domain, brandName: auditsTable.brandName,
+      scoreTotal: auditsTable.scoreTotal, scoreChatgpt: auditsTable.scoreChatgpt,
+      scoreGemini: auditsTable.scoreGemini, scorePerplexity: auditsTable.scorePerplexity,
+      chatgptFound: auditsTable.chatgptFound, geminiFound: auditsTable.geminiFound,
+      perplexityFound: auditsTable.perplexityFound, createdAt: auditsTable.createdAt,
+    }).from(auditsTable).orderBy(desc(auditsTable.createdAt)).limit(10);
     res.json(audits.map(a => ({ ...a, createdAt: a.createdAt.toISOString() })));
   } catch (err) {
     req.log.error({ err }, "Failed to fetch recent audits");
@@ -239,13 +251,11 @@ router.get("/audit/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Invalid audit ID" });
     return;
   }
-
   const [audit] = await db.select().from(auditsTable).where(eq(auditsTable.id, params.data.id)).limit(1);
   if (!audit) {
     res.status(404).json({ error: "Audit not found" });
     return;
   }
-
   res.json(serializeAudit(audit));
 });
 

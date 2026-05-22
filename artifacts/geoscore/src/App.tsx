@@ -12,6 +12,7 @@ import Roadmap from "@/pages/Roadmap";
 import Pricing from "@/pages/Pricing";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
+import MagicAuth from "@/pages/MagicAuth";
 import WhatIsGeo from "@/pages/WhatIsGeo";
 import HowToRankInChatGPT from "@/pages/HowToRankInChatGPT";
 import GeoTools from "@/pages/GeoTools";
@@ -49,6 +50,7 @@ function Router() {
         <Route path="/pricing" component={Pricing} />
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
+        <Route path="/auth/magic" component={MagicAuth} />
         <Route path="/what-is-geo" component={WhatIsGeo} />
         <Route path="/how-to-rank-in-chatgpt" component={HowToRankInChatGPT} />
         <Route path="/geo-tools" component={GeoTools} />

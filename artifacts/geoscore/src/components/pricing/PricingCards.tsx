@@ -1,6 +1,4 @@
 import { Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { useLocation } from "wouter";
 
 interface PricingPlan {
@@ -10,103 +8,172 @@ interface PricingPlan {
   period: string;
   description: string;
   features: string[];
+  cta: string;
+  ctaHref?: string;
   isPopular?: boolean;
+  isOutline?: boolean;
 }
 
 const plans: PricingPlan[] = [
   {
     id: "free",
-    name: "Free",
-    price: "₹0",
-    period: "/forever",
-    description: "Perfect for a quick health check.",
+    name: "Free Audit",
+    price: "Rs 0",
+    period: "",
+    description: "Check any brand right now, no card needed.",
+    isOutline: true,
     features: [
-      "1 AI Search Audit per month",
-      "Overall GEO IQ score",
-      "Basic recommendations",
-      "No historical tracking"
-    ]
+      "GEO IQ score (0-100)",
+      "AI engine breakdown (5 engines)",
+      "Technical GEO audit",
+      "Download llms.txt + Schema files",
+      "2 audits per day",
+      "5 audits/month with email",
+    ],
+    cta: "Check my GEO IQ",
   },
   {
     id: "starter",
     name: "Starter",
-    price: "₹3,999",
-    period: "/mo",
-    description: "For founders obsessed with AI visibility.",
+    price: "Rs 3,999",
+    period: "/month",
+    description: "For founders who want to stay ahead of AI search.",
     isPopular: true,
     features: [
-      "Track up to 3 brands",
-      "Daily automated audits",
-      "Historical trend charts",
-      "Competitor AI tracking",
-      "Detailed keyword analysis",
-      "Priority recommendations"
-    ]
+      "Everything in Free",
+      "Daily automated monitoring",
+      "4-week fix roadmap with tasks",
+      "Full recommendations with instructions",
+      "Generated content (articles, pitches)",
+      "Weekly digest email",
+      "3 competitors tracked",
+      "90 days of score history",
+      "Unlimited audits",
+    ],
+    cta: "Start monitoring",
   },
   {
     id: "agency",
     name: "Agency",
-    price: "₹11,999",
-    period: "/mo",
-    description: "For agencies and large portfolios.",
+    price: "Rs 9,999",
+    period: "/month",
+    description: "For agencies managing multiple brands.",
+    isOutline: true,
     features: [
-      "Track up to 15 brands",
       "Everything in Starter",
-      "Export PDF reports",
+      "10 brands monitored",
+      "White label PDF reports",
+      "10 competitors tracked",
+      "Team seats (3 users)",
+      "Priority support",
       "API access",
-      "Custom tracking keywords",
-      "Dedicated account manager"
-    ]
-  }
+    ],
+    cta: "Contact us",
+    ctaHref: "mailto:hello@geoiqai.com",
+  },
 ];
 
 export function PricingCards({ onSelectPlan }: { onSelectPlan?: (planId: string) => void }) {
   const [, setLocation] = useLocation();
 
+  const handleClick = (plan: PricingPlan) => {
+    if (onSelectPlan) {
+      onSelectPlan(plan.id);
+      return;
+    }
+    if (plan.id === "free") {
+      const input = document.getElementById("hero-input") as HTMLInputElement | null;
+      if (input) {
+        input.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => input.focus(), 500);
+      } else {
+        setLocation("/");
+      }
+    } else if (plan.ctaHref) {
+      window.location.href = plan.ctaHref;
+    } else {
+      setLocation(`/pricing?plan=${plan.id}`);
+    }
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24, maxWidth: 1000, margin: "0 auto" }}>
       {plans.map((plan) => (
-        <Card 
-          key={plan.id} 
-          className={`p-6 flex flex-col relative ${plan.isPopular ? 'border-primary shadow-md' : 'border-border shadow-sm'}`}
+        <div
+          key={plan.id}
+          style={{
+            position: "relative",
+            background: "white",
+            border: plan.isPopular ? "2px solid #4F46E5" : "1px solid #e5e7eb",
+            borderRadius: 12,
+            padding: "28px 24px",
+            display: "flex",
+            flexDirection: "column",
+            boxShadow: plan.isPopular ? "0 4px 24px rgba(79,70,229,0.12)" : "0 1px 4px rgba(0,0,0,0.06)",
+          }}
         >
           {plan.isPopular && (
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-white text-xs font-medium px-3 py-1 rounded-full">
-              Most Popular
+            <div style={{
+              position: "absolute",
+              top: -14,
+              left: "50%",
+              transform: "translateX(-50%)",
+              background: "#4F46E5",
+              color: "white",
+              fontSize: 11,
+              fontWeight: 700,
+              padding: "4px 14px",
+              borderRadius: 9999,
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+              whiteSpace: "nowrap",
+            }}>
+              Most popular
             </div>
           )}
-          
-          <div className="mb-6">
-            <h3 className="text-lg font-medium text-text-primary mb-2">{plan.name}</h3>
-            <p className="text-sm text-text-secondary h-10">{plan.description}</p>
-          </div>
-          
-          <div className="mb-6">
-            <span className="text-3xl font-semibold text-text-primary">{plan.price}</span>
-            <span className="text-text-secondary ml-1">{plan.period}</span>
+
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#6b7280", marginBottom: 6 }}>{plan.name}</div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 8 }}>
+              <span style={{ fontSize: 30, fontWeight: 800, color: "#111827", letterSpacing: "-0.03em" }}>{plan.price}</span>
+              {plan.period && <span style={{ fontSize: 14, color: "#9ca3af" }}>{plan.period}</span>}
+            </div>
+            <p style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.5, margin: 0 }}>{plan.description}</p>
           </div>
 
-          <ul className="flex-1 space-y-3 mb-8">
+          <ul style={{ flex: 1, listStyle: "none", margin: "0 0 24px", padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
             {plan.features.map((feature, i) => (
-              <li key={i} className="flex items-start gap-3">
-                <Check className="w-5 h-5 text-primary shrink-0" />
-                <span className="text-sm text-text-primary">{feature}</span>
+              <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, color: "#374151" }}>
+                <Check style={{ width: 15, height: 15, color: "#4F46E5", flexShrink: 0, marginTop: 1 }} />
+                {feature}
               </li>
             ))}
           </ul>
 
-          <Button 
-            variant={plan.isPopular ? "default" : "outline"} 
-            className={`w-full ${plan.isPopular ? '' : 'border-primary text-primary hover:bg-primary-light'}`}
-            onClick={() => {
-              if (onSelectPlan) onSelectPlan(plan.id);
-              else setLocation(plan.id === 'free' ? '/register' : `/pricing?plan=${plan.id}`);
+          <button
+            onClick={() => handleClick(plan)}
+            style={{
+              width: "100%",
+              padding: "11px 16px",
+              borderRadius: 8,
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: "pointer",
+              border: plan.isPopular ? "none" : "1.5px solid #4F46E5",
+              background: plan.isPopular ? "#4F46E5" : "transparent",
+              color: plan.isPopular ? "white" : "#4F46E5",
+              transition: "opacity 150ms",
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
           >
-            {plan.id === 'free' ? 'Get Started' : 'Upgrade'}
-          </Button>
-        </Card>
+            {plan.cta}
+          </button>
+        </div>
       ))}
+      <p style={{ gridColumn: "1 / -1", textAlign: "center", fontSize: 13, color: "#9ca3af", margin: "8px 0 0" }}>
+        All plans include the free audit. No card for the free tier. Cancel anytime on paid plans.
+      </p>
     </div>
   );
 }

@@ -1,48 +1,38 @@
-import { Link, useLocation, useSearch } from "wouter";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useLogin } from "@workspace/api-client-react";
-import { setToken } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { useState } from "react";
+import { Link, useSearch } from "wouter";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 
-const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters")
-});
-
 export default function Login() {
-  const [, setLocation] = useLocation();
   const search = useSearch();
   const { toast } = useToast();
-  const loginMutation = useLogin();
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
 
-  const redirectTo = new URLSearchParams(search).get("redirect") ?? "/dashboard";
-
-  const form = useForm<z.infer<typeof loginSchema>>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: ""
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !email.includes("@")) {
+      toast({ title: "Enter a valid email", variant: "destructive" });
+      return;
     }
-  });
-
-  const onSubmit = (values: z.infer<typeof loginSchema>) => {
-    loginMutation.mutate({ data: values }, {
-      onSuccess: (res) => {
-        setToken(res.token);
-        toast({ title: "Welcome back", description: "Successfully logged in." });
-        setLocation(redirectTo);
-      },
-      onError: () => {
-        toast({ title: "Error", description: "Invalid credentials. Please try again.", variant: "destructive" });
-      }
-    });
+    setLoading(true);
+    try {
+      await fetch("/api/auth/magic-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
+      // Always show success to avoid leaking whether email exists
+      setSent(true);
+    } catch {
+      toast({ title: "Something went wrong", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -50,54 +40,55 @@ export default function Login() {
       <Navbar />
       <main className="flex-1 flex items-center justify-center bg-bg-secondary p-4">
         <div className="w-full max-w-md bg-card p-8 rounded-xl border border-border shadow-sm">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-semibold text-text-primary">Sign in to GeoIQ</h1>
-            <p className="text-text-secondary text-sm mt-2">Welcome back to your command center</p>
-          </div>
+          {sent ? (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ width: 56, height: 56, background: "#ecfdf5", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <h1 className="text-xl font-semibold text-text-primary mb-3">Check your email</h1>
+              <p className="text-text-secondary text-sm mb-6" style={{ lineHeight: 1.6 }}>
+                If a paid account exists for <strong>{email}</strong>, we sent you a login link. It expires in 15 minutes.
+              </p>
+              <p className="text-text-secondary text-sm">
+                No account yet?{" "}
+                <Link href="/pricing" className="text-primary hover:underline font-medium">
+                  See pricing
+                </Link>
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="text-center mb-8">
+                <h1 className="text-2xl font-semibold text-text-primary">Sign in to GeoIQ</h1>
+                <p className="text-text-secondary text-sm mt-2">For paid subscribers - we will send you a login link</p>
+              </div>
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="founder@startup.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
-                {loginMutation.isPending ? "Signing in..." : "Sign in"}
-              </Button>
-            </form>
-          </Form>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1.5">Email</label>
+                  <Input
+                    type="email"
+                    placeholder="founder@startup.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Sending link..." : "Send login link"}
+                </Button>
+              </form>
 
-          <div className="mt-6 text-center text-sm text-text-secondary">
-            Don&apos;t have an account?{" "}
-            <Link
-              href={`/register${search ? `?${search}` : ""}`}
-              className="text-primary hover:underline font-medium"
-            >
-              Create one free
-            </Link>
-          </div>
+              <div className="mt-6 text-center text-sm text-text-secondary">
+                No paid account?{" "}
+                <Link href="/pricing" className="text-primary hover:underline font-medium">
+                  Start for Rs 3,999/month
+                </Link>
+              </div>
+            </>
+          )}
         </div>
       </main>
       <Footer />

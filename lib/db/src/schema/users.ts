@@ -8,6 +8,7 @@ export const usersTable = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   plan: text("plan").notNull().default("free"),
   auditCount: integer("audit_count").notNull().default(0),
+  razorpaySubscriptionId: text("razorpay_subscription_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   lastLogin: timestamp("last_login", { withTimezone: true }),
 });

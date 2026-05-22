@@ -1,0 +1,638 @@
+CRITICAL FIXES REQUIRED.
+Read every word carefully.
+Fix everything in this single prompt.
+Do not skip anything.
+
+=== THE FUNDAMENTAL RULE ===
+
+There are exactly 3 user states.
+Build the ENTIRE app around these 3 states.
+Nothing else exists.
+
+STATE 1: ANONYMOUS
+- No email, no account, no login
+- Can run 2 free audits per IP per day
+- Sees full audit result page
+- Downloads GEO files free
+- Sees locked roadmap preview
+- CANNOT access dashboard EVER
+- CANNOT login EVER (no account exists)
+
+STATE 2: EMAIL SUBSCRIBER
+- Gave email on audit result page
+- Stored in email_subscribers table ONLY
+- NOT a user account
+- NO password, NO login, NO session
+- Can run 5 free audits per email per month
+- Receives weekly digest email
+- Sees one unlocked recommendation
+- CANNOT access dashboard EVER
+- If they visit /dashboard → 
+  redirect to /pricing
+  show message: "Dashboard is for 
+  paid subscribers only. 
+  Start for ₹3,999/month →"
+
+STATE 3: PAID USER
+- Completed Razorpay payment
+- Account created ONLY after payment
+- Has login credentials
+- Full dashboard access
+- Unlimited audits
+- All features unlocked
+
+=== FIX 1: REMOVE ALL FORCED LOGIN ===
+
+Delete or disable every single place 
+that forces login before audit.
+
+The /api/audit endpoint must work 
+with ZERO authentication.
+No session check.
+No token check.
+No redirect to login.
+
+Test: curl -X POST /api/audit 
+with no headers, no cookies, no token
+It must return audit results.
+If it returns 401 or redirects → BROKEN.
+
+Remove from codebase:
+- Any requireAuth middleware on /api/audit
+- Any session.user check before audit runs
+- Any redirect to /login from audit flow
+- The "Sign up free" button if it 
+  creates a free account
+- Any dashboard link shown to 
+  non-paying users
+
+=== FIX 2: EMAIL CAPTURE (not signup) ===
+
+The email box on audit result page 
+is NOT a signup form.
+It is a newsletter subscription form.
+It creates an email_subscribers row.
+It does NOT create a users row.
+It does NOT create a session.
+It does NOT log anyone in.
+It does NOT show a dashboard.
+
+email_subscribers table:
+CREATE TABLE IF NOT EXISTS 
+email_subscribers (
+  id UUID PRIMARY KEY 
+    DEFAULT gen_random_uuid(),
+  email TEXT NOT NULL,
+  domain TEXT,
+  audit_id UUID REFERENCES audits(id),
+  audit_count_month INTEGER DEFAULT 1,
+  month_reset_date DATE DEFAULT 
+    DATE_TRUNC('month', NOW()) + 
+    INTERVAL '1 month',
+  subscribed_at TIMESTAMPTZ 
+    DEFAULT NOW(),
+  unsubscribed_at TIMESTAMPTZ,
+  UNIQUE(email)
+);
+
+On email submit:
+1. Validate email format
+2. Check if email exists in 
+   email_subscribers table
+3. If exists → increment audit_count_month
+   If new → insert new row
+4. Link to current audit_id
+5. Send report email via Resend
+6. Show success: "Report sent to {email}"
+7. Unlock first recommendation preview
+8. DO NOT create session
+9. DO NOT log user in
+10. DO NOT redirect to dashboard
+
+=== FIX 3: RATE LIMITING ===
+
+Three-layer rate limiting:
+
+Layer 1 — IP limiting (anonymous):
+Table: rate_limits
+Fields: ip_address, count_today, date
+
+Check before audit:
+SELECT count_today FROM rate_limits
+WHERE ip_address = $1 
+AND date = CURRENT_DATE
+
+If count_today >= 2:
+  Check if they have email 
+  in email_subscribers
+  If no email:
+    Block audit
+    Show: "You have used your 
+    2 free audits today.
+    Enter your email for 
+    5 audits per month free →"
+    [Show email input inline]
+    [Or upgrade for unlimited →]
+  If has email:
+    Check email monthly limit (Layer 2)
+
+Layer 2 — Email limiting:
+Check email_subscribers:
+SELECT audit_count_month, 
+       month_reset_date
+FROM email_subscribers
+WHERE email = $1
+
+If audit_count_month >= 5 
+AND month_reset_date > NOW():
+  Block audit
+  Show: "You have used your 
+  5 free audits this month.
+  Resets on {month_reset_date}.
+  Upgrade for unlimited audits →"
+  [Upgrade button]
+Else:
+  Allow audit
+  Increment audit_count_month
+
+Layer 3 — Cache check (runs first):
+Before ANY rate limit check:
+Check if domain was audited 
+within last 24 hours
+SELECT * FROM audits
+WHERE domain = $1
+AND created_at > NOW() - 
+  INTERVAL '24 hours'
+ORDER BY created_at DESC
+LIMIT 1
+
+If found:
+  Return cached result immediately
+  Show: "Cached result from X hours ago"
+  DO NOT count against rate limit
+  DO NOT charge API costs
+
+Layer 4 — Paid users:
+If user has valid paid session:
+  Skip ALL rate limit checks
+  Run fresh audit always
+
+Rate limit check order:
+1. Cache check → return if found
+2. Paid user check → skip limits
+3. IP check → warn at 2
+4. Email check → warn at 5
+
+=== FIX 4: ROUTE PROTECTION ===
+
+These routes require paid account:
+/dashboard
+/dashboard/*
+/dashboard/overview
+/dashboard/chatgpt
+/dashboard/gemini
+/dashboard/perplexity
+/dashboard/keywords
+/dashboard/fix-actions
+/dashboard/competitors
+/dashboard/integrations
+/dashboard/settings
+
+Protection logic:
+function requirePaidAccount(req, res, next) {
+  // Check session
+  if (!req.session?.userId) {
+    return res.redirect('/pricing?
+      reason=login_required')
+  }
+  
+  // Check paid status in DB
+  const user = await getUser(
+    req.session.userId)
+  
+  if (!user || user.plan === 'free' 
+      || !user.razorpay_subscription_id) {
+    return res.redirect('/pricing?
+      reason=upgrade_required')
+  }
+  
+  next()
+}
+
+Apply to ALL /dashboard routes.
+
+When redirected to /pricing show banner:
+If reason=login_required:
+  "Sign in to access your dashboard →"
+If reason=upgrade_required:
+  "Dashboard requires a paid plan.
+  Start monitoring for ₹3,999/month →"
+
+=== FIX 5: ACCOUNT CREATION FLOW ===
+
+Accounts are created ONLY via 
+Razorpay webhook.
+
+NEVER create accounts via:
+- Sign up form
+- Email capture form
+- Any manual flow
+
+Razorpay webhook handler:
+async function handleWebhook(event) {
+  
+  if (event.type === 
+      'subscription.activated') {
+    
+    const email = event.payload
+      .subscription.entity
+      .notes.email
+    
+    const subscriptionId = 
+      event.payload.subscription
+      .entity.id
+    
+    const plan = getPlanFromAmount(
+      event.payload.subscription
+      .entity.plan_id
+    )
+    
+    // Create or update user
+    const user = await db.upsert('users', {
+      email: email,
+      razorpay_subscription_id: 
+        subscriptionId,
+      plan: plan,
+      created_at: new Date()
+    }, { onConflict: 'email' })
+    
+    // Generate login link
+    // (magic link — no password needed)
+    const loginToken = generateToken()
+    await saveLoginToken(
+      user.id, loginToken)
+    
+    // Send welcome email with login link
+    await sendWelcomeEmail(
+      email,
+      `https://geoiqai.com/auth/
+       magic?token=${loginToken}`
+    )
+    
+    // If email was in subscribers table
+    // link their audit history
+    await linkSubscriberHistory(email, 
+      user.id)
+  }
+  
+  if (event.type === 
+      'subscription.cancelled') {
+    await db.update('users',
+      { plan: 'free' },
+      { email: event.payload
+        .subscription.entity
+        .notes.email }
+    )
+  }
+}
+
+=== FIX 6: MAGIC LINK LOGIN ===
+
+No password system needed.
+Use magic links only.
+
+How it works:
+1. Paid user clicks "Sign in" in navbar
+2. They see: "Enter your email"
+   [email input] [Send login link →]
+3. We check: is this email in users 
+   table with paid plan?
+   If yes: send magic link email
+   If no: show "No paid account found.
+   Check your email or upgrade →"
+4. Email arrives with link:
+   "Click here to sign in →"
+   Link: /auth/magic?token=xxx
+5. Token validated → session created
+   → redirect to /dashboard
+
+Magic link tokens table:
+CREATE TABLE magic_tokens (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES users(id),
+  token TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  expires_at TIMESTAMPTZ DEFAULT 
+    NOW() + INTERVAL '15 minutes',
+  used_at TIMESTAMPTZ
+);
+
+Token expires in 15 minutes.
+Single use only.
+After use: set used_at = NOW()
+
+=== FIX 7: NAVBAR UPDATE ===
+
+Current wrong navbar:
+[Logo] [Links] [Sign up] [Sign in]
+
+Correct navbar:
+
+For anonymous/email users:
+[GeoIQ logo] 
+[How it works] [Pricing] 
+[Blog] [What is GEO]
+[Sign in] [Start free →]
+
+"Sign in" → goes to /auth/login
+(magic link login for paid users)
+
+"Start free →" → 
+scrolls to homepage URL input
+OR if on other page → 
+goes to homepage
+
+For paid users (logged in):
+[GeoIQ logo]
+[How it works] [Pricing]
+[Blog] [What is GEO]
+[Dashboard →] [avatar/email]
+
+Remove completely:
+- "Sign up free" button
+- Any button that creates 
+  free accounts
+- Any signup form
+
+=== FIX 8: PRICING PAGE UPDATE ===
+
+Update pricing page to reflect 
+3-tier model:
+
+TIER 1 — Free (no card):
+Title: "Free Audit"
+Price: ₹0
+Features:
+✓ GEO IQ score check
+✓ AI system breakdown
+✓ Technical GEO audit
+✓ Download llms.txt + Schema files
+✓ 2 audits per day
+✓ 5 audits/month with email
+CTA: "Check my GEO IQ →"
+(links to homepage, focuses input)
+
+TIER 2 — Starter (most popular):
+Title: "Starter"
+Price: ₹3,999/month
+Badge: "Most popular"
+Features:
+✓ Everything in Free
+✓ Daily monitoring
+✓ 4-week fix roadmap
+✓ Full recommendations with instructions
+✓ Generated content 
+  (articles, pitches, listings)
+✓ Weekly digest email
+✓ 3 competitors tracked
+✓ Score history — 90 days
+✓ Unlimited audits
+CTA: "Start monitoring →"
+(links to Razorpay checkout)
+
+TIER 3 — Agency:
+Title: "Agency"
+Price: ₹9,999/month
+Features:
+✓ Everything in Starter
+✓ 10 brands monitored
+✓ White label PDF reports
+✓ 10 competitors tracked
+✓ Team seats (3 users)
+✓ Priority support
+✓ API access
+CTA: "Contact us →"
+(mailto:hello@geoiqai.com)
+
+Note below pricing:
+"All plans include free audit.
+No credit card for free tier.
+Cancel anytime on paid plans."
+
+=== FIX 9: DASHBOARD ONLY FOR PAID ===
+
+When paid user logs in via magic link
+and visits /dashboard:
+
+Show proper dashboard with:
+
+Top bar:
+- Page title
+- Domain being monitored
+- "Run new audit" button
+- Bell icon for alerts
+- Email shown + logout option
+
+Sidebar:
+- Overview
+- ChatGPT
+- Gemini
+- Perplexity
+- Keywords
+- Fix Actions ← THIS IS THE MAIN VALUE
+- Competitors
+- Integrations
+- Settings
+
+Fix Actions tab shows:
+4 week tabs:
+[Week 1-2 Foundation]
+[Week 2-3 Content]
+[Week 3-4 Authority]
+[Week 4-5 PR]
+
+Each tab has tasks with:
+- Priority badge
+- Task title
+- Time estimate
+- Score impact
+- Expandable instructions
+- Copy buttons
+- Mark complete checkbox
+
+Progress tracker:
+"3 of 8 Week 1-2 tasks complete"
+"Estimated score: +18 points"
+
+Settings tab shows:
+- Brand settings (name, category, market)
+- Monitoring settings (frequency, alerts)
+- Email preferences
+- Competitor management
+- Billing (Razorpay portal link)
+- Danger zone (delete account)
+
+ALL settings must save to database.
+Show success toast on save.
+
+=== FIX 10: CLEAN UP HOMEPAGE ===
+
+Remove from homepage:
+- Any "Sign up" CTA
+- Any "Create account" language
+- Any dashboard preview for free users
+
+Keep on homepage:
+- URL input (main CTA)
+- "Check my GEO IQ →" button
+- Trust line: 
+  "No signup needed · Free · 60 seconds"
+- How it works section
+- Real brand examples 
+  (Notion 24, Groww 38, Lemlist 0)
+- Pricing section
+- Footer
+
+Pricing section on homepage:
+Just show 3 tier cards (from Fix 8)
+No signup buttons for free tier
+Just "Check my GEO IQ →" 
+that scrolls to hero input
+
+=== FIX 11: ERROR MESSAGES ===
+
+Replace all confusing error messages:
+
+When non-paid user hits /dashboard:
+Show: "Dashboard is for paid subscribers"
+Not: "401 Unauthorized" or blank page
+
+When rate limit hit (anonymous):
+Show: "2 free audits used today.
+Enter your email for 5/month free 
+or upgrade for unlimited."
+Not: "429 Too Many Requests"
+
+When rate limit hit (email user):
+Show: "5 free audits used this month.
+Resets on [date].
+Upgrade for unlimited →"
+Not: generic error
+
+When magic link expired:
+Show: "This login link has expired.
+Request a new one →"
+Not: "Token invalid"
+
+When magic link already used:
+Show: "This link has already been used.
+Request a new login link →"
+Not: generic error
+
+=== COMPLETE TEST SUITE ===
+
+After all fixes run these tests 
+and show me results for each:
+
+TEST 1 — Anonymous audit:
+Action: Go to homepage, 
+  enter notion.so, click check
+Expected: Audit runs, result shows
+  NO login prompt anywhere
+Pass/Fail: ___
+
+TEST 2 — Rate limit anonymous:
+Action: Run 3 audits from same IP
+Expected: 3rd shows email capture
+  inline in rate limit message
+Pass/Fail: ___
+
+TEST 3 — Email capture:
+Action: Enter email on audit result
+Expected: 
+  - Row in email_subscribers (not users)
+  - Report email received
+  - First recommendation unlocked
+  - NO dashboard access
+  - NO session created
+Pass/Fail: ___
+
+TEST 4 — Email rate limit:
+Action: Submit same email 6 times
+Expected: 6th shows monthly limit 
+  with reset date
+Pass/Fail: ___
+
+TEST 5 — Dashboard blocked:
+Action: Go to /dashboard 
+  without paid account
+Expected: Redirect to /pricing
+  with "paid plan required" banner
+Pass/Fail: ___
+
+TEST 6 — Razorpay flow:
+Action: Complete test payment
+Expected:
+  - Webhook fires
+  - User created in users table
+  - Magic link email received
+  - Click link → dashboard opens
+  - All tabs work
+  - Settings saves
+Pass/Fail: ___
+
+TEST 7 — Magic link:
+Action: Click expired link (after 15 min)
+Expected: "Link expired" message
+  with request new link option
+Pass/Fail: ___
+
+TEST 8 — Paid user experience:
+Action: Login as paid user
+Expected:
+  - Dashboard loads
+  - Fix Actions tab shows 4 weeks
+  - Settings saves correctly
+  - Competitors can be added
+  - Keywords tab shows DataForSEO data
+Pass/Fail: ___
+
+TEST 9 — Cached audit:
+Action: Run same domain twice 
+  within 24 hours
+Expected: Second shows cached result
+  Does NOT count against rate limit
+Pass/Fail: ___
+
+TEST 10 — Navbar states:
+Action: Check navbar as 
+  anonymous, email-only, paid user
+Expected:
+  Anonymous: Sign in + Start free buttons
+  Email only: Sign in + Start free buttons
+    (no dashboard link)
+  Paid: Dashboard link + email shown
+Pass/Fail: ___
+
+=== FINAL CHECKLIST ===
+
+Before reporting done verify:
+□ /api/audit works with zero auth
+□ Email capture creates email_subscribers 
+  NOT users row
+□ /dashboard redirects non-paid users
+□ Magic link login works
+□ Razorpay webhook creates user
+□ Rate limiting works on all 3 layers
+□ Cached audits don't count vs limit
+□ All error messages are friendly
+□ Navbar shows correct state
+□ Pricing page shows 3 correct tiers
+□ Settings tab saves to database
+□ Fix Actions shows 4 week tabs
+□ All 10 tests pass
+
+Report back with:
+PASSED: [list]
+FAILED: [list]  
+NOT BUILT: [list]

@@ -412,12 +412,57 @@ export default function Audit() {
   const [auditResult, setAuditResult] = useState<any>(null);
   const [loadingStep, setLoadingStep] = useState(0);
   const [doneSteps, setDoneSteps] = useState<boolean[]>(LOADING_STEPS.map(() => false));
-  const [auditError, setAuditError] = useState<{ type: "auth" | "limit" | "generic"; message?: string } | null>(null);
+  const [auditError, setAuditError] = useState<{
+    type: "ip_limit" | "email_limit" | "generic";
+    message?: string;
+    resetsAt?: string;
+  } | null>(null);
+  const [subscriberEmail, setSubscriberEmail] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
 
   const emailForm = useForm<z.infer<typeof emailSchema>>({
     resolver: zodResolver(emailSchema),
     defaultValues: { email: "" },
   });
+
+  const handleAuditError = (err: unknown) => {
+    const status = (err as any)?.status ?? (err as any)?.response?.status;
+    const body = (err as any)?.body ?? (err as any)?.data ?? {};
+    if (status === 429) {
+      if (body?.rateLimitType === "email") {
+        setAuditError({ type: "email_limit", message: body.error, resetsAt: body.resetsAt });
+      } else {
+        setAuditError({ type: "ip_limit", message: body.error });
+      }
+      return;
+    }
+    setAuditError({ type: "generic" });
+  };
+
+  const retryWithEmail = async (email: string) => {
+    setRetrying(true);
+    setAuditError(null);
+    try {
+      const res = await fetch("/api/audit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Subscriber-Email": email,
+        },
+        body: JSON.stringify({ url: urlParam }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        handleAuditError({ status: res.status, body: data });
+        return;
+      }
+      setAuditResult(data);
+    } catch {
+      setAuditError({ type: "generic" });
+    } finally {
+      setRetrying(false);
+    }
+  };
 
   useEffect(() => {
     if (!urlParam) { setLocation("/"); return; }
@@ -425,20 +470,7 @@ export default function Audit() {
       { data: { url: urlParam } },
       {
         onSuccess: (data) => { setAuditError(null); setAuditResult(data); },
-        onError: (err: unknown) => {
-          const status = (err as any)?.status ?? (err as any)?.response?.status;
-          const body = (err as any)?.body ?? (err as any)?.data ?? {};
-          if (status === 401) {
-            const redirect = `/audit?url=${encodeURIComponent(urlParam!)}`;
-            setLocation(`/login?redirect=${encodeURIComponent(redirect)}`);
-            return;
-          }
-          if (status === 429 && body?.upgradeRequired) {
-            setAuditError({ type: "limit", message: body.error });
-            return;
-          }
-          setAuditError({ type: "generic" });
-        },
+        onError: handleAuditError,
       },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -456,6 +488,26 @@ export default function Audit() {
     }, 1800);
     return () => clearInterval(interval);
   }, [runAuditMutation.isPending]);
+
+  const onSubscribeAndRetry = (values: z.infer<typeof emailSchema>) => {
+    const email = values.email;
+    subscribeMutation.mutate(
+      { data: { email, domain: auditResult?.domain ?? new URL(urlParam!.startsWith("http") ? urlParam! : `https://${urlParam!}`).hostname, auditId: auditResult?.id } },
+      {
+        onSuccess: () => {
+          setSubscriberEmail(email);
+          emailForm.reset();
+          retryWithEmail(email);
+        },
+        onError: () => {
+          // Might already be subscribed - try the retry anyway
+          setSubscriberEmail(email);
+          emailForm.reset();
+          retryWithEmail(email);
+        },
+      },
+    );
+  };
 
   const onSubscribe = (values: z.infer<typeof emailSchema>) => {
     subscribeMutation.mutate(
@@ -555,21 +607,79 @@ export default function Audit() {
           </div>
         )}
 
+        {/* Retrying with email state */}
+        {retrying && (
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 80, maxWidth: 440 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <Loader2 style={{ width: 22, height: 22, color: "#4F46E5", animation: "spin 1s linear infinite" }} />
+              <span style={{ fontSize: 16, color: "#374151", fontWeight: 500 }}>Running your audit...</span>
+            </div>
+          </div>
+        )}
+
         {/* Error state */}
-        {auditError && (
-          <div style={{ textAlign: "center", paddingTop: 80, maxWidth: 420, margin: "0 auto" }}>
-            {auditError.type === "limit" ? (
+        {auditError && !retrying && (
+          <div style={{ textAlign: "center", paddingTop: 80, maxWidth: 440, margin: "0 auto", width: "100%" }}>
+            {auditError.type === "ip_limit" ? (
+              <>
+                <div style={{ width: 56, height: 56, background: "#eff6ff", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+                  <AlertTriangle style={{ width: 28, height: 28, color: "#3b82f6" }} />
+                </div>
+                <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>You have used your 2 free audits today</h2>
+                <p style={{ color: "#6b7280", marginBottom: 24, lineHeight: 1.6 }}>
+                  Enter your email to unlock 5 audits per month free. No password, no card.
+                </p>
+                <Form {...emailForm}>
+                  <form onSubmit={emailForm.handleSubmit(onSubscribeAndRetry)} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    <FormField
+                      control={emailForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="email"
+                              placeholder="founder@startup.com"
+                              style={{ textAlign: "left" }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="submit" disabled={subscribeMutation.isPending} style={{ background: "#4F46E5", color: "white" }}>
+                      {subscribeMutation.isPending ? "Sending..." : "Get my audit results"}
+                    </Button>
+                  </form>
+                </Form>
+                <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 16 }}>
+                  No spam. Unsubscribe any time.
+                </p>
+                <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid #f3f4f6" }}>
+                  <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 12 }}>Want unlimited audits and daily monitoring?</p>
+                  <Button variant="outline" size="sm" onClick={() => setLocation("/pricing")} style={{ borderColor: "#4F46E5", color: "#4F46E5" }}>
+                    See pricing
+                  </Button>
+                </div>
+              </>
+            ) : auditError.type === "email_limit" ? (
               <>
                 <div style={{ width: 56, height: 56, background: "#fef3c7", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
                   <AlertTriangle style={{ width: 28, height: 28, color: "#d97706" }} />
                 </div>
-                <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>You have used all 5 free audits</h2>
-                <p style={{ color: "#6b7280", marginBottom: 28, lineHeight: 1.6 }}>
-                  Free accounts get 5 audits. Upgrade to Starter to keep running checks and unlock the full monitoring dashboard.
+                <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>You have used all 5 free audits this month</h2>
+                <p style={{ color: "#6b7280", marginBottom: 8, lineHeight: 1.6 }}>
+                  {auditError.message ?? "Your free audits reset at the start of next month."}
                 </p>
+                {auditError.resetsAt && (
+                  <p style={{ fontSize: 13, color: "#9ca3af", marginBottom: 24 }}>
+                    Resets on {new Date(auditError.resetsAt).toLocaleDateString("en-IN", { day: "numeric", month: "long" })}
+                  </p>
+                )}
                 <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
                   <Button onClick={() => setLocation("/pricing")} style={{ background: "#4F46E5", color: "white" }}>
-                    See pricing
+                    Upgrade for Rs 3,999/month
                   </Button>
                   <Button variant="outline" onClick={() => setLocation("/")}>
                     Back to home
