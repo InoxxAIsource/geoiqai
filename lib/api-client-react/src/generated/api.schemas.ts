@@ -262,3 +262,39 @@ export interface EmailSubscribeInput {
   auditId?: string | null;
 }
 
+export interface RoadmapTaskContent { [key: string]: unknown }
+
+export interface RoadmapTaskItem {
+  id: string;
+  title: string;
+  priority: string;
+  timeMinutes: number;
+  impactMin: number;
+  impactMax: number;
+  /** @nullable */
+  url?: string | null;
+  content?: RoadmapTaskContent;
+}
+
+export interface RoadmapWeek {
+  id: string;
+  label: string;
+  subtitle: string;
+  targetScore: number;
+  fromScore: number;
+  toScore: number;
+  tasks: RoadmapTaskItem[];
+}
+
+export interface RoadmapResponse {
+  auditId: string;
+  generatedAt: string;
+  weeks: RoadmapWeek[];
+  completedTaskIds: string[];
+}
+
+export interface RoadmapTaskToggle {
+  taskId: string;
+  completed: boolean;
+}
+

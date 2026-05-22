@@ -21,8 +21,63 @@ tags:
     description: Payment operations
   - name: email
     description: Email subscription operations
+  - name: roadmap
+    description: GEO IQ execution roadmap
 
 paths:
+  /roadmap/{auditId}:
+    get:
+      operationId: getRoadmap
+      tags: [roadmap]
+      summary: Get the full execution roadmap for an audit (paid users only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: auditId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Roadmap with generated content and task completions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoadmapResponse"
+        "403":
+          description: Requires paid plan
+        "404":
+          description: Audit not found
+
+  /roadmap/{auditId}/tasks/{taskId}/complete:
+    post:
+      operationId: toggleRoadmapTask
+      tags: [roadmap]
+      summary: Toggle a task completion state
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: auditId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Toggle result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoadmapTaskToggle"
+        "403":
+          description: Requires paid plan
+
   /healthz:
     get:
       operationId: healthCheck
@@ -694,3 +749,75 @@ components:
           type: ["string", "null"]
         auditId:
           type: ["string", "null"]
+
+    RoadmapTaskContent:
+      type: object
+      additionalProperties: true
+
+    RoadmapTaskItem:
+      type: object
+      required: [id, title, priority, timeMinutes, impactMin, impactMax]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        priority:
+          type: string
+        timeMinutes:
+          type: integer
+        impactMin:
+          type: integer
+        impactMax:
+          type: integer
+        url:
+          type: ["string", "null"]
+        content:
+          $ref: "#/components/schemas/RoadmapTaskContent"
+
+    RoadmapWeek:
+      type: object
+      required: [id, label, subtitle, targetScore, fromScore, toScore, tasks]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        subtitle:
+          type: string
+        targetScore:
+          type: integer
+        fromScore:
+          type: integer
+        toScore:
+          type: integer
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoadmapTaskItem"
+
+    RoadmapResponse:
+      type: object
+      required: [auditId, generatedAt, weeks, completedTaskIds]
+      properties:
+        auditId:
+          type: string
+        generatedAt:
+          type: string
+        weeks:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoadmapWeek"
+        completedTaskIds:
+          type: array
+          items:
+            type: string
+
+    RoadmapTaskToggle:
+      type: object
+      required: [taskId, completed]
+      properties:
+        taskId:
+          type: string
+        completed:
+          type: boolean

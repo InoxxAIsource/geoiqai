@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Audit from "@/pages/Audit";
 import Dashboard from "@/pages/Dashboard";
+import Roadmap from "@/pages/Roadmap";
 import Pricing from "@/pages/Pricing";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
@@ -44,6 +45,7 @@ function Router() {
         <Route path="/" component={Home} />
         <Route path="/audit" component={Audit} />
         <Route path="/dashboard" component={Dashboard} />
+        <Route path="/roadmap" component={Roadmap} />
         <Route path="/pricing" component={Pricing} />
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />

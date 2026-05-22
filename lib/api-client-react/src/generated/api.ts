@@ -36,6 +36,8 @@ import type {
   PaymentOrderInput,
   PaymentVerifyInput,
   RegisterInput,
+  RoadmapResponse,
+  RoadmapTaskToggle,
   User
 } from './api.schemas';
 
@@ -50,6 +52,155 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
+
+export const getGetRoadmapUrl = (auditId: string,) => {
+
+
+
+
+  return `/api/roadmap/${auditId}`
+}
+
+/**
+ * @summary Get the full execution roadmap for an audit (paid users only)
+ */
+export const getRoadmap = async (auditId: string, options?: RequestInit): Promise<RoadmapResponse> => {
+
+  return customFetch<RoadmapResponse>(getGetRoadmapUrl(auditId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetRoadmapQueryKey = (auditId: string,) => {
+    return [
+    `/api/roadmap/${auditId}`
+    ] as const;
+    }
+
+
+export const getGetRoadmapQueryOptions = <TData = Awaited<ReturnType<typeof getRoadmap>>, TError = ErrorType<void>>(auditId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRoadmap>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetRoadmapQueryKey(auditId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRoadmap>>> = ({ signal }) => getRoadmap(auditId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(auditId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRoadmap>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetRoadmapQueryResult = NonNullable<Awaited<ReturnType<typeof getRoadmap>>>
+export type GetRoadmapQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the full execution roadmap for an audit (paid users only)
+ */
+
+export function useGetRoadmap<TData = Awaited<ReturnType<typeof getRoadmap>>, TError = ErrorType<void>>(
+ auditId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRoadmap>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetRoadmapQueryOptions(auditId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getToggleRoadmapTaskUrl = (auditId: string,
+    taskId: string,) => {
+
+
+
+
+  return `/api/roadmap/${auditId}/tasks/${taskId}/complete`
+}
+
+/**
+ * @summary Toggle a task completion state
+ */
+export const toggleRoadmapTask = async (auditId: string,
+    taskId: string, options?: RequestInit): Promise<RoadmapTaskToggle> => {
+
+  return customFetch<RoadmapTaskToggle>(getToggleRoadmapTaskUrl(auditId,taskId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getToggleRoadmapTaskMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof toggleRoadmapTask>>, TError,{auditId: string;taskId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof toggleRoadmapTask>>, TError,{auditId: string;taskId: string}, TContext> => {
+
+const mutationKey = ['toggleRoadmapTask'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof toggleRoadmapTask>>, {auditId: string;taskId: string}> = (props) => {
+          const {auditId,taskId} = props ?? {};
+
+          return  toggleRoadmapTask(auditId,taskId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ToggleRoadmapTaskMutationResult = NonNullable<Awaited<ReturnType<typeof toggleRoadmapTask>>>
+
+    export type ToggleRoadmapTaskMutationError = ErrorType<void>
+
+    /**
+ * @summary Toggle a task completion state
+ */
+export const useToggleRoadmapTask = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof toggleRoadmapTask>>, TError,{auditId: string;taskId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof toggleRoadmapTask>>,
+        TError,
+        {auditId: string;taskId: string},
+        TContext
+      > => {
+      return useMutation(getToggleRoadmapTaskMutationOptions(options));
+    }
 
 export const getHealthCheckUrl = () => {
 

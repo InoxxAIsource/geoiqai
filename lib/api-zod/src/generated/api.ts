@@ -9,6 +9,52 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Get the full execution roadmap for an audit (paid users only)
+ */
+export const GetRoadmapParams = zod.object({
+  "auditId": zod.coerce.string()
+})
+
+export const GetRoadmapResponse = zod.object({
+  "auditId": zod.string(),
+  "generatedAt": zod.string(),
+  "weeks": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "subtitle": zod.string(),
+  "targetScore": zod.number(),
+  "fromScore": zod.number(),
+  "toScore": zod.number(),
+  "tasks": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "priority": zod.string(),
+  "timeMinutes": zod.number(),
+  "impactMin": zod.number(),
+  "impactMax": zod.number(),
+  "url": zod.string().nullish(),
+  "content": zod.record(zod.string(), zod.unknown()).optional()
+}))
+})),
+  "completedTaskIds": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Toggle a task completion state
+ */
+export const ToggleRoadmapTaskParams = zod.object({
+  "auditId": zod.coerce.string(),
+  "taskId": zod.coerce.string()
+})
+
+export const ToggleRoadmapTaskResponse = zod.object({
+  "taskId": zod.string(),
+  "completed": zod.boolean()
+})
+
+
+/**
  * Returns server health status
  * @summary Health check
  */

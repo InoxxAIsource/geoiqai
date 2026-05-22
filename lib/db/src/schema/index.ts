@@ -5,3 +5,4 @@ export * from "./daily_scores";
 export * from "./email_subscribers";
 export * from "./rate_limits";
 export * from "./keyword_cache";
+export * from "./roadmap";

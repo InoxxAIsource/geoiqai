@@ -6,6 +6,7 @@ import dashboardRouter from "./dashboard";
 import scoresRouter from "./scores";
 import paymentRouter from "./payment";
 import emailRouter from "./email";
+import roadmapRouter from "./roadmap";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(dashboardRouter);
 router.use(scoresRouter);
 router.use(paymentRouter);
 router.use(emailRouter);
+router.use(roadmapRouter);
 
 export default router;
