@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, XCircle, Loader2, ExternalLink } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, ExternalLink, ChevronDown, ChevronUp, Copy, Check, AlertTriangle } from "lucide-react";
 
 const emailSchema = z.object({
   email: z.string().email("Valid email required"),
@@ -23,6 +23,7 @@ const LOADING_STEPS = [
   "Querying ChatGPT",
   "Querying Gemini",
   "Querying Perplexity",
+  "Running technical GEO audit",
   "Computing your GEO IQ",
 ];
 
@@ -66,50 +67,269 @@ function getScoreColor(score: number): string {
   return "#10b981";
 }
 
-function getStatusBadge(found: boolean, score: number): { label: string; bg: string; text: string } {
-  if (!found) return { label: "Invisible", bg: "#FCEBEB", text: "#791F1F" };
-  if (score >= 20) return { label: "Visible", bg: "#E1F5EE", text: "#085041" };
-  return { label: "Partial", bg: "#FAEEDA", text: "#633806" };
+function getUnderstandingLabel(score: number): { label: string; color: string; bg: string } {
+  if (score >= 25) return { label: "Strong understanding", color: "#059669", bg: "#ecfdf5" };
+  if (score >= 10) return { label: "Partial understanding", color: "#D97706", bg: "#fffbeb" };
+  if (score >= 1)  return { label: "No current info", color: "#DC2626", bg: "#fef2f2" };
+  return { label: "Unknown or unclear", color: "#DC2626", bg: "#fef2f2" };
 }
 
-function SystemRow({
-  system, found, score, detail,
+function formatTimestamp(isoString: string): string {
+  const d = new Date(isoString);
+  return d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) +
+    " at " + d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  return (
+    <button
+      onClick={copy}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 6,
+        padding: "6px 12px", background: copied ? "#ecfdf5" : "#f3f4f6",
+        color: copied ? "#059669" : "#374151", border: "0.5px solid",
+        borderColor: copied ? "#6ee7b7" : "#d1d5db", borderRadius: 6,
+        fontSize: 12, fontWeight: 500, cursor: "pointer",
+      }}
+    >
+      {copied ? <Check style={{ width: 12, height: 12 }} /> : <Copy style={{ width: 12, height: 12 }} />}
+      {copied ? "Copied" : "Copy to clipboard"}
+    </button>
+  );
+}
+
+function SystemCard({
+  system, found, score, detail, rawResponse, checkedAt,
 }: {
   system: string; found: boolean; score: number; detail?: string | null;
+  rawResponse?: string | null; checkedAt: string;
 }) {
-  const badge = getStatusBadge(found, score);
+  const [expanded, setExpanded] = useState(false);
+  const understanding = getUnderstandingLabel(score);
+  const scaledScore = Math.round((score / 33) * 100);
   const systemColors: Record<string, string> = {
     ChatGPT: "#10a37f", Gemini: "#4285f4", Perplexity: "#22d3ee",
   };
   const color = systemColors[system] ?? "#4F46E5";
+  const rawLabel: Record<string, string> = {
+    ChatGPT: "ChatGPT says:",
+    Gemini: "Gemini says:",
+    Perplexity: "Perplexity says:",
+  };
+
   return (
-    <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 12, padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 36, height: 36, borderRadius: "50%", background: found ? "#E1F5EE" : "#FCEBEB", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          {found
-            ? <CheckCircle2 style={{ width: 18, height: 18, color: "#10b981" }} />
-            : <XCircle style={{ width: 18, height: 18, color: "#ef4444" }} />}
-        </div>
-        <div>
-          <div style={{ fontWeight: 500, fontSize: 14, color: "#111827", display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: color }} />
-            {system}
-          </div>
-          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
+    <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 12, marginBottom: 10, overflow: "hidden" }}>
+      <div style={{ padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: "50%",
+            background: found ? "#ecfdf5" : "#fef2f2",
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>
             {found
-              ? detail ? detail.substring(0, 80) + (detail.length > 80 ? "..." : "") : "Mentioned in responses"
-              : "Not found in responses"}
+              ? <CheckCircle2 style={{ width: 18, height: 18, color: "#10b981" }} />
+              : <XCircle style={{ width: 18, height: 18, color: "#ef4444" }} />}
           </div>
+          <div>
+            <div style={{ fontWeight: 500, fontSize: 14, color: "#111827", display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: color }} />
+              {system}
+            </div>
+            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
+              {found
+                ? detail ? detail.substring(0, 80) + (detail.length > 80 ? "..." : "") : "Mentioned in responses"
+                : "Not found in AI responses"}
+            </div>
+          </div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0, marginLeft: 16 }}>
+          <span style={{
+            background: understanding.bg, color: understanding.color,
+            borderRadius: 9999, padding: "2px 10px", fontSize: 12, fontWeight: 500,
+          }}>
+            {understanding.label}
+          </span>
+          <span style={{ fontSize: 12, color: "#6b7280" }}>{scaledScore}/100</span>
         </div>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0, marginLeft: 16 }}>
-        <span style={{ background: badge.bg, color: badge.text, borderRadius: 9999, padding: "2px 10px", fontSize: 12, fontWeight: 500 }}>
-          {badge.label}
-        </span>
-        <span style={{ fontSize: 12, color: "#6b7280" }}>{system} IQ: {score}/33</span>
+
+      {rawResponse && (
+        <>
+          <div
+            onClick={() => setExpanded(!expanded)}
+            style={{
+              padding: "8px 16px", borderTop: "0.5px solid #f3f4f6",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              cursor: "pointer", background: expanded ? "#f9fafb" : "white",
+              fontSize: 12, color: "#6b7280", userSelect: "none",
+            }}
+          >
+            <span>What {system} actually said about you</span>
+            {expanded
+              ? <ChevronUp style={{ width: 14, height: 14 }} />
+              : <ChevronDown style={{ width: 14, height: 14 }} />}
+          </div>
+          {expanded && (
+            <div style={{ background: "#0d1117", padding: "16px" }}>
+              <div style={{
+                fontSize: 11, color: "#8b949e", fontFamily: "monospace",
+                marginBottom: 10, display: "flex", justifyContent: "space-between",
+                alignItems: "center",
+              }}>
+                <span style={{ color: "#58a6ff", fontWeight: 600 }}>{rawLabel[system] ?? `${system} says:`}</span>
+                <span>Checked {formatTimestamp(checkedAt)}</span>
+              </div>
+              <pre style={{
+                fontSize: 12, color: "#e6edf3", fontFamily: "monospace",
+                lineHeight: 1.65, whiteSpace: "pre-wrap", wordBreak: "break-word",
+                margin: 0, maxHeight: 320, overflowY: "auto",
+              }}>
+                {rawResponse}
+              </pre>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function TechCheckCard({ check }: { check: { id: string; name: string; score: number; status: string; detail: string } }) {
+  const statusConfig = {
+    pass: { bg: "#ecfdf5", border: "#6ee7b7", icon: <CheckCircle2 style={{ width: 16, height: 16, color: "#059669" }} />, badgeBg: "#dcfce7", badgeColor: "#15803d", label: "Pass" },
+    warn: { bg: "#fffbeb", border: "#fde68a", icon: <AlertTriangle style={{ width: 16, height: 16, color: "#D97706" }} />, badgeBg: "#fef9c3", badgeColor: "#854d0e", label: "Warn" },
+    fail: { bg: "#fef2f2", border: "#fca5a5", icon: <XCircle style={{ width: 16, height: 16, color: "#DC2626" }} />, badgeBg: "#fee2e2", badgeColor: "#991b1b", label: "Fail" },
+  };
+  const cfg = statusConfig[check.status as "pass" | "warn" | "fail"] ?? statusConfig.fail;
+
+  return (
+    <div style={{
+      background: "white", border: `0.5px solid #e5e7eb`,
+      borderLeft: `3px solid ${check.status === "pass" ? "#10b981" : check.status === "warn" ? "#f59e0b" : "#ef4444"}`,
+      borderRadius: 10, padding: "14px 16px", marginBottom: 10,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {cfg.icon}
+          <span style={{ fontWeight: 500, fontSize: 14, color: "#111827" }}>{check.name}</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: check.score >= 70 ? "#059669" : check.score >= 40 ? "#D97706" : "#DC2626" }}>
+            {check.score}/100
+          </span>
+          <span style={{
+            background: cfg.badgeBg, color: cfg.badgeColor,
+            borderRadius: 9999, padding: "2px 8px", fontSize: 11, fontWeight: 600,
+          }}>
+            {cfg.label}
+          </span>
+        </div>
+      </div>
+      <p style={{ fontSize: 12, color: "#6b7280", margin: 0, lineHeight: 1.5 }}>{check.detail}</p>
+    </div>
+  );
+}
+
+function GeoFileBlock({ title, filename, instruction, content }: {
+  title: string; filename: string; instruction: string; content: string;
+}) {
+  return (
+    <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
+      <div style={{ padding: "12px 16px", borderBottom: "0.5px solid #e5e7eb", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+        <div>
+          <div style={{ fontWeight: 500, fontSize: 14, color: "#111827" }}>{title}</div>
+          <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2, fontFamily: "monospace" }}>{filename}</div>
+        </div>
+        <CopyButton text={content} />
+      </div>
+      <div style={{ background: "#0d1117", padding: "16px", overflowX: "auto" }}>
+        <pre style={{ fontSize: 12, color: "#e6edf3", fontFamily: "monospace", lineHeight: 1.65, whiteSpace: "pre", margin: 0 }}>
+          {content}
+        </pre>
+      </div>
+      <div style={{ padding: "10px 16px", background: "#f9fafb", borderTop: "0.5px solid #e5e7eb" }}>
+        <p style={{ fontSize: 12, color: "#6b7280", margin: 0 }}>{instruction}</p>
       </div>
     </div>
   );
+}
+
+function generateLlmsTxt(brandName: string, domain: string, description: string, socialLinks: string[], contactEmail: string | null): string {
+  const socialBlock = socialLinks.length > 0
+    ? `\n## Social Profiles\n${socialLinks.map((l) => `- ${l}`).join("\n")}`
+    : "";
+  const contactBlock = contactEmail
+    ? `\n## Contact\n${contactEmail}`
+    : "";
+  return `# ${brandName}
+> ${description || `${brandName} official website`}
+
+## About
+${brandName} is available at ${domain}.
+
+## Key Pages
+- [Homepage](https://${domain}/): Main page
+- [About](https://${domain}/about): About us
+- [Blog](https://${domain}/blog): Articles and updates${socialBlock}${contactBlock}
+
+## Sitemap
+https://${domain}/sitemap.xml`;
+}
+
+function generateRobotsTxtAdditions(): string {
+  return `# AI Crawler Access (GEO-optimized)
+# Add these lines to your robots.txt
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: GoogleBot-Extended
+Allow: /`;
+}
+
+function generateSchemaJson(brandName: string, domain: string, description: string, socialLinks: string[], contactEmail: string | null): string {
+  const obj: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": brandName,
+    "url": `https://${domain}`,
+    "description": description || `${brandName} - official website`,
+    "logo": `https://${domain}/logo.png`,
+  };
+  if (socialLinks.length > 0) obj["sameAs"] = socialLinks;
+  if (contactEmail) {
+    obj["contactPoint"] = {
+      "@type": "ContactPoint",
+      "contactType": "customer service",
+      "email": contactEmail,
+    };
+  }
+  return JSON.stringify(obj, null, 2);
 }
 
 export default function Audit() {
@@ -175,6 +395,19 @@ export default function Audit() {
 
   const progress = Math.round(((loadingStep + (doneSteps[loadingStep] ? 1 : 0)) / LOADING_STEPS.length) * 100);
 
+  const tech = auditResult?.technicalAudit ?? null;
+  const hasTechnicalData = tech && Array.isArray(tech.checks) && tech.checks.length > 0;
+  const brandName = auditResult?.brandName ?? auditResult?.domain ?? "";
+  const domain = auditResult?.domain ?? "";
+  const description = tech?.brandDescription ?? "";
+  const socialLinks: string[] = tech?.socialLinks ?? [];
+  const contactEmail: string | null = tech?.contactEmail ?? null;
+
+  const aiVisibilityScore = auditResult?.scoreAiVisibility ?? Math.min((auditResult?.scoreChatgpt ?? 0) + (auditResult?.scoreGemini ?? 0) + (auditResult?.scorePerplexity ?? 0), 100);
+  const scoreTechnical = hasTechnicalData ? (auditResult?.scoreTechnical ?? tech?.overallScore ?? 0) : null;
+  const aiContribution = hasTechnicalData ? Math.round(aiVisibilityScore * 0.6) : null;
+  const techContribution = hasTechnicalData ? Math.round((scoreTechnical ?? 0) * 0.4) : null;
+
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#f9fafb" }}>
       <style>{FINGER_TAP_CSS}</style>
@@ -182,35 +415,26 @@ export default function Audit() {
 
       <main style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 16px" }}>
 
-        {/* ── Loading state ── */}
+        {/* Loading state */}
         {runAuditMutation.isPending && (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 40, width: "100%", maxWidth: 440 }}>
-
-            {/* Animated tapping fingers */}
             <div style={{ position: "relative", marginBottom: 32, userSelect: "none" }}>
               <img
                 src="/fingers-tapping.jpeg"
-                alt="Scanning…"
+                alt="Scanning..."
                 className="finger-drum-anim"
                 style={{ width: 200, height: "auto", display: "block", filter: "grayscale(0.1) contrast(1.05)" }}
               />
-              {/* Ground shadow that pulses with the tap */}
               <div
                 className="tap-shadow-anim"
                 style={{
-                  position: "absolute",
-                  bottom: -8,
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  width: 160,
-                  height: 12,
+                  position: "absolute", bottom: -8, left: "50%",
+                  transform: "translateX(-50%)", width: 160, height: 12,
                   borderRadius: "50%",
                   background: "radial-gradient(ellipse, rgba(0,0,0,0.25) 0%, transparent 70%)",
                 }}
               />
             </div>
-
-            {/* Heading */}
             <div style={{ fontWeight: 700, fontSize: 18, color: "#111827", textAlign: "center", marginBottom: 6 }}>
               Hang tight...
             </div>
@@ -218,35 +442,13 @@ export default function Audit() {
               Scanning <strong style={{ color: "#374151" }}>{urlParam}</strong> across<br />
               ChatGPT, Gemini &amp; Perplexity
             </p>
-
-            {/* Step list */}
             <div style={{ width: "100%", marginBottom: 28 }}>
               {LOADING_STEPS.map((label, i) => {
                 const isDone = doneSteps[i];
                 const isCurrent = loadingStep === i && !isDone;
                 return (
-                  <div
-                    key={i}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "9px 0",
-                      opacity: i > loadingStep ? 0.3 : 1,
-                      transition: "opacity 0.4s",
-                    }}
-                  >
-                    <div style={{
-                      width: 26,
-                      height: 26,
-                      borderRadius: "50%",
-                      flexShrink: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background: isDone ? "#10b981" : isCurrent ? "#4F46E5" : "#e5e7eb",
-                      transition: "background 0.35s",
-                    }}>
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0", opacity: i > loadingStep ? 0.3 : 1, transition: "opacity 0.4s" }}>
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: isDone ? "#10b981" : isCurrent ? "#4F46E5" : "#e5e7eb", transition: "background 0.35s" }}>
                       {isDone
                         ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                         : isCurrent
@@ -260,21 +462,13 @@ export default function Audit() {
                 );
               })}
             </div>
-
-            {/* Progress bar */}
             <div style={{ width: "100%", height: 6, background: "#e5e7eb", borderRadius: 4, overflow: "hidden" }}>
-              <div style={{
-                height: "100%",
-                background: "linear-gradient(90deg, #4F46E5, #7C3AED)",
-                borderRadius: 4,
-                width: `${progress}%`,
-                transition: "width 1.6s ease",
-              }} />
+              <div style={{ height: "100%", background: "linear-gradient(90deg, #4F46E5, #7C3AED)", borderRadius: 4, width: `${progress}%`, transition: "width 1.6s ease" }} />
             </div>
           </div>
         )}
 
-        {/* ── Error state ── */}
+        {/* Error state */}
         {runAuditMutation.isError && (
           <div style={{ textAlign: "center", paddingTop: 80 }}>
             <XCircle style={{ width: 48, height: 48, color: "#ef4444", margin: "0 auto 16px" }} />
@@ -284,16 +478,16 @@ export default function Audit() {
           </div>
         )}
 
-        {/* ── Results ── */}
+        {/* Results */}
         {auditResult && !runAuditMutation.isPending && (
-          <div className="audit-result-anim" style={{ width: "100%", maxWidth: 680 }}>
+          <div className="audit-result-anim" style={{ width: "100%", maxWidth: 700 }}>
 
             {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, flexWrap: "wrap", gap: 16 }}>
               <div>
                 <div style={{ fontWeight: 500, fontSize: 18, color: "#111827" }}>{auditResult.domain}</div>
                 <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
-                  AI visibility audit · just now · {auditResult.category ?? "saas tool"} · {auditResult.market ?? "India"}
+                  AI visibility audit, just now, {auditResult.category ?? "saas tool"}, {auditResult.market ?? "India"}
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
@@ -304,19 +498,47 @@ export default function Audit() {
                   <span style={{ fontSize: 16, color: "#6b7280" }}>/100</span>
                 </div>
                 <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>GEO IQ score</div>
+                {hasTechnicalData && (
+                  <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4, textAlign: "right" }}>
+                    <span style={{ color: "#4F46E5" }}>AI Visibility: {aiContribution}/60</span>
+                    <span style={{ color: "#9ca3af", margin: "0 4px" }}>+</span>
+                    <span style={{ color: "#7C3AED" }}>Technical: {techContribution}/40</span>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Score Bar */}
-            <div style={{ height: 8, background: "#f3f4f6", borderRadius: 4, overflow: "hidden", marginBottom: 20 }}>
-              <div style={{ height: "100%", width: `${auditResult.scoreTotal}%`, background: getScoreColor(auditResult.scoreTotal), borderRadius: 4, transition: "width 0.8s ease" }} />
+            <div style={{ height: 8, background: "#f3f4f6", borderRadius: 4, overflow: "hidden", marginBottom: 8 }}>
+              {hasTechnicalData ? (
+                <div style={{ height: "100%", display: "flex", borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{ width: `${aiContribution}%`, background: "#4F46E5", transition: "width 0.8s ease" }} />
+                  <div style={{ width: `${techContribution}%`, background: "#7C3AED", transition: "width 0.8s ease" }} />
+                </div>
+              ) : (
+                <div style={{ height: "100%", width: `${auditResult.scoreTotal}%`, background: getScoreColor(auditResult.scoreTotal), borderRadius: 4, transition: "width 0.8s ease" }} />
+              )}
             </div>
+            {hasTechnicalData ? (
+              <div style={{ display: "flex", gap: 16, marginBottom: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#6b7280" }}>
+                  <span style={{ width: 8, height: 8, background: "#4F46E5", borderRadius: 2, flexShrink: 0 }} />
+                  AI Visibility ({aiContribution}/60)
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#6b7280" }}>
+                  <span style={{ width: 8, height: 8, background: "#7C3AED", borderRadius: 2, flexShrink: 0 }} />
+                  Technical GEO ({techContribution}/40)
+                </div>
+              </div>
+            ) : (
+              <div style={{ marginBottom: 20 }} />
+            )}
 
-            {/* 3 Metric Cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
+            {/* 3 Summary Cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 28 }}>
               {[
                 { label: `${[auditResult.chatgptFound, auditResult.geminiFound, auditResult.perplexityFound].filter(Boolean).length}/3 AI systems found you` },
-                { label: auditResult.chatgptFound ? "Visible on ChatGPT" : auditResult.geminiFound ? "Visible on Gemini" : "Not ranked #1 anywhere" },
+                { label: auditResult.chatgptFound ? "Visible on ChatGPT" : auditResult.geminiFound ? "Visible on Gemini" : "Not ranked anywhere" },
                 { label: `${[!auditResult.chatgptFound, !auditResult.geminiFound, !auditResult.perplexityFound].filter(Boolean).length} blind spot${[!auditResult.chatgptFound, !auditResult.geminiFound, !auditResult.perplexityFound].filter(Boolean).length !== 1 ? "s" : ""} found` },
               ].map((card, i) => (
                 <div key={i} style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "12px 14px", fontSize: 13, color: "#374151", fontWeight: 500, textAlign: "center" }}>
@@ -325,14 +547,64 @@ export default function Audit() {
               ))}
             </div>
 
-            {/* AI System Rows */}
-            <div style={{ marginBottom: 20 }}>
-              <SystemRow system="ChatGPT" found={auditResult.chatgptFound} score={auditResult.scoreChatgpt} detail={auditResult.chatgptDetail} />
-              <SystemRow system="Gemini" found={auditResult.geminiFound} score={auditResult.scoreGemini} detail={auditResult.geminiDetail} />
-              <SystemRow system="Perplexity" found={auditResult.perplexityFound} score={auditResult.scorePerplexity} detail={auditResult.perplexityDetail} />
+            {/* Section 01: AI Visibility */}
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>
+                01 - AI Visibility
+              </div>
+              <SystemCard system="ChatGPT" found={auditResult.chatgptFound} score={auditResult.scoreChatgpt} detail={auditResult.chatgptDetail} rawResponse={auditResult.chatgptRawResponse} checkedAt={auditResult.createdAt} />
+              <SystemCard system="Gemini" found={auditResult.geminiFound} score={auditResult.scoreGemini} detail={auditResult.geminiDetail} rawResponse={auditResult.geminiRawResponse} checkedAt={auditResult.createdAt} />
+              <SystemCard system="Perplexity" found={auditResult.perplexityFound} score={auditResult.scorePerplexity} detail={auditResult.perplexityDetail} rawResponse={auditResult.perplexityRawResponse} checkedAt={auditResult.createdAt} />
             </div>
 
-            {/* Locked Recommendations */}
+            {/* Section 02: Technical GEO Audit */}
+            {tech && tech.checks && tech.checks.length > 0 && (
+              <div style={{ marginBottom: 28 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>
+                  02 - Technical GEO Audit
+                </div>
+                <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 14 }}>
+                  These technical signals directly affect how AI engines crawl and understand your brand.
+                </p>
+                {tech.checks.map((check: any) => (
+                  <TechCheckCard key={check.id} check={check} />
+                ))}
+                <div style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>Technical GEO Score</span>
+                  <span style={{ fontSize: 16, fontWeight: 600, color: getScoreColor(tech.overallScore) }}>{tech.overallScore}/100</span>
+                </div>
+              </div>
+            )}
+
+            {/* Section 03: Free GEO Files */}
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>
+                03 - Free GEO Files for Your Site
+              </div>
+              <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 14 }}>
+                Download and add these files to immediately improve your technical GEO score.
+              </p>
+              <GeoFileBlock
+                title="llms.txt"
+                filename={`Save as llms.txt and upload to ${domain}/llms.txt`}
+                instruction={`Upload this file to your web root at https://${domain}/llms.txt — it tells AI systems about your brand directly.`}
+                content={generateLlmsTxt(brandName, domain, description, socialLinks, contactEmail)}
+              />
+              <GeoFileBlock
+                title="robots.txt additions"
+                filename="Add these lines to your existing robots.txt"
+                instruction="Open your robots.txt file and paste these lines at the end. This explicitly allows all major AI crawlers to index your site."
+                content={generateRobotsTxtAdditions()}
+              />
+              <GeoFileBlock
+                title="Schema markup (JSON-LD)"
+                filename={`Add inside a <script type="application/ld+json"> tag in your homepage <head>`}
+                instruction={`Paste this block inside your homepage's <head> section inside a <script type="application/ld+json"> tag. It helps AI engines identify your brand entity.`}
+                content={generateSchemaJson(brandName, domain, description, socialLinks, contactEmail)}
+              />
+            </div>
+
+            {/* Section 04: Boost */}
             <div style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 12, padding: 24, marginBottom: 20, textAlign: "center" }}>
               <div style={{ fontSize: 16, fontWeight: 500, color: "#111827", marginBottom: 6 }}>Boost your GEO IQ</div>
               <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 20 }}>
@@ -355,7 +627,7 @@ export default function Audit() {
               </div>
               <Link href="/pricing">
                 <Button style={{ width: "100%", background: "#4F46E5", color: "white", marginBottom: 16, height: 42 }}>
-                  Unlock full GEO IQ report, ₹3,999/mo →
+                  Unlock full GEO IQ report, Rs 3,999/mo
                 </Button>
               </Link>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, fontSize: 13, color: "#9ca3af" }}>
@@ -374,7 +646,7 @@ export default function Audit() {
                     </FormItem>
                   )} />
                   <Button type="submit" variant="outline" disabled={subscribeMutation.isPending} style={{ whiteSpace: "nowrap", flexShrink: 0 }}>
-                    {subscribeMutation.isPending ? "Sending..." : "Send me the free report →"}
+                    {subscribeMutation.isPending ? "Sending..." : "Send me the free report"}
                   </Button>
                 </form>
               </Form>
@@ -392,7 +664,7 @@ export default function Audit() {
             {/* Back */}
             <div style={{ textAlign: "center", paddingTop: 8 }}>
               <Link href="/" style={{ fontSize: 13, color: "#9ca3af", textDecoration: "none" }}>
-                ← Check another domain
+                Check another domain
               </Link>
             </div>
           </div>

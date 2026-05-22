@@ -35,6 +35,8 @@ export const RunAuditResponse = zod.object({
   "category": zod.string().nullish(),
   "market": zod.string().nullish(),
   "scoreTotal": zod.number(),
+  "scoreAiVisibility": zod.number().optional(),
+  "scoreTechnical": zod.number().optional(),
   "scoreChatgpt": zod.number(),
   "scoreGemini": zod.number(),
   "scorePerplexity": zod.number(),
@@ -44,6 +46,22 @@ export const RunAuditResponse = zod.object({
   "chatgptDetail": zod.string().nullish(),
   "geminiDetail": zod.string().nullish(),
   "perplexityDetail": zod.string().nullish(),
+  "chatgptRawResponse": zod.string().nullish(),
+  "geminiRawResponse": zod.string().nullish(),
+  "perplexityRawResponse": zod.string().nullish(),
+  "technicalAudit": zod.union([zod.object({
+  "checks": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "score": zod.number(),
+  "status": zod.enum(['pass', 'warn', 'fail']),
+  "detail": zod.string()
+})),
+  "overallScore": zod.number(),
+  "socialLinks": zod.array(zod.string()),
+  "contactEmail": zod.string().nullish(),
+  "brandDescription": zod.string().optional()
+}),zod.null()]).optional(),
   "competitorsFound": zod.array(zod.string()).optional(),
   "keywordsUsed": zod.array(zod.string()).optional(),
   "keywordsFromDataforseo": zod.number().optional(),
@@ -75,6 +93,8 @@ export const GetAuditResponse = zod.object({
   "category": zod.string().nullish(),
   "market": zod.string().nullish(),
   "scoreTotal": zod.number(),
+  "scoreAiVisibility": zod.number().optional(),
+  "scoreTechnical": zod.number().optional(),
   "scoreChatgpt": zod.number(),
   "scoreGemini": zod.number(),
   "scorePerplexity": zod.number(),
@@ -84,6 +104,22 @@ export const GetAuditResponse = zod.object({
   "chatgptDetail": zod.string().nullish(),
   "geminiDetail": zod.string().nullish(),
   "perplexityDetail": zod.string().nullish(),
+  "chatgptRawResponse": zod.string().nullish(),
+  "geminiRawResponse": zod.string().nullish(),
+  "perplexityRawResponse": zod.string().nullish(),
+  "technicalAudit": zod.union([zod.object({
+  "checks": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "score": zod.number(),
+  "status": zod.enum(['pass', 'warn', 'fail']),
+  "detail": zod.string()
+})),
+  "overallScore": zod.number(),
+  "socialLinks": zod.array(zod.string()),
+  "contactEmail": zod.string().nullish(),
+  "brandDescription": zod.string().optional()
+}),zod.null()]).optional(),
   "competitorsFound": zod.array(zod.string()).optional(),
   "keywordsUsed": zod.array(zod.string()).optional(),
   "keywordsFromDataforseo": zod.number().optional(),

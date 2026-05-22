@@ -331,6 +331,41 @@ components:
         market:
           type: ["string", "null"]
 
+    TechnicalCheck:
+      type: object
+      required: [id, name, score, status, detail]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        score:
+          type: integer
+        status:
+          type: string
+          enum: [pass, warn, fail]
+        detail:
+          type: string
+
+    TechnicalAuditResult:
+      type: object
+      required: [checks, overallScore, socialLinks]
+      properties:
+        checks:
+          type: array
+          items:
+            $ref: "#/components/schemas/TechnicalCheck"
+        overallScore:
+          type: integer
+        socialLinks:
+          type: array
+          items:
+            type: string
+        contactEmail:
+          type: ["string", "null"]
+        brandDescription:
+          type: string
+
     AuditResult:
       type: object
       required: [id, url, domain, scoreTotal, scoreChatgpt, scoreGemini, scorePerplexity, chatgptFound, geminiFound, perplexityFound, createdAt]
@@ -348,6 +383,10 @@ components:
         market:
           type: ["string", "null"]
         scoreTotal:
+          type: integer
+        scoreAiVisibility:
+          type: integer
+        scoreTechnical:
           type: integer
         scoreChatgpt:
           type: integer
@@ -367,6 +406,16 @@ components:
           type: ["string", "null"]
         perplexityDetail:
           type: ["string", "null"]
+        chatgptRawResponse:
+          type: ["string", "null"]
+        geminiRawResponse:
+          type: ["string", "null"]
+        perplexityRawResponse:
+          type: ["string", "null"]
+        technicalAudit:
+          oneOf:
+            - $ref: "#/components/schemas/TechnicalAuditResult"
+            - type: "null"
         competitorsFound:
           type: array
           items:

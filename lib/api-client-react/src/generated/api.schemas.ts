@@ -19,6 +19,32 @@ export interface AuditInput {
   market?: string | null;
 }
 
+export type TechnicalCheckStatus = typeof TechnicalCheckStatus[keyof typeof TechnicalCheckStatus];
+
+
+export const TechnicalCheckStatus = {
+  pass: 'pass',
+  warn: 'warn',
+  fail: 'fail',
+} as const;
+
+export interface TechnicalCheck {
+  id: string;
+  name: string;
+  score: number;
+  status: TechnicalCheckStatus;
+  detail: string;
+}
+
+export interface TechnicalAuditResult {
+  checks: TechnicalCheck[];
+  overallScore: number;
+  socialLinks: string[];
+  /** @nullable */
+  contactEmail?: string | null;
+  brandDescription?: string;
+}
+
 export type RecommendationPriority = typeof RecommendationPriority[keyof typeof RecommendationPriority];
 
 
@@ -46,6 +72,8 @@ export interface AuditResult {
   /** @nullable */
   market?: string | null;
   scoreTotal: number;
+  scoreAiVisibility?: number;
+  scoreTechnical?: number;
   scoreChatgpt: number;
   scoreGemini: number;
   scorePerplexity: number;
@@ -58,6 +86,13 @@ export interface AuditResult {
   geminiDetail?: string | null;
   /** @nullable */
   perplexityDetail?: string | null;
+  /** @nullable */
+  chatgptRawResponse?: string | null;
+  /** @nullable */
+  geminiRawResponse?: string | null;
+  /** @nullable */
+  perplexityRawResponse?: string | null;
+  technicalAudit?: TechnicalAuditResult | null;
   competitorsFound?: string[];
   keywordsUsed?: string[];
   keywordsFromDataforseo?: number;

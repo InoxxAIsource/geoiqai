@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { Recommendation } from './recommendation';
+import type { TechnicalAuditResult } from './technicalAuditResult';
 
 export interface AuditResult {
   id: string;
@@ -18,6 +19,8 @@ export interface AuditResult {
   /** @nullable */
   market?: string | null;
   scoreTotal: number;
+  scoreAiVisibility?: number;
+  scoreTechnical?: number;
   scoreChatgpt: number;
   scoreGemini: number;
   scorePerplexity: number;
@@ -30,6 +33,13 @@ export interface AuditResult {
   geminiDetail?: string | null;
   /** @nullable */
   perplexityDetail?: string | null;
+  /** @nullable */
+  chatgptRawResponse?: string | null;
+  /** @nullable */
+  geminiRawResponse?: string | null;
+  /** @nullable */
+  perplexityRawResponse?: string | null;
+  technicalAudit?: TechnicalAuditResult | null;
   competitorsFound?: string[];
   keywordsUsed?: string[];
   keywordsFromDataforseo?: number;

@@ -23,6 +23,22 @@ export interface AuditQueryResult {
   simulated?: boolean;
 }
 
+export interface TechnicalCheck {
+  id: string;
+  name: string;
+  score: number;
+  status: "pass" | "warn" | "fail";
+  detail: string;
+}
+
+export interface TechnicalAuditResult {
+  checks: TechnicalCheck[];
+  overallScore: number;
+  socialLinks: string[];
+  contactEmail: string | null;
+  brandDescription: string;
+}
+
 export interface AuditEngineResult {
   brandName: string;
   category: string;
@@ -33,6 +49,10 @@ export interface AuditEngineResult {
   keywordsUsed: string[];
   keywordsFromDataforseo: number;
   keywordsFilteredOut: number;
+  rawChatgptResponse: string;
+  rawGeminiResponse: string;
+  rawPerplexityResponse: string;
+  technicalAudit: TechnicalAuditResult;
 }
 
 export interface Recommendation {
@@ -58,6 +78,7 @@ interface ScrapedData {
   metaDescription: string;
   h1: string;
   bodyText: string;
+  rawHtml: string;
   success: boolean;
 }
 
@@ -96,10 +117,145 @@ async function scrapeUrl(url: string): Promise<ScrapedData> {
       .trim();
     const bodyText = stripped.substring(0, 600);
 
-    return { domain, title, metaDescription, h1, bodyText, success: true };
+    return { domain, title, metaDescription, h1, bodyText, rawHtml: html, success: true };
   } catch {
-    return { domain, title: "", metaDescription: "", h1: "", bodyText: "", success: false };
+    return { domain, title: "", metaDescription: "", h1: "", bodyText: "", rawHtml: "", success: false };
   }
+}
+
+// --- Technical GEO audit helpers ---
+
+async function fetchText(url: string): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { "User-Agent": "Mozilla/5.0 GeoIQ Bot/1.0" },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    return await res.text();
+  } catch {
+    return null;
+  }
+}
+
+function checkCrawlerAccess(robotsTxt: string | null): TechnicalCheck {
+  const AI_CRAWLERS = ["GPTBot", "ChatGPT-User", "PerplexityBot", "Claude-Web", "anthropic-ai", "GoogleBot"];
+  if (!robotsTxt) {
+    return {
+      id: "robots",
+      name: "Crawler Access (robots.txt)",
+      score: 70,
+      status: "warn",
+      detail: "No robots.txt found. AI crawlers can access your site by default, but explicit rules are recommended.",
+    };
+  }
+  const mentioned = AI_CRAWLERS.filter((c) => new RegExp(c, "i").test(robotsTxt));
+  if (mentioned.length >= 5) {
+    return { id: "robots", name: "Crawler Access (robots.txt)", score: 100, status: "pass", detail: "All major AI crawlers are explicitly named in your robots.txt." };
+  }
+  if (mentioned.length >= 3) {
+    return { id: "robots", name: "Crawler Access (robots.txt)", score: 70, status: "warn", detail: "robots.txt found but doesn't explicitly name all AI crawlers." };
+  }
+  return { id: "robots", name: "Crawler Access (robots.txt)", score: 0, status: "fail", detail: "AI crawlers may be blocked. This significantly hurts visibility." };
+}
+
+function checkLlmsTxt(llmsTxt: string | null): TechnicalCheck {
+  if (!llmsTxt) {
+    return { id: "llms", name: "llms.txt File", score: 0, status: "fail", detail: "No llms.txt found. This file tells AI systems about your brand directly." };
+  }
+  const lines = llmsTxt.split("\n").filter((l) => l.trim().length > 0);
+  if (lines.length >= 20) {
+    return { id: "llms", name: "llms.txt File", score: 80, status: "pass", detail: "llms.txt found. Good AI accessibility." };
+  }
+  return { id: "llms", name: "llms.txt File", score: 40, status: "warn", detail: "llms.txt exists but has limited content. Expand it with more brand context." };
+}
+
+function checkSchemaMarkup(rawHtml: string): TechnicalCheck {
+  if (!rawHtml) {
+    return { id: "schema", name: "Schema Markup", score: 0, status: "fail", detail: "No schema markup found. AI engines struggle to identify your brand entity." };
+  }
+  const hasJsonLd = /<script[^>]+type=["']application\/ld\+json["'][^>]*>/i.test(rawHtml);
+  if (!hasJsonLd) {
+    return { id: "schema", name: "Schema Markup", score: 0, status: "fail", detail: "No schema markup found. AI engines struggle to identify your brand entity." };
+  }
+  const hasOrg = /"@type"\s*:\s*"Organization"/i.test(rawHtml);
+  if (hasOrg) {
+    return { id: "schema", name: "Schema Markup", score: 100, status: "pass", detail: "Schema.org Organization markup found. AI engines understand your entity." };
+  }
+  return { id: "schema", name: "Schema Markup", score: 50, status: "warn", detail: "Some schema markup found, but no Organization type. Add Organization schema for better entity recognition." };
+}
+
+function checkContentStructure(rawHtml: string, bodyText: string): TechnicalCheck {
+  if (!rawHtml) {
+    return { id: "content", name: "Content Structure", score: 5, status: "fail", detail: "Content is extremely thin. AI engines have almost nothing to cite or quote meaningfully." };
+  }
+  const wordCount = bodyText.trim().split(/\s+/).filter((w) => w.length > 0).length;
+  const hasH1 = /<h1[^>]*>/i.test(rawHtml);
+  const hasH2 = /<h2[^>]*>/i.test(rawHtml);
+  const checksPass = (wordCount > 300 ? 1 : 0) + (hasH1 ? 1 : 0) + (hasH2 ? 1 : 0);
+  if (checksPass >= 3) {
+    return { id: "content", name: "Content Structure", score: 100, status: "pass", detail: `Good content structure: ${wordCount}+ words, clear heading hierarchy.` };
+  }
+  if (checksPass >= 2) {
+    return { id: "content", name: "Content Structure", score: 50, status: "warn", detail: `Partial structure detected. ${wordCount} words. Consider adding more headings and structured content.` };
+  }
+  return { id: "content", name: "Content Structure", score: 5, status: "fail", detail: "Content is extremely thin. AI engines have almost nothing to cite or quote meaningfully." };
+}
+
+function checkEntityConsistency(rawHtml: string): { check: TechnicalCheck; socialLinks: string[]; contactEmail: string | null } {
+  const socialPatterns = [
+    /https?:\/\/(www\.)?(twitter|x)\.com\/[a-zA-Z0-9_]{1,50}/gi,
+    /https?:\/\/(www\.)?linkedin\.com\/company\/[a-zA-Z0-9-]{1,50}/gi,
+    /https?:\/\/(www\.)?facebook\.com\/[a-zA-Z0-9.]{1,50}/gi,
+    /https?:\/\/(www\.)?github\.com\/[a-zA-Z0-9-]{1,50}/gi,
+  ];
+
+  const socialLinks: string[] = [];
+  for (const pattern of socialPatterns) {
+    const matches = rawHtml.match(pattern);
+    if (matches && matches[0]) socialLinks.push(matches[0]!);
+  }
+
+  const emailMatch = rawHtml.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+  const contactEmail = emailMatch ? emailMatch[0]! : null;
+
+  let check: TechnicalCheck;
+  if (socialLinks.length >= 3) {
+    check = { id: "entity", name: "Entity Consistency", score: 100, status: "pass", detail: `${socialLinks.length} social profile links found. AI engines can verify your entity identity.` };
+  } else if (socialLinks.length >= 1) {
+    check = { id: "entity", name: "Entity Consistency", score: 50, status: "warn", detail: `${socialLinks.length} social profile link(s) found. Add more to strengthen entity signals.` };
+  } else {
+    check = { id: "entity", name: "Entity Consistency", score: 0, status: "fail", detail: "No social profile links found. AI engines use social signals to verify entity identity." };
+  }
+
+  return { check, socialLinks: [...new Set(socialLinks)], contactEmail };
+}
+
+export async function runTechnicalAudit(domain: string, rawHtml: string, bodyText: string): Promise<TechnicalAuditResult> {
+  const baseUrl = `https://${domain}`;
+  const [robotsTxt, llmsTxt] = await Promise.all([
+    fetchText(`${baseUrl}/robots.txt`),
+    fetchText(`${baseUrl}/llms.txt`),
+  ]);
+
+  const crawlerCheck = checkCrawlerAccess(robotsTxt);
+  const llmsCheck = checkLlmsTxt(llmsTxt);
+  const schemaCheck = checkSchemaMarkup(rawHtml);
+  const contentCheck = checkContentStructure(rawHtml, bodyText);
+  const { check: entityCheck, socialLinks, contactEmail } = checkEntityConsistency(rawHtml);
+
+  const checks = [crawlerCheck, llmsCheck, schemaCheck, contentCheck, entityCheck];
+  const overallScore = Math.round(checks.reduce((sum, c) => sum + c.score, 0) / checks.length);
+
+  const metaMatch =
+    rawHtml.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i) ??
+    rawHtml.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i);
+  const brandDescription = metaMatch ? metaMatch[1]!.trim() : "";
+
+  return { checks, overallScore, socialLinks, contactEmail, brandDescription };
 }
 
 interface CategoryData {
@@ -640,15 +796,16 @@ export async function runAuditEngine(
     console.log(`[DataForSEO] ${domain} — no keywords from DataForSEO, using category-based prompts`);
   }
 
-  // Run all AI queries in parallel
+  // Run all AI queries + technical audit in parallel
   const chatgptTasks = prompts.map((p) => queryOpenAIChatGPT(p));
   const geminiTasks = prompts.map((p) => queryGemini(p));
   const perplexityTasks = prompts.map((p) => queryPerplexity(p));
 
-  const [chatgptTexts, geminiResults, perplexityResults] = await Promise.all([
+  const [chatgptTexts, geminiResults, perplexityResults, technicalAudit] = await Promise.all([
     Promise.all(chatgptTasks),
     Promise.all(geminiTasks),
     Promise.all(perplexityTasks),
+    runTechnicalAudit(domain, scraped.rawHtml, scraped.bodyText),
   ]);
 
   const chatgptResponses = chatgptTexts.map((text, i) => ({ prompt: prompts[i]!, text }));
@@ -662,6 +819,11 @@ export async function runAuditEngine(
   const gemini = calculateSystemScore(brandName, domain, geminiResponses, geminiSimulated);
   const perplexity = calculateSystemScore(brandName, domain, perplexityResponses, perplexitySimulated);
 
+  // Concatenate all non-empty responses per system for display
+  const rawChatgptResponse = chatgptTexts.filter((t) => t.trim()).join("\n\n---\n\n");
+  const rawGeminiResponse = geminiResults.map((r) => r.text).filter((t) => t.trim()).join("\n\n---\n\n");
+  const rawPerplexityResponse = perplexityResults.map((r) => r.text).filter((t) => t.trim()).join("\n\n---\n\n");
+
   return {
     brandName,
     category,
@@ -672,6 +834,10 @@ export async function runAuditEngine(
     keywordsUsed: prompts,
     keywordsFromDataforseo,
     keywordsFilteredOut,
+    rawChatgptResponse,
+    rawGeminiResponse,
+    rawPerplexityResponse,
+    technicalAudit,
   };
 }
 

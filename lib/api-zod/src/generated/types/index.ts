@@ -25,5 +25,8 @@ export * from './paymentVerifyInput';
 export * from './recommendation';
 export * from './recommendationPriority';
 export * from './registerInput';
+export * from './technicalAuditResult';
+export * from './technicalCheck';
+export * from './technicalCheckStatus';
 export * from './user';
 export * from './userPlan';
