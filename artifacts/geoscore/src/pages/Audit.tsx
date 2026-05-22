@@ -568,6 +568,8 @@ export default function Audit() {
   const retryWithEmail = async (email: string) => {
     setRetrying(true);
     setAuditError(null);
+    setLoadingStep(0);
+    setDoneSteps(LOADING_STEPS.map(() => false));
     try {
       const res = await fetch("/api/audit", {
         method: "POST",
@@ -603,7 +605,8 @@ export default function Audit() {
   }, [urlParam]);
 
   useEffect(() => {
-    if (!runAuditMutation.isPending) return;
+    const isActive = runAuditMutation.isPending || retrying;
+    if (!isActive) return;
     let step = 0;
     const interval = setInterval(() => {
       if (step < LOADING_STEPS.length - 1) {
@@ -613,7 +616,8 @@ export default function Audit() {
       }
     }, 1800);
     return () => clearInterval(interval);
-  }, [runAuditMutation.isPending]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runAuditMutation.isPending, retrying]);
 
   const onSubscribeAndRetry = (values: z.infer<typeof emailSchema>) => {
     const email = values.email;
@@ -733,12 +737,55 @@ export default function Audit() {
           </div>
         )}
 
-        {/* Retrying with email state */}
+        {/* Retrying with email state - same rich loading UI */}
         {retrying && (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 80, maxWidth: 440 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <Loader2 style={{ width: 22, height: 22, color: "#4F46E5", animation: "spin 1s linear infinite" }} />
-              <span style={{ fontSize: 16, color: "#374151", fontWeight: 500 }}>Running your audit...</span>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 40, width: "100%", maxWidth: 440 }}>
+            <div style={{ position: "relative", marginBottom: 32, userSelect: "none" }}>
+              <img
+                src="/fingers-tapping.jpeg"
+                alt="Scanning..."
+                className="finger-drum-anim"
+                style={{ width: 200, height: "auto", display: "block", filter: "grayscale(0.1) contrast(1.05)" }}
+              />
+              <div
+                className="tap-shadow-anim"
+                style={{
+                  position: "absolute", bottom: -8, left: "50%",
+                  transform: "translateX(-50%)", width: 160, height: 12,
+                  borderRadius: "50%",
+                  background: "radial-gradient(ellipse, rgba(0,0,0,0.25) 0%, transparent 70%)",
+                }}
+              />
+            </div>
+            <div style={{ fontWeight: 700, fontSize: 18, color: "#111827", textAlign: "center", marginBottom: 6 }}>
+              Hang tight...
+            </div>
+            <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 32, textAlign: "center", lineHeight: 1.5 }}>
+              Scanning <strong style={{ color: "#374151" }}>{urlParam}</strong> across<br />
+              ChatGPT, Gemini, Perplexity, Claude &amp; Grok
+            </p>
+            <div style={{ width: "100%", marginBottom: 28 }}>
+              {LOADING_STEPS.map((label, i) => {
+                const isDone = doneSteps[i];
+                const isCurrent = loadingStep === i && !isDone;
+                return (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0", opacity: i > loadingStep ? 0.3 : 1, transition: "opacity 0.4s" }}>
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: isDone ? "#10b981" : isCurrent ? "#4F46E5" : "#e5e7eb", transition: "background 0.35s" }}>
+                      {isDone
+                        ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                        : isCurrent
+                          ? <Loader2 style={{ width: 13, height: 13, color: "white", animation: "spin 1s linear infinite" }} />
+                          : <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#9ca3af", display: "block" }} />}
+                    </div>
+                    <span style={{ fontSize: 14, color: isDone ? "#10b981" : isCurrent ? "#4F46E5" : "#6b7280", fontWeight: isCurrent ? 500 : 400 }}>
+                      {label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ width: "100%", height: 6, background: "#e5e7eb", borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ height: "100%", background: "linear-gradient(90deg, #4F46E5, #7C3AED)", borderRadius: 4, width: `${progress}%`, transition: "width 1.6s ease" }} />
             </div>
           </div>
         )}
