@@ -6,9 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface PaymentOrder {
-  orderId: string;
+export interface SubscriptionCreated {
+  subscription_id: string;
+  razorpay_key: string;
+  customer_id?: string;
   amount: number;
-  currency: string;
-  keyId: string;
+  plan_name: string;
 }

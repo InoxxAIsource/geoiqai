@@ -26,6 +26,13 @@ app.use(
   }),
 );
 app.use(cors());
+
+// Capture raw body for Razorpay webhook signature verification before JSON parsing
+app.use("/api/payment/webhook", express.raw({ type: "application/json" }), (req, _res, next) => {
+  (req as express.Request & { rawBody?: Buffer }).rawBody = req.body as Buffer;
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

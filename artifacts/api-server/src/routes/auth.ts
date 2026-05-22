@@ -4,7 +4,7 @@ import { db, usersTable, magicTokensTable } from "@workspace/db";
 import { eq, and, gt } from "drizzle-orm";
 import { RegisterBody, LoginBody } from "@workspace/api-zod";
 import { hashPassword, verifyPassword, createToken, generateMagicToken, requireAuth, type AuthRequest } from "../lib/auth";
-import { sendWelcomeEmail, sendMagicLinkEmail } from "../lib/email";
+import { sendMagicLinkEmail } from "../lib/email";
 
 const APP_URL = process.env.APP_URL ?? "https://geoscore.app";
 
@@ -109,7 +109,6 @@ router.post("/auth/register", async (req, res): Promise<void> => {
   const [user] = await db.insert(usersTable).values({ email, passwordHash }).returning();
 
   const token = createToken(user!.id);
-  void sendWelcomeEmail(user!.email);
 
   res.status(201).json({
     token,

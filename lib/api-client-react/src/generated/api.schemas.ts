@@ -228,30 +228,40 @@ export interface DailyScore {
   recommendations?: Recommendation[];
 }
 
-export type PaymentOrderInputPlan = typeof PaymentOrderInputPlan[keyof typeof PaymentOrderInputPlan];
+export type SubscriptionInputPlan = typeof SubscriptionInputPlan[keyof typeof SubscriptionInputPlan];
 
 
-export const PaymentOrderInputPlan = {
+export const SubscriptionInputPlan = {
   starter: 'starter',
   agency: 'agency',
 } as const;
 
-export interface PaymentOrderInput {
-  plan: PaymentOrderInputPlan;
+export interface SubscriptionInput {
+  plan: SubscriptionInputPlan;
+  email: string;
+  domain?: string;
 }
 
-export interface PaymentOrder {
-  orderId: string;
+export interface SubscriptionCreated {
+  subscription_id: string;
+  razorpay_key: string;
+  customer_id?: string;
   amount: number;
-  currency: string;
-  keyId: string;
+  plan_name: string;
 }
 
-export interface PaymentVerifyInput {
-  razorpayOrderId: string;
-  razorpayPaymentId: string;
-  razorpaySignature: string;
+export interface SubscriptionVerifyInput {
+  razorpay_payment_id: string;
+  razorpay_subscription_id: string;
+  razorpay_signature: string;
+  email: string;
+  domain?: string;
   plan: string;
+}
+
+export interface PaymentVerifyResult {
+  success: boolean;
+  message: string;
 }
 
 export interface EmailSubscribeInput {

@@ -310,43 +310,52 @@ paths:
                 items:
                   $ref: "#/components/schemas/DailyScore"
 
-  /payment/create-order:
+  /payment/create-subscription:
     post:
-      operationId: createPaymentOrder
+      operationId: createSubscription
       tags: [payment]
-      summary: Create a Razorpay payment order
+      summary: Create a Razorpay subscription
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PaymentOrderInput"
+              $ref: "#/components/schemas/SubscriptionInput"
       responses:
         "200":
-          description: Payment order created
+          description: Subscription created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PaymentOrder"
+                $ref: "#/components/schemas/SubscriptionCreated"
 
   /payment/verify:
     post:
       operationId: verifyPayment
       tags: [payment]
-      summary: Verify and activate a completed payment
+      summary: Verify a completed subscription payment
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PaymentVerifyInput"
+              $ref: "#/components/schemas/SubscriptionVerifyInput"
       responses:
         "200":
-          description: Payment verified
+          description: Payment verified, magic link sent
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                $ref: "#/components/schemas/PaymentVerifyResult"
+
+  /payment/webhook:
+    post:
+      operationId: razorpayWebhook
+      tags: [payment]
+      summary: Razorpay webhook handler
+      responses:
+        "200":
+          description: Webhook received
 
   /email/subscribe:
     post:
@@ -705,38 +714,57 @@ components:
           items:
             $ref: "#/components/schemas/Recommendation"
 
-    PaymentOrderInput:
+    SubscriptionInput:
       type: object
-      required: [plan]
+      required: [plan, email]
       properties:
         plan:
           type: string
           enum: [starter, agency]
+        email:
+          type: string
+        domain:
+          type: string
 
-    PaymentOrder:
+    SubscriptionCreated:
       type: object
-      required: [orderId, amount, currency, keyId]
+      required: [subscription_id, razorpay_key, amount, plan_name]
       properties:
-        orderId:
+        subscription_id:
+          type: string
+        razorpay_key:
+          type: string
+        customer_id:
           type: string
         amount:
           type: integer
-        currency:
-          type: string
-        keyId:
+        plan_name:
           type: string
 
-    PaymentVerifyInput:
+    SubscriptionVerifyInput:
       type: object
-      required: [razorpayOrderId, razorpayPaymentId, razorpaySignature, plan]
+      required: [razorpay_payment_id, razorpay_subscription_id, razorpay_signature, email, plan]
       properties:
-        razorpayOrderId:
+        razorpay_payment_id:
           type: string
-        razorpayPaymentId:
+        razorpay_subscription_id:
           type: string
-        razorpaySignature:
+        razorpay_signature:
+          type: string
+        email:
+          type: string
+        domain:
           type: string
         plan:
+          type: string
+
+    PaymentVerifyResult:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+        message:
           type: string
 
     EmailSubscribeInput:

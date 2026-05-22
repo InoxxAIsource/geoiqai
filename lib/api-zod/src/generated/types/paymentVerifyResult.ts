@@ -5,8 +5,8 @@
  * GEOscore API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { PaymentOrderInputPlan } from './paymentOrderInputPlan';
 
-export interface PaymentOrderInput {
-  plan: PaymentOrderInputPlan;
+export interface PaymentVerifyResult {
+  success: boolean;
+  message: string;
 }

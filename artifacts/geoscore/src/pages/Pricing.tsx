@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -38,42 +38,36 @@ export default function Pricing() {
   const [emailError, setEmailError] = useState("");
   const [pendingPlan, setPendingPlan] = useState<string | null>(requestedPlan ?? null);
   const [paymentDone, setPaymentDone] = useState(false);
+  const [paidEmail, setPaidEmail] = useState("");
+  const emailInputRef = useRef<HTMLInputElement>(null);
 
-  // If a plan was requested in query params, scroll into the email input
   useEffect(() => {
     if (requestedPlan && requestedPlan !== "free") {
       setPendingPlan(requestedPlan);
       setTimeout(() => {
-        document.getElementById("checkout-email")?.scrollIntoView({ behavior: "smooth", block: "center" });
-        document.getElementById("checkout-email")?.focus();
+        document.getElementById("checkout-email-section")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        emailInputRef.current?.focus();
       }, 300);
     }
   }, [requestedPlan]);
 
-  const handleSelectPlan = async (planId: string) => {
+  const handleSelectPlan = (planId: string) => {
     if (planId === "free") {
-      const input = document.getElementById("hero-input") as HTMLInputElement | null;
-      if (input) {
-        setLocation("/");
-        setTimeout(() => {
-          document.getElementById("hero-input")?.scrollIntoView({ behavior: "smooth", block: "center" });
-          (document.getElementById("hero-input") as HTMLInputElement)?.focus();
-        }, 200);
-      } else {
-        setLocation("/");
-      }
+      setLocation("/");
       return;
     }
-
     if (planId === "agency") {
-      window.location.href = "mailto:hello@geoiqai.com?subject=GeoIQ Agency Inquiry";
+      setPendingPlan("agency");
+      setTimeout(() => {
+        document.getElementById("checkout-email-section")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        emailInputRef.current?.focus();
+      }, 100);
       return;
     }
-
     setPendingPlan(planId);
     setTimeout(() => {
-      document.getElementById("checkout-email")?.scrollIntoView({ behavior: "smooth", block: "center" });
-      (document.getElementById("checkout-email") as HTMLInputElement)?.focus();
+      document.getElementById("checkout-email-section")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      emailInputRef.current?.focus();
     }, 100);
   };
 
@@ -87,49 +81,49 @@ export default function Pricing() {
     setLoading(true);
 
     try {
-      const orderRes = await fetch("/api/payment/create-order", {
+      await loadRazorpayScript();
+
+      const subRes = await fetch("/api/payment/create-subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan: pendingPlan, email: trimmedEmail }),
       });
 
-      if (!orderRes.ok) {
-        const err = await orderRes.json();
-        toast({ title: "Could not create order", description: err.error ?? "Try again in a moment.", variant: "destructive" });
+      if (!subRes.ok) {
+        const err = await subRes.json() as { error?: string };
+        toast({ title: "Could not create subscription", description: err.error ?? "Try again in a moment.", variant: "destructive" });
         setLoading(false);
         return;
       }
 
-      const order = await orderRes.json() as { orderId: string; amount: number; currency: string; keyId: string };
-      await loadRazorpayScript();
+      const sub = await subRes.json() as {
+        subscription_id: string;
+        razorpay_key: string;
+        plan_name: string;
+      };
 
       const options: Record<string, unknown> = {
-        key: order.keyId,
-        amount: order.amount,
-        currency: order.currency,
-        order_id: order.orderId,
+        key: sub.razorpay_key,
+        subscription_id: sub.subscription_id,
         name: "GeoIQ",
-        description: pendingPlan === "starter"
-          ? "GeoIQ Starter - Daily AI Visibility Monitoring"
-          : "GeoIQ Agency - 10 Brands AI Monitoring",
+        description: sub.plan_name,
         theme: { color: "#4F46E5" },
         prefill: { email: trimmedEmail },
-        notes: { email: trimmedEmail, plan: pendingPlan ?? "" },
-        handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
+        handler: async (response: { razorpay_payment_id: string; razorpay_subscription_id: string; razorpay_signature: string }) => {
           try {
             const verifyRes = await fetch("/api/payment/verify", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                razorpayOrderId: response.razorpay_order_id,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature,
-                plan: pendingPlan,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_subscription_id: response.razorpay_subscription_id,
+                razorpay_signature: response.razorpay_signature,
                 email: trimmedEmail,
+                plan: pendingPlan,
               }),
             });
-
             if (verifyRes.ok) {
+              setPaidEmail(trimmedEmail);
               setPaymentDone(true);
             } else {
               toast({ title: "Verification failed", description: "Contact hello@geoiqai.com if payment was deducted.", variant: "destructive" });
@@ -149,6 +143,15 @@ export default function Pricing() {
     }
   };
 
+  const handleResendLink = async () => {
+    await fetch("/api/auth/magic-link", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: paidEmail }),
+    });
+    toast({ title: "Login link sent", description: "Check your inbox." });
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-bg-secondary">
       <Navbar />
@@ -161,17 +164,26 @@ export default function Pricing() {
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
-            <h2 style={{ fontSize: 26, fontWeight: 700, marginBottom: 12 }}>Payment confirmed</h2>
-            <p style={{ color: "#6b7280", lineHeight: 1.7, marginBottom: 8 }}>
-              We sent a login link to <strong>{email}</strong>. Click it to access your dashboard.
+            <h2 style={{ fontSize: 26, fontWeight: 700, marginBottom: 12 }}>You are in.</h2>
+            <p style={{ color: "#374151", lineHeight: 1.7, marginBottom: 8 }}>
+              We sent a login link to <strong>{paidEmail}</strong>. Click it to open your dashboard.
             </p>
-            <p style={{ color: "#9ca3af", fontSize: 13 }}>
-              Did not receive it? Check your spam folder, or{" "}
-              <button onClick={() => setLocation("/login")} style={{ color: "#4F46E5", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
-                request a new login link
-              </button>
-              .
+            <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 24 }}>
+              Link expires in 24 hours. Check your spam folder if you do not see it.
             </p>
+            <button
+              onClick={() => { void handleResendLink(); }}
+              style={{ background: "#4F46E5", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer", marginBottom: 12 }}
+            >
+              Resend login link
+            </button>
+            <br />
+            <button
+              onClick={() => setLocation("/")}
+              style={{ background: "none", border: "none", color: "#9ca3af", fontSize: 13, cursor: "pointer", marginTop: 8 }}
+            >
+              Back to homepage
+            </button>
           </div>
         ) : (
           <>
@@ -184,20 +196,24 @@ export default function Pricing() {
               </p>
             </div>
 
-            <PricingCards onSelectPlan={(plan) => { void handleSelectPlan(plan); }} />
+            <PricingCards onSelectPlan={handleSelectPlan} />
 
-            {pendingPlan && pendingPlan !== "free" && pendingPlan !== "agency" && (
-              <div style={{ maxWidth: 440, margin: "40px auto 0", background: "white", border: "1.5px solid #4F46E5", borderRadius: 12, padding: "28px 24px", boxShadow: "0 4px 24px rgba(79,70,229,0.10)" }}>
+            {pendingPlan && pendingPlan !== "free" && (
+              <div
+                id="checkout-email-section"
+                style={{ maxWidth: 440, margin: "40px auto 0", background: "white", border: "1.5px solid #4F46E5", borderRadius: 12, padding: "28px 24px", boxShadow: "0 4px 24px rgba(79,70,229,0.10)" }}
+              >
                 <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>
-                  One more step
+                  {pendingPlan === "starter" ? "Start GeoIQ Starter" : "Start GeoIQ Agency"}
                 </h3>
                 <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 20, lineHeight: 1.5 }}>
-                  Enter your email so we know where to send your login link and invoices.
+                  Enter your email - we will send your login link here after payment.
                 </p>
                 <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6, color: "#374151" }}>
                   Email address
                 </label>
                 <Input
+                  ref={emailInputRef}
                   id="checkout-email"
                   type="email"
                   placeholder="founder@startup.com"
@@ -210,7 +226,7 @@ export default function Pricing() {
                 <Button
                   onClick={() => { void handleCheckout(); }}
                   disabled={loading}
-                  style={{ width: "100%", background: "#4F46E5", color: "white" }}
+                  style={{ width: "100%", background: "#4F46E5", color: "white", height: 44 }}
                 >
                   {loading ? (
                     <span style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center" }}>
@@ -222,7 +238,7 @@ export default function Pricing() {
                   )}
                 </Button>
                 <p style={{ fontSize: 11, color: "#9ca3af", textAlign: "center", marginTop: 12 }}>
-                  Secured by Razorpay. Cancel any time.
+                  Monthly subscription, cancel anytime. Secured by Razorpay.
                 </p>
               </div>
             )}
@@ -230,20 +246,20 @@ export default function Pricing() {
         )}
 
         <div className="max-w-3xl mx-auto mt-24">
-          <h3 className="text-2xl font-medium text-center mb-8">Frequently Asked Questions</h3>
+          <h3 className="text-2xl font-medium text-center mb-8">Frequently asked questions</h3>
           <div className="space-y-6">
             {[
               {
                 q: "What is GEO?",
-                a: "Generative Engine Optimization (GEO) is the process of optimizing your brand's presence in AI search engines like ChatGPT, Gemini, and Perplexity, so you get recommended when users ask about your category.",
+                a: "Generative Engine Optimization (GEO) is the process of making your brand visible in AI search engines like ChatGPT, Gemini, and Perplexity, so you get recommended when someone asks about your category.",
               },
               {
                 q: "Is the free audit really free?",
-                a: "Yes. Enter any domain and get your AI visibility score in 60 seconds. No account, no card. You get 2 free audits per day, or 5 per month when you add your email.",
+                a: "Yes. Enter any domain and get your AI visibility score in about 60 seconds. No account, no card. You get 2 free audits per day from the same IP, or 5 per month when you add your email.",
               },
               {
                 q: "How does daily monitoring work?",
-                a: "Every day we run a full audit of your brand across ChatGPT, Gemini, Perplexity, Claude, and Grok. We save your score and send you a weekly digest with changes and recommendations.",
+                a: "Every day we run a full audit of your brand across ChatGPT, Gemini, Perplexity, Claude, and Grok. We track your score over time and send you a weekly digest with what changed and what to fix.",
               },
               {
                 q: "How do I log in? There is no password.",
@@ -251,7 +267,11 @@ export default function Pricing() {
               },
               {
                 q: "What payment methods are accepted?",
-                a: "We use Razorpay, which accepts all major Indian payment methods: UPI, Net Banking, credit cards, debit cards, and wallets including Paytm and PhonePe.",
+                a: "We use Razorpay, which supports UPI, Net Banking, credit cards, debit cards, and wallets including Paytm and PhonePe.",
+              },
+              {
+                q: "Can I cancel anytime?",
+                a: "Yes. Cancel from your dashboard or email us at hello@geoiqai.com and we will handle it same day.",
               },
             ].map(({ q, a }, i) => (
               <div key={i} className="bg-card p-6 rounded-xl border border-border">

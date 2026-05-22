@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type PaymentOrderInputPlan = typeof PaymentOrderInputPlan[keyof typeof PaymentOrderInputPlan];
+export type SubscriptionInputPlan = typeof SubscriptionInputPlan[keyof typeof SubscriptionInputPlan];
 
 
-export const PaymentOrderInputPlan = {
+export const SubscriptionInputPlan = {
   starter: 'starter',
   agency: 'agency',
 } as const;

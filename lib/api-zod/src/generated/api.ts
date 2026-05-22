@@ -355,35 +355,38 @@ export const GetBrandScoresResponse = zod.array(GetBrandScoresResponseItem)
 
 
 /**
- * @summary Create a Razorpay payment order
+ * @summary Create a Razorpay subscription
  */
-export const CreatePaymentOrderBody = zod.object({
-  "plan": zod.enum(['starter', 'agency'])
+export const CreateSubscriptionBody = zod.object({
+  "plan": zod.enum(['starter', 'agency']),
+  "email": zod.string(),
+  "domain": zod.string().optional()
 })
 
-export const CreatePaymentOrderResponse = zod.object({
-  "orderId": zod.string(),
+export const CreateSubscriptionResponse = zod.object({
+  "subscription_id": zod.string(),
+  "razorpay_key": zod.string(),
+  "customer_id": zod.string().optional(),
   "amount": zod.number(),
-  "currency": zod.string(),
-  "keyId": zod.string()
+  "plan_name": zod.string()
 })
 
 
 /**
- * @summary Verify and activate a completed payment
+ * @summary Verify a completed subscription payment
  */
 export const VerifyPaymentBody = zod.object({
-  "razorpayOrderId": zod.string(),
-  "razorpayPaymentId": zod.string(),
-  "razorpaySignature": zod.string(),
+  "razorpay_payment_id": zod.string(),
+  "razorpay_subscription_id": zod.string(),
+  "razorpay_signature": zod.string(),
+  "email": zod.string(),
+  "domain": zod.string().optional(),
   "plan": zod.string()
 })
 
 export const VerifyPaymentResponse = zod.object({
-  "id": zod.string(),
-  "email": zod.string(),
-  "plan": zod.enum(['free', 'starter', 'agency']),
-  "createdAt": zod.string()
+  "success": zod.boolean(),
+  "message": zod.string()
 })
 
 

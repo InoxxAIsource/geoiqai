@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -263,6 +263,132 @@ function SystemCard({
             </div>
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+declare global {
+  interface Window {
+    Razorpay: new (options: Record<string, unknown>) => { open(): void };
+  }
+}
+
+function loadRazorpay(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (window.Razorpay) { resolve(); return; }
+    const s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error("Failed to load Razorpay"));
+    document.body.appendChild(s);
+  });
+}
+
+function UpgradeBox({ domain }: { domain: string }) {
+  const [showForm, setShowForm] = useState(false);
+  const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+  const [paidEmail, setPaidEmail] = useState("");
+  const { toast } = useToast();
+
+  const handlePay = useCallback(async () => {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed || !trimmed.includes("@")) { setEmailError("Enter a valid email"); return; }
+    setEmailError("");
+    setLoading(true);
+    try {
+      await loadRazorpay();
+      const subRes = await fetch("/api/payment/create-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: "starter", email: trimmed, domain }),
+      });
+      if (!subRes.ok) {
+        const err = await subRes.json() as { error?: string };
+        toast({ title: "Could not create subscription", description: err.error ?? "Try again.", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+      const sub = await subRes.json() as { subscription_id: string; razorpay_key: string; plan_name: string };
+      new window.Razorpay({
+        key: sub.razorpay_key,
+        subscription_id: sub.subscription_id,
+        name: "GeoIQ",
+        description: sub.plan_name,
+        theme: { color: "#4F46E5" },
+        prefill: { email: trimmed },
+        handler: async (r: { razorpay_payment_id: string; razorpay_subscription_id: string; razorpay_signature: string }) => {
+          const v = await fetch("/api/payment/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ razorpay_payment_id: r.razorpay_payment_id, razorpay_subscription_id: r.razorpay_subscription_id, razorpay_signature: r.razorpay_signature, email: trimmed, plan: "starter", domain }),
+          });
+          if (v.ok) { setPaidEmail(trimmed); setDone(true); }
+          else { toast({ title: "Verification failed", description: "Email hello@geoiqai.com if payment was deducted.", variant: "destructive" }); }
+          setLoading(false);
+        },
+        modal: { ondismiss: () => setLoading(false) },
+      }).open();
+    } catch {
+      toast({ title: "Error", description: "Could not start payment. Please try again.", variant: "destructive" });
+      setLoading(false);
+    }
+  }, [email, domain, toast]);
+
+  if (done) {
+    return (
+      <div style={{ background: "#ecfdf5", border: "1px solid #6ee7b7", borderRadius: 12, padding: "24px", textAlign: "center" }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: "#065f46", marginBottom: 8 }}>You are in.</div>
+        <p style={{ fontSize: 13, color: "#047857", lineHeight: 1.6 }}>
+          Login link sent to <strong>{paidEmail}</strong>. Click it to access your full roadmap.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: "#0f172a", border: "1px solid #4F46E5", borderRadius: 12, padding: "24px", textAlign: "center" }}>
+      <div style={{ fontSize: 18, fontWeight: 600, color: "white", marginBottom: 8 }}>
+        Unlock your complete execution roadmap
+      </div>
+      <div style={{ fontSize: 13, color: "#9CA3AF", lineHeight: 1.6, maxWidth: 460, margin: "0 auto 8px" }}>
+        Get exact tasks, direct URLs, generated content and keyword suggestions for all 4 weeks.
+        Most brands reach 50+ GEO IQ in 30 days.
+      </div>
+      <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 20 }}>Rs 3,999/month - cancel anytime</div>
+      {!showForm ? (
+        <button
+          onClick={() => setShowForm(true)}
+          style={{ background: "#4F46E5", color: "white", border: "none", borderRadius: 8, padding: "12px 32px", fontSize: 15, fontWeight: 600, cursor: "pointer", width: "100%", maxWidth: 400 }}
+        >
+          Unlock full roadmap
+        </button>
+      ) : (
+        <div style={{ maxWidth: 400, margin: "0 auto" }}>
+          <input
+            type="email"
+            placeholder="founder@startup.com"
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); setEmailError(""); }}
+            onKeyDown={(e) => { if (e.key === "Enter") { void handlePay(); } }}
+            style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#1e293b", color: "white", fontSize: 14, marginBottom: 6, boxSizing: "border-box" }}
+            autoFocus
+          />
+          {emailError && <p style={{ color: "#f87171", fontSize: 12, marginBottom: 8, textAlign: "left" }}>{emailError}</p>}
+          <button
+            onClick={() => { void handlePay(); }}
+            disabled={loading}
+            style={{ width: "100%", background: "#4F46E5", color: "white", border: "none", borderRadius: 8, padding: "12px", fontSize: 15, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+          >
+            {loading
+              ? <><Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} /> Opening payment...</>
+              : "Pay Rs 3,999/month"}
+          </button>
+          <p style={{ fontSize: 11, color: "#4b5563", marginTop: 8 }}>Secured by Razorpay. Cancel anytime.</p>
+        </div>
       )}
     </div>
   );
@@ -875,37 +1001,23 @@ export default function Audit() {
                   </div>
 
                   {/* Upgrade box */}
-                  <div style={{ background: "#0f172a", border: "1px solid #4F46E5", borderRadius: 12, padding: "24px", textAlign: "center" }}>
-                    <div style={{ fontSize: 18, fontWeight: 600, color: "white", marginBottom: 10 }}>
-                      Unlock your complete execution roadmap
-                    </div>
-                    <div style={{ fontSize: 13, color: "#9CA3AF", marginBottom: 8, lineHeight: 1.6, maxWidth: 460, margin: "0 auto 8px" }}>
-                      Get exact tasks, direct URLs, generated content and keyword suggestions for all 4 weeks.
-                      Most brands reach 50+ GEO IQ in 30 days with our roadmap.
-                    </div>
-                    <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 20 }}>Rs 3,999/month - cancel anytime</div>
-                    <Link href={roadmapUrl}>
-                      <Button style={{ width: "100%", background: "#4F46E5", color: "white", height: 48, fontSize: 15, fontWeight: 600, marginBottom: 16, maxWidth: 400 }}>
-                        View my full roadmap
+                  <UpgradeBox domain={auditResult.domain} />
+                  <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 12, textAlign: "center", marginTop: 12 }}>or get free weekly digest updates</div>
+                  <Form {...emailForm}>
+                    <form onSubmit={emailForm.handleSubmit(onSubscribe)} style={{ display: "flex", gap: 8, maxWidth: 400, margin: "0 auto" }}>
+                      <FormField control={emailForm.control} name="email" render={({ field }) => (
+                        <FormItem style={{ flex: 1 }}>
+                          <FormControl>
+                            <Input placeholder="your@email.com" style={{ background: "white", border: "0.5px solid #d1d5db", color: "#111827" }} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                      <Button type="submit" variant="outline" disabled={subscribeMutation.isPending} style={{ whiteSpace: "nowrap", flexShrink: 0 }}>
+                        {subscribeMutation.isPending ? "..." : "Subscribe"}
                       </Button>
-                    </Link>
-                    <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 12 }}>or get free weekly digest updates</div>
-                    <Form {...emailForm}>
-                      <form onSubmit={emailForm.handleSubmit(onSubscribe)} style={{ display: "flex", gap: 8, maxWidth: 400, margin: "0 auto" }}>
-                        <FormField control={emailForm.control} name="email" render={({ field }) => (
-                          <FormItem style={{ flex: 1 }}>
-                            <FormControl>
-                              <Input placeholder="your@email.com" style={{ background: "#1e293b", border: "0.5px solid #334155", color: "white" }} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <Button type="submit" variant="outline" disabled={subscribeMutation.isPending} style={{ whiteSpace: "nowrap", flexShrink: 0, borderColor: "#334155", color: "#9CA3AF" }}>
-                          {subscribeMutation.isPending ? "..." : "Subscribe"}
-                        </Button>
-                      </form>
-                    </Form>
-                  </div>
+                    </form>
+                  </Form>
                 </div>
               );
             })()}
