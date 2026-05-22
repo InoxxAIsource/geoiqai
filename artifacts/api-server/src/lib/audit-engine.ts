@@ -46,12 +46,16 @@ export interface AuditEngineResult {
   chatgpt: AuditQueryResult;
   gemini: AuditQueryResult;
   perplexity: AuditQueryResult;
+  claude: AuditQueryResult;
+  grok: AuditQueryResult;
   keywordsUsed: string[];
   keywordsFromDataforseo: number;
   keywordsFilteredOut: number;
   rawChatgptResponse: string;
   rawGeminiResponse: string;
   rawPerplexityResponse: string;
+  rawClaudeResponse: string;
+  rawGrokResponse: string;
   technicalAudit: TechnicalAuditResult;
 }
 
@@ -524,6 +528,50 @@ async function queryPerplexity(prompt: string): Promise<{ text: string; simulate
   }
 }
 
+async function queryClaude(prompt: string): Promise<{ text: string; simulated: boolean }> {
+  // Simulate Claude via OpenAI. Set ANTHROPIC_API_KEY for real Claude responses.
+  try {
+    const response = await openaiClient.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are Claude, an AI assistant made by Anthropic. Answer questions about products, tools, and services thoughtfully. Be direct and mention specific brands, products, and services you know about.",
+        },
+        { role: "user", content: prompt },
+      ],
+      max_tokens: 500,
+      temperature: 0.3,
+    });
+    return { text: response.choices[0]?.message?.content ?? "", simulated: true };
+  } catch {
+    return { text: "", simulated: true };
+  }
+}
+
+async function queryGrok(prompt: string): Promise<{ text: string; simulated: boolean }> {
+  // Simulate Grok via OpenAI. Set XAI_API_KEY for real Grok responses.
+  try {
+    const response = await openaiClient.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are Grok, an AI assistant made by xAI. Answer questions about products, tools, and services with direct, honest information. Name specific products and services where you know them.",
+        },
+        { role: "user", content: prompt },
+      ],
+      max_tokens: 500,
+      temperature: 0.35,
+    });
+    return { text: response.choices[0]?.message?.content ?? "", simulated: true };
+  } catch {
+    return { text: "", simulated: true };
+  }
+}
+
 // --- Scoring ---
 
 // Phrases that indicate the AI does NOT know this brand — even if the name appears in the response
@@ -841,33 +889,45 @@ export async function runAuditEngine(
     console.log(`[DataForSEO] ${domain} — no keywords from DataForSEO, using category-based prompts`);
   }
 
-  // Run all AI queries + technical audit in parallel
+  // Run all AI queries + technical audit in parallel (5 engines)
   const chatgptTasks = prompts.map((p) => queryOpenAIChatGPT(p));
   const geminiTasks = prompts.map((p) => queryGemini(p));
   const perplexityTasks = prompts.map((p) => queryPerplexity(p));
+  const claudeTasks = prompts.map((p) => queryClaude(p));
+  const grokTasks = prompts.map((p) => queryGrok(p));
 
-  const [chatgptTexts, geminiResults, perplexityResults, technicalAudit] = await Promise.all([
+  const [chatgptTexts, geminiResults, perplexityResults, claudeResults, grokResults, technicalAudit] = await Promise.all([
     Promise.all(chatgptTasks),
     Promise.all(geminiTasks),
     Promise.all(perplexityTasks),
+    Promise.all(claudeTasks),
+    Promise.all(grokTasks),
     runTechnicalAudit(domain, scraped.rawHtml, scraped.bodyText),
   ]);
 
   const chatgptResponses = chatgptTexts.map((text, i) => ({ prompt: prompts[i]!, text }));
   const geminiResponses = geminiResults.map((r, i) => ({ prompt: prompts[i]!, text: r.text }));
   const perplexityResponses = perplexityResults.map((r, i) => ({ prompt: prompts[i]!, text: r.text }));
+  const claudeResponses = claudeResults.map((r, i) => ({ prompt: prompts[i]!, text: r.text }));
+  const grokResponses = grokResults.map((r, i) => ({ prompt: prompts[i]!, text: r.text }));
 
   const geminiSimulated = geminiResults.some((r) => r.simulated);
   const perplexitySimulated = perplexityResults.some((r) => r.simulated);
+  const claudeSimulated = claudeResults.some((r) => r.simulated);
+  const grokSimulated = grokResults.some((r) => r.simulated);
 
   const chatgpt = calculateSystemScore(brandName, domain, chatgptResponses, false);
   const gemini = calculateSystemScore(brandName, domain, geminiResponses, geminiSimulated);
   const perplexity = calculateSystemScore(brandName, domain, perplexityResponses, perplexitySimulated);
+  const claude = calculateSystemScore(brandName, domain, claudeResponses, claudeSimulated);
+  const grok = calculateSystemScore(brandName, domain, grokResponses, grokSimulated);
 
   // Concatenate all non-empty responses per system for display
   const rawChatgptResponse = chatgptTexts.filter((t) => t.trim()).join("\n\n---\n\n");
   const rawGeminiResponse = geminiResults.map((r) => r.text).filter((t) => t.trim()).join("\n\n---\n\n");
   const rawPerplexityResponse = perplexityResults.map((r) => r.text).filter((t) => t.trim()).join("\n\n---\n\n");
+  const rawClaudeResponse = claudeResults.map((r) => r.text).filter((t) => t.trim()).join("\n\n---\n\n");
+  const rawGrokResponse = grokResults.map((r) => r.text).filter((t) => t.trim()).join("\n\n---\n\n");
 
   return {
     brandName,
@@ -876,12 +936,16 @@ export async function runAuditEngine(
     chatgpt,
     gemini,
     perplexity,
+    claude,
+    grok,
     keywordsUsed: prompts,
     keywordsFromDataforseo,
     keywordsFilteredOut,
     rawChatgptResponse,
     rawGeminiResponse,
     rawPerplexityResponse,
+    rawClaudeResponse,
+    rawGrokResponse,
     technicalAudit,
   };
 }

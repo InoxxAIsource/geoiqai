@@ -92,6 +92,18 @@ export interface AuditResult {
   geminiRawResponse?: string | null;
   /** @nullable */
   perplexityRawResponse?: string | null;
+  scoreClaude?: number;
+  scoreGrok?: number;
+  claudeFound?: boolean;
+  grokFound?: boolean;
+  /** @nullable */
+  claudeDetail?: string | null;
+  /** @nullable */
+  grokDetail?: string | null;
+  /** @nullable */
+  claudeRawResponse?: string | null;
+  /** @nullable */
+  grokRawResponse?: string | null;
   technicalAudit?: TechnicalAuditResult | null;
   competitorsFound?: string[];
   keywordsUsed?: string[];

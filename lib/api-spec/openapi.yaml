@@ -412,6 +412,22 @@ components:
           type: ["string", "null"]
         perplexityRawResponse:
           type: ["string", "null"]
+        scoreClaude:
+          type: integer
+        scoreGrok:
+          type: integer
+        claudeFound:
+          type: boolean
+        grokFound:
+          type: boolean
+        claudeDetail:
+          type: ["string", "null"]
+        grokDetail:
+          type: ["string", "null"]
+        claudeRawResponse:
+          type: ["string", "null"]
+        grokRawResponse:
+          type: ["string", "null"]
         technicalAudit:
           oneOf:
             - $ref: "#/components/schemas/TechnicalAuditResult"

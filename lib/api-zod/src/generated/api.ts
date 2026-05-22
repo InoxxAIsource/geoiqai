@@ -49,6 +49,14 @@ export const RunAuditResponse = zod.object({
   "chatgptRawResponse": zod.string().nullish(),
   "geminiRawResponse": zod.string().nullish(),
   "perplexityRawResponse": zod.string().nullish(),
+  "scoreClaude": zod.number().optional(),
+  "scoreGrok": zod.number().optional(),
+  "claudeFound": zod.boolean().optional(),
+  "grokFound": zod.boolean().optional(),
+  "claudeDetail": zod.string().nullish(),
+  "grokDetail": zod.string().nullish(),
+  "claudeRawResponse": zod.string().nullish(),
+  "grokRawResponse": zod.string().nullish(),
   "technicalAudit": zod.union([zod.object({
   "checks": zod.array(zod.object({
   "id": zod.string(),
@@ -107,6 +115,14 @@ export const GetAuditResponse = zod.object({
   "chatgptRawResponse": zod.string().nullish(),
   "geminiRawResponse": zod.string().nullish(),
   "perplexityRawResponse": zod.string().nullish(),
+  "scoreClaude": zod.number().optional(),
+  "scoreGrok": zod.number().optional(),
+  "claudeFound": zod.boolean().optional(),
+  "grokFound": zod.boolean().optional(),
+  "claudeDetail": zod.string().nullish(),
+  "grokDetail": zod.string().nullish(),
+  "claudeRawResponse": zod.string().nullish(),
+  "grokRawResponse": zod.string().nullish(),
   "technicalAudit": zod.union([zod.object({
   "checks": zod.array(zod.object({
   "id": zod.string(),

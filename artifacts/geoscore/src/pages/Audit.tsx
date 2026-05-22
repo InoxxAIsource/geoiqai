@@ -23,6 +23,8 @@ const LOADING_STEPS = [
   "Querying ChatGPT",
   "Querying Gemini",
   "Querying Perplexity",
+  "Querying Claude",
+  "Querying Grok",
   "Running technical GEO audit",
   "Computing your GEO IQ",
 ];
@@ -105,58 +107,73 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+const ENGINE_CONFIG: Record<string, { color: string; barColor: string; label: string }> = {
+  ChatGPT:    { color: "#10a37f", barColor: "linear-gradient(90deg,#0d9068,#10a37f)", label: "ChatGPT says:" },
+  Gemini:     { color: "#4285f4", barColor: "linear-gradient(90deg,#1a6fe8,#4285f4)", label: "Gemini says:" },
+  Perplexity: { color: "#9333ea", barColor: "linear-gradient(90deg,#7c22d4,#9333ea)", label: "Perplexity says:" },
+  Claude:     { color: "#d97706", barColor: "linear-gradient(90deg,#b45309,#d97706)", label: "Claude says:" },
+  Grok:       { color: "#374151", barColor: "linear-gradient(90deg,#1f2937,#374151)", label: "Grok says:" },
+};
+
 function SystemCard({
-  system, found, score, detail, rawResponse, checkedAt,
+  system, found, score, detail, rawResponse, checkedAt, simulated,
 }: {
   system: string; found: boolean; score: number; detail?: string | null;
-  rawResponse?: string | null; checkedAt: string;
+  rawResponse?: string | null; checkedAt: string; simulated?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const understanding = getUnderstandingLabel(score);
   const scaledScore = Math.round((score / 33) * 100);
-  const systemColors: Record<string, string> = {
-    ChatGPT: "#10a37f", Gemini: "#4285f4", Perplexity: "#22d3ee",
-  };
-  const color = systemColors[system] ?? "#4F46E5";
-  const rawLabel: Record<string, string> = {
-    ChatGPT: "ChatGPT says:",
-    Gemini: "Gemini says:",
-    Perplexity: "Perplexity says:",
-  };
+  const cfg = ENGINE_CONFIG[system] ?? { color: "#4F46E5", barColor: "linear-gradient(90deg,#4F46E5,#7C3AED)", label: `${system} says:` };
 
   return (
-    <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 12, marginBottom: 10, overflow: "hidden" }}>
-      <div style={{ padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: "50%",
-            background: found ? "#ecfdf5" : "#fef2f2",
-            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-          }}>
-            {found
-              ? <CheckCircle2 style={{ width: 18, height: 18, color: "#10b981" }} />
-              : <XCircle style={{ width: 18, height: 18, color: "#ef4444" }} />}
+    <div style={{
+      background: "white",
+      border: "0.5px solid #e5e7eb",
+      borderLeft: `3px solid ${cfg.color}`,
+      borderRadius: 10,
+      marginBottom: 8,
+      overflow: "hidden",
+    }}>
+      <div style={{ padding: "12px 14px 10px" }}>
+        {/* Engine name row */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: cfg.color, display: "inline-block", flexShrink: 0 }} />
+            <span style={{ fontWeight: 600, fontSize: 13, color: "#111827" }}>{system}</span>
+            {simulated && (
+              <span style={{ fontSize: 10, color: "#9ca3af", background: "#f3f4f6", border: "0.5px solid #e5e7eb", borderRadius: 4, padding: "1px 5px", letterSpacing: "0.02em" }}>simulated</span>
+            )}
           </div>
-          <div>
-            <div style={{ fontWeight: 500, fontSize: 14, color: "#111827", display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: color }} />
-              {system}
-            </div>
-            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
-              {found
-                ? detail ? detail.substring(0, 80) + (detail.length > 80 ? "..." : "") : "Mentioned in responses"
-                : "Not found in AI responses"}
-            </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{
+              background: understanding.bg, color: understanding.color,
+              borderRadius: 9999, padding: "2px 9px", fontSize: 11, fontWeight: 500,
+            }}>
+              {understanding.label}
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: scaledScore > 0 ? cfg.color : "#d1d5db", minWidth: 38, textAlign: "right" }}>
+              {scaledScore}<span style={{ fontSize: 11, fontWeight: 400, color: "#9ca3af" }}>/100</span>
+            </span>
           </div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0, marginLeft: 16 }}>
-          <span style={{
-            background: understanding.bg, color: understanding.color,
-            borderRadius: 9999, padding: "2px 10px", fontSize: 12, fontWeight: 500,
-          }}>
-            {understanding.label}
-          </span>
-          <span style={{ fontSize: 12, color: "#6b7280" }}>{scaledScore}/100</span>
+
+        {/* Score bar */}
+        <div style={{ height: 5, background: "#f3f4f6", borderRadius: 3, overflow: "hidden", marginBottom: 9 }}>
+          <div style={{
+            height: "100%",
+            width: `${scaledScore}%`,
+            background: scaledScore === 0 ? "#e5e7eb" : cfg.barColor,
+            borderRadius: 3,
+            transition: "width 1.1s cubic-bezier(0.4,0,0.2,1)",
+          }} />
+        </div>
+
+        {/* Detail line */}
+        <div style={{ fontSize: 12, color: found ? "#4b5563" : "#9ca3af", lineHeight: 1.5 }}>
+          {found && detail
+            ? detail.substring(0, 110) + (detail.length > 110 ? "..." : "")
+            : "Not mentioned when AI systems were asked about your category"}
         </div>
       </div>
 
@@ -165,26 +182,29 @@ function SystemCard({
           <div
             onClick={() => setExpanded(!expanded)}
             style={{
-              padding: "8px 16px", borderTop: "0.5px solid #f3f4f6",
+              padding: "7px 14px", borderTop: "0.5px solid #f3f4f6",
               display: "flex", alignItems: "center", justifyContent: "space-between",
               cursor: "pointer", background: expanded ? "#f9fafb" : "white",
-              fontSize: 12, color: "#6b7280", userSelect: "none",
+              fontSize: 11, color: "#6b7280", userSelect: "none",
             }}
           >
             <span>What {system} actually said about you</span>
             {expanded
-              ? <ChevronUp style={{ width: 14, height: 14 }} />
-              : <ChevronDown style={{ width: 14, height: 14 }} />}
+              ? <ChevronUp style={{ width: 13, height: 13 }} />
+              : <ChevronDown style={{ width: 13, height: 13 }} />}
           </div>
           {expanded && (
             <div style={{ background: "#0d1117", padding: "16px" }}>
               <div style={{
                 fontSize: 11, color: "#8b949e", fontFamily: "monospace",
                 marginBottom: 10, display: "flex", justifyContent: "space-between",
-                alignItems: "center",
+                alignItems: "center", flexWrap: "wrap", gap: 8,
               }}>
-                <span style={{ color: "#58a6ff", fontWeight: 600 }}>{rawLabel[system] ?? `${system} says:`}</span>
-                <span>Checked {formatTimestamp(checkedAt)}</span>
+                <span style={{ color: cfg.color, fontWeight: 600 }}>{cfg.label}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ color: "#6b7280" }}>Checked {formatTimestamp(checkedAt)}</span>
+                  <CopyButton text={rawResponse ?? ""} />
+                </div>
               </div>
               <pre style={{
                 fontSize: 12, color: "#e6edf3", fontFamily: "monospace",
@@ -440,7 +460,7 @@ export default function Audit() {
             </div>
             <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 32, textAlign: "center", lineHeight: 1.5 }}>
               Scanning <strong style={{ color: "#374151" }}>{urlParam}</strong> across<br />
-              ChatGPT, Gemini &amp; Perplexity
+              ChatGPT, Gemini, Perplexity, Claude &amp; Grok
             </p>
             <div style={{ width: "100%", marginBottom: 28 }}>
               {LOADING_STEPS.map((label, i) => {
@@ -535,26 +555,41 @@ export default function Audit() {
             )}
 
             {/* 3 Summary Cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 28 }}>
-              {[
-                { label: `${[auditResult.chatgptFound, auditResult.geminiFound, auditResult.perplexityFound].filter(Boolean).length}/3 AI systems found you` },
-                { label: auditResult.chatgptFound ? "Visible on ChatGPT" : auditResult.geminiFound ? "Visible on Gemini" : "Not ranked anywhere" },
-                { label: `${[!auditResult.chatgptFound, !auditResult.geminiFound, !auditResult.perplexityFound].filter(Boolean).length} blind spot${[!auditResult.chatgptFound, !auditResult.geminiFound, !auditResult.perplexityFound].filter(Boolean).length !== 1 ? "s" : ""} found` },
-              ].map((card, i) => (
-                <div key={i} style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "12px 14px", fontSize: 13, color: "#374151", fontWeight: 500, textAlign: "center" }}>
-                  {card.label}
+            {(() => {
+              const allFound = [auditResult.chatgptFound, auditResult.geminiFound, auditResult.perplexityFound, auditResult.claudeFound ?? false, auditResult.grokFound ?? false];
+              const foundCount = allFound.filter(Boolean).length;
+              const blindSpots = allFound.filter(f => !f).length;
+              const bestEngine = auditResult.chatgptFound ? "ChatGPT" : auditResult.geminiFound ? "Gemini" : auditResult.perplexityFound ? "Perplexity" : auditResult.claudeFound ? "Claude" : auditResult.grokFound ? "Grok" : null;
+              return (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 28 }}>
+                  {[
+                    { label: `${foundCount}/5 AI engines found you` },
+                    { label: bestEngine ? `Visible on ${bestEngine}` : "Not ranked anywhere" },
+                    { label: `${blindSpots} blind spot${blindSpots !== 1 ? "s" : ""} found` },
+                  ].map((card, i) => (
+                    <div key={i} style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "12px 14px", fontSize: 13, color: "#374151", fontWeight: 500, textAlign: "center" }}>
+                      {card.label}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              );
+            })()}
 
             {/* Section 01: AI Visibility */}
             <div style={{ marginBottom: 28 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>
-                01 - AI Visibility
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                  01 - Brand Recognition by AI Engine
+                </div>
+                <div style={{ fontSize: 11, color: "#9ca3af" }}>
+                  5 engines checked
+                </div>
               </div>
               <SystemCard system="ChatGPT" found={auditResult.chatgptFound} score={auditResult.scoreChatgpt} detail={auditResult.chatgptDetail} rawResponse={auditResult.chatgptRawResponse} checkedAt={auditResult.createdAt} />
               <SystemCard system="Gemini" found={auditResult.geminiFound} score={auditResult.scoreGemini} detail={auditResult.geminiDetail} rawResponse={auditResult.geminiRawResponse} checkedAt={auditResult.createdAt} />
               <SystemCard system="Perplexity" found={auditResult.perplexityFound} score={auditResult.scorePerplexity} detail={auditResult.perplexityDetail} rawResponse={auditResult.perplexityRawResponse} checkedAt={auditResult.createdAt} />
+              <SystemCard system="Claude" found={auditResult.claudeFound ?? false} score={auditResult.scoreClaude ?? 0} detail={auditResult.claudeDetail} rawResponse={auditResult.claudeRawResponse} checkedAt={auditResult.createdAt} simulated />
+              <SystemCard system="Grok" found={auditResult.grokFound ?? false} score={auditResult.scoreGrok ?? 0} detail={auditResult.grokDetail} rawResponse={auditResult.grokRawResponse} checkedAt={auditResult.createdAt} simulated />
             </div>
 
             {/* Section 02: Technical GEO Audit */}

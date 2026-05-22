@@ -30,15 +30,23 @@ function serializeAudit(
     scoreChatgpt: audit.scoreChatgpt,
     scoreGemini: audit.scoreGemini,
     scorePerplexity: audit.scorePerplexity,
+    scoreClaude: typeof raw.scoreClaude === "number" ? raw.scoreClaude : 0,
+    scoreGrok: typeof raw.scoreGrok === "number" ? raw.scoreGrok : 0,
     chatgptFound: audit.chatgptFound,
     geminiFound: audit.geminiFound,
     perplexityFound: audit.perplexityFound,
+    claudeFound: typeof raw.claudeFound === "boolean" ? raw.claudeFound : false,
+    grokFound: typeof raw.grokFound === "boolean" ? raw.grokFound : false,
     chatgptDetail: audit.chatgptDetail,
     geminiDetail: audit.geminiDetail,
     perplexityDetail: audit.perplexityDetail,
+    claudeDetail: typeof raw.claudeDetail === "string" ? raw.claudeDetail : null,
+    grokDetail: typeof raw.grokDetail === "string" ? raw.grokDetail : null,
     chatgptRawResponse: typeof raw.chatgptRawResponse === "string" ? raw.chatgptRawResponse : null,
     geminiRawResponse: typeof raw.geminiRawResponse === "string" ? raw.geminiRawResponse : null,
     perplexityRawResponse: typeof raw.perplexityRawResponse === "string" ? raw.perplexityRawResponse : null,
+    claudeRawResponse: typeof raw.claudeRawResponse === "string" ? raw.claudeRawResponse : null,
+    grokRawResponse: typeof raw.grokRawResponse === "string" ? raw.grokRawResponse : null,
     technicalAudit: (raw.technicalAudit ?? null) as TechnicalAuditResult | null,
     competitorsFound: audit.competitorsFound,
     keywordsUsed: audit.keywordsUsed,
@@ -98,19 +106,25 @@ router.post("/audit", async (req, res): Promise<void> => {
       chatgpt,
       gemini,
       perplexity,
+      claude,
+      grok,
       keywordsUsed,
       keywordsFromDataforseo,
       keywordsFilteredOut,
       rawChatgptResponse,
       rawGeminiResponse,
       rawPerplexityResponse,
+      rawClaudeResponse,
+      rawGrokResponse,
       technicalAudit,
     } = engineResult;
 
-    const aiVisibilityScore = Math.min(chatgpt.score + gemini.score + perplexity.score, 100);
+    // AI visibility: normalise across all 5 engines (each scores 0-33 max)
+    const rawAiTotal = chatgpt.score + gemini.score + perplexity.score + claude.score + grok.score;
+    const aiVisibilityScore = Math.min(Math.round(rawAiTotal * 100 / (5 * 33)), 100);
     const scoreTechnical = technicalAudit.overallScore;
     const scoreTotal = Math.round(aiVisibilityScore * 0.6 + scoreTechnical * 0.4);
-    const allCompetitors = [...new Set([...chatgpt.competitors, ...gemini.competitors, ...perplexity.competitors])];
+    const allCompetitors = [...new Set([...chatgpt.competitors, ...gemini.competitors, ...perplexity.competitors, ...claude.competitors, ...grok.competitors])];
 
     const recommendations = await generateRecommendations(
       brandName,
@@ -146,9 +160,17 @@ router.post("/audit", async (req, res): Promise<void> => {
         keywordsReason: keywordsFilteredOut > 0 ? "branded/informational/navigational" : "none filtered",
         scoreAiVisibility: aiVisibilityScore,
         scoreTechnical,
+        scoreClaude: claude.score,
+        scoreGrok: grok.score,
+        claudeFound: claude.found,
+        grokFound: grok.found,
+        claudeDetail: claude.detail,
+        grokDetail: grok.detail,
         chatgptRawResponse: rawChatgptResponse,
         geminiRawResponse: rawGeminiResponse,
         perplexityRawResponse: rawPerplexityResponse,
+        claudeRawResponse: rawClaudeResponse,
+        grokRawResponse: rawGrokResponse,
         technicalAudit,
       },
       recommendations: recommendations as unknown as Record<string, unknown>[],
