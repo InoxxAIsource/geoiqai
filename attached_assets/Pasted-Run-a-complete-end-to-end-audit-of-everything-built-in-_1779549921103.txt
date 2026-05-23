@@ -1,0 +1,283 @@
+Run a complete end-to-end audit of 
+everything built in GeoIQ so far.
+Check every feature and report honestly.
+
+=== AUDIT 1: FREE AUDIT FLOW ===
+
+Test these domains and show results:
+
+1. mealcoreai.com
+2. notion.so
+3. cricketarb.com
+4. xusjhf.com (fake domain)
+5. searchless.ai
+
+For each show:
+- Category detected
+- Score total
+- ChatGPT score + status
+- Gemini score + status
+- Perplexity score + status
+- Technical GEO score
+- Cache hit or fresh audit
+- Time taken
+
+Expected:
+xusjhf.com → 0/100
+notion.so → ~24/100
+searchless.ai → low but not 0
+
+Flag anything unexpected.
+
+=== AUDIT 2: FREE AUDIT PAGE ===
+
+Check audit result page has all of:
+
+□ Score number shows correctly
+□ Score color — red/amber/green
+□ Score bar fills correctly
+□ AI system cards with badges
+□ Understanding labels show
+  (Not in training data / Found on web)
+□ Raw AI response expandable
+□ Technical audit section shows
+  with 5 checks + scores
+□ GEO files section shows
+  llms.txt + robots.txt + Schema JSON
+□ Copy buttons work on all files
+□ 4-week roadmap preview shows
+  (locked for free users)
+□ Email capture box shows
+□ Upgrade CTA shows correctly
+□ Share score button works
+
+=== AUDIT 3: EMAIL CAPTURE ===
+
+Test email capture flow:
+
+1. Run free audit on any domain
+2. Enter test@geoiqai.com in email box
+3. Verify:
+   □ Saved to email_subscribers table
+     NOT users table
+   □ Report email sent via Resend
+   □ Success message shows
+   □ First recommendation unlocks
+   □ NO dashboard access given
+   □ NO session created
+
+Check email_subscribers table:
+Show row count and latest entry.
+
+=== AUDIT 4: RATE LIMITING ===
+
+Test rate limits work:
+
+Test 1 — Anonymous IP limit:
+Run 3 audits rapidly
+3rd should be blocked
+Show exact error message displayed
+
+Test 2 — Cache bypass:
+Run same domain twice in 24 hours
+Second should return cached result
+Should NOT count against rate limit
+Show "from cache" indicator
+
+Test 3 — Paid user bypass:
+Paid users should never be blocked
+Confirm rate limiting skipped for
+users with active subscription
+
+=== AUDIT 5: RAZORPAY PAYMENT ===
+
+Test complete payment flow:
+
+1. Go to /pricing
+2. Click "Start monitoring →"
+3. Verify email modal appears
+4. Enter test@geoiqai.com
+5. Verify Razorpay checkout opens
+   (not a blank page or error)
+6. Use test card:
+   Number: 4111 1111 1111 1111
+   Expiry: 12/28
+   CVV: 123
+   OTP: 1234
+7. Complete payment
+
+After payment verify:
+□ Success screen shows
+□ User created in users table
+  with plan = 'starter'
+□ razorpay_subscription_id saved
+□ Magic link email sent via Resend
+□ Email arrives with clickable link
+
+If Razorpay checkout does not open
+show exact error from console/logs.
+
+=== AUDIT 6: MAGIC LINK LOGIN ===
+
+After payment test:
+
+1. Click magic link in email
+2. Verify:
+   □ Token validated correctly
+   □ Session created
+   □ Redirects to /dashboard
+   □ Dashboard loads with real data
+   □ NOT redirected back to /pricing
+
+Test expired link:
+Wait 16 minutes (or manually expire token)
+Click same link again
+Expected: "Link expired" message
+with "Request new link" option
+
+=== AUDIT 7: DASHBOARD ===
+
+As paid user verify all tabs work:
+
+□ Overview tab loads
+   - Score shows correctly
+   - Trend chart renders
+   - AI system status shows
+   - Citation landscape chart renders
+
+□ GEO Agent tab loads
+   - Auto briefing generates on open
+   - Briefing mentions correct brand
+   - Thinking messages show while loading
+   - Follow-up chips appear after response
+   - Writing has no **bold** markdown
+   - Tweet cards parse correctly
+   - Blog card renders with EEAT score
+   - Visual components auto-render
+
+□ Visibility tab loads
+   - Per-prompt scores table shows
+   - Can click row to expand
+   - Raw responses visible in dark box
+
+□ Citations tab loads
+   - Citation source table shows
+   - Citation gap chart renders
+   - Type badges colored correctly
+
+□ Competition tab loads
+   - Mention rate bars render
+   - Your brand highlighted in indigo
+
+□ Fix Actions tab loads
+   - 4 week tabs show
+   - CITE tags on each task
+   - Tasks expand with instructions
+   - Copy buttons work
+   - Mark complete updates progress
+
+□ Keywords tab loads
+   - Real DataForSEO keywords show
+   - NOT the empty credentials message
+
+□ Settings tab loads
+   - All fields editable
+   - Save button works
+   - Saves to database correctly
+
+=== AUDIT 8: RESEND EMAILS ===
+
+Verify all emails send correctly:
+
+□ Report email (after free audit + email)
+   Subject: "Your GeoIQ report for {domain}"
+   
+□ Magic link email (after payment)
+   Subject: "Welcome to GeoIQ — 
+             click to access dashboard"
+   
+□ Weekly digest (trigger manually)
+   Subject: "Your GEO IQ report — 
+             {domain} — Week of {date}"
+
+For each email show:
+- Resend dashboard delivery status
+- Email preview/content
+
+=== AUDIT 9: SEO PAGES ===
+
+Check all 4 SEO pages load with content:
+
+□ /what-is-geo
+  - Has 1000+ words of content
+  - Has H1 H2 H3 hierarchy
+  - Has internal link to audit tool
+  - Meta title unique
+  - Meta description unique
+
+□ /how-to-rank-in-chatgpt
+  - Has content
+  - Has CTA to free audit
+
+□ /geo-tools
+  - Has comparison table
+  - Has GeoIQ listed
+
+□ /blog/why-startup-not-showing-chatgpt
+  - Has personal story content
+  - Has CTA
+
+=== AUDIT 10: TECHNICAL HEALTH ===
+
+Check app performance:
+
+□ Homepage loads in under 3 seconds
+□ Free audit completes in under 15 seconds
+□ Cached audit returns in under 200ms
+□ No console errors on homepage
+□ No 500 errors in API logs
+□ Mobile responsive at 375px width
+
+Check all API integrations:
+□ OpenAI — last successful call
+□ Gemini — last successful call
+□ Perplexity RapidAPI — last successful call
+□ Anthropic Claude — last successful call
+□ DataForSEO — last successful call + balance
+□ Resend — configured and sending
+
+Check database tables exist:
+□ audits
+□ users
+□ monitored_brands
+□ daily_scores
+□ email_subscribers
+□ rate_limits
+□ keyword_cache
+□ citations
+□ agent_conversations
+□ custom_prompts
+□ magic_tokens
+
+=== FINAL REPORT FORMAT ===
+
+After checking everything report:
+
+WORKING CORRECTLY ✅
+List every feature confirmed working
+
+BROKEN OR BUGGY ❌
+List every issue with exact description
+
+NOT BUILT YET ⏳
+List anything planned but missing
+
+CRITICAL BEFORE LAUNCH 🚨
+Maximum 5 things that must be fixed
+before first paying customer
+
+READY TO LAUNCH?
+Honest yes or no with reason.
+
+If no — what are the exact 3 steps
+to get to yes?
