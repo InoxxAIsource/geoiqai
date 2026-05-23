@@ -166,6 +166,29 @@ router.post("/dashboard/brands/:id/scan", requirePaidAuth, async (req, res): Pro
   }
 });
 
+router.patch("/dashboard/brands/:id", requirePaidAuth, async (req, res): Promise<void> => {
+  const user = (req as AuthRequest).user;
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  if (!rawId) { res.status(400).json({ error: "Invalid brand ID" }); return; }
+
+  const [brand] = await db.select().from(monitoredBrandsTable)
+    .where(and(eq(monitoredBrandsTable.id, rawId), eq(monitoredBrandsTable.userId, user.id)))
+    .limit(1);
+  if (!brand) { res.status(404).json({ error: "Brand not found" }); return; }
+
+  const { brandName, category, market } = req.body as { brandName?: string; category?: string; market?: string };
+  const [updated] = await db.update(monitoredBrandsTable)
+    .set({
+      ...(brandName !== undefined ? { brandName: brandName.trim() || null } : {}),
+      ...(category !== undefined ? { category } : {}),
+      ...(market !== undefined ? { market } : {}),
+    })
+    .where(eq(monitoredBrandsTable.id, rawId))
+    .returning();
+
+  res.json({ id: updated!.id, brandName: updated!.brandName, category: updated!.category, market: updated!.market });
+});
+
 router.delete("/dashboard/brands/:id", requirePaidAuth, async (req, res): Promise<void> => {
   const user = (req as AuthRequest).user;
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

@@ -1,6 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { createHmac } from "crypto";
-import { db, usersTable, magicTokensTable } from "@workspace/db";
+import { db, usersTable, magicTokensTable, monitoredBrandsTable } from "@workspace/db";
+import { extractDomain } from "../lib/audit-engine";
 import { eq } from "drizzle-orm";
 import { generateMagicToken } from "../lib/auth";
 import { sendMagicLinkEmail, sendPaymentWelcomeEmail, sendSubscriptionCancelledEmail } from "../lib/email";
@@ -215,6 +216,29 @@ router.post("/payment/verify", async (req: Request, res: Response): Promise<void
   const magicToken = generateMagicToken();
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
   await db.insert(magicTokensTable).values({ userId, token: magicToken, expiresAt });
+
+  // Auto-create monitored brand if domain was passed from the audit page
+  if (domain && domain.trim().length > 0) {
+    const cleanDomain = extractDomain(domain.trim());
+    const existing = await db.select({ id: monitoredBrandsTable.id })
+      .from(monitoredBrandsTable)
+      .where(eq(monitoredBrandsTable.userId, userId))
+      .limit(1);
+    if (existing.length === 0) {
+      const brandName = cleanDomain.split(".")[0] ?? cleanDomain;
+      const prettyName = brandName.charAt(0).toUpperCase() + brandName.slice(1);
+      await db.insert(monitoredBrandsTable).values({
+        userId,
+        domain: cleanDomain,
+        brandName: prettyName,
+        category: "other",
+        market: "India",
+        keywords: [],
+        competitors: [],
+      });
+      req.log.info({ userId, domain: cleanDomain }, "Auto-created monitored brand after payment");
+    }
+  }
 
   const magicUrl = `${APP_URL}/auth/magic?token=${magicToken}`;
   void sendPaymentWelcomeEmail(cleanEmail, magicUrl, plan, domain ?? "");

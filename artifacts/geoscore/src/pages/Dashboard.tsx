@@ -343,6 +343,10 @@ export default function Dashboard() {
   const [citationModal, setCitationModal] = useState<{ domain: string; type: "competitor" | "authority" | "social" } | null>(null);
   const [socialPostLink, setSocialPostLink] = useState("");
   const [promptSearch, setPromptSearch] = useState("");
+  const [settingsBrandName, setSettingsBrandName] = useState("");
+  const [settingsCategory, setSettingsCategory] = useState("");
+  const [settingsMarket, setSettingsMarket] = useState("");
+  const [settingsSaving, setSettingsSaving] = useState(false);
   const [promptFilter, setPromptFilter] = useState("All");
   const [addPromptModal, setAddPromptModal] = useState(false);
   const [newPromptText, setNewPromptText] = useState("");
@@ -413,6 +417,35 @@ export default function Dashboard() {
     setActiveTab("Overview");
     setTimeout(() => handleScanBrand(brandId), 300);
   }, [handleScanBrand]);
+
+  // Sync settings fields when selected brand changes
+  useEffect(() => {
+    if (selectedBrand) {
+      setSettingsBrandName(selectedBrand.brandName ?? "");
+      setSettingsCategory(selectedBrand.category ?? "");
+      setSettingsMarket(selectedBrand.market ?? "");
+    }
+  }, [selectedBrand?.id]);
+
+  const handleSaveSettings = async () => {
+    if (!selectedBrandId) return;
+    setSettingsSaving(true);
+    try {
+      const token = localStorage.getItem("geoscore_token");
+      const res = await fetch(`/api/dashboard/brands/${selectedBrandId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token ?? ""}` },
+        body: JSON.stringify({ brandName: settingsBrandName, category: settingsCategory, market: settingsMarket }),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      queryClient.invalidateQueries({ queryKey: getGetMonitoredBrandsQueryKey() });
+      toast({ title: "Saved", description: "Brand settings updated." });
+    } catch {
+      toast({ title: "Save failed", description: "Could not update brand settings. Please try again.", variant: "destructive" });
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
 
   const handleRemoveBrand = (id: string, name: string) => {
     if (confirm(`Stop monitoring ${name}?`)) {
@@ -1539,19 +1572,84 @@ export default function Dashboard() {
 
               {/* ===================== SETTINGS TAB ===================== */}
               {activeTab === "Settings" && (
-                <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 14 }}>Account settings</div>
-                  <div style={{ fontSize: 13, color: "#374151", marginBottom: 6 }}>Email: <span style={{ color: "#6b7280" }}>{user?.email ?? "-"}</span></div>
-                  <div style={{ fontSize: 13, color: "#374151", marginBottom: 16 }}>Plan: <span style={{ color: "#4F46E5", fontWeight: 500, textTransform: "capitalize" }}>{user?.plan ?? "free"}</span></div>
-                  {user?.plan === "free" && (
-                    <button style={{ background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "8px 18px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
-                      Upgrade to Starter
-                    </button>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {/* Brand settings card */}
+                  {selectedBrand && (
+                    <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 20 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#111827", marginBottom: 4 }}>Brand settings</div>
+                      <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>Correct these so the AI audit has accurate context about your brand.</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        <div>
+                          <label style={{ display: "block", fontSize: 12, color: "#374151", fontWeight: 500, marginBottom: 4 }}>Domain</label>
+                          <input
+                            value={selectedBrand.domain}
+                            readOnly
+                            style={{ width: "100%", boxSizing: "border-box", fontSize: 13, padding: "8px 10px", border: "0.5px solid #e5e7eb", borderRadius: 6, background: "#f9fafb", color: "#6b7280" }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: "block", fontSize: 12, color: "#374151", fontWeight: 500, marginBottom: 4 }}>Brand name</label>
+                          <input
+                            value={settingsBrandName}
+                            onChange={e => setSettingsBrandName(e.target.value)}
+                            placeholder="e.g. Acme Inc"
+                            style={{ width: "100%", boxSizing: "border-box", fontSize: 13, padding: "8px 10px", border: "0.5px solid #e5e7eb", borderRadius: 6, color: "#111827", outline: "none" }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: "block", fontSize: 12, color: "#374151", fontWeight: 500, marginBottom: 4 }}>Category</label>
+                          <select
+                            value={settingsCategory}
+                            onChange={e => setSettingsCategory(e.target.value)}
+                            style={{ width: "100%", boxSizing: "border-box", fontSize: 13, padding: "8px 10px", border: "0.5px solid #e5e7eb", borderRadius: 6, color: "#111827", background: "white", outline: "none" }}
+                          >
+                            <option value="">Select a category</option>
+                            {["saas", "ecommerce", "fintech", "healthtech", "edtech", "hrtech", "martech", "agency", "media", "consulting", "other"].map(c => (
+                              <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ display: "block", fontSize: 12, color: "#374151", fontWeight: 500, marginBottom: 4 }}>Target market</label>
+                          <input
+                            value={settingsMarket}
+                            onChange={e => setSettingsMarket(e.target.value)}
+                            placeholder="e.g. India, US, Global"
+                            style={{ width: "100%", boxSizing: "border-box", fontSize: 13, padding: "8px 10px", border: "0.5px solid #e5e7eb", borderRadius: 6, color: "#111827", outline: "none" }}
+                          />
+                        </div>
+                        <button
+                          onClick={handleSaveSettings}
+                          disabled={settingsSaving}
+                          style={{ alignSelf: "flex-start", background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "8px 20px", fontSize: 13, fontWeight: 500, cursor: settingsSaving ? "not-allowed" : "pointer", opacity: settingsSaving ? 0.7 : 1 }}
+                        >
+                          {settingsSaving ? "Saving..." : "Save changes"}
+                        </button>
+                      </div>
+                    </div>
                   )}
-                  <div style={{ marginTop: 20, paddingTop: 16, borderTop: "0.5px solid #f3f4f6" }}>
-                    <button onClick={() => { localStorage.removeItem("geoscore_token"); localStorage.removeItem("geoscore_plan"); window.location.href = "/"; }} style={{ background: "transparent", border: "0.5px solid #FECACA", borderRadius: 6, padding: "7px 16px", fontSize: 13, color: "#DC2626", cursor: "pointer" }}>
-                      Sign out
-                    </button>
+
+                  {/* Account card */}
+                  <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 20 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#111827", marginBottom: 14 }}>Account</div>
+                    <div style={{ fontSize: 13, color: "#374151", marginBottom: 6 }}>Email: <span style={{ color: "#6b7280" }}>{user?.email ?? "-"}</span></div>
+                    <div style={{ fontSize: 13, color: "#374151", marginBottom: 16 }}>Plan: <span style={{ color: "#4F46E5", fontWeight: 500, textTransform: "capitalize" }}>{user?.plan ?? "free"}</span></div>
+                    {user?.plan === "free" && (
+                      <button
+                        onClick={() => window.location.href = "/pricing"}
+                        style={{ background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "8px 18px", fontSize: 13, fontWeight: 500, cursor: "pointer", marginBottom: 12 }}
+                      >
+                        Upgrade to Starter
+                      </button>
+                    )}
+                    <div style={{ marginTop: 4, paddingTop: 16, borderTop: "0.5px solid #f3f4f6" }}>
+                      <button
+                        onClick={() => { localStorage.removeItem("geoscore_token"); localStorage.removeItem("geoscore_plan"); window.location.href = "/"; }}
+                        style={{ background: "transparent", border: "0.5px solid #FECACA", borderRadius: 6, padding: "7px 16px", fontSize: 13, color: "#DC2626", cursor: "pointer" }}
+                      >
+                        Sign out
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}

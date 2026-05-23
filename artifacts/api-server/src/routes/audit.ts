@@ -162,6 +162,17 @@ router.post("/audit", async (req, res): Promise<void> => {
       categoryOverride ?? null,
       marketOverride ?? null,
     );
+
+    // Domain was unreachable - return error without saving to DB or counting rate limit
+    if (engineResult.unreachable) {
+      res.status(422).json({
+        error: "We could not reach this domain. Check the URL and try again.",
+        reachable: false,
+        domain: engineResult.brandName,
+      });
+      return;
+    }
+
     const {
       brandName, category, market,
       chatgpt, gemini, perplexity, claude, grok,

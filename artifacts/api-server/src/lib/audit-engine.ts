@@ -46,6 +46,7 @@ export interface TechnicalAuditResult {
 }
 
 export interface AuditEngineResult {
+  unreachable?: boolean;
   brandName: string;
   category: string;
   market: string;
@@ -977,6 +978,47 @@ export async function runAuditEngine(
 ): Promise<AuditEngineResult> {
   const scraped = await scrapeUrl(url);
   const domain = scraped.domain;
+
+  // If the domain could not be reached, bail out immediately.
+  // Do NOT run AI queries or technical checks - they will also fail and waste time.
+  if (!scraped.success) {
+    const failedCheck = (id: string, name: string): TechnicalCheck => ({
+      id, name, score: 0, status: "fail",
+      detail: "Domain could not be reached. Check the URL and try again.",
+    });
+    return {
+      unreachable: true,
+      brandName: domain,
+      category: "other",
+      market: "India",
+      chatgpt: { found: false, detail: null, score: 0, competitors: [] },
+      gemini: { found: false, detail: null, score: 0, competitors: [] },
+      perplexity: { found: false, detail: null, score: 0, competitors: [] },
+      claude: { found: false, detail: null, score: 0, competitors: [] },
+      grok: { found: false, detail: null, score: 0, competitors: [] },
+      keywordsUsed: [],
+      keywordsFromDataforseo: 0,
+      keywordsFilteredOut: 0,
+      rawChatgptResponse: "",
+      rawGeminiResponse: "",
+      rawPerplexityResponse: "",
+      rawClaudeResponse: "",
+      rawGrokResponse: "",
+      technicalAudit: {
+        checks: [
+          failedCheck("robots", "Crawler Access (robots.txt)"),
+          failedCheck("llms", "llms.txt File"),
+          failedCheck("schema", "Schema Markup"),
+          failedCheck("content", "Content Structure"),
+          failedCheck("entity", "Entity Consistency"),
+        ],
+        overallScore: 0,
+        socialLinks: [],
+        contactEmail: null,
+        brandDescription: "",
+      },
+    };
+  }
 
   // Kick off category detection and DataForSEO in parallel
   const [catData, dfsKeywords] = await Promise.all([

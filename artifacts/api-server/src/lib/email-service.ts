@@ -114,5 +114,5 @@ export async function sendSubscribeConfirmation(email: string, domain?: string):
   <p style="font-size:12px;color:#9ca3af;margin-top:24px;text-align:center">GeoIQ · Built for founders in India</p>
 </div>`;
 
-  await sendEmail(email, `Your GEO IQ digest is confirmed`, html);
+  await sendEmail(email, `Your GeoIQ report for ${domain ?? "your domain"} — check your score inside`, html);
 }
