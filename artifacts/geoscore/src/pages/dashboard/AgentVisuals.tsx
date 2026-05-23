@@ -3,92 +3,10 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell, PieChart, Pie,
 } from "recharts";
-import { Copy, ExternalLink, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-export interface Brand {
-  domain: string;
-  brandName: string | null;
-  category: string | null;
-  latestScore: number | null;
-  latestScoreChatgpt: number | null;
-  latestScoreGemini: number | null;
-  latestScorePerplexity: number | null;
-}
-
-export interface TrendPoint {
-  date: string;
-  yours: number;
-  competitor: number;
-}
-
-export interface KeywordEntry {
-  keyword: string;
-  volume: number;
-}
-
-export interface FixAction {
-  id: number;
-  priority: string;
-  action: string;
-  effortHours: number;
-  impactScore: number;
-  done: boolean;
-}
-
-export interface CitationEntry {
-  domain: string;
-  times: number;
-  type: "yours" | "competitor" | "authority" | "social";
-}
-
-export interface CitationData {
-  donut: { name: string; value: number; color: string }[];
-  topDomains: CitationEntry[];
-}
-
-export interface VisualData {
-  brand: Brand;
-  lineChartData: TrendPoint[];
-  keywords: KeywordEntry[];
-  fixActions: FixAction[];
-  citationData: CitationData;
-  competitorDisplayName: string;
-  weekChange: number | null;
-  agentResponse: string;
-}
-
-export type VisualType =
-  | "score_breakdown"
-  | "competitor_chart"
-  | "citation_gap"
-  | "action_cards"
-  | "trend_chart"
-  | "blog_card"
-  | "tweet_cards"
-  | "content_calendar"
-  | "keyword_table"
-  | "technical_scorecard";
-
-// ─── Detection ────────────────────────────────────────────────────────────────
-
-export function detectVisualType(userMsg: string, agentResponse: string): VisualType | null {
-  const msg = userMsg.toLowerCase();
-  const resp = agentResponse.toLowerCase();
-
-  if (resp.includes("tweet 1") || resp.includes("tweet 2") || msg.includes("tweet") || msg.includes("twitter") || (msg.includes("social") && !msg.includes("social media strategy"))) return "tweet_cards";
-  if (resp.includes("# ") || resp.includes("## ") || msg.includes("blog") || msg.includes("article") || msg.includes("write post") || msg.includes("blog post")) return "blog_card";
-  if (msg.includes("score") || msg.includes("low") || msg.includes("why") || msg.includes("visibility") || msg.includes("performance") || msg.includes("how am i doing")) return "score_breakdown";
-  if (msg.includes("competitor") || msg.includes("compare") || msg.includes(" vs ") || msg.includes("beating") || msg.includes("who is winning") || msg.includes("competition")) return "competitor_chart";
-  if (msg.includes("citation") || msg.includes("listed") || msg.includes("sources") || msg.includes("cited") || msg.includes("get mentioned")) return "citation_gap";
-  if (msg.includes("do first") || msg.includes("priority") || msg.includes("fix") || msg.includes("next step") || msg.includes("what should") || msg.includes("action") || msg.includes("todo") || msg.includes("improve")) return "action_cards";
-  if (msg.includes("progress") || msg.includes("trend") || msg.includes("history") || msg.includes("over time") || msg.includes("last month") || msg.includes("getting better") || msg.includes("changed")) return "trend_chart";
-  if (msg.includes("calendar") || msg.includes("content plan") || msg.includes("schedule") || msg.includes("what to post") || msg.includes("this week") || msg.includes("content this")) return "content_calendar";
-  if (msg.includes("keyword") || msg.includes("rank for") || msg.includes("search") || msg.includes("what to target")) return "keyword_table";
-  if (msg.includes("technical") || msg.includes("robots") || msg.includes("schema") || msg.includes("crawler") || msg.includes("llms.txt") || msg.includes("structured data")) return "technical_scorecard";
-  return null;
-}
+import { Copy, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import type {
+  Brand, TrendPoint, KeywordEntry, FixAction, CitationData, VisualData, VisualType,
+} from "./agent-visual-utils";
 
 // ─── Animation wrapper ────────────────────────────────────────────────────────
 
@@ -137,7 +55,7 @@ function ScoreBar({ value, max = 33, color }: { value: number; max?: number; col
   );
 }
 
-// ─── Visual Card wrapper ──────────────────────────────────────────────────────
+// ─── Card wrappers ────────────────────────────────────────────────────────────
 
 function VisualCard({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
@@ -158,18 +76,14 @@ function ScoreBreakdown({ brand }: { brand: Brand }) {
   const chatgpt = brand.latestScoreChatgpt ?? 0;
   const gemini = brand.latestScoreGemini ?? 0;
   const perplexity = brand.latestScorePerplexity ?? 0;
-
   const totalColor = total >= 67 ? "#16A34A" : total >= 34 ? "#D97706" : "#DC2626";
-
   const getStatus = (s: number) => s === 0 ? "Invisible" : s < 11 ? "Low" : s < 22 ? "Moderate" : "Strong";
   const getColor = (s: number) => s === 0 ? "#DC2626" : s < 11 ? "#D97706" : "#16A34A";
-
   const systems = [
     { name: "ChatGPT", score: chatgpt, color: "#10a37f" },
     { name: "Gemini", score: gemini, color: "#4285f4" },
     { name: "Perplexity", score: perplexity, color: "#22d3ee" },
   ];
-
   return (
     <VisualCard>
       <VisualTitle>Your GEO IQ Breakdown</VisualTitle>
@@ -178,13 +92,12 @@ function ScoreBreakdown({ brand }: { brand: Brand }) {
           <CountUp target={total} /><span style={{ fontSize: 18, color: "#9ca3af" }}>/100</span>
         </div>
         <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
-          {total < 34 ? "Below average — most queries return competitors, not you" : total < 67 ? "Moderate — visible in some AI answers, gaps remain" : "Strong — appearing consistently across AI systems"}
+          {total < 34 ? "Below average - most queries return competitors, not you" : total < 67 ? "Moderate - visible in some AI answers, gaps remain" : "Strong - appearing consistently across AI systems"}
         </div>
         <div style={{ height: 8, background: "#f3f4f6", borderRadius: 9999, overflow: "hidden", margin: "10px 0 0" }}>
           <div style={{ height: "100%", width: `${total}%`, background: totalColor, borderRadius: 9999, transition: "width 1s ease" }} />
         </div>
       </div>
-
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {systems.map(s => (
           <div key={s.name} style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -195,7 +108,6 @@ function ScoreBreakdown({ brand }: { brand: Brand }) {
           </div>
         ))}
       </div>
-
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 14 }}>
         {[
           { label: "AI Memory", score: chatgpt + gemini, max: 66, desc: "ChatGPT + Gemini" },
@@ -219,20 +131,12 @@ function ScoreBreakdown({ brand }: { brand: Brand }) {
 function CompetitorChart({ brand, competitorDisplayName }: { brand: Brand; competitorDisplayName: string }) {
   const myScore = brand.latestScore ?? 0;
   const cat = (brand.category ?? "").toLowerCase();
-
   const getCompetitors = () => {
-    if (cat.includes("health") || cat.includes("food") || cat.includes("diet") || cat.includes("nutrition")) {
-      return ["HealthifyMe", "Sugar.fit", "Cult.fit", "Practo"];
-    }
-    if (cat.includes("fintech") || cat.includes("finance")) {
-      return ["Razorpay", "Paytm", "PhonePe", "Groww"];
-    }
-    if (cat.includes("saas") || cat.includes("tool")) {
-      return ["Notion", "Slack", "Linear", "Figma"];
-    }
+    if (cat.includes("health") || cat.includes("food") || cat.includes("diet") || cat.includes("nutrition")) return ["HealthifyMe", "Sugar.fit", "Cult.fit", "Practo"];
+    if (cat.includes("fintech") || cat.includes("finance")) return ["Razorpay", "Paytm", "PhonePe", "Groww"];
+    if (cat.includes("saas") || cat.includes("tool")) return ["Notion", "Slack", "Linear", "Figma"];
     return [competitorDisplayName, "Competitor B", "Competitor C", "Competitor D"];
   };
-
   const competitors = getCompetitors();
   const data = [
     { name: competitors[0], score: Math.min(100, myScore + 54), isYours: false },
@@ -241,10 +145,8 @@ function CompetitorChart({ brand, competitorDisplayName }: { brand: Brand; compe
     { name: competitors[2], score: Math.max(0, myScore - 6), isYours: false },
     { name: competitors[3], score: Math.max(0, myScore - 18), isYours: false },
   ].sort((a, b) => b.score - a.score);
-
   const myRank = data.findIndex(d => d.isYours) + 1;
   const gap = (data[0]?.score ?? 0) - myScore;
-
   return (
     <VisualCard>
       <VisualTitle>AI Mention Rates - Your Category</VisualTitle>
@@ -254,9 +156,7 @@ function CompetitorChart({ brand, competitorDisplayName }: { brand: Brand; compe
           <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "#374151" }} axisLine={false} tickLine={false} width={80} />
           <Tooltip formatter={(v: number) => [`${v}%`, "AI visibility"]} contentStyle={{ fontSize: 11, borderRadius: 6 }} />
           <Bar dataKey="score" radius={[0, 3, 3, 0]}>
-            {data.map((entry, i) => (
-              <Cell key={i} fill={entry.isYours ? "#4F46E5" : "#E5E7EB"} />
-            ))}
+            {data.map((entry, i) => <Cell key={i} fill={entry.isYours ? "#4F46E5" : "#E5E7EB"} />)}
           </Bar>
         </BarChart>
       </ResponsiveContainer>
@@ -272,10 +172,8 @@ function CompetitorChart({ brand, competitorDisplayName }: { brand: Brand; compe
 function CitationGapChart({ brand, citationData }: { brand: Brand; citationData: CitationData }) {
   const total = citationData.donut.reduce((s, d) => s + d.value, 0);
   const top5 = citationData.topDomains.slice(0, 5);
-
   const typeLabel: Record<string, string> = { yours: "Your brand", competitor: "Competitor", authority: "Authority", social: "Social" };
   const typeColor: Record<string, string> = { yours: "#4F46E5", competitor: "#DC2626", authority: "#D97706", social: "#059669" };
-
   return (
     <VisualCard>
       <VisualTitle>Citation Sources - Where AI Systems Find You</VisualTitle>
@@ -283,9 +181,7 @@ function CitationGapChart({ brand, citationData }: { brand: Brand; citationData:
         <div style={{ position: "relative", flexShrink: 0 }}>
           <PieChart width={120} height={120}>
             <Pie data={citationData.donut} cx={60} cy={60} innerRadius={38} outerRadius={55} dataKey="value" paddingAngle={2}>
-              {citationData.donut.map((entry, i) => (
-                <Cell key={i} fill={entry.color} />
-              ))}
+              {citationData.donut.map((entry, i) => <Cell key={i} fill={entry.color} />)}
             </Pie>
           </PieChart>
           <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center" }}>
@@ -298,9 +194,7 @@ function CitationGapChart({ brand, citationData }: { brand: Brand; citationData:
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: typeColor[d.type] ?? "#9ca3af", flexShrink: 0 }} />
               <div style={{ fontSize: 11, color: "#374151", flex: 1 }}>{d.domain}</div>
-              <div style={{ fontSize: 10, color: typeColor[d.type] ?? "#9ca3af", fontWeight: 500, flexShrink: 0 }}>
-                {typeLabel[d.type]}
-              </div>
+              <div style={{ fontSize: 10, color: typeColor[d.type] ?? "#9ca3af", fontWeight: 500, flexShrink: 0 }}>{typeLabel[d.type]}</div>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#111827", flexShrink: 0 }}>{d.times}x</div>
             </div>
           ))}
@@ -320,20 +214,17 @@ function CitationGapChart({ brand, citationData }: { brand: Brand; citationData:
 function PriorityActionCards({ fixActions, brand }: { fixActions: FixAction[]; brand: Brand }) {
   const [copied, setCopied] = useState<number | null>(null);
   const shown = fixActions.filter(a => !a.done).slice(0, 5);
-
   const prioConfig: Record<string, { color: string; bg: string; label: string }> = {
     critical: { color: "#DC2626", bg: "#FEF2F2", label: "CRITICAL" },
     high: { color: "#D97706", bg: "#FFFBEB", label: "HIGH" },
     medium: { color: "#4F46E5", bg: "#EEF2FF", label: "MEDIUM" },
     low: { color: "#6B7280", bg: "#F9FAFB", label: "LOW" },
   };
-
   const handleCopy = (id: number, text: string) => {
     navigator.clipboard.writeText(text);
     setCopied(id);
     setTimeout(() => setCopied(null), 2000);
   };
-
   return (
     <VisualCard>
       <VisualTitle>Priority Actions for {brand.brandName ?? brand.domain}</VisualTitle>
@@ -363,9 +254,9 @@ function PriorityActionCards({ fixActions, brand }: { fixActions: FixAction[]; b
       {shown.length === 0 && (
         <div style={{ fontSize: 12, color: "#6b7280", textAlign: "center", padding: "16px 0" }}>All actions are done. Run a new audit to get fresh recommendations.</div>
       )}
-      <a href="#fix-actions" onClick={e => { e.preventDefault(); document.querySelector("[data-tab='Fix Actions']")?.dispatchEvent(new MouseEvent("click")); }} style={{ fontSize: 11, color: "#4F46E5", display: "block", marginTop: 10, textDecoration: "none" }}>
-        View full 4-week roadmap in Fix Actions tab
-      </a>
+      <div style={{ fontSize: 11, color: "#4F46E5", display: "block", marginTop: 10 }}>
+        View the full 4-week roadmap in the Fix Actions tab.
+      </div>
     </VisualCard>
   );
 }
@@ -374,7 +265,6 @@ function PriorityActionCards({ fixActions, brand }: { fixActions: FixAction[]; b
 
 function TrendChart({ lineChartData, weekChange, brand, competitorDisplayName }: { lineChartData: TrendPoint[]; weekChange: number | null; brand: Brand; competitorDisplayName: string }) {
   const hasData = lineChartData.length >= 2;
-
   return (
     <VisualCard>
       <VisualTitle>30-Day Score Trend</VisualTitle>
@@ -395,7 +285,7 @@ function TrendChart({ lineChartData, weekChange, brand, competitorDisplayName }:
               <span style={{ color: "#374151" }}>{brand.brandName ?? brand.domain}</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12 }}>
-              <div style={{ width: 12, height: 2, background: "#DC2626", borderTop: "2px dashed #DC2626" }} />
+              <div style={{ width: 12, height: 2, borderTop: "2px dashed #DC2626" }} />
               <span style={{ color: "#374151" }}>{competitorDisplayName}</span>
             </div>
             {weekChange !== null && (
@@ -418,29 +308,23 @@ function TrendChart({ lineChartData, weekChange, brand, competitorDisplayName }:
 
 function BlogCard({ agentResponse, brand }: { agentResponse: string; brand: Brand }) {
   const [copied, setCopied] = useState<string | null>(null);
-
   const titleMatch = agentResponse.match(/^#\s+(.+)$/m);
   const title = titleMatch ? titleMatch[1].trim() : `AI Visibility Guide for ${brand.brandName ?? brand.domain}`;
-
   const eeatMatch = agentResponse.match(/EEAT SCORE[\s\S]*?Total:\s*(\d+)\/100/i);
   const eeatTotal = eeatMatch ? parseInt(eeatMatch[1]) : null;
-
   const wordCount = agentResponse.split(/\s+/).length;
   const readTime = Math.max(1, Math.round(wordCount / 200));
-
   const preview = agentResponse
     .replace(/^#.*$/gm, "")
     .replace(/^##.*$/gm, "")
     .replace(/EEAT SCORE[\s\S]*$/i, "")
     .trim()
     .slice(0, 280);
-
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     setCopied(label);
     setTimeout(() => setCopied(null), 2000);
   };
-
   return (
     <VisualCard>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
@@ -449,31 +333,23 @@ function BlogCard({ agentResponse, brand }: { agentResponse: string; brand: Bran
         <span style={{ fontSize: 11, color: "#9ca3af" }}>{wordCount} words</span>
       </div>
       <div style={{ fontSize: 17, fontWeight: 700, color: "#111827", lineHeight: 1.35, marginBottom: 10 }}>{title}</div>
-
       {eeatTotal !== null && (
         <div style={{ background: "#F0FDF4", border: "0.5px solid #86EFAC", borderRadius: 7, padding: "8px 12px", marginBottom: 12, fontSize: 12 }}>
           <span style={{ fontWeight: 600, color: "#166534" }}>EEAT Score: {eeatTotal}/100</span>
           <span style={{ color: "#16A34A", marginLeft: 8 }}>{eeatTotal >= 75 ? "High citability" : eeatTotal >= 50 ? "Moderate citability" : "Needs improvement"}</span>
         </div>
       )}
-
       <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.7, marginBottom: 14, borderLeft: "2.5px solid #e5e7eb", paddingLeft: 12 }}>
-        {preview}
-        {agentResponse.length > 280 && <span style={{ color: "#9ca3af" }}>...</span>}
+        {preview}{agentResponse.length > 280 && <span style={{ color: "#9ca3af" }}>...</span>}
       </div>
-
       <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
-        {[
-          { label: "Copy article", text: agentResponse },
-          { label: "Copy for Medium", text: agentResponse },
-          { label: "Copy for dev.to", text: agentResponse },
-        ].map(btn => (
+        {["Copy article", "Copy for Medium", "Copy for dev.to"].map(label => (
           <button
-            key={btn.label}
-            onClick={() => handleCopy(btn.text, btn.label)}
-            style={{ display: "flex", alignItems: "center", gap: 4, background: copied === btn.label ? "#ECFDF5" : "white", border: `0.5px solid ${copied === btn.label ? "#6EE7B7" : "#e5e7eb"}`, borderRadius: 6, padding: "5px 10px", fontSize: 11, color: copied === btn.label ? "#059669" : "#374151", cursor: "pointer" }}
+            key={label}
+            onClick={() => handleCopy(agentResponse, label)}
+            style={{ display: "flex", alignItems: "center", gap: 4, background: copied === label ? "#ECFDF5" : "white", border: `0.5px solid ${copied === label ? "#6EE7B7" : "#e5e7eb"}`, borderRadius: 6, padding: "5px 10px", fontSize: 11, color: copied === label ? "#059669" : "#374151", cursor: "pointer" }}
           >
-            <Copy size={9} /> {copied === btn.label ? "Copied" : btn.label}
+            <Copy size={9} /> {copied === label ? "Copied" : label}
           </button>
         ))}
       </div>
@@ -495,13 +371,17 @@ function TweetCards({ agentResponse, brand }: { agentResponse: string; brand: Br
     const charCount = match[3] ? parseInt(match[3]) : text.length;
     if (text) tweetBlocks.push({ angle, text, charCount });
   }
-
   if (tweetBlocks.length === 0) {
     const lines = agentResponse.split("\n").filter(l => l.trim().length > 20 && l.trim().length <= 280);
-    lines.slice(0, 3).forEach((t, i) => tweetBlocks.push({ text: t.trim(), angle: `Option ${i + 1}`, charCount: t.trim().length }));
+    lines.slice(0, 3).forEach((t, i) => {
+      const trimmed = t.trim();
+      if (trimmed) tweetBlocks.push({ text: trimmed, angle: `Option ${i + 1}`, charCount: trimmed.length });
+    });
   }
 
-  const handle = `@${(brand.brandName ?? brand.domain).toLowerCase().replace(/[^a-z0-9]/g, "")}`;
+  const brandLabel = brand.brandName || brand.domain || "Brand";
+  const handle = `@${brandLabel.toLowerCase().replace(/[^a-z0-9]/g, "")}`;
+  const avatarLetter = brandLabel[0]?.toUpperCase() ?? "B";
 
   return (
     <VisualCard>
@@ -511,10 +391,10 @@ function TweetCards({ agentResponse, brand }: { agentResponse: string; brand: Br
           <div key={i} style={{ border: "1px solid #E5E7EB", borderRadius: 12, padding: 14 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
               <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#4F46E5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "white", flexShrink: 0 }}>
-                {(brand.brandName ?? brand.domain)[0].toUpperCase()}
+                {avatarLetter}
               </div>
               <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#111827" }}>{brand.brandName ?? brand.domain}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "#111827" }}>{brandLabel}</div>
                 <div style={{ fontSize: 11, color: "#9ca3af" }}>{handle}</div>
               </div>
               <svg viewBox="0 0 24 24" width="16" height="16" style={{ marginLeft: "auto", flexShrink: 0 }} fill="#000">
@@ -536,7 +416,9 @@ function TweetCards({ agentResponse, brand }: { agentResponse: string; brand: Br
         ))}
       </div>
       {tweetBlocks.length === 0 && (
-        <div style={{ fontSize: 12, color: "#6b7280", textAlign: "center", padding: "12px 0" }}>No tweet content detected. Ask "Write me 3 tweets about..." to generate tweet cards.</div>
+        <div style={{ fontSize: 12, color: "#6b7280", textAlign: "center", padding: "12px 0" }}>
+          No tweet content detected. Ask "Write me 3 tweets about..." to generate tweet cards.
+        </div>
       )}
     </VisualCard>
   );
@@ -546,9 +428,8 @@ function TweetCards({ agentResponse, brand }: { agentResponse: string; brand: Br
 
 function ContentCalendar({ brand }: { brand: Brand }) {
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
-  const bName = brand.brandName ?? brand.domain;
+  const bName = brand.brandName ?? brand.domain ?? "Brand";
   const cat = (brand.category ?? "startup").toLowerCase();
-
   const platforms = ["Twitter", "LinkedIn", "Blog", "Reddit", "Twitter", "LinkedIn", "Blog"];
   const platformColors: Record<string, { bg: string; text: string }> = {
     Twitter: { bg: "#EFF6FF", text: "#1D4ED8" },
@@ -557,15 +438,14 @@ function ContentCalendar({ brand }: { brand: Brand }) {
     Reddit: { bg: "#FFF7ED", text: "#C2410C" },
   };
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-  const topics = cat.includes("health") || cat.includes("food") || cat.includes("diet") ? [
+  const topics = cat.includes("health") || cat.includes("food") || cat.includes("diet") || cat.includes("nutrition") ? [
     { type: "Thread", title: `Why ${bName} is different from a dietitian` },
     { type: "Article", title: `How AI meal planning works for Indian diets` },
-    { type: "Post", title: `${bName} vs generic calorie apps - honest comparison` },
+    { type: "Post", title: `${bName} vs generic calorie apps` },
     { type: "Discussion", title: `r/IndiaFitness - share your ${bName} results` },
     { type: "Thread", title: `5 signs your current diet app isn't working` },
     { type: "Poll", title: `What's your biggest diet challenge?` },
-    { type: "Post", title: `New feature: personalized meal timing based on your body type` },
+    { type: "Post", title: `New feature: personalized meal timing` },
   ] : [
     { type: "Thread", title: `Why ${bName} solves the problem others don't` },
     { type: "Article", title: `Complete guide to using ${bName} in 2025` },
@@ -575,9 +455,7 @@ function ContentCalendar({ brand }: { brand: Brand }) {
     { type: "Poll", title: `What's your biggest challenge with ${cat}?` },
     { type: "Post", title: `New in ${bName}: what we shipped this week` },
   ];
-
   const now = new Date();
-
   return (
     <VisualCard>
       <VisualTitle>Content Calendar - Next 7 Days</VisualTitle>
@@ -604,11 +482,8 @@ function ContentCalendar({ brand }: { brand: Brand }) {
       </div>
       {expandedDay !== null && (
         <div style={{ background: "#F9FAFB", borderRadius: 8, padding: 12, marginTop: 10 }}>
-          <div style={{ fontSize: 12, fontWeight: 500, color: "#111827", marginBottom: 6 }}>{topics[expandedDay].title}</div>
-          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 8 }}>Platform: {platforms[expandedDay]} - {topics[expandedDay].type}</div>
-          <button style={{ background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11, fontWeight: 500, cursor: "pointer" }}>
-            Generate this content
-          </button>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "#111827", marginBottom: 6 }}>{topics[expandedDay]?.title}</div>
+          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 8 }}>Platform: {platforms[expandedDay]} - {topics[expandedDay]?.type}</div>
         </div>
       )}
     </VisualCard>
@@ -621,23 +496,15 @@ function KeywordTable({ keywords, brand }: { keywords: KeywordEntry[]; brand: Br
   const chatgpt = brand.latestScoreChatgpt ?? 0;
   const gemini = brand.latestScoreGemini ?? 0;
   const perplexity = brand.latestScorePerplexity ?? 0;
-
   const rows = keywords.slice(0, 8).map((k, i) => {
-    const vol = k.volume ?? 0;
     const cgVis = chatgpt > 20 && i % 3 === 0;
     const gmVis = gemini > 20 && i % 4 === 0;
     const pxVis = perplexity > 20 && i % 2 === 0;
     const invisible = !cgVis && !gmVis && !pxVis;
+    const vol = k.volume ?? 0;
     const opp = invisible && vol > 3000 ? "High" : invisible && vol > 1000 ? "Medium" : !cgVis || !gmVis || !pxVis ? "Medium" : "Low";
     return { ...k, cgVis, gmVis, pxVis, opp };
   });
-
-  const oppConfig: Record<string, { color: string; icon: string }> = {
-    High: { color: "#DC2626", icon: "High" },
-    Medium: { color: "#D97706", icon: "Med" },
-    Low: { color: "#9ca3af", icon: "Low" },
-  };
-
   if (rows.length === 0) {
     return (
       <VisualCard>
@@ -648,7 +515,8 @@ function KeywordTable({ keywords, brand }: { keywords: KeywordEntry[]; brand: Br
       </VisualCard>
     );
   }
-
+  const oppColor: Record<string, string> = { High: "#DC2626", Medium: "#D97706", Low: "#9ca3af" };
+  const oppBg: Record<string, string> = { High: "#FEE2E2", Medium: "#FEF3C7", Low: "#F3F4F6" };
   return (
     <VisualCard style={{ padding: 0, overflow: "hidden" }}>
       <div style={{ padding: "14px 16px 10px" }}>
@@ -664,25 +532,22 @@ function KeywordTable({ keywords, brand }: { keywords: KeywordEntry[]; brand: Br
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, i) => {
-              const opp = oppConfig[r.opp]!;
-              return (
-                <tr key={i} style={{ borderBottom: "0.5px solid #F3F4F6" }}>
-                  <td style={{ padding: "8px 12px", color: "#111827", fontWeight: 500 }}>{r.keyword}</td>
-                  <td style={{ padding: "8px 12px", color: "#6b7280" }}>{r.volume?.toLocaleString() ?? "—"}</td>
-                  {[r.cgVis, r.gmVis, r.pxVis].map((vis, j) => (
-                    <td key={j} style={{ padding: "8px 12px" }}>
-                      {vis ? <CheckCircle2 size={13} color="#16A34A" /> : <XCircle size={13} color="#FCA5A5" />}
-                    </td>
-                  ))}
-                  <td style={{ padding: "8px 12px" }}>
-                    <span style={{ background: r.opp === "High" ? "#FEE2E2" : r.opp === "Medium" ? "#FEF3C7" : "#F3F4F6", color: opp.color, borderRadius: 4, padding: "2px 6px", fontSize: 10, fontWeight: 600 }}>
-                      {r.opp}
-                    </span>
+            {rows.map((r, i) => (
+              <tr key={i} style={{ borderBottom: "0.5px solid #F3F4F6" }}>
+                <td style={{ padding: "8px 12px", color: "#111827", fontWeight: 500 }}>{r.keyword}</td>
+                <td style={{ padding: "8px 12px", color: "#6b7280" }}>{r.volume?.toLocaleString() ?? "-"}</td>
+                {[r.cgVis, r.gmVis, r.pxVis].map((vis, j) => (
+                  <td key={j} style={{ padding: "8px 12px" }}>
+                    {vis ? <CheckCircle2 size={13} color="#16A34A" /> : <XCircle size={13} color="#FCA5A5" />}
                   </td>
-                </tr>
-              );
-            })}
+                ))}
+                <td style={{ padding: "8px 12px" }}>
+                  <span style={{ background: oppBg[r.opp] ?? "#F3F4F6", color: oppColor[r.opp] ?? "#9ca3af", borderRadius: 4, padding: "2px 6px", fontSize: 10, fontWeight: 600 }}>
+                    {r.opp}
+                  </span>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -694,29 +559,15 @@ function KeywordTable({ keywords, brand }: { keywords: KeywordEntry[]; brand: Br
 
 function TechnicalScorecard({ brand }: { brand: Brand }) {
   const score = brand.latestScore ?? 0;
-  const hasLlms = score > 40;
-  const hasSchema = score > 55;
-  const hasRobots = score > 30;
-  const hasContent = score > 20;
-  const hasEntity = score > 65;
-
   const checks = [
-    { name: "robots.txt (GPTBot)", score: hasRobots ? 80 : 0, pass: hasRobots, desc: hasRobots ? "AI crawlers appear to be allowed" : "Add 'User-agent: GPTBot\\nAllow: /' to robots.txt" },
-    { name: "llms.txt", score: hasLlms ? 80 : 0, pass: hasLlms, desc: hasLlms ? "LLMs.txt file is likely configured" : "Create /llms.txt with structured brand info for AI systems" },
-    { name: "JSON-LD Schema", score: hasSchema ? 100 : 40, pass: hasSchema, desc: hasSchema ? "Schema markup detected" : "Add Organization and Product schema to homepage" },
-    { name: "Content depth", score: hasContent ? 100 : 30, pass: hasContent, desc: hasContent ? "Homepage has sufficient content depth" : "Add more detailed descriptions, FAQs, and use cases" },
-    { name: "Entity signals", score: hasEntity ? 90 : 30, pass: hasEntity, desc: hasEntity ? "Brand entity is being recognized" : "Add founder bio, About page, and press mentions to build entity" },
+    { name: "robots.txt (GPTBot)", score: score > 30 ? 80 : 0, desc: score > 30 ? "AI crawlers appear to be allowed" : "Add 'User-agent: GPTBot\\nAllow: /' to robots.txt" },
+    { name: "llms.txt", score: score > 40 ? 80 : 0, desc: score > 40 ? "LLMs.txt file is likely configured" : "Create /llms.txt with structured brand info for AI systems" },
+    { name: "JSON-LD Schema", score: score > 55 ? 100 : 40, desc: score > 55 ? "Schema markup detected" : "Add Organization and Product schema to homepage" },
+    { name: "Content depth", score: score > 20 ? 100 : 30, desc: score > 20 ? "Homepage has sufficient content depth" : "Add more detailed descriptions, FAQs, and use cases" },
+    { name: "Entity signals", score: score > 65 ? 90 : 30, desc: score > 65 ? "Brand entity is being recognized" : "Add founder bio, About page, and press mentions to build entity" },
   ];
-
   const techTotal = Math.round(checks.reduce((s, c) => s + c.score, 0) / checks.length);
   const totalColor = techTotal >= 70 ? "#16A34A" : techTotal >= 40 ? "#D97706" : "#DC2626";
-
-  const getIcon = (pass: boolean, score: number) => {
-    if (score >= 80) return <CheckCircle2 size={14} color="#16A34A" />;
-    if (score >= 40) return <AlertCircle size={14} color="#D97706" />;
-    return <XCircle size={14} color="#DC2626" />;
-  };
-
   return (
     <VisualCard>
       <VisualTitle>Technical GEO Audit - {brand.domain}</VisualTitle>
@@ -724,7 +575,7 @@ function TechnicalScorecard({ brand }: { brand: Brand }) {
         {checks.map((c, i) => (
           <div key={i} style={{ background: "#F9FAFB", borderRadius: 7, padding: "10px 12px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 5 }}>
-              {getIcon(c.pass, c.score)}
+              {c.score >= 80 ? <CheckCircle2 size={14} color="#16A34A" /> : c.score >= 40 ? <AlertCircle size={14} color="#D97706" /> : <XCircle size={14} color="#DC2626" />}
               <span style={{ fontSize: 12, fontWeight: 500, color: "#111827", flex: 1 }}>{c.name}</span>
               <span style={{ fontSize: 11, fontWeight: 600, color: c.score >= 80 ? "#16A34A" : c.score >= 40 ? "#D97706" : "#DC2626" }}>{c.score}/100</span>
               <span style={{ fontSize: 10, fontWeight: 600, color: c.score >= 80 ? "#16A34A" : c.score >= 40 ? "#D97706" : "#DC2626", background: c.score >= 80 ? "#F0FDF4" : c.score >= 40 ? "#FFFBEB" : "#FEF2F2", borderRadius: 4, padding: "1px 6px" }}>
@@ -749,11 +600,10 @@ function TechnicalScorecard({ brand }: { brand: Brand }) {
   );
 }
 
-// ─── Main renderer ────────────────────────────────────────────────────────────
+// ─── Main renderer - only exports React components ────────────────────────────
 
 export function AgentVisual({ visualType, data }: { visualType: VisualType; data: VisualData }) {
   const { brand, lineChartData, keywords, fixActions, citationData, competitorDisplayName, weekChange, agentResponse } = data;
-
   const inner = (() => {
     switch (visualType) {
       case "score_breakdown": return <ScoreBreakdown brand={brand} />;
@@ -769,7 +619,6 @@ export function AgentVisual({ visualType, data }: { visualType: VisualType; data
       default: return null;
     }
   })();
-
   if (!inner) return null;
   return <FadeIn delay={120}>{inner}</FadeIn>;
 }

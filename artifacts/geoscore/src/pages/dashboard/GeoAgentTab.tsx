@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Send, Bot, Copy } from "lucide-react";
+import { AgentVisual } from "./AgentVisuals";
 import {
-  AgentVisual,
   detectVisualType,
   type VisualType,
   type VisualData,
@@ -9,7 +9,7 @@ import {
   type KeywordEntry,
   type FixAction,
   type CitationData,
-} from "./AgentVisuals";
+} from "./agent-visual-utils";
 
 interface Brand {
   id: string;
