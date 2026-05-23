@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { requireAuth, type AuthRequest } from "../lib/auth";
-import { db, usersTable, monitoredBrandsTable, dailyScoresTable } from "@workspace/db";
+import { db, usersTable, monitoredBrandsTable, dailyScoresTable, auditsTable, keywordCacheTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
 
 const router: IRouter = Router();
@@ -33,43 +33,115 @@ async function callAI(messages: { role: string; content: string }[], maxTokens =
   return data.choices[0]?.message?.content ?? "";
 }
 
-interface BrandScores {
+interface FullBrandContext {
+  brandName: string;
+  domain: string;
+  category: string;
+  market: string;
   scoreTotal: number;
   scoreChatgpt: number;
   scoreGemini: number;
   scorePerplexity: number;
+  brandDescription: string;
+  keywords: string[];
+  competitors: string[];
+  hasAuditData: boolean;
 }
 
-function buildBrandContext(
-  brand: { domain: string; brandName: string | null; category: string | null },
-  scores: BrandScores | null
-): string {
-  const score = scores?.scoreTotal ?? 0;
-  const chatgpt = scores?.scoreChatgpt ?? 0;
-  const gemini = scores?.scoreGemini ?? 0;
-  const perplexity = scores?.scorePerplexity ?? 0;
+async function getFullBrandContext(
+  brand: { id: string; domain: string; brandName: string | null; category: string | null; market: string | null }
+): Promise<FullBrandContext> {
+  const [scoresRow, latestAudit, cachedKws] = await Promise.all([
+    db.select().from(dailyScoresTable)
+      .where(eq(dailyScoresTable.brandId, brand.id))
+      .orderBy(desc(dailyScoresTable.date))
+      .limit(1),
+    db.select().from(auditsTable)
+      .where(eq(auditsTable.domain, brand.domain))
+      .orderBy(desc(auditsTable.createdAt))
+      .limit(1),
+    db.select().from(keywordCacheTable)
+      .where(eq(keywordCacheTable.domain, brand.domain))
+      .limit(1),
+  ]);
 
-  const chatgptStatus = chatgpt === 0 ? "Invisible" : chatgpt < 12 ? "Low" : chatgpt < 24 ? "Moderate" : "Strong";
-  const geminiStatus = gemini === 0 ? "Invisible" : gemini < 12 ? "Low" : gemini < 24 ? "Moderate" : "Strong";
-  const perplexityStatus = perplexity === 0 ? "Invisible" : perplexity < 12 ? "Low" : perplexity < 24 ? "Moderate" : "Strong";
+  const scores = scoresRow[0];
+  const audit = latestAudit[0];
+  const raw = (audit?.rawResults ?? {}) as Record<string, unknown>;
 
-  return `Brand: ${brand.brandName ?? brand.domain}
-Domain: ${brand.domain}
-Category: ${brand.category ?? "General"}
-GEO IQ Score: ${score}/100
-ChatGPT: ${chatgpt}/33 (${chatgptStatus})
-Gemini: ${gemini}/33 (${geminiStatus})
-Perplexity: ${perplexity}/33 (${perplexityStatus})`;
+  const brandDescription = String(raw.chatgptRawResponse ?? "").trim();
+  const auditKeywords = (audit?.keywordsUsed ?? []).slice(0, 10);
+  const dfsKeywords = (cachedKws[0]?.keywords ?? []).slice(0, 8).map(
+    (k: { keyword: string; volume?: number }) => `${k.keyword}${k.volume ? ` (${k.volume}/mo)` : ""}`
+  );
+  const keywords = dfsKeywords.length > 0 ? dfsKeywords : auditKeywords;
+  const competitors = (audit?.competitorsFound ?? []).slice(0, 5);
+
+  return {
+    brandName: brand.brandName ?? brand.domain,
+    domain: brand.domain,
+    category: audit?.category ?? brand.category ?? "startup",
+    market: audit?.market ?? brand.market ?? "India",
+    scoreTotal: scores?.scoreTotal ?? 0,
+    scoreChatgpt: scores?.scoreChatgpt ?? 0,
+    scoreGemini: scores?.scoreGemini ?? 0,
+    scorePerplexity: scores?.scorePerplexity ?? 0,
+    brandDescription,
+    keywords,
+    competitors,
+    hasAuditData: !!audit,
+  };
 }
 
-async function getBrandScores(brandId: string): Promise<BrandScores | null> {
-  const [row] = await db
-    .select()
-    .from(dailyScoresTable)
-    .where(eq(dailyScoresTable.brandId, brandId))
-    .orderBy(desc(dailyScoresTable.date))
-    .limit(1);
-  return row ?? null;
+function buildSystemPrompt(ctx: FullBrandContext): string {
+  const { brandName, domain, category, market, scoreTotal, scoreChatgpt, scoreGemini, scorePerplexity,
+    brandDescription, keywords, competitors, hasAuditData } = ctx;
+
+  const chatgptStatus = scoreChatgpt === 0 ? "Invisible" : scoreChatgpt < 12 ? "Low" : scoreChatgpt < 24 ? "Moderate" : "Strong";
+  const geminiStatus = scoreGemini === 0 ? "Invisible" : scoreGemini < 12 ? "Low" : scoreGemini < 24 ? "Moderate" : "Strong";
+  const perplexityStatus = scorePerplexity === 0 ? "Invisible" : scorePerplexity < 12 ? "Low" : scorePerplexity < 24 ? "Moderate" : "Strong";
+
+  const descriptionBlock = brandDescription
+    ? `WHAT ${brandName.toUpperCase()} ACTUALLY DOES (from AI analysis of their website):
+${brandDescription}`
+    : `WHAT ${brandName.toUpperCase()} DOES:
+No website analysis available yet. Ask the user to describe their product, or ask them to run an audit first.`;
+
+  const keywordsBlock = keywords.length > 0
+    ? `KEYWORDS THESE AI SYSTEMS ARE BEING ASKED ABOUT ${brandName}:
+${keywords.map(k => `- ${k}`).join("\n")}`
+    : "";
+
+  const competitorsBlock = competitors.length > 0
+    ? `KNOWN COMPETITORS:
+${competitors.map(c => `- ${c}`).join("\n")}`
+    : "";
+
+  return `You are a GEO (Generative Engine Optimization) strategist and advisor for ${brandName} (${domain}).
+
+${descriptionBlock}
+
+BRAND DETAILS:
+Category: ${category}
+Market: ${market}
+${hasAuditData ? "" : "Note: No audit data yet. Encourage the user to run an audit for better insights.\n"}
+CURRENT GEO IQ SCORES:
+Total: ${scoreTotal}/100
+ChatGPT: ${scoreChatgpt}/33 (${chatgptStatus})
+Gemini: ${scoreGemini}/33 (${geminiStatus})
+Perplexity: ${scorePerplexity}/33 (${perplexityStatus})
+
+${keywordsBlock}
+
+${competitorsBlock}
+
+ABSOLUTE RULES:
+1. Every response must be specific to ${brandName} - never generic startup advice.
+2. Write for ${brandName}'s ACTUAL users as described above. If the description says they serve Indian women with diabetes and PCOS, every tweet, blog post, and suggestion must target that audience - NOT founders, NOT tech people, unless that IS the actual audience.
+3. Always reference actual scores and data. If score is 0, say it's invisible. If ChatGPT is strong but Gemini is weak, point that out specifically.
+4. When writing content (tweets, blogs, FAQs, pitch emails) - write for the real audience the brand description describes.
+5. No em dashes. No filler like "leverage" or "seamlessly". Write like a smart person talking to another smart person.
+6. If you're unsure who the target audience is, ask before writing any content.`;
 }
 
 router.post("/agent/chat", requireAuth, async (req, res): Promise<void> => {
@@ -121,21 +193,8 @@ router.post("/agent/chat", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const scores = await getBrandScores(brandId);
-  const ctx = buildBrandContext(brand, scores);
-
-  const systemPrompt = `You are a GEO (Generative Engine Optimization) expert and personal advisor for ${brand.brandName ?? brand.domain}.
-
-${ctx}
-
-Your job: help this founder improve their AI visibility in ChatGPT, Gemini, and Perplexity. You can generate content (tweets, blog posts, FAQs, pitch emails), explain scores, suggest tactics, and create action plans.
-
-Rules:
-- Write like a smart founder talking to another founder. Direct, no filler.
-- Reference actual numbers from the brand context above.
-- No em dashes. No "leverage" or "seamlessly". 
-- Keep responses focused and actionable.
-- When generating content, make it specific to ${brand.brandName ?? brand.domain} and the ${brand.category ?? "startup"} space.`;
+  const ctx = await getFullBrandContext(brand);
+  const systemPrompt = buildSystemPrompt(ctx);
 
   const messages = [
     { role: "system", content: systemPrompt },
@@ -176,19 +235,31 @@ router.post("/agent/briefing", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const scores = await getBrandScores(brandId);
-  const ctx = buildBrandContext(brand, scores);
+  const ctx = await getFullBrandContext(brand);
 
-  const prompt = `${ctx}
+  const descriptionNote = ctx.brandDescription
+    ? `Brand description (from website analysis): ${ctx.brandDescription.slice(0, 400)}`
+    : "No website analysis yet.";
 
-Generate a 3-paragraph daily briefing:
-Paragraph 1: Current score status - mention actual numbers, be direct about what it means.
-Paragraph 2: One specific insight from the data - what stands out, what's the gap.
-Paragraph 3: The single most important action they should take today and why.
+  const prompt = `You are a GEO strategist for ${ctx.brandName} (${ctx.domain}).
 
-Keep it conversational. Reference actual numbers. No bullet points - write in flowing paragraphs. Be specific about ${brand.brandName ?? brand.domain}, not generic startup advice.`;
+${descriptionNote}
 
-  const reply = await callAI([{ role: "user", content: prompt }], 600);
+Category: ${ctx.category} | Market: ${ctx.market}
+GEO IQ Score: ${ctx.scoreTotal}/100
+ChatGPT: ${ctx.scoreChatgpt}/33 | Gemini: ${ctx.scoreGemini}/33 | Perplexity: ${ctx.scorePerplexity}/33
+${ctx.keywords.length > 0 ? `Top keywords: ${ctx.keywords.slice(0, 5).join(", ")}` : ""}
+
+Write a 3-paragraph daily briefing for the founder:
+Paragraph 1: Current score status using actual numbers. Be direct about what ${ctx.scoreTotal}/100 means for this specific product in the ${ctx.category} space.
+Paragraph 2: One specific insight - what stands out in the data. Reference a specific platform gap or keyword opportunity.
+Paragraph 3: The single most important action today, written for ${ctx.brandName}'s actual audience (${ctx.category} in ${ctx.market}). Not generic - tied to the brand.
+
+End with exactly one sentence: "I understand ${ctx.brandName} is a [what it does] for [actual target audience] in [market]. Is that right?"
+
+Rules: No bullet points. Flowing paragraphs. No em dashes. No filler. Write for the actual audience of ${ctx.brandName}, not generic founders unless that IS the audience.`;
+
+  const reply = await callAI([{ role: "user", content: prompt }], 700);
   res.json({ briefing: reply });
 });
 
@@ -216,10 +287,22 @@ router.post("/agent/generate", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const scores = await getBrandScores(brandId);
-  const brandCtx = buildBrandContext(brand, scores);
-  const brandN = brand.brandName ?? brand.domain;
-  const cat = brand.category ?? "startup";
+  const ctx = await getFullBrandContext(brand);
+  const brandN = ctx.brandName;
+  const cat = ctx.category;
+  const market = ctx.market;
+
+  const descSection = ctx.brandDescription
+    ? `WHAT ${brandN} DOES (from website analysis):\n${ctx.brandDescription.slice(0, 500)}`
+    : `Brand: ${brandN} | Category: ${cat} | Market: ${market}`;
+
+  const brandCtx = `${descSection}
+
+Category: ${cat}
+Market: ${market}
+GEO IQ Score: ${ctx.scoreTotal}/100 | ChatGPT: ${ctx.scoreChatgpt}/33 | Gemini: ${ctx.scoreGemini}/33 | Perplexity: ${ctx.scorePerplexity}/33
+${ctx.keywords.length > 0 ? `Keywords: ${ctx.keywords.slice(0, 6).join(", ")}` : ""}
+${ctx.competitors.length > 0 ? `Competitors: ${ctx.competitors.join(", ")}` : ""}`;
 
   let prompt = "";
   let maxTok = 1200;
