@@ -1,0 +1,348 @@
+The GEO Agent cannot trigger live audits.
+Fix this by adding tool use to the
+Claude API integration.
+
+=== IMPLEMENT CLAUDE TOOL USE ===
+
+Claude supports tools/function calling.
+Define these tools that Claude can call
+during a conversation.
+
+=== TOOL 1: run_audit ===
+
+Tool definition:
+{
+  name: "run_audit",
+  description: "Run a live GeoIQ audit 
+    on any domain. Use this when the user 
+    asks to check, scan, or audit a domain,
+    or when you need fresh audit data.",
+  input_schema: {
+    type: "object",
+    properties: {
+      domain: {
+        type: "string",
+        description: "The domain to audit
+          e.g. mealcoreai.com"
+      }
+    },
+    required: ["domain"]
+  }
+}
+
+When Claude calls this tool:
+1. Run full audit pipeline on the domain
+2. Return results to Claude:
+{
+  domain: "mealcoreai.com",
+  scoreTotal: 24,
+  scoreChatgpt: 8,
+  scoreGemini: 0,
+  scorePerplexity: 16,
+  scoreTechnical: 66,
+  chatgptStatus: "partial",
+  geminiStatus: "not_in_training_data",
+  perplexityStatus: "not_found_on_web",
+  topKeywords: ["diabetes meal plan india"],
+  recommendations: [...],
+  technicalChecks: {...}
+}
+
+3. Claude receives results and
+   explains them conversationally
+
+=== TOOL 2: get_keyword_data ===
+
+Tool definition:
+{
+  name: "get_keyword_data",
+  description: "Get real keyword data 
+    for a domain from DataForSEO. 
+    Use when user asks about keywords,
+    what to rank for, or SEO opportunities.",
+  input_schema: {
+    type: "object", 
+    properties: {
+      domain: {
+        type: "string",
+        description: "The domain"
+      }
+    },
+    required: ["domain"]
+  }
+}
+
+When called:
+1. Check keyword_cache table first
+2. If not cached: call DataForSEO API
+3. Return top 10 keywords with volumes
+
+=== TOOL 3: get_competitor_data ===
+
+Tool definition:
+{
+  name: "get_competitor_data",
+  description: "Get real competitor 
+    visibility scores. Use when user 
+    asks how they compare to competitors.",
+  input_schema: {
+    type: "object",
+    properties: {
+      domain: {
+        type: "string"
+      },
+      competitors: {
+        type: "array",
+        items: { type: "string" },
+        description: "Competitor domains"
+      }
+    },
+    required: ["domain"]
+  }
+}
+
+When called:
+1. Fetch scores from audits table
+   for each competitor
+2. Return comparison data
+
+=== TOOL 4: generate_geo_file ===
+
+Tool definition:
+{
+  name: "generate_geo_file",
+  description: "Generate a GEO optimization
+    file for the user's domain. Types:
+    llms_txt, robots_txt, schema_json",
+  input_schema: {
+    type: "object",
+    properties: {
+      domain: { type: "string" },
+      file_type: {
+        type: "string",
+        enum: ["llms_txt", 
+               "robots_txt", 
+               "schema_json"]
+      }
+    },
+    required: ["domain", "file_type"]
+  }
+}
+
+When called:
+1. Generate the requested file
+   using brand data from database
+2. Return file content as string
+3. Claude shows it with copy button
+
+=== TOOL 5: check_technical_audit ===
+
+Tool definition:
+{
+  name: "check_technical_audit",
+  description: "Get the latest technical
+    GEO audit results for a domain.
+    Use when user asks about technical
+    setup, robots.txt, schema, llms.txt",
+  input_schema: {
+    type: "object",
+    properties: {
+      domain: { type: "string" }
+    },
+    required: ["domain"]
+  }
+}
+
+When called:
+1. Fetch latest technical audit
+   from database
+2. Optionally run fresh technical check
+   (robots.txt, llms.txt, schema)
+   if last check was over 24 hours ago
+3. Return real scores
+
+=== IMPLEMENTATION ===
+
+Update the /api/agent/chat endpoint:
+
+Current:
+const response = await claude.messages.create({
+  model: "claude-sonnet-4-20250514",
+  system: systemPrompt,
+  messages: conversationHistory
+})
+
+New (with tools):
+const response = await claude.messages.create({
+  model: "claude-sonnet-4-20250514",
+  system: systemPrompt,
+  messages: conversationHistory,
+  tools: [
+    runAuditTool,
+    getKeywordDataTool,
+    getCompetitorDataTool,
+    generateGeoFileTool,
+    checkTechnicalAuditTool
+  ]
+})
+
+Handle tool use response:
+if (response.stop_reason === 'tool_use') {
+  
+  const toolUseBlock = response.content
+    .find(b => b.type === 'tool_use')
+  
+  const toolName = toolUseBlock.name
+  const toolInput = toolUseBlock.input
+  
+  let toolResult
+  
+  if (toolName === 'run_audit') {
+    toolResult = await runFullAudit(
+      toolInput.domain)
+  }
+  
+  if (toolName === 'get_keyword_data') {
+    toolResult = await getKeywordData(
+      toolInput.domain)
+  }
+  
+  if (toolName === 'get_competitor_data') {
+    toolResult = await getCompetitorData(
+      toolInput.domain,
+      toolInput.competitors)
+  }
+  
+  if (toolName === 'generate_geo_file') {
+    toolResult = await generateGeoFile(
+      toolInput.domain,
+      toolInput.file_type)
+  }
+  
+  if (toolName === 'check_technical_audit') {
+    toolResult = await checkTechnicalAudit(
+      toolInput.domain)
+  }
+  
+  // Send tool result back to Claude
+  const finalResponse = await 
+    claude.messages.create({
+      model: "claude-sonnet-4-20250514",
+      system: systemPrompt,
+      messages: [
+        ...conversationHistory,
+        { 
+          role: "assistant", 
+          content: response.content 
+        },
+        {
+          role: "user",
+          content: [{
+            type: "tool_result",
+            tool_use_id: toolUseBlock.id,
+            content: JSON.stringify(toolResult)
+          }]
+        }
+      ],
+      tools: allTools
+    })
+  
+  return finalResponse.content[0].text
+}
+
+=== SHOW THINKING DURING TOOL USE ===
+
+When Claude calls a tool,
+show specific thinking message:
+
+if (toolName === 'run_audit') {
+  showThinkingMessage(
+    "Running live audit on {domain}...")
+}
+
+if (toolName === 'get_keyword_data') {
+  showThinkingMessage(
+    "Fetching keyword data from DataForSEO...")
+}
+
+The thinking message updates in real time
+as the tool executes.
+
+After tool completes:
+Update message:
+"Audit complete. Analyzing results..."
+
+=== UPDATE SYSTEM PROMPT ===
+
+Add to agent system prompt:
+
+"You have access to these tools:
+
+run_audit: Run a live audit on any domain.
+  Use when user asks to check, scan, 
+  audit, or re-check a domain.
+  Also use if you need fresh data.
+
+get_keyword_data: Get real keyword data.
+  Use when discussing keywords or content.
+
+get_competitor_data: Compare with competitors.
+  Use when user asks about competition.
+
+generate_geo_file: Generate llms.txt,
+  robots.txt additions, or Schema JSON.
+  Use when user asks for these files.
+
+check_technical_audit: Get technical scores.
+  Use when discussing technical setup.
+
+Always prefer real data over estimates.
+When user asks to run an audit — use 
+the run_audit tool immediately.
+Do not say you cannot run audits.
+You have the tools to do it."
+
+=== TEST TOOL USE ===
+
+Test 1 — Live audit from agent:
+Open GEO Agent
+Type: "Run a fresh audit on mealcoreai.com"
+Expected:
+- Thinking message: "Running live audit..."
+- Claude calls run_audit tool
+- Real audit executes (12-15 seconds)
+- Claude explains real results
+- Score breakdown visual renders
+
+Test 2 — Audit different domain:
+Type: "Check notion.so for me"
+Expected:
+- run_audit tool called with notion.so
+- Real results returned
+- Claude compares notion.so to user's brand
+
+Test 3 — Generate file from agent:
+Type: "Generate my llms.txt file"
+Expected:
+- generate_geo_file tool called
+- Real llms.txt content returned
+- Claude shows it with copy button
+
+Test 4 — Keywords from agent:
+Type: "What are my top keywords?"
+Expected:
+- get_keyword_data tool called
+- Real DataForSEO data returned
+- Keyword table visual renders
+
+Test 5 — Technical from agent:
+Type: "Check my robots.txt"
+Expected:
+- check_technical_audit tool called
+- Real scores returned
+- Technical scorecard renders
+
+Show for each test:
+- Tool name that was called
+- Raw tool result received
+- Claude response using real data

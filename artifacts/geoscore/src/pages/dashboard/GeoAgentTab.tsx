@@ -25,6 +25,12 @@ interface Brand {
   latestScorePerplexity: number | null;
 }
 
+interface ToolUsed {
+  name: string;
+  input: Record<string, unknown>;
+  domain?: string;
+}
+
 interface Message {
   role: "user" | "agent";
   content: string;
@@ -32,6 +38,7 @@ interface Message {
   visualType?: VisualType | null;
   triggerUserMsg?: string;
   followUpChips?: string[];
+  toolsUsed?: ToolUsed[];
 }
 
 const STARTER_LIMIT = 50;
@@ -39,6 +46,14 @@ const STARTER_LIMIT = 50;
 // ─── Thinking message sets ────────────────────────────────────────────────────
 
 const THINKING_SETS: Record<string, string[]> = {
+  audit: [
+    "Running live audit on {domain}...",
+    "Crawling the website...",
+    "Querying ChatGPT, Gemini, Perplexity...",
+    "Running technical checks...",
+    "Calculating GEO IQ score...",
+    "Audit complete. Analyzing results...",
+  ],
   score: [
     "Analyzing {brand} visibility data...",
     "Checking AI system responses...",
@@ -64,7 +79,7 @@ const THINKING_SETS: Record<string, string[]> = {
     "Adding authentic voice...",
   ],
   technical: [
-    "Reading latest audit data...",
+    "Fetching latest technical audit...",
     "Checking crawler access...",
     "Reviewing schema signals...",
     "Calculating technical score...",
@@ -87,6 +102,12 @@ const THINKING_SETS: Record<string, string[]> = {
     "Matching to your keywords...",
     "Creating your GEO roadmap...",
   ],
+  geo_file: [
+    "Loading brand data from database...",
+    "Generating file content...",
+    "Applying GEO best practices...",
+    "File ready.",
+  ],
   default: [
     "Thinking about {brand}...",
     "Analyzing your GEO data...",
@@ -97,8 +118,15 @@ const THINKING_SETS: Record<string, string[]> = {
 
 function getThinkingKey(msg: string): string {
   const m = msg.toLowerCase();
+  if (
+    m.includes("audit") || m.includes("scan") || m.includes("run a check") ||
+    m.includes("fresh audit") || m.includes("re-check") || m.includes("re-audit") ||
+    m.includes("check notion") || m.includes("check linear") ||
+    (m.includes("check") && (m.includes(".com") || m.includes(".io") || m.includes(".in")))
+  ) return "audit";
   if (m.includes("blog") || m.includes("article") || m.includes("write post") || m.includes("blog post")) return "blog";
   if (m.includes("tweet") || m.includes("twitter") || m.includes("social media") || m.includes("social post")) return "tweet";
+  if (m.includes("llms.txt") || m.includes("robots.txt") || m.includes("schema json") || m.includes("generate my") || m.includes("generate the")) return "geo_file";
   if (m.includes("technical") || m.includes("robots") || m.includes("setup") || m.includes("crawl") || m.includes("llms") || m.includes("schema")) return "technical";
   if (m.includes("keyword") || m.includes("target") || m.includes("rank for")) return "keyword";
   if (m.includes("citation") || m.includes("cited") || m.includes("listed") || m.includes("sources")) return "citation";
@@ -141,6 +169,11 @@ function getFollowUpChips(userMsg: string, agentResponse: string): string[] {
 
 // ─── ThinkingIndicator component ──────────────────────────────────────────────
 
+function extractDomainFromMsg(msg: string): string {
+  const match = msg.match(/([a-zA-Z0-9-]+\.(com|io|in|co|ai|app|net|org)(\.[a-z]{2})?)/);
+  return match ? match[1] : "";
+}
+
 function ThinkingIndicator({ triggerMsg, brandName, category }: {
   triggerMsg: string;
   brandName: string;
@@ -148,8 +181,12 @@ function ThinkingIndicator({ triggerMsg, brandName, category }: {
 }) {
   const key = getThinkingKey(triggerMsg);
   const rawMessages = THINKING_SETS[key] ?? THINKING_SETS.default;
+  const detectedDomain = extractDomainFromMsg(triggerMsg);
   const filledMessages = rawMessages.map(m =>
-    m.replace("{brand}", brandName).replace("{category}", category)
+    m
+      .replace("{brand}", brandName)
+      .replace("{category}", category)
+      .replace("{domain}", detectedDomain || brandName)
   );
 
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -371,6 +408,7 @@ export function GeoAgentTab({
       const data = (await res.json()) as {
         reply: string;
         remaining: number | null;
+        toolsUsed?: ToolUsed[];
         keywords?: KeywordEntry[];
         technicalChecks?: TechnicalCheck[];
         technicalOverallScore?: number;
@@ -393,6 +431,7 @@ export function GeoAgentTab({
         visualType,
         triggerUserMsg: msg,
         followUpChips,
+        toolsUsed: data.toolsUsed ?? [],
       }]);
 
       if (data.remaining !== null) {
@@ -485,6 +524,38 @@ export function GeoAgentTab({
                 />
               ) : (
                 <div style={{ maxWidth: msg.role === "user" ? "70%" : "82%" }}>
+                  {msg.role === "agent" && msg.toolsUsed && msg.toolsUsed.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 5 }}>
+                      {msg.toolsUsed.map((t, ti) => {
+                        const labels: Record<string, string> = {
+                          run_audit: "Live audit",
+                          get_keyword_data: "Keyword data",
+                          get_competitor_data: "Competitor scores",
+                          generate_geo_file: "Generated file",
+                          check_technical_audit: "Technical audit",
+                        };
+                        const label = labels[t.name] ?? t.name;
+                        const domain = t.domain || (t.input?.domain as string) || "";
+                        return (
+                          <span key={ti} style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            background: "#EEF2FF",
+                            border: "1px solid #C7D2FE",
+                            borderRadius: 20,
+                            padding: "2px 9px",
+                            fontSize: 11,
+                            color: "#4338CA",
+                            fontWeight: 500,
+                          }}>
+                            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#4F46E5", display: "inline-block" }} />
+                            {label}{domain ? ` - ${domain}` : ""}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
                   <div style={{
                     background: msg.role === "user" ? "#4F46E5" : "white",
                     color: msg.role === "user" ? "white" : "#111827",

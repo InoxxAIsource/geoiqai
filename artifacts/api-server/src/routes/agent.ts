@@ -3,10 +3,14 @@ import { requireAuth, type AuthRequest } from "../lib/auth";
 import { db, usersTable, monitoredBrandsTable, dailyScoresTable, auditsTable, keywordCacheTable } from "@workspace/db";
 import { eq, and, desc, gt } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { runAuditEngine, generateRecommendations, extractDomain } from "../lib/audit-engine";
+import { getDomainKeywords } from "../lib/dataforseo";
 
 const router: IRouter = Router();
 
 const STARTER_LIMIT = 50;
+
+// ─── Claude helper (no tools — for briefing + generate) ───────────────────────
 
 async function callClaude(
   systemPrompt: string,
@@ -22,6 +26,399 @@ async function callClaude(
   const block = response.content[0];
   return block.type === "text" ? block.text : "";
 }
+
+// ─── Tool definitions ─────────────────────────────────────────────────────────
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const TOOLS: any[] = [
+  {
+    name: "run_audit",
+    description: "Run a live GeoIQ audit on any domain. Use this when the user asks to check, scan, or audit a domain, or when you need fresh audit data. Also use if current scores seem stale.",
+    input_schema: {
+      type: "object",
+      properties: {
+        domain: { type: "string", description: "The domain to audit, e.g. mealcoreai.com" },
+      },
+      required: ["domain"],
+    },
+  },
+  {
+    name: "get_keyword_data",
+    description: "Get real keyword data for a domain from DataForSEO. Use when user asks about keywords, what to rank for, or SEO opportunities.",
+    input_schema: {
+      type: "object",
+      properties: {
+        domain: { type: "string", description: "The domain" },
+      },
+      required: ["domain"],
+    },
+  },
+  {
+    name: "get_competitor_data",
+    description: "Get real competitor visibility scores from the database. Use when user asks how they compare to competitors.",
+    input_schema: {
+      type: "object",
+      properties: {
+        domain: { type: "string" },
+        competitors: {
+          type: "array",
+          items: { type: "string" },
+          description: "Competitor domains to compare against",
+        },
+      },
+      required: ["domain"],
+    },
+  },
+  {
+    name: "generate_geo_file",
+    description: "Generate a GEO optimization file for the user's domain. Types: llms_txt (llms.txt file for AI crawlers), robots_txt (robots.txt additions), schema_json (Organization schema markup).",
+    input_schema: {
+      type: "object",
+      properties: {
+        domain: { type: "string" },
+        file_type: {
+          type: "string",
+          enum: ["llms_txt", "robots_txt", "schema_json"],
+        },
+      },
+      required: ["domain", "file_type"],
+    },
+  },
+  {
+    name: "check_technical_audit",
+    description: "Get the latest technical GEO audit results for a domain. Use when user asks about technical setup, robots.txt, schema markup, llms.txt, or crawler access.",
+    input_schema: {
+      type: "object",
+      properties: {
+        domain: { type: "string" },
+      },
+      required: ["domain"],
+    },
+  },
+];
+
+// ─── Tool implementations ─────────────────────────────────────────────────────
+
+async function runAuditTool(rawDomain: string): Promise<unknown> {
+  const cleaned = rawDomain.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const domain = extractDomain(`https://${cleaned}`);
+  const url = `https://${domain}`;
+
+  const engineResult = await runAuditEngine(url, null, null, null);
+
+  if (engineResult.unreachable) {
+    return { error: `Could not reach ${domain}. The domain may not exist or is blocking crawlers.` };
+  }
+
+  const {
+    brandName, category, market,
+    chatgpt, gemini, perplexity, claude, grok,
+    keywordsUsed, technicalAudit,
+    rawChatgptResponse, rawGeminiResponse, rawPerplexityResponse,
+    rawClaudeResponse, rawGrokResponse,
+    keywordsFromDataforseo, keywordsFilteredOut,
+  } = engineResult;
+
+  const rawAiTotal = chatgpt.score + gemini.score + perplexity.score + claude.score + grok.score;
+  const aiVisibilityScore = Math.min(Math.round(rawAiTotal * 100 / (5 * 33)), 100);
+  const scoreTechnical = technicalAudit.overallScore;
+  const scoreTotal = Math.round(aiVisibilityScore * 0.6 + scoreTechnical * 0.4);
+  const allCompetitors = [...new Set([
+    ...chatgpt.competitors, ...gemini.competitors, ...perplexity.competitors,
+    ...claude.competitors, ...grok.competitors,
+  ])];
+
+  const { recommendations } = await generateRecommendations(
+    brandName, domain, category, market, chatgpt, gemini, perplexity, technicalAudit
+  );
+
+  await db.insert(auditsTable).values({
+    url, domain, brandName, category, market, scoreTotal,
+    scoreChatgpt: chatgpt.score, scoreGemini: gemini.score, scorePerplexity: perplexity.score,
+    chatgptFound: chatgpt.found, geminiFound: gemini.found, perplexityFound: perplexity.found,
+    chatgptDetail: chatgpt.detail, geminiDetail: gemini.detail, perplexityDetail: perplexity.detail,
+    competitorsFound: allCompetitors, keywordsUsed,
+    rawResults: {
+      keywordsFromDataforseo, keywordsFilteredOut,
+      scoreAiVisibility: aiVisibilityScore, scoreTechnical,
+      scoreClaude: claude.score, scoreGrok: grok.score,
+      claudeFound: claude.found, grokFound: grok.found,
+      chatgptRawResponse: rawChatgptResponse, geminiRawResponse: rawGeminiResponse,
+      perplexityRawResponse: rawPerplexityResponse, claudeRawResponse: rawClaudeResponse,
+      grokRawResponse: rawGrokResponse, technicalAudit,
+    },
+    recommendations: recommendations as unknown as Record<string, unknown>[],
+    ipAddress: "agent",
+  });
+
+  return {
+    domain,
+    brandName,
+    scoreTotal,
+    scoreChatgpt: chatgpt.score,
+    scoreGemini: gemini.score,
+    scorePerplexity: perplexity.score,
+    scoreTechnical,
+    chatgptStatus: chatgpt.found ? (chatgpt.score > 20 ? "strong" : "partial") : "not_found",
+    geminiStatus: gemini.found ? (gemini.score > 20 ? "strong" : "partial") : "not_found",
+    perplexityStatus: perplexity.found ? (perplexity.score > 20 ? "strong" : "partial") : "not_found",
+    topKeywords: keywordsUsed.slice(0, 8),
+    competitors: allCompetitors.slice(0, 6),
+    recommendations: recommendations.slice(0, 5).map(r => ({ action: r.action, priority: r.priority })),
+    technicalScore: scoreTechnical,
+    technicalHighlights: technicalAudit.checks.slice(0, 5).map((c: { name: string; score: number; status: string }) => ({
+      name: c.name, score: c.score, status: c.status,
+    })),
+  };
+}
+
+async function getKeywordDataTool(domain: string): Promise<unknown> {
+  const now = new Date();
+  const [cached] = await db.select()
+    .from(keywordCacheTable)
+    .where(and(eq(keywordCacheTable.domain, domain), gt(keywordCacheTable.expiresAt, now)))
+    .limit(1);
+
+  if (cached) {
+    const keywords = (cached.keywords as { keyword: string; volume: number }[]).slice(0, 10);
+    return { domain, keywords, source: "cache" };
+  }
+
+  const keywords = await getDomainKeywords(domain);
+  return { domain, keywords: keywords.slice(0, 10), source: "dataforseo" };
+}
+
+async function getCompetitorDataTool(domain: string, competitors: string[]): Promise<unknown> {
+  const allDomains = [domain, ...competitors.slice(0, 5)];
+  const results = await Promise.all(allDomains.map(async (d) => {
+    const [audit] = await db.select({
+      scoreTotal: auditsTable.scoreTotal,
+      scoreChatgpt: auditsTable.scoreChatgpt,
+      scoreGemini: auditsTable.scoreGemini,
+      scorePerplexity: auditsTable.scorePerplexity,
+      createdAt: auditsTable.createdAt,
+    }).from(auditsTable)
+      .where(eq(auditsTable.domain, d))
+      .orderBy(desc(auditsTable.createdAt))
+      .limit(1);
+    return {
+      domain: d,
+      isYours: d === domain,
+      scoreTotal: audit?.scoreTotal ?? null,
+      scoreChatgpt: audit?.scoreChatgpt ?? null,
+      scoreGemini: audit?.scoreGemini ?? null,
+      scorePerplexity: audit?.scorePerplexity ?? null,
+      auditDate: audit?.createdAt ?? null,
+      hasData: !!audit,
+    };
+  }));
+  return { comparison: results };
+}
+
+async function generateGeoFileTool(domain: string, fileType: string): Promise<unknown> {
+  const [audit] = await db.select().from(auditsTable)
+    .where(eq(auditsTable.domain, domain))
+    .orderBy(desc(auditsTable.createdAt))
+    .limit(1);
+
+  const brandName = audit?.brandName ?? domain;
+  const category = audit?.category ?? "startup";
+  const market = audit?.market ?? "India";
+  const keywords = (audit?.keywordsUsed ?? []).slice(0, 10);
+  const competitors = (audit?.competitorsFound ?? []).slice(0, 5);
+
+  let content = "";
+
+  if (fileType === "llms_txt") {
+    content = `# ${brandName}
+
+> ${brandName} is a ${category} product based in ${market}. This file is designed to help AI language models understand what we do.
+
+## About
+
+${brandName} (${domain}) operates in the ${category} space serving the ${market} market.
+
+## Topics we cover
+
+${keywords.map((k: string) => `- ${k}`).join("\n")}
+
+## Key pages
+
+- https://${domain}/
+- https://${domain}/about
+- https://${domain}/blog
+- https://${domain}/pricing
+
+${competitors.length > 0 ? `## Known alternatives in this space\n${competitors.map((c: string) => `- ${c}`).join("\n")}\n` : ""}
+## Contact
+
+Website: https://${domain}`;
+  } else if (fileType === "robots_txt") {
+    content = `# Robots.txt for ${domain}
+# Last updated: ${new Date().toISOString().slice(0, 10)}
+
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /private/
+
+# AI Crawlers - explicitly permitted
+User-agent: GPTBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Anthropic-AI
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://${domain}/sitemap.xml`;
+  } else if (fileType === "schema_json") {
+    content = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": brandName,
+      "url": `https://${domain}`,
+      "description": `${brandName} is a ${category} company based in ${market}.`,
+      "knowsAbout": keywords.slice(0, 6),
+      "areaServed": market,
+      "sameAs": [],
+    }, null, 2);
+  }
+
+  return { domain, fileType, content };
+}
+
+async function checkTechnicalAuditTool(domain: string): Promise<unknown> {
+  const [audit] = await db.select().from(auditsTable)
+    .where(eq(auditsTable.domain, domain))
+    .orderBy(desc(auditsTable.createdAt))
+    .limit(1);
+
+  if (!audit) {
+    return {
+      error: `No audit data found for ${domain}. The user needs to run a full audit first.`,
+    };
+  }
+
+  const raw = (audit.rawResults ?? {}) as Record<string, unknown>;
+  const techAudit = raw.technicalAudit as {
+    checks?: { name: string; score: number; status: string; detail: string }[];
+    overallScore?: number;
+  } | null;
+
+  return {
+    domain,
+    overallScore: techAudit?.overallScore ?? 0,
+    checks: techAudit?.checks ?? [],
+    auditDate: audit.createdAt,
+    scoreTechnical: techAudit?.overallScore ?? 0,
+  };
+}
+
+async function executeTool(name: string, input: Record<string, unknown>): Promise<unknown> {
+  switch (name) {
+    case "run_audit":
+      return runAuditTool(String(input.domain ?? ""));
+    case "get_keyword_data":
+      return getKeywordDataTool(String(input.domain ?? ""));
+    case "get_competitor_data":
+      return getCompetitorDataTool(
+        String(input.domain ?? ""),
+        Array.isArray(input.competitors) ? (input.competitors as string[]) : []
+      );
+    case "generate_geo_file":
+      return generateGeoFileTool(String(input.domain ?? ""), String(input.file_type ?? ""));
+    case "check_technical_audit":
+      return checkTechnicalAuditTool(String(input.domain ?? ""));
+    default:
+      return { error: `Unknown tool: ${name}` };
+  }
+}
+
+// ─── Claude with tools loop ───────────────────────────────────────────────────
+
+interface ToolUsed {
+  name: string;
+  input: Record<string, unknown>;
+  domain?: string;
+}
+
+async function callClaudeWithTools(
+  systemPrompt: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  messages: any[],
+  maxTokens = 4096
+): Promise<{ text: string; toolsUsed: ToolUsed[] }> {
+  const toolsUsed: ToolUsed[] = [];
+  const currentMessages = [...messages];
+
+  for (let iteration = 0; iteration < 6; iteration++) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const response = await (anthropic.messages.create as any)({
+      model: "claude-sonnet-4-6",
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      messages: currentMessages,
+      tools: TOOLS,
+    });
+
+    if (response.stop_reason === "end_turn" || !response.content.some((b: { type: string }) => b.type === "tool_use")) {
+      const textBlock = response.content.find((b: { type: string }) => b.type === "text");
+      return {
+        text: textBlock ? (textBlock as { type: "text"; text: string }).text : "",
+        toolsUsed,
+      };
+    }
+
+    // Assistant message with tool use blocks
+    currentMessages.push({ role: "assistant", content: response.content });
+
+    // Execute all tool calls in parallel
+    const toolUseBlocks = response.content.filter((b: { type: string }) => b.type === "tool_use") as {
+      type: "tool_use"; id: string; name: string; input: Record<string, unknown>;
+    }[];
+
+    const toolResults = await Promise.all(
+      toolUseBlocks.map(async (block) => {
+        toolsUsed.push({
+          name: block.name,
+          input: block.input,
+          domain: String(block.input.domain ?? ""),
+        });
+        let result: unknown;
+        try {
+          result = await executeTool(block.name, block.input);
+        } catch (err) {
+          result = { error: String(err) };
+        }
+        return { toolUseId: block.id, content: JSON.stringify(result) };
+      })
+    );
+
+    currentMessages.push({
+      role: "user",
+      content: toolResults.map((r) => ({
+        type: "tool_result",
+        tool_use_id: r.toolUseId,
+        content: r.content,
+      })),
+    });
+  }
+
+  return { text: "I ran into an issue completing your request. Please try again.", toolsUsed };
+}
+
+// ─── Brand context ────────────────────────────────────────────────────────────
 
 interface TechnicalCheckInfo {
   name: string;
@@ -77,14 +474,12 @@ async function getFullBrandContext(
   const brandDescription = String(raw.chatgptRawResponse ?? "").trim();
   const auditKeywords = (audit?.keywordsUsed ?? []).slice(0, 10);
 
-  // Keywords from DataForSEO cache
   const cachedKeywordRows = (cachedKws[0]?.keywords ?? []) as { keyword: string; volume: number; competition?: number }[];
   const rawKeywords = cachedKeywordRows.slice(0, 12).map(k => ({ keyword: k.keyword, volume: k.volume ?? 0 }));
   const dfsKeywords = rawKeywords.slice(0, 8).map(k => `${k.keyword}${k.volume ? ` (${k.volume}/mo)` : ""}`);
   const keywords = dfsKeywords.length > 0 ? dfsKeywords : auditKeywords;
   const competitors = (audit?.competitorsFound ?? []).slice(0, 5);
 
-  // Technical audit data from rawResults
   const techAudit = raw.technicalAudit as { checks?: TechnicalCheckInfo[]; overallScore?: number } | null;
   const technicalChecks: TechnicalCheckInfo[] = (techAudit?.checks ?? []).map(c => ({
     name: c.name,
@@ -126,19 +521,15 @@ function buildSystemPrompt(ctx: FullBrandContext): string {
   const perplexityStatus = scorePerplexity === 0 ? "Invisible" : scorePerplexity < 12 ? "Low" : scorePerplexity < 24 ? "Moderate" : "Strong";
 
   const descriptionBlock = brandDescription
-    ? `WHAT ${brandName.toUpperCase()} ACTUALLY DOES (from AI analysis of their website):
-${brandDescription}`
-    : `WHAT ${brandName.toUpperCase()} DOES:
-No website analysis available yet. Ask the user to describe their product, or ask them to run an audit first.`;
+    ? `WHAT ${brandName.toUpperCase()} ACTUALLY DOES (from AI analysis of their website):\n${brandDescription}`
+    : `WHAT ${brandName.toUpperCase()} DOES:\nNo website analysis available yet. Ask the user to describe their product, or use run_audit to get fresh data.`;
 
   const keywordsBlock = keywords.length > 0
-    ? `KEYWORDS AI SYSTEMS ARE BEING ASKED ABOUT ${brandName}:
-${keywords.map(k => `- ${k}`).join("\n")}`
+    ? `KEYWORDS AI SYSTEMS ARE BEING ASKED ABOUT ${brandName}:\n${keywords.map(k => `- ${k}`).join("\n")}`
     : "";
 
   const competitorsBlock = competitors.length > 0
-    ? `KNOWN COMPETITORS:
-${competitors.map(c => `- ${c}`).join("\n")}`
+    ? `KNOWN COMPETITORS:\n${competitors.map(c => `- ${c}`).join("\n")}`
     : "";
 
   const checkedAgo = auditCheckedAt
@@ -149,11 +540,8 @@ ${competitors.map(c => `- ${c}`).join("\n")}`
     : null;
 
   const technicalBlock = technicalChecks.length > 0
-    ? `TECHNICAL AUDIT DATA (last checked: ${checkedAgo ?? "unknown"} - use these exact scores, never say you cannot check the site):
-${technicalChecks.map(c => `- ${c.name}: ${c.score}/100 (${c.status}) - ${c.detail}`).join("\n")}
-Technical total: ${technicalOverallScore}/100`
-    : `TECHNICAL AUDIT:
-No technical audit data yet. Tell the user to run an audit first. Never make up technical scores.`;
+    ? `TECHNICAL AUDIT DATA (last checked: ${checkedAgo ?? "unknown"} - use these exact scores, never say you cannot check the site):\n${technicalChecks.map(c => `- ${c.name}: ${c.score}/100 (${c.status}) - ${c.detail}`).join("\n")}\nTechnical total: ${technicalOverallScore}/100`
+    : `TECHNICAL AUDIT:\nNo technical audit data yet. Use check_technical_audit or run_audit to get fresh data. Never make up technical scores.`;
 
   return `You are a GEO (Generative Engine Optimization) strategist and advisor for ${brandName} (${domain}).
 
@@ -174,6 +562,15 @@ ${technicalBlock}
 ${keywordsBlock}
 
 ${competitorsBlock}
+
+TOOLS YOU HAVE ACCESS TO:
+run_audit: Run a live audit on any domain. Use immediately when the user asks to check, scan, audit, or re-check a domain. Never say you cannot run an audit - you have this tool. Audits take 15-20 seconds.
+get_keyword_data: Get real keyword data from DataForSEO. Use when discussing keywords or content.
+get_competitor_data: Compare with competitors using real scores. Use when user asks about competition.
+generate_geo_file: Generate llms.txt, robots.txt additions, or Schema JSON. Use when user asks for these files.
+check_technical_audit: Get technical scores from the latest audit. Use when discussing technical setup.
+
+Always prefer real data over estimates. When user asks to run an audit - use run_audit immediately. Do not say you cannot run audits.
 
 WRITING STYLE (MANDATORY - violating these is your biggest failure mode):
 - Never use **bold** or any markdown formatting. No asterisks. No underscores for emphasis.
@@ -197,13 +594,15 @@ TWEET 3 [angle label]
 
 ABSOLUTE RULES:
 1. Every response must be specific to ${brandName} - never generic startup advice.
-2. Write for ${brandName}'s ACTUAL users as described above. If the description says they serve Indian women with diabetes and PCOS, every tweet, blog post, and suggestion must target that audience - NOT founders, NOT tech people, unless that IS the actual audience.
-3. Always reference actual scores and data. If score is 0, say it's invisible. If ChatGPT is strong but Gemini is weak, point that out specifically.
+2. Write for ${brandName}'s ACTUAL users as described above.
+3. Always reference actual scores and data. If score is 0, say it's invisible.
 4. When writing content (tweets, blogs, FAQs, pitch emails) - write for the real audience the brand description describes.
 5. No em dashes. No filler like "leverage" or "seamlessly". Write like a smart person talking to another smart person.
 6. If you're unsure who the target audience is, ask before writing any content.
-7. Never say you cannot check the site or that you don't have access to the website. You have the latest audit data in your context. Use it.`;
+7. Never say you cannot check the site or that you don't have access to the website. You have the latest audit data and the run_audit tool.`;
 }
+
+// ─── Routes ───────────────────────────────────────────────────────────────────
 
 router.post("/agent/chat", requireAuth, async (req, res): Promise<void> => {
   const user = (req as AuthRequest).user;
@@ -262,7 +661,7 @@ router.post("/agent/chat", requireAuth, async (req, res): Promise<void> => {
     { role: "user" as const, content: message },
   ];
 
-  const reply = await callClaude(systemPrompt, chatMessages, 1200);
+  const { text: reply, toolsUsed } = await callClaudeWithTools(systemPrompt, chatMessages, 4096);
 
   await db
     .update(usersTable)
@@ -272,14 +671,19 @@ router.post("/agent/chat", requireAuth, async (req, res): Promise<void> => {
   const remaining =
     user.plan === "starter" ? Math.max(0, STARTER_LIMIT - (user.agentMessagesUsed ?? 0) - 1) : null;
 
+  // If an audit was run, refresh context so we return updated scores
+  const auditTool = toolsUsed.find(t => t.name === "run_audit");
+  const finalCtx = auditTool ? await getFullBrandContext(brand) : ctx;
+
   res.json({
     reply,
     remaining,
     plan: user.plan,
-    keywords: ctx.rawKeywords,
-    technicalChecks: ctx.technicalChecks,
-    technicalOverallScore: ctx.technicalOverallScore,
-    auditCheckedAt: ctx.auditCheckedAt,
+    toolsUsed,
+    keywords: finalCtx.rawKeywords,
+    technicalChecks: finalCtx.technicalChecks,
+    technicalOverallScore: finalCtx.technicalOverallScore,
+    auditCheckedAt: finalCtx.auditCheckedAt,
   });
 });
 
