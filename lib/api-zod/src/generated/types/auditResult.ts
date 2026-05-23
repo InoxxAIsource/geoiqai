@@ -5,6 +5,7 @@
  * GEOscore API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { EeatScore } from './eeatScore';
 import type { Recommendation } from './recommendation';
 import type { TechnicalAuditResult } from './technicalAuditResult';
 
@@ -59,5 +60,6 @@ export interface AuditResult {
   fromCache?: boolean;
   cachedHoursAgo?: number;
   recommendations?: Recommendation[];
+  eeatScore?: EeatScore;
   createdAt: string;
 }

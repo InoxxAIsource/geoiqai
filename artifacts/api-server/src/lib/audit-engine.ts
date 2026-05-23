@@ -71,6 +71,17 @@ export interface Recommendation {
   effortHours: number;
   impactScore: number;
   category: string;
+  citeCategory: "C" | "I" | "T" | "E";
+}
+
+export interface EeatScore {
+  total: number;
+  experience: number;
+  expertise: number;
+  authoritativeness: number;
+  trustworthiness: number;
+  strengths: string;
+  weaknesses: string;
 }
 
 export function extractDomain(url: string): string {
@@ -1096,6 +1107,16 @@ export async function runAuditEngine(
   };
 }
 
+const DEFAULT_EEAT: EeatScore = {
+  total: 40,
+  experience: 8,
+  expertise: 12,
+  authoritativeness: 10,
+  trustworthiness: 10,
+  strengths: "Basic content structure present.",
+  weaknesses: "Weak on Experience — add case studies or customer stories. Weak on Authoritativeness — get listed on authoritative directories.",
+};
+
 export async function generateRecommendations(
   brandName: string,
   domain: string,
@@ -1104,14 +1125,21 @@ export async function generateRecommendations(
   chatgpt: AuditQueryResult,
   gemini: AuditQueryResult,
   perplexity: AuditQueryResult,
-): Promise<Recommendation[]> {
+  technicalAudit: TechnicalAuditResult,
+): Promise<{ recommendations: Recommendation[]; eeatScore: EeatScore }> {
+  const techSignals = technicalAudit.checks.map((c) => `${c.name}: ${c.status} (${c.score}/100) — ${c.detail}`).join("\n");
+
   const auditSummary = `Brand: ${brandName}
 Domain: ${domain}
 Category: ${category}
 Market: ${market}
 ChatGPT score: ${chatgpt.score}/33 — Found: ${chatgpt.found}
 Gemini score: ${gemini.score}/33 — Found: ${gemini.found}
-Perplexity score: ${perplexity.score}/33 — Found: ${perplexity.found}`;
+Perplexity score: ${perplexity.score}/33 — Found: ${perplexity.found}
+Social profiles found: ${technicalAudit.socialLinks.length}
+Contact email: ${technicalAudit.contactEmail ? "yes" : "no"}
+Technical signals:
+${techSignals}`;
 
   try {
     const response = await openaiClient.chat.completions.create({
@@ -1119,69 +1147,121 @@ Perplexity score: ${perplexity.score}/33 — Found: ${perplexity.found}`;
       messages: [
         {
           role: "system",
-          content:
-            "You are a GEO (Generative Engine Optimization) expert. You understand a critical distinction: ChatGPT and Gemini answer from training data (cutoff ~2023-2024) so new brands won't appear until the next training run. Perplexity searches the live web in real time. Generate specific, actionable recommendations that reflect this reality — some actions have immediate impact on Perplexity, others take 3-6 months to affect ChatGPT/Gemini training. Be honest about timelines. Return valid JSON only.",
+          content: `You are a GEO (Generative Engine Optimization) expert who uses the CITE and EEAT frameworks.
+
+CITE Framework — tag every recommendation with one category:
+C (Citations): Getting cited by authoritative sources that AI training data includes. Crunchbase, Product Hunt, G2, TechCrunch, Reddit, and Hacker News are heavily included in AI training datasets.
+I (Indexability): Technical fixes so AI crawlers can access and read the site. llms.txt, robots.txt, structured data, and site speed affect Perplexity's live crawler immediately.
+T (Trustworthiness): Entity consistency, social signals, structured data that establish the brand as a real verified entity.
+E (Entity Recognition): Schema markup, Knowledge Graph presence, brand entity establishment so AI knows who the brand is.
+
+EEAT Framework — score the brand's content quality:
+Experience (0-25): Does the content show firsthand knowledge? Case studies, personal stories, real user outcomes.
+Expertise (0-25): Is it technically accurate and detailed? Specific claims, how-to content, deep explanations.
+Authoritativeness (0-25): Does it cite sources? Is the brand referenced by others? External validation.
+Trustworthiness (0-25): Is it factually dense? Contact info present, privacy policy, verifiable claims.
+
+You understand ChatGPT and Gemini answer from training data (cutoff 2023-2024) so new brands won't appear until the next training run. Perplexity searches the live web in real time. Be honest about timelines. Return valid JSON only.`,
         },
         {
           role: "user",
-          content: `Here is the AI visibility audit for a brand:\n\n${auditSummary}\n\nGenerate exactly 5 specific actionable recommendations to improve their AI visibility. Be very specific — name exact actions, not generic advice. For each recommendation, make clear whether it has immediate impact (Perplexity/live web, within days) or long-term impact (ChatGPT/Gemini training data, 3-6 months).\n\nFor citations: mention that Crunchbase, Product Hunt, G2, TechCrunch, and Reddit are heavily included in AI training datasets.\nFor technical: mention that llms.txt and structured data help Perplexity crawl immediately.\n\nReturn a JSON array:\n[\n  {\n    "action": "specific 2-sentence action including WHY it helps and the expected timeline",\n    "priority": "high",\n    "effort_hours": 2,\n    "impact_score": 12,\n    "category": "citations",\n    "timeline": "immediate"\n  }\n]\n\nPriority must be: high, medium, or low\nCategory must be: citations, content, technical, pr, social\ntimeline must be: immediate (affects Perplexity now) or longterm (affects ChatGPT/Gemini in 3-6 months)`,
+          content: `Here is the AI visibility audit:\n\n${auditSummary}\n\nReturn a JSON object with exactly this structure:\n{\n  "recommendations": [\n    {\n      "action": "specific 2-sentence action including WHY it helps and expected timeline",\n      "priority": "high",\n      "effort_hours": 2,\n      "impact_score": 12,\n      "category": "citations",\n      "cite_category": "C"\n    }\n  ],\n  "eeat": {\n    "experience": 8,\n    "expertise": 18,\n    "authoritativeness": 12,\n    "trustworthiness": 15,\n    "strengths": "Strong on Expertise and Trustworthiness.",\n    "weaknesses": "Weak on Experience — add personal examples or case studies. Weak on Authoritativeness — get listed on G2 and Crunchbase."\n  }\n}\n\nGenerate exactly 5 recommendations. Each must have cite_category of C, I, T, or E.\npriority: high, medium, or low\ncategory: citations, content, technical, pr, social\nEEAT scores must be 0-25 each. Be realistic based on the technical signals above.`,
         },
       ],
-      max_tokens: 800,
+      max_tokens: 1000,
       temperature: 0.4,
       response_format: { type: "json_object" },
     });
 
     const text = response.choices[0]?.message?.content ?? "{}";
-    const parsed = JSON.parse(text);
+    const parsed = JSON.parse(text) as {
+      recommendations?: Record<string, unknown>[];
+      items?: Record<string, unknown>[];
+      eeat?: {
+        experience?: number;
+        expertise?: number;
+        authoritativeness?: number;
+        trustworthiness?: number;
+        strengths?: string;
+        weaknesses?: string;
+      };
+    };
     const items = Array.isArray(parsed) ? parsed : (parsed.recommendations ?? parsed.items ?? []);
 
-    return items.slice(0, 5).map((item: Record<string, unknown>) => ({
-      action: String(item.action ?? ""),
-      priority: (["high", "medium", "low"].includes(String(item.priority))
-        ? item.priority
-        : "medium") as "high" | "medium" | "low",
-      effortHours: Number(item.effort_hours ?? 2),
-      impactScore: Number(item.impact_score ?? 8),
-      category: String(item.category ?? "content"),
-    }));
+    const VALID_CITE = new Set(["C", "I", "T", "E"]);
+    const recommendations: Recommendation[] = items.slice(0, 5).map((item: Record<string, unknown>) => {
+      const rawCite = String(item.cite_category ?? item.citeCategory ?? "");
+      return {
+        action: String(item.action ?? ""),
+        priority: (["high", "medium", "low"].includes(String(item.priority)) ? item.priority : "medium") as "high" | "medium" | "low",
+        effortHours: Number(item.effort_hours ?? 2),
+        impactScore: Number(item.impact_score ?? 8),
+        category: String(item.category ?? "content"),
+        citeCategory: (VALID_CITE.has(rawCite) ? rawCite : "C") as "C" | "I" | "T" | "E",
+      };
+    });
+
+    const eeat = parsed.eeat ?? {};
+    const experience = Math.min(25, Math.max(0, Number(eeat.experience ?? 8)));
+    const expertise = Math.min(25, Math.max(0, Number(eeat.expertise ?? 12)));
+    const authoritativeness = Math.min(25, Math.max(0, Number(eeat.authoritativeness ?? 10)));
+    const trustworthiness = Math.min(25, Math.max(0, Number(eeat.trustworthiness ?? 10)));
+    const eeatScore: EeatScore = {
+      total: experience + expertise + authoritativeness + trustworthiness,
+      experience,
+      expertise,
+      authoritativeness,
+      trustworthiness,
+      strengths: String(eeat.strengths ?? ""),
+      weaknesses: String(eeat.weaknesses ?? ""),
+    };
+
+    return { recommendations, eeatScore };
   } catch {
-    return [
-      {
-        action: `Publish a detailed comparison article positioning ${brandName} against top competitors in ${category}. Include specific use cases and customer testimonials.`,
-        priority: "high",
-        effortHours: 4,
-        impactScore: 15,
-        category: "content",
-      },
-      {
-        action: `Get ${brandName} listed on G2, Capterra, and ProductHunt with complete profiles. AI systems pull heavily from these authoritative review sources.`,
-        priority: "high",
-        effortHours: 2,
-        impactScore: 12,
-        category: "citations",
-      },
-      {
-        action: `Create a structured FAQ page answering common questions about ${category} in ${market}. Use natural language questions and position ${brandName} as the expert answer.`,
-        priority: "medium",
-        effortHours: 3,
-        impactScore: 10,
-        category: "content",
-      },
-      {
-        action: `Add JSON-LD structured data markup to your homepage and product pages. This helps Gemini's knowledge graph understand and cite your brand correctly.`,
-        priority: "medium",
-        effortHours: 2,
-        impactScore: 8,
-        category: "technical",
-      },
-      {
-        action: `Publish original research or a data report about trends in ${category}. Data-driven content gets cited by Perplexity's real-time web search more frequently.`,
-        priority: "low",
-        effortHours: 8,
-        impactScore: 6,
-        category: "pr",
-      },
-    ];
+    return {
+      recommendations: [
+        {
+          action: `Publish a detailed comparison article positioning ${brandName} against top competitors in ${category}. Include specific use cases and customer testimonials. This builds training data citations that affect ChatGPT and Gemini in 3-6 months.`,
+          priority: "high",
+          effortHours: 4,
+          impactScore: 15,
+          category: "content",
+          citeCategory: "C",
+        },
+        {
+          action: `Get ${brandName} listed on G2, Capterra, and ProductHunt with complete profiles. AI systems pull heavily from these authoritative review sources — impact on ChatGPT/Gemini in 3-6 months, Perplexity within days.`,
+          priority: "high",
+          effortHours: 2,
+          impactScore: 12,
+          category: "citations",
+          citeCategory: "C",
+        },
+        {
+          action: `Add a llms.txt file and JSON-LD Organization schema to your homepage. This helps Perplexity's crawler identify and describe your brand accurately within days.`,
+          priority: "medium",
+          effortHours: 2,
+          impactScore: 10,
+          category: "technical",
+          citeCategory: "I",
+        },
+        {
+          action: `Add consistent social profile links (LinkedIn, Twitter/X, GitHub) to your homepage and JSON-LD sameAs field. AI engines use these to verify entity identity and build trust signals.`,
+          priority: "medium",
+          effortHours: 1,
+          impactScore: 8,
+          category: "social",
+          citeCategory: "T",
+        },
+        {
+          action: `Create a structured FAQ page answering common questions about ${category} in ${market}. Natural language Q&A content is the primary format Perplexity and ChatGPT cite when answering user queries.`,
+          priority: "low",
+          effortHours: 3,
+          impactScore: 6,
+          category: "content",
+          citeCategory: "E",
+        },
+      ],
+      eeatScore: DEFAULT_EEAT,
+    };
   }
 }

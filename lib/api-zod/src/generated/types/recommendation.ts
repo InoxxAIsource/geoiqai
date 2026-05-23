@@ -5,11 +5,14 @@
  * GEOscore API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { RecommendationCiteCategory } from './recommendationCiteCategory';
 import type { RecommendationPriority } from './recommendationPriority';
 
 export interface Recommendation {
-  title: string;
-  description: string;
+  action: string;
   priority: RecommendationPriority;
-  aiSystem: string;
+  effortHours: number;
+  impactScore: number;
+  category: string;
+  citeCategory: RecommendationCiteCategory;
 }

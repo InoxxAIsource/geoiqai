@@ -56,11 +56,33 @@ export const RecommendationPriority = {
   low: 'low',
 } as const;
 
+export type RecommendationCiteCategory = typeof RecommendationCiteCategory[keyof typeof RecommendationCiteCategory];
+
+
+export const RecommendationCiteCategory = {
+  C: 'C',
+  I: 'I',
+  T: 'T',
+  E: 'E',
+} as const;
+
 export interface Recommendation {
-  title: string;
-  description: string;
+  action: string;
   priority: RecommendationPriority;
-  aiSystem: string;
+  effortHours: number;
+  impactScore: number;
+  category: string;
+  citeCategory: RecommendationCiteCategory;
+}
+
+export interface EeatScore {
+  total: number;
+  experience: number;
+  expertise: number;
+  authoritativeness: number;
+  trustworthiness: number;
+  strengths: string;
+  weaknesses: string;
 }
 
 export interface AuditResult {
@@ -114,6 +136,7 @@ export interface AuditResult {
   fromCache?: boolean;
   cachedHoursAgo?: number;
   recommendations?: Recommendation[];
+  eeatScore?: EeatScore;
   createdAt: string;
 }
 

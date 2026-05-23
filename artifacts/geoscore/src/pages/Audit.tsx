@@ -1026,7 +1026,119 @@ export default function Audit() {
               </div>
             )}
 
-            {/* Section 03: Free GEO Files - only show what still needs fixing */}
+            {/* Section 03: EEAT Content Quality Score */}
+            {auditResult.eeatScore && (() => {
+              const eeat = auditResult.eeatScore as { total: number; experience: number; expertise: number; authoritativeness: number; trustworthiness: number; strengths: string; weaknesses: string };
+              const dims = [
+                { key: "Experience", value: eeat.experience, label: "E", desc: "Firsthand knowledge" },
+                { key: "Expertise", value: eeat.expertise, label: "EX", desc: "Technical accuracy" },
+                { key: "Authoritativeness", value: eeat.authoritativeness, label: "A", desc: "External validation" },
+                { key: "Trustworthiness", value: eeat.trustworthiness, label: "T", desc: "Factual density" },
+              ];
+              const pct = Math.round((eeat.total / 100) * 100);
+              const scoreColor = eeat.total >= 70 ? "#059669" : eeat.total >= 45 ? "#D97706" : "#DC2626";
+              return (
+                <div style={{ marginBottom: 28 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>
+                    03 - Content Quality (EEAT)
+                  </div>
+                  <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 14 }}>
+                    How well your content signals Experience, Expertise, Authoritativeness, and Trustworthiness to AI engines.
+                  </p>
+                  <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: "20px", marginBottom: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>EEAT Score</div>
+                        <div style={{ fontSize: 11, color: "#9ca3af" }}>out of 100</div>
+                      </div>
+                      <div style={{ fontSize: 28, fontWeight: 700, color: scoreColor }}>{eeat.total}<span style={{ fontSize: 14, fontWeight: 400, color: "#9ca3af" }}>/100</span></div>
+                    </div>
+                    <div style={{ height: 6, background: "#f3f4f6", borderRadius: 3, marginBottom: 16, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${pct}%`, background: scoreColor, borderRadius: 3, transition: "width 0.6s ease" }} />
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 14 }}>
+                      {dims.map((d) => (
+                        <div key={d.key} style={{ background: "#f9fafb", borderRadius: 8, padding: "12px" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                            <div>
+                              <div style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{d.key}</div>
+                              <div style={{ fontSize: 11, color: "#9ca3af" }}>{d.desc}</div>
+                            </div>
+                            <div style={{ fontSize: 16, fontWeight: 700, color: d.value >= 18 ? "#059669" : d.value >= 12 ? "#D97706" : "#DC2626" }}>
+                              {d.value}<span style={{ fontSize: 10, fontWeight: 400, color: "#9ca3af" }}>/25</span>
+                            </div>
+                          </div>
+                          <div style={{ height: 4, background: "#e5e7eb", borderRadius: 2, overflow: "hidden" }}>
+                            <div style={{ height: "100%", width: `${(d.value / 25) * 100}%`, background: d.value >= 18 ? "#059669" : d.value >= 12 ? "#D97706" : "#DC2626", borderRadius: 2 }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {(eeat.strengths || eeat.weaknesses) && (
+                      <div style={{ borderTop: "0.5px solid #e5e7eb", paddingTop: 12 }}>
+                        {eeat.strengths && <p style={{ fontSize: 12, color: "#059669", margin: "0 0 4px" }}>{eeat.strengths}</p>}
+                        {eeat.weaknesses && <p style={{ fontSize: 12, color: "#6b7280", margin: 0 }}>{eeat.weaknesses}</p>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Section 04: Fix Actions - CITE Framework */}
+            {auditResult.recommendations && (auditResult.recommendations as unknown[]).length > 0 && (() => {
+              const recs = auditResult.recommendations as { action: string; priority: string; effortHours: number; impactScore: number; category: string; citeCategory: string }[];
+              const CITE_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; desc: string }> = {
+                C: { label: "C", color: "#1d4ed8", bg: "#eff6ff", border: "#93c5fd", desc: "Citations" },
+                I: { label: "I", color: "#92400e", bg: "#fffbeb", border: "#fcd34d", desc: "Indexability" },
+                T: { label: "T", color: "#065f46", bg: "#ecfdf5", border: "#6ee7b7", desc: "Trustworthiness" },
+                E: { label: "E", color: "#5b21b6", bg: "#f5f3ff", border: "#c4b5fd", desc: "Entity" },
+              };
+              const PRIORITY_COLOR: Record<string, string> = { high: "#DC2626", medium: "#D97706", low: "#6b7280" };
+              return (
+                <div style={{ marginBottom: 28 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>
+                    04 - Fix Actions
+                  </div>
+                  <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 6 }}>
+                    Prioritized by impact. Each action is tagged with its CITE category.
+                  </p>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+                    {(["C", "I", "T", "E"] as const).map((k) => {
+                      const cfg = CITE_CONFIG[k]!;
+                      return (
+                        <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: cfg.bg, border: `0.5px solid ${cfg.border}`, borderRadius: 6, padding: "3px 8px", fontSize: 11, color: cfg.color, fontWeight: 600 }}>
+                          [{cfg.label}] {cfg.desc}
+                        </span>
+                      );
+                    })}
+                  </div>
+                  {recs.map((rec, i) => {
+                    const cite = CITE_CONFIG[rec.citeCategory] ?? CITE_CONFIG["C"]!;
+                    return (
+                      <div key={i} style={{ background: "white", border: "0.5px solid #e5e7eb", borderLeft: `3px solid ${cite.border}`, borderRadius: 10, padding: "14px 16px", marginBottom: 10 }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                          <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, background: cite.bg, border: `0.5px solid ${cite.border}`, borderRadius: 6, fontSize: 11, fontWeight: 700, color: cite.color }}>
+                            {cite.label}
+                          </span>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ fontSize: 13, color: "#111827", lineHeight: 1.6, margin: "0 0 8px" }}>{rec.action}</p>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                              <span style={{ fontSize: 11, fontWeight: 600, color: PRIORITY_COLOR[rec.priority] ?? "#6b7280", textTransform: "capitalize" }}>{rec.priority} priority</span>
+                              <span style={{ fontSize: 11, color: "#9ca3af" }}>{rec.effortHours}h effort</span>
+                              <span style={{ fontSize: 11, color: "#9ca3af" }}>+{rec.impactScore} score impact</span>
+                              <span style={{ fontSize: 11, color: cite.color, background: cite.bg, padding: "1px 6px", borderRadius: 4 }}>{cite.desc}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
+            {/* Section 05: Free GEO Files - only show what still needs fixing */}
             {(() => {
               const robotsCheck = tech?.checks?.find((c: { id: string; status: string }) => c.id === "robots");
               const schemaCheck = tech?.checks?.find((c: { id: string; status: string }) => c.id === "schema");

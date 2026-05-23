@@ -519,6 +519,8 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Recommendation"
+        eeatScore:
+          $ref: "#/components/schemas/EeatScore"
         createdAt:
           type: string
 
@@ -551,16 +553,40 @@ components:
 
     Recommendation:
       type: object
-      required: [title, description, priority, aiSystem]
+      required: [action, priority, effortHours, impactScore, category, citeCategory]
       properties:
-        title:
-          type: string
-        description:
+        action:
           type: string
         priority:
           type: string
           enum: [high, medium, low]
-        aiSystem:
+        effortHours:
+          type: number
+        impactScore:
+          type: number
+        category:
+          type: string
+        citeCategory:
+          type: string
+          enum: [C, I, T, E]
+
+    EeatScore:
+      type: object
+      required: [total, experience, expertise, authoritativeness, trustworthiness, strengths, weaknesses]
+      properties:
+        total:
+          type: integer
+        experience:
+          type: integer
+        expertise:
+          type: integer
+        authoritativeness:
+          type: integer
+        trustworthiness:
+          type: integer
+        strengths:
+          type: string
+        weaknesses:
           type: string
 
     RegisterInput:

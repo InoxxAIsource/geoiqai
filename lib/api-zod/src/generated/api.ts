@@ -124,11 +124,22 @@ export const RunAuditResponse = zod.object({
   "fromCache": zod.boolean().optional(),
   "cachedHoursAgo": zod.number().optional(),
   "recommendations": zod.array(zod.object({
-  "title": zod.string(),
-  "description": zod.string(),
+  "action": zod.string(),
   "priority": zod.enum(['high', 'medium', 'low']),
-  "aiSystem": zod.string()
+  "effortHours": zod.number(),
+  "impactScore": zod.number(),
+  "category": zod.string(),
+  "citeCategory": zod.enum(['C', 'I', 'T', 'E'])
 })).optional(),
+  "eeatScore": zod.object({
+  "total": zod.number(),
+  "experience": zod.number(),
+  "expertise": zod.number(),
+  "authoritativeness": zod.number(),
+  "trustworthiness": zod.number(),
+  "strengths": zod.string(),
+  "weaknesses": zod.string()
+}).optional(),
   "createdAt": zod.string()
 })
 
@@ -190,11 +201,22 @@ export const GetAuditResponse = zod.object({
   "fromCache": zod.boolean().optional(),
   "cachedHoursAgo": zod.number().optional(),
   "recommendations": zod.array(zod.object({
-  "title": zod.string(),
-  "description": zod.string(),
+  "action": zod.string(),
   "priority": zod.enum(['high', 'medium', 'low']),
-  "aiSystem": zod.string()
+  "effortHours": zod.number(),
+  "impactScore": zod.number(),
+  "category": zod.string(),
+  "citeCategory": zod.enum(['C', 'I', 'T', 'E'])
 })).optional(),
+  "eeatScore": zod.object({
+  "total": zod.number(),
+  "experience": zod.number(),
+  "expertise": zod.number(),
+  "authoritativeness": zod.number(),
+  "trustworthiness": zod.number(),
+  "strengths": zod.string(),
+  "weaknesses": zod.string()
+}).optional(),
   "createdAt": zod.string()
 })
 
@@ -346,10 +368,12 @@ export const GetBrandScoresResponseItem = zod.object({
   "scoreGemini": zod.number(),
   "scorePerplexity": zod.number(),
   "recommendations": zod.array(zod.object({
-  "title": zod.string(),
-  "description": zod.string(),
+  "action": zod.string(),
   "priority": zod.enum(['high', 'medium', 'low']),
-  "aiSystem": zod.string()
+  "effortHours": zod.number(),
+  "impactScore": zod.number(),
+  "category": zod.string(),
+  "citeCategory": zod.enum(['C', 'I', 'T', 'E'])
 })).optional()
 })
 export const GetBrandScoresResponse = zod.array(GetBrandScoresResponseItem)

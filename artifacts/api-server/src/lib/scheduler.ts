@@ -65,7 +65,7 @@ async function runDailyMonitoringJob(): Promise<void> {
           brand.market,
         );
 
-        const { chatgpt, gemini, perplexity } = engineResult;
+        const { chatgpt, gemini, perplexity, technicalAudit } = engineResult;
         const scoreTotal = Math.min(chatgpt.score + gemini.score + perplexity.score, 100);
 
         const yesterdayDate = new Date();
@@ -98,7 +98,7 @@ async function runDailyMonitoringJob(): Promise<void> {
           .where(eq(monitoredBrandsTable.id, brand.id));
 
         if (isMonday()) {
-          const recs = await generateRecommendations(
+          const { recommendations } = await generateRecommendations(
             brand.brandName ?? brand.domain,
             brand.domain,
             brand.category ?? "saas tool",
@@ -106,6 +106,7 @@ async function runDailyMonitoringJob(): Promise<void> {
             chatgpt,
             gemini,
             perplexity,
+            technicalAudit,
           );
 
           await sendWeeklyDigest(
@@ -114,7 +115,7 @@ async function runDailyMonitoringJob(): Promise<void> {
             scoreTotal,
             yesterdayScore?.scoreTotal ?? scoreTotal,
             { chatgpt: chatgpt.found, gemini: gemini.found, perplexity: perplexity.found },
-            recs,
+            recommendations,
           );
         }
 

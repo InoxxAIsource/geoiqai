@@ -5,7 +5,7 @@ import {
   RunAuditBody,
   GetAuditParams,
 } from "@workspace/api-zod";
-import { runAuditEngine, generateRecommendations, extractDomain, type TechnicalAuditResult } from "../lib/audit-engine";
+import { runAuditEngine, generateRecommendations, extractDomain, type TechnicalAuditResult, type EeatScore } from "../lib/audit-engine";
 import { verifyToken } from "../lib/auth";
 
 const FREE_IP_AUDITS_PER_DAY = 2;
@@ -20,6 +20,7 @@ function serializeAudit(
   const raw = (audit.rawResults ?? {}) as Record<string, unknown>;
   const aiVisibilityScore = typeof raw.scoreAiVisibility === "number" ? raw.scoreAiVisibility : Math.min(audit.scoreChatgpt + audit.scoreGemini + audit.scorePerplexity, 100);
   const scoreTechnical = typeof raw.scoreTechnical === "number" ? raw.scoreTechnical : 0;
+  const eeatScore = (raw.eeatScore ?? null) as EeatScore | null;
   return {
     id: audit.id,
     url: audit.url,
@@ -56,6 +57,7 @@ function serializeAudit(
     keywordsFromDataforseo: typeof raw.keywordsFromDataforseo === "number" ? raw.keywordsFromDataforseo : 0,
     keywordsFilteredOut: typeof raw.keywordsFilteredOut === "number" ? raw.keywordsFilteredOut : 0,
     recommendations: audit.recommendations,
+    eeatScore,
     createdAt: audit.createdAt.toISOString(),
     fromCache: extra?.fromCache ?? false,
     cachedHoursAgo: extra?.cachedHoursAgo,
@@ -174,7 +176,7 @@ router.post("/audit", async (req, res): Promise<void> => {
     const scoreTotal = Math.round(aiVisibilityScore * 0.6 + scoreTechnical * 0.4);
     const allCompetitors = [...new Set([...chatgpt.competitors, ...gemini.competitors, ...perplexity.competitors, ...claude.competitors, ...grok.competitors])];
 
-    const recommendations = await generateRecommendations(brandName, domain, category, market, chatgpt, gemini, perplexity);
+    const { recommendations, eeatScore } = await generateRecommendations(brandName, domain, category, market, chatgpt, gemini, perplexity, technicalAudit);
 
     const [audit] = await db.insert(auditsTable).values({
       url, domain, brandName, category, market, scoreTotal,
@@ -191,7 +193,7 @@ router.post("/audit", async (req, res): Promise<void> => {
         claudeDetail: claude.detail, grokDetail: grok.detail,
         chatgptRawResponse: rawChatgptResponse, geminiRawResponse: rawGeminiResponse,
         perplexityRawResponse: rawPerplexityResponse, claudeRawResponse: rawClaudeResponse,
-        grokRawResponse: rawGrokResponse, technicalAudit,
+        grokRawResponse: rawGrokResponse, technicalAudit, eeatScore,
       },
       recommendations: recommendations as unknown as Record<string, unknown>[],
       ipAddress: ip,
@@ -225,7 +227,7 @@ router.post("/audit", async (req, res): Promise<void> => {
       }
     }
 
-    res.json({ ...serializeAudit(audit!), recommendations, fromCache: false });
+    res.json({ ...serializeAudit(audit!), recommendations, eeatScore, fromCache: false });
   } catch (err) {
     req.log.error({ err }, "Audit failed");
     res.status(500).json({ error: "Audit failed" });
