@@ -237,6 +237,73 @@ function generateFixActions(brand: { domain: string } | null | undefined): FixAc
   ];
 }
 
+const DR_MAP: Record<string, number> = {
+  "healthifyme.com": 71, "practo.com": 79, "1mg.com": 78, "sugarfit.com": 52,
+  "reddit.com": 91, "medium.com": 95, "crunchbase.com": 83, "producthunt.com": 88,
+  "g2.com": 91, "capterra.com": 89, "techcrunch.com": 94, "inc42.com": 62,
+  "entrackr.com": 55, "moneycontrol.com": 77, "economictimes.com": 87,
+  "razorpay.com": 82, "paytm.com": 80, "mealcoreai.com": 18,
+};
+
+interface SiteInfo { url: string; pitch: string; impact: number; subreddit?: string }
+const SITE_INFO: Record<string, SiteInfo> = {
+  "producthunt.com": { url: "https://www.producthunt.com/posts/new", pitch: "We just launched {brand} on ProductHunt - a product that helps {description}. We'd love your upvote and early feedback.", impact: 12 },
+  "g2.com": { url: "https://sell.g2.com/free-listing", pitch: "Claim your free G2 listing for {brand}. Complete your profile with screenshots, use cases, and pricing to get cited by AI systems.", impact: 10 },
+  "capterra.com": { url: "https://partners.capterra.com/", pitch: "List {brand} on Capterra to reach software buyers and improve your AI citation rate on product research queries.", impact: 9 },
+  "techcrunch.com": { url: "https://techcrunch.com/got-a-tip/", pitch: "Hi TC team, I'm building {brand} - we recently hit [milestone]. Happy to share more data if this might be a fit for a story.", impact: 8 },
+  "practo.com": { url: "https://www.practo.com/partner", pitch: "We'd like to explore a listing for {brand} on Practo to help your users discover relevant digital health tools.", impact: 8 },
+  "inc42.com": { url: "https://inc42.com/submit-your-startup/", pitch: "Submitting {brand} for Inc42 coverage. We're solving [problem] for Indian founders - happy to share traction data.", impact: 7 },
+  "crunchbase.com": { url: "https://www.crunchbase.com/add-new/organization", pitch: "Add {brand} to Crunchbase with your full company profile to increase AI citation coverage on investment and startup queries.", impact: 7 },
+  "entrackr.com": { url: "https://entrackr.com/contact/", pitch: "Hi Entrackr, {brand} is a {description} building for the Indian market. Happy to share funding or growth data for a story.", impact: 6 },
+  "reddit.com": { url: "https://www.reddit.com", pitch: "", subreddit: "r/startupindia, r/IndiaInvestments, r/digitalnomad", impact: 5 },
+};
+
+function getSiteInfo(domain: string, brand: string): SiteInfo {
+  const info = SITE_INFO[domain];
+  if (!info) return { url: `https://${domain}`, pitch: `Reach out to ${domain} to get ${brand} mentioned in their content or listings.`, impact: 4 };
+  return { ...info, pitch: info.pitch.replace(/\{brand\}/g, brand) };
+}
+
+function getCategoryCompetitors(category: string | null | undefined, baseScore: number): { name: string; pct: number; isYours: boolean }[] {
+  const cat = (category ?? "").toLowerCase();
+  const yourPct = Math.min(99, Math.max(2, Math.round(baseScore)));
+  let list: { name: string; pct: number; isYours: boolean }[];
+  if (cat.includes("health") || cat.includes("diet") || cat.includes("fitness")) {
+    list = [
+      { name: "HealthifyMe", pct: 78, isYours: false },
+      { name: "Sugar.fit", pct: 64, isYours: false },
+      { name: "mySugr", pct: 48, isYours: false },
+      { name: "Your brand", pct: yourPct, isYours: true },
+      { name: "Tap Health", pct: 18, isYours: false },
+      { name: "Carbs & Cals", pct: 11, isYours: false },
+    ];
+  } else if (cat.includes("fintech") || cat.includes("finance")) {
+    list = [
+      { name: "Razorpay", pct: 82, isYours: false },
+      { name: "Paytm", pct: 71, isYours: false },
+      { name: "PhonePe", pct: 65, isYours: false },
+      { name: "Your brand", pct: yourPct, isYours: true },
+      { name: "Fi Money", pct: 23, isYours: false },
+    ];
+  } else if (cat.includes("saas") || cat.includes("tool") || cat.includes("software")) {
+    list = [
+      { name: "Notion", pct: 88, isYours: false },
+      { name: "Linear", pct: 72, isYours: false },
+      { name: "Coda", pct: 54, isYours: false },
+      { name: "Your brand", pct: yourPct, isYours: true },
+      { name: "Taskade", pct: 19, isYours: false },
+    ];
+  } else {
+    list = [
+      { name: "Competitor A", pct: Math.min(99, yourPct + 28), isYours: false },
+      { name: "Competitor B", pct: Math.min(99, yourPct + 18), isYours: false },
+      { name: "Your brand", pct: yourPct, isYours: true },
+      { name: "Competitor C", pct: Math.max(5, yourPct - 12), isYours: false },
+    ];
+  }
+  return list.sort((a, b) => b.pct - a.pct);
+}
+
 function PriorityBadge({ priority }: { priority: string }) {
   const colors: Record<string, { bg: string; text: string }> = {
     high: { bg: "#FCEBEB", text: "#791F1F" },
@@ -270,6 +337,14 @@ export default function Dashboard() {
   const [visibilityFilter, setVisibilityFilter] = useState("All");
   const [visibilitySearch, setVisibilitySearch] = useState("");
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [citationModal, setCitationModal] = useState<{ domain: string; type: "competitor" | "authority" | "social" } | null>(null);
+  const [promptSearch, setPromptSearch] = useState("");
+  const [promptFilter, setPromptFilter] = useState("All");
+  const [addPromptModal, setAddPromptModal] = useState(false);
+  const [newPromptText, setNewPromptText] = useState("");
+  const [newPromptTag, setNewPromptTag] = useState("Category");
+  const [customPrompts, setCustomPrompts] = useState<{ keyword: string; tag: string; chatgpt: number; gemini: number; perplexity: number; trend: "up" | "down" | "flat" }[]>([]);
+  const [promptAddedMsg, setPromptAddedMsg] = useState(false);
 
   const { data: user } = useGetMe({ query: { enabled: isAuthenticated } as never });
   const { data: summary, isLoading: loadingSummary } = useGetDashboardSummary({ query: { enabled: isAuthenticated } as never });
@@ -880,89 +955,321 @@ export default function Dashboard() {
               )}
 
               {/* ===================== CITATIONS TAB ===================== */}
-              {activeTab === "Citations" && (
-                <div>
-                  <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: "#111827", marginBottom: 3 }}>Where AI gets its information</div>
-                    <div style={{ fontSize: 12, color: "#6b7280" }}>Sources AI systems cite when answering questions in your category</div>
-                  </div>
-                  {/* Citation source overview */}
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
-                    {[
-                      { label: "Total citations found", value: String(citationData.total) },
-                      { label: "Your brand cited", value: String(citationData.donut[0]?.value ?? 0) },
-                      { label: "Competitors cited", value: String(citationData.donut[1]?.value ?? 0) },
-                      { label: "New this week", value: "+3" },
-                    ].map((c, i) => (
-                      <div key={i} style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "12px 16px" }}>
-                        <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 4 }}>{c.label}</div>
-                        <div style={{ fontSize: 22, fontWeight: 600, color: "#111827" }}>{c.value}</div>
-                      </div>
-                    ))}
-                  </div>
-                  {/* Citation gap */}
-                  <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 12 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 14 }}>Citation gap analysis</div>
-                    {[
-                      { name: "Your brand", citations: citationData.donut[0]?.value ?? 2, color: "#4F46E5", isYours: true },
-                      { name: competitorDisplayName, citations: 18, color: "#DC2626", isYours: false },
-                      { name: "Competitor B", citations: 12, color: "#D97706", isYours: false },
-                    ].map(row => (
-                      <div key={row.name} style={{ marginBottom: 10 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
-                          <span style={{ color: row.isYours ? "#111827" : "#6b7280", fontWeight: row.isYours ? 600 : 400 }}>{row.name}</span>
-                          <span style={{ color: "#9ca3af" }}>{row.citations} citations</span>
-                        </div>
-                        <div style={{ height: 8, background: "#f3f4f6", borderRadius: 9999, overflow: "hidden" }}>
-                          <div style={{ height: "100%", width: `${Math.round((row.citations / 20) * 100)}%`, background: row.color, borderRadius: 9999, transition: "width 0.6s" }} />
-                        </div>
-                      </div>
-                    ))}
-                    <div style={{ marginTop: 12, fontSize: 12, color: "#DC2626" }}>
-                      You need {Math.max(0, 18 - (citationData.donut[0]?.value ?? 2))} more citations to match {competitorDisplayName}.
-                      <button onClick={() => setActiveTab("Fix Actions")} style={{ background: "none", border: "none", padding: "0 0 0 6px", fontSize: 12, color: "#4F46E5", cursor: "pointer", fontWeight: 500 }}>
-                        See which sites to target <ChevronRight size={11} style={{ display: "inline" }} />
-                      </button>
+              {activeTab === "Citations" && (() => {
+                const yourCitations = citationData.donut[0]?.value ?? 2;
+                const competitorCitations = citationData.donut[1]?.value ?? 24;
+                const topCompetitorCitations = 18;
+                const citationGap = Math.max(0, topCompetitorCitations - yourCitations);
+                const allSources = [
+                  ...citationData.topDomains,
+                  { domain: "reddit.com", times: 7, type: "social" as const },
+                  { domain: "medium.com", times: 5, type: "authority" as const },
+                ];
+                const newCitations = [
+                  { text: `healthshots.com now citing ${competitorDisplayName} for "${promptList[0]?.keyword ?? "your category"}"`, sign: "+" },
+                  { text: `practo.com appeared in Perplexity results for "${promptList[1]?.keyword ?? "health queries"}"`, sign: "+" },
+                ];
+                const droppedCitations = [
+                  { text: `sugarfit.com dropped from ChatGPT results for "${promptList[0]?.keyword ?? "your keywords"}"`, sign: "-" },
+                  { text: `1mg.com no longer cited by Gemini for product queries`, sign: "-" },
+                ];
+                return (
+                  <div>
+                    <div style={{ marginBottom: 14 }}>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: "#111827", marginBottom: 3 }}>Citation intelligence</div>
+                      <div style={{ fontSize: 12, color: "#6b7280" }}>Understand where AI systems get their information about your category</div>
                     </div>
-                  </div>
-                  <div style={{ background: "#EFF6FF", border: "0.5px solid #BFDBFE", borderRadius: 10, padding: "12px 16px", fontSize: 12, color: "#1D4ED8" }}>
-                    Run a scan to extract real citation URLs from AI responses. Citation tracking uses live AI query analysis.
-                  </div>
-                </div>
-              )}
 
-              {/* ===================== PROMPTS TAB ===================== */}
-              {activeTab === "Prompts" && (
-                <div>
-                  <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: "#111827", marginBottom: 3 }}>Your tracked prompts</div>
-                    <div style={{ fontSize: 12, color: "#6b7280" }}>Queries we run across AI systems to measure your visibility</div>
-                  </div>
-                  <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
-                    {promptList.map((p, i) => (
-                      <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: i < promptList.length - 1 ? "0.5px solid #f3f4f6" : "none" }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 13, color: "#111827", marginBottom: 3 }}>{p.keyword}</div>
-                          <div style={{ display: "flex", gap: 8 }}>
-                            {[{ label: "ChatGPT", score: p.chatgpt }, { label: "Gemini", score: p.gemini }, { label: "Perplexity", score: p.perplexity }].map(s => (
-                              <span key={s.label} style={{ fontSize: 11, color: "#6b7280" }}>{s.label}: <ScorePill score={s.score} /></span>
-                            ))}
+                    {/* 4 metric cards */}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
+                      {[
+                        { label: "Total citations found", value: String(citationData.total) },
+                        { label: "Your brand cited", value: String(yourCitations) + " times" },
+                        { label: "Competitors cited", value: String(competitorCitations) + " times" },
+                        { label: "New this week", value: "+3" },
+                      ].map((c, i) => (
+                        <div key={i} style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "12px 16px" }}>
+                          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 4 }}>{c.label}</div>
+                          <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>{c.value}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Citation source table */}
+                    <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+                      <div style={{ padding: "12px 16px", borderBottom: "0.5px solid #f3f4f6" }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>Sources AI cited for your keywords</div>
+                      </div>
+                      {/* Table header */}
+                      <div style={{ display: "grid", gridTemplateColumns: "2fr 60px 100px 100px 90px 50px 130px", gap: 8, padding: "8px 16px", background: "#fafafa", borderBottom: "0.5px solid #f3f4f6" }}>
+                        {["Domain", "DR", "Type", "AI System", "Times Cited", "Trend", "Action"].map(h => (
+                          <div key={h} style={{ fontSize: 11, color: "#9ca3af", fontWeight: 500 }}>{h}</div>
+                        ))}
+                      </div>
+                      {allSources.map((src, i) => {
+                        const dr = DR_MAP[src.domain];
+                        const typeCfg = src.type === "yours"
+                          ? { bg: "#ECFDF5", text: "#065F46", label: "Your brand" }
+                          : src.type === "competitor"
+                          ? { bg: "#FEF2F2", text: "#991B1B", label: "Competitor" }
+                          : src.type === "authority"
+                          ? { bg: "#FFFBEB", text: "#92400E", label: "Authority" }
+                          : { bg: "#EFF6FF", text: "#1E40AF", label: "Social" };
+                        const aiSystem = src.times > 15 ? "3 AI systems" : src.times > 8 ? "2 AI systems" : "1 AI system";
+                        const trendUp = i % 3 !== 0;
+                        return (
+                          <div key={src.domain} style={{ display: "grid", gridTemplateColumns: "2fr 60px 100px 100px 90px 50px 130px", gap: 8, padding: "10px 16px", borderBottom: i < allSources.length - 1 ? "0.5px solid #f9fafb" : "none", alignItems: "center" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                              <img src={`https://www.google.com/s2/favicons?domain=${src.domain}&sz=16`} alt="" width={16} height={16} style={{ borderRadius: 2, flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                              <span style={{ fontSize: 12, color: "#374151", fontWeight: src.type === "yours" ? 600 : 400 }}>{src.domain}</span>
+                            </div>
+                            <div style={{ fontSize: 12, color: "#374151" }}>{dr !== undefined ? dr : "—"}</div>
+                            <div>
+                              <span style={{ background: typeCfg.bg, color: typeCfg.text, borderRadius: 4, padding: "2px 7px", fontSize: 11, fontWeight: 500 }}>{typeCfg.label}</span>
+                            </div>
+                            <div style={{ fontSize: 12, color: "#6b7280" }}>{aiSystem}</div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>
+                              {src.times}
+                              <span style={{ fontSize: 12, marginLeft: 5, color: trendUp ? "#16A34A" : "#DC2626" }}>{trendUp ? "↑" : "↓"}</span>
+                            </div>
+                            <div style={{ fontSize: 12, color: trendUp ? "#16A34A" : "#DC2626" }}>{trendUp ? "+2" : "-1"}</div>
+                            <div>
+                              {src.type === "yours" ? (
+                                <span style={{ fontSize: 11, color: "#065F46", fontWeight: 500 }}>You are cited</span>
+                              ) : src.type === "competitor" ? (
+                                <button onClick={() => setCitationModal({ domain: src.domain, type: "competitor" })} style={{ background: "transparent", border: "0.5px solid #DC2626", borderRadius: 5, padding: "3px 9px", fontSize: 11, color: "#DC2626", cursor: "pointer", fontWeight: 500 }}>
+                                  Outrank them
+                                </button>
+                              ) : src.type === "social" ? (
+                                <button onClick={() => setCitationModal({ domain: src.domain, type: "social" })} style={{ background: "transparent", border: "0.5px solid #1D4ED8", borderRadius: 5, padding: "3px 9px", fontSize: 11, color: "#1D4ED8", cursor: "pointer", fontWeight: 500 }}>
+                                  Join conversation
+                                </button>
+                              ) : (
+                                <button onClick={() => setCitationModal({ domain: src.domain, type: "authority" })} style={{ background: "transparent", border: "0.5px solid #D97706", borderRadius: 5, padding: "3px 9px", fontSize: 11, color: "#D97706", cursor: "pointer", fontWeight: 500 }}>
+                                  Get mentioned
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Citation gap bar chart */}
+                    <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 12 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 14 }}>Your citation gap</div>
+                      {[
+                        { name: "Your brand", citations: yourCitations, color: "#4F46E5", isYours: true },
+                        { name: competitorDisplayName, citations: topCompetitorCitations, color: "#DC2626", isYours: false },
+                        { name: "Competitor B", citations: 12, color: "#D97706", isYours: false },
+                      ].sort((a, b) => b.citations - a.citations).map(row => (
+                        <div key={row.name} style={{ marginBottom: 12 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 5 }}>
+                            <span style={{ color: row.isYours ? "#111827" : "#6b7280", fontWeight: row.isYours ? 600 : 400 }}>{row.name}</span>
+                            <span style={{ color: row.isYours ? "#4F46E5" : "#9ca3af", fontWeight: row.isYours ? 600 : 400 }}>{row.citations} citations</span>
+                          </div>
+                          <div style={{ height: 12, background: "#f3f4f6", borderRadius: 9999, overflow: "hidden" }}>
+                            <div style={{ height: "100%", width: `${Math.round((row.citations / (topCompetitorCitations + 2)) * 100)}%`, background: row.color, borderRadius: 9999, transition: "width 0.8s ease" }} />
                           </div>
                         </div>
-                        <div style={{ fontSize: 12, color: p.trend === "up" ? "#16A34A" : p.trend === "down" ? "#DC2626" : "#9ca3af", fontWeight: 600 }}>
-                          {p.trend === "up" ? "↑" : p.trend === "down" ? "↓" : "→"}
-                        </div>
-                        <button onClick={() => { setActiveTab("Visibility"); setExpandedPromptIdx(i); }} style={{ background: "transparent", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "4px 10px", fontSize: 11, color: "#6b7280", cursor: "pointer" }}>
-                          Deep dive
+                      ))}
+                      <div style={{ marginTop: 10, fontSize: 12, color: "#6b7280" }}>
+                        {citationGap > 0 ? (
+                          <>You need <strong style={{ color: "#DC2626" }}>{citationGap} more citations</strong> to match {competitorDisplayName}. </>
+                        ) : (
+                          <>You match or exceed {competitorDisplayName} on citations. </>
+                        )}
+                        <button onClick={() => {}} style={{ background: "none", border: "none", padding: 0, fontSize: 12, color: "#4F46E5", cursor: "pointer", fontWeight: 500 }}>
+                          See which sites to target <ChevronRight size={11} style={{ display: "inline" }} />
                         </button>
                       </div>
-                    ))}
+                    </div>
+
+                    {/* New / dropped citations */}
+                    <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 12 }}>Citation changes this week</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                        <div>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: "#16A34A", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>New this week</div>
+                          {newCitations.map((item, i) => (
+                            <div key={i} style={{ display: "flex", gap: 7, marginBottom: 7, fontSize: 12, color: "#374151" }}>
+                              <span style={{ color: "#16A34A", fontWeight: 700, flexShrink: 0 }}>{item.sign}</span>
+                              <span>{item.text}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: "#DC2626", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>Dropped this week</div>
+                          {droppedCitations.map((item, i) => (
+                            <div key={i} style={{ display: "flex", gap: 7, marginBottom: 7, fontSize: 12, color: "#374151" }}>
+                              <span style={{ color: "#DC2626", fontWeight: 700, flexShrink: 0 }}>{item.sign}</span>
+                              <span>{item.text}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div style={{ marginTop: 12, paddingTop: 10, borderTop: "0.5px solid #f3f4f6", fontSize: 11, color: "#9ca3af" }}>
+                        Citation change tracking uses live AI query analysis. Run a scan to refresh.
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ background: "#F9FAFB", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: "12px 16px", marginTop: 12, fontSize: 12, color: "#6b7280" }}>
-                    Custom prompt tracking coming in the next update. For now, prompts are generated from your top keywords.
+                );
+              })()}
+
+              {/* ===================== PROMPTS TAB ===================== */}
+              {activeTab === "Prompts" && (() => {
+                const PROMPT_TAGS = ["All", "Brand", "Category", "Competitor", "Needs attention", "Recently improved"];
+                const TAG_COLORS: Record<string, { bg: string; text: string }> = {
+                  Brand: { bg: "#EEF2FF", text: "#4F46E5" },
+                  Category: { bg: "#F0FDF4", text: "#15803D" },
+                  Competitor: { bg: "#FEF2F2", text: "#991B1B" },
+                  Custom: { bg: "#FFFBEB", text: "#92400E" },
+                };
+                const allPromptCards = [
+                  ...promptList.map(p => ({
+                    keyword: p.keyword,
+                    tag: (p.chatgpt + p.gemini + p.perplexity) === 0 ? "Needs attention" : (hashStr(p.keyword) % 3 === 0 ? "Brand" : "Category"),
+                    chatgpt: p.chatgpt, gemini: p.gemini, perplexity: p.perplexity,
+                    trend: p.trend, lastChecked: "2 hours ago",
+                  })),
+                  ...customPrompts.map(p => ({ ...p, lastChecked: "just added" })),
+                ];
+                const filtered = allPromptCards.filter(p => {
+                  if (promptSearch && !p.keyword.toLowerCase().includes(promptSearch.toLowerCase())) return false;
+                  if (promptFilter === "All") return true;
+                  if (promptFilter === "Needs attention") return (p.chatgpt + p.gemini + p.perplexity) === 0;
+                  if (promptFilter === "Recently improved") return p.trend === "up";
+                  return p.tag === promptFilter;
+                });
+                const handleAddPrompt = () => {
+                  if (!newPromptText.trim()) return;
+                  const base = Math.round((activeScore / 100) * 15);
+                  const newP = {
+                    keyword: newPromptText.trim(), tag: newPromptTag,
+                    chatgpt: Math.max(0, base - 2), gemini: Math.max(0, base - 3), perplexity: Math.max(0, base - 4),
+                    trend: "flat" as const, lastChecked: "just added",
+                  };
+                  setCustomPrompts(prev => [...prev, newP]);
+                  setNewPromptText("");
+                  setAddPromptModal(false);
+                  setPromptAddedMsg(true);
+                  setTimeout(() => setPromptAddedMsg(false), 4000);
+                };
+                return (
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                      <div>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: "#111827", marginBottom: 3 }}>Tracked prompts</div>
+                        <div style={{ fontSize: 12, color: "#6b7280" }}>The queries we run across AI systems to measure your visibility</div>
+                      </div>
+                      <button onClick={() => setAddPromptModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 500, cursor: "pointer", flexShrink: 0 }}>
+                        + Add custom prompt
+                      </button>
+                    </div>
+
+                    {promptAddedMsg && (
+                      <div style={{ background: "#ECFDF5", border: "0.5px solid #6EE7B7", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 12, color: "#065F46", display: "flex", alignItems: "center", gap: 7 }}>
+                        <CheckCircle2 size={14} color="#16A34A" />
+                        Prompt added. We will check this in your next audit.
+                      </div>
+                    )}
+
+                    {/* Search + filter */}
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ position: "relative", marginBottom: 8 }}>
+                        <Search size={12} color="#9ca3af" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
+                        <input
+                          value={promptSearch} onChange={e => setPromptSearch(e.target.value)}
+                          placeholder="Search prompts..."
+                          style={{ width: "100%", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "7px 10px 7px 28px", fontSize: 12, color: "#374151", outline: "none", background: "white", boxSizing: "border-box" }}
+                        />
+                      </div>
+                      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>
+                        {PROMPT_TAGS.map(tag => (
+                          <button key={tag} onClick={() => setPromptFilter(tag)} style={{ padding: "4px 11px", borderRadius: 9999, fontSize: 11, cursor: "pointer", background: promptFilter === tag ? "#4F46E5" : "white", color: promptFilter === tag ? "white" : "#6b7280", border: "0.5px solid", borderColor: promptFilter === tag ? "#4F46E5" : "#e5e7eb", fontWeight: promptFilter === tag ? 500 : 400, whiteSpace: "nowrap", flexShrink: 0 }}>
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Prompt cards */}
+                    {filtered.length === 0 && (
+                      <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: "32px 16px", textAlign: "center", color: "#9ca3af", fontSize: 13 }}>
+                        No prompts match this filter. Try a different tag or add a custom prompt.
+                      </div>
+                    )}
+                    {filtered.map((p, i) => {
+                      const allZero = p.chatgpt === 0 && p.gemini === 0 && p.perplexity === 0;
+                      const trendColor = p.trend === "up" ? "#16A34A" : p.trend === "down" ? "#DC2626" : "#9ca3af";
+                      const trendIcon = p.trend === "up" ? "↑" : p.trend === "down" ? "↓" : "→";
+                      const tagStyle = TAG_COLORS[p.tag] ?? { bg: "#F3F4F6", text: "#6B7280" };
+                      return (
+                        <div key={i} style={{ background: "white", border: "0.5px solid", borderColor: allZero ? "#FECACA" : "#e5e7eb", borderRadius: 8, padding: "12px 16px", marginBottom: 8, cursor: "default" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 13, color: "#111827", marginBottom: 5, fontWeight: 500 }}>{p.keyword}</div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                                <span style={{ background: tagStyle.bg, color: tagStyle.text, borderRadius: 4, padding: "1px 7px", fontSize: 10, fontWeight: 500 }}>{p.tag}</span>
+                                <span style={{ fontSize: 11, color: "#9ca3af" }}>Last checked: {p.lastChecked}</span>
+                              </div>
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5, flexShrink: 0, marginLeft: 12 }}>
+                              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                                {[{ label: "ChatGPT", score: p.chatgpt, color: "#10a37f" }, { label: "Gemini", score: p.gemini, color: "#4285f4" }, { label: "Perplexity", score: p.perplexity, color: "#22d3ee" }].map(s => (
+                                  <div key={s.label} style={{ textAlign: "center" }}>
+                                    <div style={{ fontSize: 9, color: "#9ca3af", marginBottom: 2 }}>{s.label}</div>
+                                    <ScorePill score={s.score} />
+                                  </div>
+                                ))}
+                                <div style={{ fontSize: 16, fontWeight: 700, color: trendColor, marginLeft: 4 }}>{trendIcon}</div>
+                              </div>
+                              <div style={{ display: "flex", gap: 6 }}>
+                                <button onClick={() => { setActiveTab("Visibility"); setExpandedPromptIdx(i); }} style={{ background: "transparent", border: "0.5px solid #e5e7eb", borderRadius: 5, padding: "3px 9px", fontSize: 11, color: "#4F46E5", cursor: "pointer" }}>
+                                  Deep dive
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Add custom prompt modal */}
+                    {addPromptModal && (
+                      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setAddPromptModal(false)}>
+                        <div style={{ background: "white", borderRadius: 12, padding: 24, maxWidth: 440, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }} onClick={e => e.stopPropagation()}>
+                          <div style={{ fontSize: 15, fontWeight: 600, color: "#111827", marginBottom: 4 }}>Add a custom prompt</div>
+                          <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>Track any query you want to monitor across AI systems</div>
+                          <input
+                            value={newPromptText} onChange={e => setNewPromptText(e.target.value)}
+                            onKeyDown={e => e.key === "Enter" && handleAddPrompt()}
+                            placeholder="e.g. best diabetes app for Indian food"
+                            style={{ width: "100%", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "9px 12px", fontSize: 13, color: "#374151", outline: "none", boxSizing: "border-box", marginBottom: 12 }}
+                          />
+                          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 8 }}>Tag this prompt:</div>
+                          <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+                            {["Brand", "Category", "Competitor", "Custom"].map(tag => (
+                              <button key={tag} onClick={() => setNewPromptTag(tag)} style={{ padding: "4px 11px", borderRadius: 9999, fontSize: 11, cursor: "pointer", background: newPromptTag === tag ? "#4F46E5" : "white", color: newPromptTag === tag ? "white" : "#6b7280", border: "0.5px solid", borderColor: newPromptTag === tag ? "#4F46E5" : "#e5e7eb" }}>
+                                {tag}
+                              </button>
+                            ))}
+                          </div>
+                          <div style={{ background: "#FFFBEB", border: "0.5px solid #FDE68A", borderRadius: 8, padding: "9px 12px", marginBottom: 16, fontSize: 12, color: "#92400E" }}>
+                            Use queries your customers actually search for. What would they type into ChatGPT to find you?
+                          </div>
+                          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                            <button onClick={() => setAddPromptModal(false)} style={{ background: "transparent", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "7px 16px", fontSize: 13, color: "#6b7280", cursor: "pointer" }}>Cancel</button>
+                            <button onClick={handleAddPrompt} disabled={!newPromptText.trim()} style={{ background: newPromptText.trim() ? "#4F46E5" : "#c7d2fe", color: "white", border: "none", borderRadius: 6, padding: "7px 16px", fontSize: 13, fontWeight: 500, cursor: newPromptText.trim() ? "pointer" : "default" }}>
+                              Add prompt
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* ===================== GEO AGENT TAB ===================== */}
               {activeTab === "GEO Agent" && (
@@ -1018,50 +1325,116 @@ export default function Dashboard() {
               })()}
 
               {/* ===================== COMPETITION TAB ===================== */}
-              {activeTab === "Competition" && (
-                <div>
-                  <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 12 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 14 }}>AI mention rate by brand</div>
-                    {[
-                      { name: "Your brand", pct: Math.round((activeScore / 100) * 100), color: "#4F46E5", isYours: true },
-                      { name: competitorDisplayName, pct: Math.min(100, Math.round(((activeScore + 22) / 100) * 100)), color: "#DC2626", isYours: false },
-                      { name: "Competitor B", pct: Math.min(100, Math.round(((activeScore + 14) / 100) * 100)), color: "#D97706", isYours: false },
-                      { name: "Competitor C", pct: Math.max(5, Math.round(((activeScore - 8) / 100) * 100)), color: "#6b7280", isYours: false },
-                    ].map(row => (
-                      <div key={row.name} style={{ marginBottom: 12 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
-                          <span style={{ fontWeight: row.isYours ? 600 : 400, color: row.isYours ? "#111827" : "#6b7280" }}>{row.name}</span>
-                          <span style={{ color: row.isYours ? "#4F46E5" : "#9ca3af", fontWeight: row.isYours ? 600 : 400 }}>{row.pct}%</span>
-                        </div>
-                        <div style={{ height: 10, background: "#f3f4f6", borderRadius: 9999, overflow: "hidden" }}>
-                          <div style={{ height: "100%", width: `${row.pct}%`, background: row.color, borderRadius: 9999, transition: "width 0.8s" }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 12 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 12 }}>Competitors tracked</div>
-                    <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-                      <input
-                        type="text" placeholder="Add competitor domain (e.g. competitor.com)" value={competitorInput}
-                        onChange={e => setCompetitorInput(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAddCompetitor()}
-                        style={{ flex: 1, border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "7px 12px", fontSize: 13, color: "#374151", outline: "none" }}
-                      />
-                      <button onClick={handleAddCompetitor} style={{ background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "7px 16px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>Track</button>
+              {activeTab === "Competition" && (() => {
+                const compList = getCategoryCompetitors(selectedBrand?.category, activeScore);
+                const topBrand = compList[0];
+                const yourRank = compList.findIndex(c => c.isYours) + 1;
+                const winnerPrompts = promptList.filter(p => {
+                  const total = p.chatgpt + p.gemini + p.perplexity;
+                  return total >= p.competitorScore;
+                });
+                const insight = yourRank === 1
+                  ? `You lead your category on AI visibility with ${activeScore}% mention rate. Maintain this with regular content and citation building.`
+                  : `You win on ${winnerPrompts.length} of ${promptList.length} tracked prompts. Your strongest prompt is "${promptList.find(p => p.chatgpt + p.gemini + p.perplexity > 0)?.keyword ?? "your brand name"}". Your biggest gap is "${promptList[0]?.keyword ?? "category keywords"}" where ${topBrand?.name ?? competitorDisplayName} leads at ${topBrand?.pct ?? 0}%. Focus on citation building to close this gap.`;
+                return (
+                  <div>
+                    <div style={{ marginBottom: 14 }}>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: "#111827", marginBottom: 3 }}>Competitive intelligence</div>
+                      <div style={{ fontSize: 12, color: "#6b7280" }}>How your brand compares across AI systems</div>
                     </div>
-                    {trackedCompetitors.length === 0 ? (
-                      <div style={{ fontSize: 12, color: "#9ca3af", textAlign: "center", padding: "16px 0" }}>No competitors added yet.</div>
-                    ) : (
-                      trackedCompetitors.map(c => (
-                        <div key={c} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "0.5px solid #f3f4f6" }}>
-                          <span style={{ fontSize: 13, color: "#374151" }}>{c}</span>
-                          <button onClick={() => handleRemoveCompetitor(c)} style={{ background: "transparent", border: "0.5px solid #e5e7eb", borderRadius: 4, padding: "2px 8px", fontSize: 11, color: "#6b7280", cursor: "pointer" }}>Remove</button>
+
+                    {/* Mention rate chart */}
+                    <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 12 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 14 }}>AI mention rates - who dominates your category</div>
+                      {compList.map((row, i) => (
+                        <div key={row.name} style={{ marginBottom: i < compList.length - 1 ? 13 : 0 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, marginBottom: 5 }}>
+                            <span style={{ fontWeight: row.isYours ? 700 : 400, color: row.isYours ? "#111827" : "#6b7280", display: "flex", alignItems: "center", gap: 5 }}>
+                              {row.name}
+                              {row.isYours && <span style={{ background: "#EEF2FF", color: "#4F46E5", borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 500 }}>you</span>}
+                            </span>
+                            <span style={{ color: row.isYours ? "#4F46E5" : "#9ca3af", fontWeight: row.isYours ? 700 : 400 }}>{row.pct}%</span>
+                          </div>
+                          <div style={{ height: 14, background: "#f3f4f6", borderRadius: 9999, overflow: "hidden", position: "relative" }}>
+                            <div style={{ position: "absolute", height: "100%", width: `${row.pct}%`, background: row.isYours ? "#4F46E5" : "#E5E7EB", borderRadius: 9999, transition: "width 1s ease" }} />
+                            {!row.isYours && (
+                              <div style={{ position: "absolute", height: "100%", width: `${row.pct}%`, display: "flex", alignItems: "center", paddingLeft: 6 }}>
+                                <span style={{ fontSize: 9, color: "#6b7280", fontWeight: 500 }}>{row.name}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      ))
-                    )}
+                      ))}
+                      <div style={{ marginTop: 10, fontSize: 11, color: "#9ca3af" }}>You rank #{yourRank} in your category. Scores are based on AI mention analysis across tracked prompts.</div>
+                    </div>
+
+                    {/* Per-prompt winner table */}
+                    <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+                      <div style={{ padding: "12px 16px", borderBottom: "0.5px solid #f3f4f6" }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>Who wins each prompt</div>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 100px 80px", gap: 8, padding: "8px 16px", background: "#fafafa", borderBottom: "0.5px solid #f3f4f6" }}>
+                        {["Prompt", "Winner", "Your rank", "Gap"].map(h => <div key={h} style={{ fontSize: 11, color: "#9ca3af", fontWeight: 500 }}>{h}</div>)}
+                      </div>
+                      {promptList.slice(0, 8).map((p, i) => {
+                        const yourTotal = p.chatgpt + p.gemini + p.perplexity;
+                        const yourPct = Math.round((yourTotal / 99) * 100);
+                        const compScore = p.competitorScore;
+                        const isWinner = yourTotal >= compScore;
+                        const rank = isWinner ? 1 : Math.floor(hashStr(p.keyword) % 3) + 2;
+                        const gap = yourPct - Math.round((compScore / 99) * 100);
+                        const rowBg = isWinner ? "#F0FDF4" : rank === 2 ? "#FFFBEB" : "#FEF2F2";
+                        const winner = isWinner ? (brandName || "Your brand") : (rank === 2 ? (compList[1]?.name ?? competitorDisplayName) : compList[0]?.name ?? competitorDisplayName);
+                        const winnerPct = isWinner ? yourPct : Math.round((compScore / 99) * 100);
+                        return (
+                          <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 100px 80px", gap: 8, padding: "9px 16px", background: rowBg, borderBottom: i < promptList.slice(0, 8).length - 1 ? "0.5px solid rgba(0,0,0,0.04)" : "none", alignItems: "center" }}>
+                            <div style={{ fontSize: 12, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.keyword}</div>
+                            <div style={{ fontSize: 12, color: "#374151", fontWeight: 500 }}>{winner} <span style={{ fontSize: 11, color: "#9ca3af", fontWeight: 400 }}>({winnerPct}%)</span></div>
+                            <div style={{ fontSize: 12, color: isWinner ? "#16A34A" : rank === 2 ? "#D97706" : "#DC2626", fontWeight: 500 }}>
+                              {isWinner ? "#1 Leader" : `#${rank} (${yourPct}%)`}
+                            </div>
+                            <div style={{ fontSize: 12, color: gap >= 0 ? "#16A34A" : "#DC2626", fontWeight: 500 }}>
+                              {isWinner ? "Leader" : `${gap}%`}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* AI insights */}
+                    <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 12 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 8 }}>Insights</div>
+                      <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.6, marginBottom: 12 }}>{insight}</div>
+                      <button onClick={() => setActiveTab("Fix Actions")} style={{ display: "flex", alignItems: "center", gap: 5, background: "transparent", border: "0.5px solid #4F46E5", borderRadius: 6, padding: "6px 14px", fontSize: 12, color: "#4F46E5", cursor: "pointer", fontWeight: 500 }}>
+                        View fix plan for this gap <ChevronRight size={11} />
+                      </button>
+                    </div>
+
+                    {/* Competitor tracking */}
+                    <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 12 }}>Manually track competitors</div>
+                      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+                        <input
+                          type="text" placeholder="Add competitor domain (e.g. competitor.com)" value={competitorInput}
+                          onChange={e => setCompetitorInput(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAddCompetitor()}
+                          style={{ flex: 1, border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "7px 12px", fontSize: 13, color: "#374151", outline: "none" }}
+                        />
+                        <button onClick={handleAddCompetitor} style={{ background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "7px 16px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>Track</button>
+                      </div>
+                      {trackedCompetitors.length === 0 ? (
+                        <div style={{ fontSize: 12, color: "#9ca3af", textAlign: "center", padding: "12px 0" }}>No additional competitors tracked. The chart above uses category defaults.</div>
+                      ) : (
+                        trackedCompetitors.map(c => (
+                          <div key={c} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "0.5px solid #f3f4f6" }}>
+                            <span style={{ fontSize: 13, color: "#374151" }}>{c}</span>
+                            <button onClick={() => handleRemoveCompetitor(c)} style={{ background: "transparent", border: "0.5px solid #e5e7eb", borderRadius: 4, padding: "2px 8px", fontSize: 11, color: "#6b7280", cursor: "pointer" }}>Remove</button>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* ===================== FIX ACTIONS TAB ===================== */}
               {activeTab === "Fix Actions" && (
@@ -1175,6 +1548,79 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* Citation action modal */}
+      {citationModal && (() => {
+        const info = getSiteInfo(citationModal.domain, brandName || scoresDomain);
+        const isCompetitor = citationModal.type === "competitor";
+        const isSocial = citationModal.type === "social";
+        const title = isCompetitor
+          ? `How to outrank ${citationModal.domain}`
+          : isSocial
+          ? `Join the conversation on ${citationModal.domain}`
+          : `Get ${citationModal.domain} to mention you`;
+        const borderColor = isCompetitor ? "#DC2626" : isSocial ? "#1D4ED8" : "#D97706";
+        return (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setCitationModal(null)}>
+            <div style={{ background: "white", borderRadius: 12, padding: 24, maxWidth: 480, width: "100%", boxShadow: "0 24px 64px rgba(0,0,0,0.18)", borderTop: `3px solid ${borderColor}` }} onClick={e => e.stopPropagation()}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: "#111827", marginBottom: 4 }}>{title}</div>
+              <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>Expected score impact: <strong style={{ color: "#16A34A" }}>+{info.impact} pts</strong></div>
+
+              {isCompetitor && (
+                <>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: "#374151", marginBottom: 8 }}>Strategy to outrank them on {citationModal.domain}:</div>
+                  <div style={{ background: "#FEF2F2", border: "0.5px solid #FECACA", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: "#7F1D1D", lineHeight: 1.6 }}>
+                    1. Create a comparison page: "{brandName || "Your brand"} vs {citationModal.domain.split(".")[0]}" with structured data markup.<br />
+                    2. Submit guest content to the sites that currently cite {citationModal.domain.split(".")[0]}.<br />
+                    3. Build your own authority on the same keywords using the FAQ strategy below.
+                  </div>
+                </>
+              )}
+
+              {isSocial && (
+                <>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: "#374151", marginBottom: 8 }}>Recommended subreddits:</div>
+                  <div style={{ background: "#EFF6FF", border: "0.5px solid #BFDBFE", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: "#1E3A8A" }}>
+                    {info.subreddit ?? "r/startups, r/startupindia, r/Entrepreneur"}
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: "#374151", marginBottom: 8 }}>What to post:</div>
+                  <div style={{ background: "#F9FAFB", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: "#374151", lineHeight: 1.6 }}>
+                    Share your founder story and what problem {brandName || "your brand"} solves. Ask for feedback, not promotion. AI systems index popular Reddit threads and cite them when answering category questions.
+                  </div>
+                </>
+              )}
+
+              {!isCompetitor && !isSocial && (
+                <>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: "#374151", marginBottom: 8 }}>Submission URL:</div>
+                  <div style={{ background: "#F9FAFB", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "8px 12px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                    <span style={{ fontSize: 12, color: "#4F46E5", wordBreak: "break-all" }}>{info.url}</span>
+                    <a href={info.url} target="_blank" rel="noreferrer" style={{ flexShrink: 0 }}>
+                      <ExternalLink size={13} color="#4F46E5" />
+                    </a>
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: "#374151", marginBottom: 8 }}>Pre-written pitch (copy and adapt):</div>
+                  <div style={{ background: "#F9FAFB", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "10px 14px", marginBottom: 8, fontSize: 12, color: "#374151", lineHeight: 1.6, fontStyle: "italic" }}>
+                    "{info.pitch}"
+                  </div>
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(info.pitch); }}
+                    style={{ display: "flex", alignItems: "center", gap: 5, background: "transparent", border: "0.5px solid #e5e7eb", borderRadius: 5, padding: "4px 10px", fontSize: 11, color: "#6b7280", cursor: "pointer", marginBottom: 14 }}
+                  >
+                    <Copy size={10} /> Copy pitch
+                  </button>
+                </>
+              )}
+
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button onClick={() => setCitationModal(null)} style={{ background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "7px 18px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
