@@ -31,9 +31,27 @@ function getRazorpay() {
 }
 
 interface RazorpayInstance {
-  customers: { create(data: Record<string, unknown>): Promise<{ id: string }> };
+  customers: {
+    create(data: Record<string, unknown>): Promise<{ id: string }>;
+    all(params: Record<string, unknown>): Promise<{ items: Array<{ id: string; email: string }> }>;
+  };
   subscriptions: { create(data: Record<string, unknown>): Promise<{ id: string }> };
 }
+
+// GET /api/payment/config-check  - diagnostic endpoint to verify Razorpay config
+router.get("/payment/config-check", (_req, res: Response): void => {
+  const keyId = RAZORPAY_KEY_ID;
+  const keyMode = keyId.startsWith("rzp_test_") ? "test" : keyId.startsWith("rzp_live_") ? "live" : "unknown";
+  res.json({
+    configured: !!(keyId && RAZORPAY_KEY_SECRET),
+    keyMode,
+    keyPrefix: keyId ? `${keyId.slice(0, 12)}...` : "(not set)",
+    starterPlanSet: !!STARTER_PLAN_ID,
+    agencyPlanSet: !!AGENCY_PLAN_ID,
+    starterPlanId: STARTER_PLAN_ID ? `${STARTER_PLAN_ID.slice(0, 8)}...` : "(not set)",
+    agencyPlanId: AGENCY_PLAN_ID ? `${AGENCY_PLAN_ID.slice(0, 8)}...` : "(not set)",
+  });
+});
 
 // POST /api/payment/create-subscription
 router.post("/payment/create-subscription", async (req: Request, res: Response): Promise<void> => {
@@ -61,11 +79,27 @@ router.post("/payment/create-subscription", async (req: Request, res: Response):
   }
 
   try {
-    const customer = await rzp.customers.create({
-      name: email.split("@")[0],
-      email: email.toLowerCase().trim(),
-      notify: { email: true },
-    });
+    // Create customer, or look up existing one if already registered
+    let customer: { id: string };
+    try {
+      customer = await rzp.customers.create({
+        name: email.split("@")[0],
+        email: email.toLowerCase().trim(),
+        notify: { email: true },
+      });
+    } catch (custErr: unknown) {
+      const ce = custErr as { error?: { description?: string } };
+      if (ce?.error?.description?.toLowerCase().includes("already exists")) {
+        // Customer already exists - fetch them by email
+        const existing = await rzp.customers.all({ email: email.toLowerCase().trim(), count: 1 });
+        const found = existing?.items?.[0];
+        if (!found) throw custErr;
+        customer = found;
+        req.log.info({ email, customerId: customer.id }, "Using existing Razorpay customer");
+      } else {
+        throw custErr;
+      }
+    }
 
     const subscription = await rzp.subscriptions.create({
       plan_id: planId,
@@ -89,9 +123,13 @@ router.post("/payment/create-subscription", async (req: Request, res: Response):
       amount: PLAN_PRICES[plan],
       plan_name: PLAN_NAMES[plan] ?? plan,
     });
-  } catch (err) {
-    req.log.error({ err }, "Failed to create Razorpay subscription");
-    res.status(500).json({ error: "Failed to create subscription. Please try again." });
+  } catch (err: unknown) {
+    // Extract the actual Razorpay error so it's visible in logs and returned to frontend
+    const rzpErr = err as { error?: { description?: string; code?: string; reason?: string }; message?: string };
+    const detail = rzpErr?.error?.description ?? rzpErr?.error?.reason ?? rzpErr?.message ?? "Unknown error";
+    const code = rzpErr?.error?.code ?? "unknown";
+    req.log.error({ err, razorpayCode: code, razorpayDetail: detail, planId, keyPrefix: RAZORPAY_KEY_ID.slice(0, 12) }, "Failed to create Razorpay subscription");
+    res.status(500).json({ error: `Razorpay error: ${detail}` });
   }
 });
 
