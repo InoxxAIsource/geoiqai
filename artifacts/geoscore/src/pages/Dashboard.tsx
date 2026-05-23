@@ -13,6 +13,9 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { AddBrandModal } from "@/components/dashboard/AddBrandModal";
 import { useToast } from "@/hooks/use-toast";
+import { FixActionsTab } from "./dashboard/FixActionsTab";
+import { GeoAgentTab } from "./dashboard/GeoAgentTab";
+import { ContentGenerators } from "./dashboard/ContentGenerators";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   PieChart, Pie, LineChart, Line, Legend,
@@ -1272,19 +1275,20 @@ export default function Dashboard() {
               })()}
 
               {/* ===================== GEO AGENT TAB ===================== */}
-              {activeTab === "GEO Agent" && (
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 0", textAlign: "center" }}>
-                  <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#EEF2FF", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
-                    <Bot size={24} color="#4F46E5" />
-                  </div>
-                  <div style={{ fontSize: 16, fontWeight: 600, color: "#111827", marginBottom: 6 }}>GEO Agent</div>
-                  <div style={{ fontSize: 13, color: "#6b7280", maxWidth: 380, marginBottom: 20 }}>
-                    Your AI visibility advisor. Ask anything about your GEO IQ score, get a daily briefing, or generate content. Coming in Part 2.
-                  </div>
-                  <div style={{ background: "#F9FAFB", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: "10px 16px", fontSize: 12, color: "#9ca3af" }}>
-                    Building now - will include context-aware chat with your brand data, score history, and one-click content generation.
-                  </div>
-                </div>
+              {activeTab === "GEO Agent" && selectedBrand && (
+                <GeoAgentTab
+                  brand={{
+                    id: selectedBrand.id,
+                    domain: selectedBrand.domain,
+                    brandName: selectedBrand.brandName ?? null,
+                    category: selectedBrand.category ?? null,
+                    latestScore: selectedBrand.latestScore ?? null,
+                    latestScoreChatgpt: selectedBrand.latestScoreChatgpt ?? null,
+                    latestScoreGemini: selectedBrand.latestScoreGemini ?? null,
+                    latestScorePerplexity: selectedBrand.latestScorePerplexity ?? null,
+                  }}
+                  plan={user?.plan ?? "free"}
+                />
               )}
 
               {/* ===================== CHATGPT / GEMINI / PERPLEXITY TABS ===================== */}
@@ -1437,27 +1441,25 @@ export default function Dashboard() {
               })()}
 
               {/* ===================== FIX ACTIONS TAB ===================== */}
-              {activeTab === "Fix Actions" && (
-                <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 12 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>Fix actions</div>
-                    <button onClick={() => { setFixActions(generateFixActions(selectedBrand)); setFixActionsInitialized(true); }} style={{ background: "transparent", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "4px 12px", fontSize: 12, color: "#6b7280", cursor: "pointer" }}>Refresh</button>
-                  </div>
-                  {fixActions.map((action, i) => (
-                    <div key={action.id} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 0", borderBottom: i < fixActions.length - 1 ? "0.5px solid #f3f4f6" : "none" }}>
-                      <PriorityBadge priority={action.priority} />
-                      <div style={{ flex: 1, fontSize: 13, color: action.done ? "#9ca3af" : "#374151", textDecoration: action.done ? "line-through" : "none" }}>{action.action}</div>
-                      <span style={{ fontSize: 11, color: "#9ca3af", flexShrink: 0 }}>~{action.effortHours}h</span>
-                      <span style={{ fontSize: 11, color: "#1D9E75", flexShrink: 0 }}>+{action.impactScore} pts</span>
-                      <button onClick={() => handleMarkDone(action.id)} style={{ background: action.done ? "#E1F5EE" : "transparent", border: "0.5px solid", borderColor: action.done ? "#10b981" : "#e5e7eb", borderRadius: 6, padding: "2px 10px", height: 26, fontSize: 11, color: action.done ? "#085041" : "#6b7280", cursor: "pointer", flexShrink: 0, fontWeight: action.done ? 500 : 400 }}>
-                        {action.done ? "Done" : "Mark done"}
-                      </button>
-                    </div>
-                  ))}
-                  <div style={{ marginTop: 12, background: "#EFF6FF", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#1D4ED8" }}>
-                    4-week action plan with CITE tags and content generators launching in Part 2.
-                  </div>
-                </div>
+              {activeTab === "Fix Actions" && selectedBrand && (
+                <>
+                  <ContentGenerators
+                    brand={{
+                      id: selectedBrand.id,
+                      domain: selectedBrand.domain,
+                      brandName: selectedBrand.brandName ?? null,
+                      category: selectedBrand.category ?? null,
+                    }}
+                  />
+                  <FixActionsTab
+                    brand={{
+                      domain: selectedBrand.domain,
+                      brandName: selectedBrand.brandName ?? null,
+                      category: selectedBrand.category ?? null,
+                      latestScore: selectedBrand.latestScore ?? null,
+                    }}
+                  />
+                </>
               )}
 
               {/* ===================== KEYWORDS TAB ===================== */}

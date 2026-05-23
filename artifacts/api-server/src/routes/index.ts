@@ -7,6 +7,7 @@ import scoresRouter from "./scores";
 import paymentRouter from "./payment";
 import emailRouter from "./email";
 import roadmapRouter from "./roadmap";
+import agentRouter from "./agent";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(scoresRouter);
 router.use(paymentRouter);
 router.use(emailRouter);
 router.use(roadmapRouter);
+router.use(agentRouter);
 
 export default router;

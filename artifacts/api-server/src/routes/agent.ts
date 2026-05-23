@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { requireAuth, type AuthRequest } from "../lib/auth";
-import { db, usersTable, monitoredBrandsTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { db, usersTable, monitoredBrandsTable, dailyScoresTable } from "@workspace/db";
+import { eq, and, desc } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -33,19 +33,21 @@ async function callAI(messages: { role: string; content: string }[], maxTokens =
   return data.choices[0]?.message?.content ?? "";
 }
 
-function buildBrandContext(brand: {
-  domain: string;
-  brandName: string | null;
-  category: string | null;
-  latestScore: number | null;
-  latestScoreChatgpt: number | null;
-  latestScoreGemini: number | null;
-  latestScorePerplexity: number | null;
-}): string {
-  const score = brand.latestScore ?? 0;
-  const chatgpt = brand.latestScoreChatgpt ?? 0;
-  const gemini = brand.latestScoreGemini ?? 0;
-  const perplexity = brand.latestScorePerplexity ?? 0;
+interface BrandScores {
+  scoreTotal: number;
+  scoreChatgpt: number;
+  scoreGemini: number;
+  scorePerplexity: number;
+}
+
+function buildBrandContext(
+  brand: { domain: string; brandName: string | null; category: string | null },
+  scores: BrandScores | null
+): string {
+  const score = scores?.scoreTotal ?? 0;
+  const chatgpt = scores?.scoreChatgpt ?? 0;
+  const gemini = scores?.scoreGemini ?? 0;
+  const perplexity = scores?.scorePerplexity ?? 0;
 
   const chatgptStatus = chatgpt === 0 ? "Invisible" : chatgpt < 12 ? "Low" : chatgpt < 24 ? "Moderate" : "Strong";
   const geminiStatus = gemini === 0 ? "Invisible" : gemini < 12 ? "Low" : gemini < 24 ? "Moderate" : "Strong";
@@ -58,6 +60,16 @@ GEO IQ Score: ${score}/100
 ChatGPT: ${chatgpt}/33 (${chatgptStatus})
 Gemini: ${gemini}/33 (${geminiStatus})
 Perplexity: ${perplexity}/33 (${perplexityStatus})`;
+}
+
+async function getBrandScores(brandId: string): Promise<BrandScores | null> {
+  const [row] = await db
+    .select()
+    .from(dailyScoresTable)
+    .where(eq(dailyScoresTable.brandId, brandId))
+    .orderBy(desc(dailyScoresTable.date))
+    .limit(1);
+  return row ?? null;
 }
 
 router.post("/agent/chat", requireAuth, async (req, res): Promise<void> => {
@@ -109,9 +121,12 @@ router.post("/agent/chat", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
+  const scores = await getBrandScores(brandId);
+  const ctx = buildBrandContext(brand, scores);
+
   const systemPrompt = `You are a GEO (Generative Engine Optimization) expert and personal advisor for ${brand.brandName ?? brand.domain}.
 
-${buildBrandContext(brand)}
+${ctx}
 
 Your job: help this founder improve their AI visibility in ChatGPT, Gemini, and Perplexity. You can generate content (tweets, blog posts, FAQs, pitch emails), explain scores, suggest tactics, and create action plans.
 
@@ -161,7 +176,10 @@ router.post("/agent/briefing", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const prompt = `${buildBrandContext(brand)}
+  const scores = await getBrandScores(brandId);
+  const ctx = buildBrandContext(brand, scores);
+
+  const prompt = `${ctx}
 
 Generate a 3-paragraph daily briefing:
 Paragraph 1: Current score status - mention actual numbers, be direct about what it means.
@@ -198,7 +216,8 @@ router.post("/agent/generate", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const brandCtx = buildBrandContext(brand);
+  const scores = await getBrandScores(brandId);
+  const brandCtx = buildBrandContext(brand, scores);
   const brandN = brand.brandName ?? brand.domain;
   const cat = brand.category ?? "startup";
 
