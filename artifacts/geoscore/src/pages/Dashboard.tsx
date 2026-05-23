@@ -341,6 +341,7 @@ export default function Dashboard() {
   const [visibilitySearch, setVisibilitySearch] = useState("");
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [citationModal, setCitationModal] = useState<{ domain: string; type: "competitor" | "authority" | "social" } | null>(null);
+  const [socialPostLink, setSocialPostLink] = useState("");
   const [promptSearch, setPromptSearch] = useState("");
   const [promptFilter, setPromptFilter] = useState("All");
   const [addPromptModal, setAddPromptModal] = useState(false);
@@ -1023,7 +1024,9 @@ export default function Dashboard() {
                         return (
                           <div key={src.domain} style={{ display: "grid", gridTemplateColumns: "2fr 60px 100px 100px 90px 50px 130px", gap: 8, padding: "10px 16px", borderBottom: i < allSources.length - 1 ? "0.5px solid #f9fafb" : "none", alignItems: "center" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                              <img src={`https://www.google.com/s2/favicons?domain=${src.domain}&sz=16`} alt="" width={16} height={16} style={{ borderRadius: 2, flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                              <div style={{ width: 16, height: 16, borderRadius: 3, background: "#E0E7FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 9, fontWeight: 700, color: "#4F46E5", lineHeight: 1 }}>
+                                {src.domain[0].toUpperCase()}
+                              </div>
                               <span style={{ fontSize: 12, color: "#374151", fontWeight: src.type === "yours" ? 600 : 400 }}>{src.domain}</span>
                             </div>
                             <div style={{ fontSize: 12, color: "#374151" }}>{dr !== undefined ? dr : "—"}</div>
@@ -1563,7 +1566,7 @@ export default function Dashboard() {
           : `Get ${citationModal.domain} to mention you`;
         const borderColor = isCompetitor ? "#DC2626" : isSocial ? "#1D4ED8" : "#D97706";
         return (
-          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setCitationModal(null)}>
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => { setCitationModal(null); setSocialPostLink(""); }}>
             <div style={{ background: "white", borderRadius: 12, padding: 24, maxWidth: 480, width: "100%", boxShadow: "0 24px 64px rgba(0,0,0,0.18)", borderTop: `3px solid ${borderColor}` }} onClick={e => e.stopPropagation()}>
               <div style={{ fontSize: 15, fontWeight: 600, color: "#111827", marginBottom: 4 }}>{title}</div>
               <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>Expected score impact: <strong style={{ color: "#16A34A" }}>+{info.impact} pts</strong></div>
@@ -1589,6 +1592,40 @@ export default function Dashboard() {
                   <div style={{ background: "#F9FAFB", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: "#374151", lineHeight: 1.6 }}>
                     Share your founder story and what problem {brandName || "your brand"} solves. Ask for feedback, not promotion. AI systems index popular Reddit threads and cite them when answering category questions.
                   </div>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: "#374151", marginBottom: 6 }}>Already posted? Paste the link to track it:</div>
+                  <input
+                    type="url"
+                    placeholder={`https://${citationModal.domain}/...`}
+                    value={socialPostLink}
+                    onChange={e => setSocialPostLink(e.target.value)}
+                    style={{ width: "100%", border: "0.5px solid #e5e7eb", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#374151", outline: "none", marginBottom: 10, boxSizing: "border-box" }}
+                  />
+                  {socialPostLink && (() => {
+                    let displayUrl = socialPostLink;
+                    try { displayUrl = new URL(socialPostLink).href; } catch { displayUrl = socialPostLink; }
+                    const platformColor = citationModal.domain.includes("reddit") ? "#FF4500" : citationModal.domain.includes("twitter") || citationModal.domain.includes("x.com") ? "#1DA1F2" : citationModal.domain.includes("linkedin") ? "#0A66C2" : citationModal.domain.includes("producthunt") ? "#DA552F" : "#4F46E5";
+                    const platformLabel = citationModal.domain.includes("reddit") ? "Reddit" : citationModal.domain.includes("twitter") || citationModal.domain.includes("x.com") ? "X (Twitter)" : citationModal.domain.includes("linkedin") ? "LinkedIn" : citationModal.domain.includes("producthunt") ? "Product Hunt" : citationModal.domain;
+                    return (
+                      <div style={{ border: `0.5px solid ${platformColor}33`, borderRadius: 8, overflow: "hidden", marginBottom: 14 }}>
+                        <div style={{ background: platformColor, padding: "6px 12px", display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{ width: 18, height: 18, borderRadius: 4, background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "white" }}>
+                            {citationModal.domain[0].toUpperCase()}
+                          </div>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: "white" }}>{platformLabel}</span>
+                          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.75)", marginLeft: "auto" }}>Tracked post</span>
+                        </div>
+                        <div style={{ padding: "10px 12px", background: "white", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                          <span style={{ fontSize: 11, color: "#374151", wordBreak: "break-all", flex: 1 }}>{displayUrl.length > 60 ? displayUrl.slice(0, 60) + "..." : displayUrl}</span>
+                          <a href={displayUrl} target="_blank" rel="noreferrer" style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 4, background: platformColor, color: "white", borderRadius: 5, padding: "4px 10px", fontSize: 11, fontWeight: 500, textDecoration: "none" }}>
+                            <ExternalLink size={10} /> Open
+                          </a>
+                        </div>
+                        <div style={{ padding: "6px 12px 10px", background: "#F9FAFB", borderTop: "0.5px solid #f3f4f6" }}>
+                          <span style={{ fontSize: 11, color: "#6b7280" }}>AI systems crawl active social posts. Keep the thread engaged to improve citation odds.</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </>
               )}
 
