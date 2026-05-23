@@ -10,8 +10,8 @@ const router: IRouter = Router();
 const RAZORPAY_KEY_ID     = process.env.RAZORPAY_KEY_ID     ?? "";
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET ?? "";
 const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET ?? "";
-const STARTER_PLAN_ID     = process.env.RAZORPAY_STARTER_PLAN_ID ?? "";
-const AGENCY_PLAN_ID      = process.env.RAZORPAY_AGENCY_PLAN_ID  ?? "";
+const STARTER_PLAN_ID     = (process.env.RAZORPAY_STARTER_PLAN_ID ?? "").trim();
+const AGENCY_PLAN_ID      = (process.env.RAZORPAY_AGENCY_PLAN_ID  ?? "").trim();
 const APP_URL             = process.env.APP_URL ?? "https://geoiqai.com";
 
 const PLAN_PRICES: Record<string, number> = {
