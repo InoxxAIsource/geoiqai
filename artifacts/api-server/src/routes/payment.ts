@@ -204,7 +204,7 @@ router.post("/payment/verify", async (req: Request, res: Response): Promise<void
   void sendPaymentWelcomeEmail(cleanEmail, magicUrl, plan, domain ?? "");
 
   req.log.info({ email: cleanEmail, plan, subscriptionId: razorpay_subscription_id }, "Payment verified, user created/updated");
-  res.json({ success: true, message: "Payment verified. Check your email for your dashboard login link." });
+  res.json({ success: true, magicUrl, message: "Payment verified. Redirecting to your dashboard." });
 });
 
 // POST /api/payment/webhook  (raw body - signature verified against RAZORPAY_WEBHOOK_SECRET)

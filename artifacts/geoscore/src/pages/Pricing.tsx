@@ -123,8 +123,13 @@ export default function Pricing() {
               }),
             });
             if (verifyRes.ok) {
-              setPaidEmail(trimmedEmail);
-              setPaymentDone(true);
+              const data = await verifyRes.json() as { magicUrl?: string };
+              if (data.magicUrl) {
+                window.location.href = data.magicUrl;
+              } else {
+                setPaidEmail(trimmedEmail);
+                setPaymentDone(true);
+              }
             } else {
               toast({ title: "Verification failed", description: "Contact hello@geoiqai.com if payment was deducted.", variant: "destructive" });
             }

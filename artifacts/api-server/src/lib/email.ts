@@ -6,11 +6,14 @@ const APP_URL = process.env.APP_URL ?? "https://geoiqai.com";
 const FROM = "GeoIQ <hello@geoiqai.com>";
 
 async function send(to: string, subject: string, html: string): Promise<void> {
-  if (!resend) return;
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set - skipping email to", to);
+    return;
+  }
   try {
     await resend.emails.send({ from: FROM, to, subject, html });
-  } catch {
-    // Email failures are non-fatal
+  } catch (err) {
+    console.error("[email] Failed to send email to", to, "subject:", subject, "error:", err);
   }
 }
 
