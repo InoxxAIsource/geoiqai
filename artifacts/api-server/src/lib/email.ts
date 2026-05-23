@@ -95,3 +95,29 @@ export async function sendSubscriberReport(email: string, domain: string, score:
 export async function sendAuditCompleteEmail(email: string, domain: string, score: number, auditId: string): Promise<void> {
   await sendSubscriberReport(email, domain, score, auditId, []);
 }
+
+export async function sendEmailVerification(email: string, verifyUrl: string): Promise<void> {
+  await send(email, "Verify your GeoIQ email", wrap(`
+    <h1 style="font-size:22px;font-weight:700;margin:0 0 12px;">Verify your email</h1>
+    <p style="color:#374151;line-height:1.6;margin:0 0 8px;">
+      Click below to verify your email address and activate your GeoIQ account. This link expires in 24 hours.
+    </p>
+    <p style="color:#9ca3af;font-size:12px;margin:0 0 24px;">If you did not create a GeoIQ account, you can safely ignore this.</p>
+    <a href="${verifyUrl}" style="display:inline-block;background:#4F46E5;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">
+      Verify my email
+    </a>
+  `));
+}
+
+export async function sendPasswordResetEmail(email: string, resetUrl: string): Promise<void> {
+  await send(email, "Reset your GeoIQ password", wrap(`
+    <h1 style="font-size:22px;font-weight:700;margin:0 0 12px;">Reset your password</h1>
+    <p style="color:#374151;line-height:1.6;margin:0 0 8px;">
+      Click below to set a new password. This link expires in 1 hour and can only be used once.
+    </p>
+    <p style="color:#9ca3af;font-size:12px;margin:0 0 24px;">If you did not request a password reset, ignore this email.</p>
+    <a href="${resetUrl}" style="display:inline-block;background:#4F46E5;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">
+      Reset my password
+    </a>
+  `));
+}

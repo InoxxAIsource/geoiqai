@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 export default function Register() {
   const [, setLocation] = useLocation();
   useEffect(() => {
-    setLocation("/pricing");
+    setLocation("/signup");
   }, []);
   return null;
 }

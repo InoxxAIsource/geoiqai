@@ -12,6 +12,10 @@ import Roadmap from "@/pages/Roadmap";
 import Pricing from "@/pages/Pricing";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
+import Signup from "@/pages/Signup";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
+import VerifyEmail from "@/pages/VerifyEmail";
 import MagicAuth from "@/pages/MagicAuth";
 import WhatIsGeo from "@/pages/WhatIsGeo";
 import HowToRankInChatGPT from "@/pages/HowToRankInChatGPT";
@@ -49,7 +53,11 @@ function Router() {
         <Route path="/roadmap" component={Roadmap} />
         <Route path="/pricing" component={Pricing} />
         <Route path="/login" component={Login} />
+        <Route path="/signup" component={Signup} />
         <Route path="/register" component={Register} />
+        <Route path="/forgot-password" component={ForgotPassword} />
+        <Route path="/auth/reset-password" component={ResetPassword} />
+        <Route path="/auth/verify-email" component={VerifyEmail} />
         <Route path="/auth/magic" component={MagicAuth} />
         <Route path="/what-is-geo" component={WhatIsGeo} />
         <Route path="/how-to-rank-in-chatgpt" component={HowToRankInChatGPT} />

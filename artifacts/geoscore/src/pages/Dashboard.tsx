@@ -353,6 +353,14 @@ export default function Dashboard() {
   const [newPromptTag, setNewPromptTag] = useState("Category");
   const [customPrompts, setCustomPrompts] = useState<{ keyword: string; tag: string; chatgpt: number; gemini: number; perplexity: number; trend: "up" | "down" | "flat" }[]>([]);
   const [promptAddedMsg, setPromptAddedMsg] = useState(false);
+  const [showSetPasswordModal, setShowSetPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [settingPassword, setSettingPassword] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(
+    localStorage.getItem("geoiq_pw_banner_dismissed") === "true"
+  );
 
   const { data: user } = useGetMe({ query: { enabled: isAuthenticated } as never });
   const { data: summary, isLoading: loadingSummary } = useGetDashboardSummary({ query: { enabled: isAuthenticated } as never });
@@ -558,9 +566,120 @@ export default function Dashboard() {
   const isScanning = !!isScanningBrandId;
   const scanningBrand = brands?.find(b => b.id === isScanningBrandId);
 
-  return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden", fontFamily: "Inter, sans-serif", position: "relative" }}>
+  const userHasPassword = (user as Record<string, unknown> | undefined)?.hasPassword;
+  const showPasswordBanner = userHasPassword === false && !bannerDismissed;
 
+  const handleSetPassword = async () => {
+    if (newPassword.length < 8) {
+      toast({ title: "Password must be at least 8 characters", variant: "destructive" });
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      toast({ title: "Passwords do not match", variant: "destructive" });
+      return;
+    }
+    setSettingPassword(true);
+    try {
+      const token = localStorage.getItem("geoscore_token");
+      const res = await fetch("/api/auth/set-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token ?? ""}` },
+        body: JSON.stringify({ password: newPassword }),
+      });
+      const data = await res.json() as { set?: boolean; error?: string };
+      if (!res.ok) {
+        toast({ title: data.error ?? "Could not set password", variant: "destructive" });
+        return;
+      }
+      toast({ title: "Password set", description: "You can now sign in with your email and password." });
+      setShowSetPasswordModal(false);
+      setBannerDismissed(true);
+      localStorage.setItem("geoiq_pw_banner_dismissed", "true");
+      setNewPassword("");
+      setConfirmNewPassword("");
+    } catch {
+      toast({ title: "Something went wrong", variant: "destructive" });
+    } finally {
+      setSettingPassword(false);
+    }
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", fontFamily: "Inter, sans-serif", position: "relative" }}>
+
+      {/* Set password banner */}
+      {showPasswordBanner && (
+        <div style={{ background: "#EEF2FF", borderBottom: "1px solid #C7D2FE", padding: "8px 16px", display: "flex", alignItems: "center", gap: 12, flexShrink: 0, zIndex: 10 }}>
+          <span style={{ fontSize: 13, color: "#3730A3", flex: 1 }}>
+            You signed up via magic link. Add a password so you can sign in directly.
+          </span>
+          <button
+            onClick={() => setShowSetPasswordModal(true)}
+            style={{ fontSize: 12, fontWeight: 600, color: "#4F46E5", background: "white", border: "1px solid #C7D2FE", borderRadius: 6, padding: "4px 12px", cursor: "pointer" }}
+          >
+            Set password
+          </button>
+          <button
+            onClick={() => { setBannerDismissed(true); localStorage.setItem("geoiq_pw_banner_dismissed", "true"); }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: 16, padding: "0 4px", lineHeight: 1 }}
+            title="Dismiss"
+          >
+            x
+          </button>
+        </div>
+      )}
+
+      {/* Set password modal */}
+      {showSetPasswordModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div style={{ background: "white", borderRadius: 12, padding: 28, width: "100%", maxWidth: 400, boxShadow: "0 8px 32px rgba(0,0,0,0.12)" }}>
+            <h2 style={{ fontSize: 17, fontWeight: 600, color: "#111827", marginBottom: 6 }}>Set a password</h2>
+            <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 20, lineHeight: 1.5 }}>Once set, you can sign in with your email and password - no magic link needed.</p>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#374151", marginBottom: 5 }}>New password</label>
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showNewPassword ? "text" : "password"}
+                  placeholder="At least 8 characters"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  style={{ width: "100%", padding: "9px 40px 9px 12px", border: "1px solid #d1d5db", borderRadius: 7, fontSize: 14, outline: "none", boxSizing: "border-box" }}
+                />
+                <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#9ca3af", padding: 0 }} tabIndex={-1}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+            </div>
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#374151", marginBottom: 5 }}>Confirm password</label>
+              <input
+                type="password"
+                placeholder="Repeat your password"
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                style={{ width: "100%", padding: "9px 12px", border: "1px solid #d1d5db", borderRadius: 7, fontSize: 14, outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => { setShowSetPasswordModal(false); setNewPassword(""); setConfirmNewPassword(""); }}
+                style={{ flex: 1, padding: "9px 0", border: "1px solid #e5e7eb", borderRadius: 7, background: "white", fontSize: 14, cursor: "pointer", color: "#374151" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSetPassword}
+                disabled={settingPassword}
+                style={{ flex: 1, padding: "9px 0", border: "none", borderRadius: 7, background: "#4F46E5", color: "white", fontSize: 14, fontWeight: 500, cursor: "pointer" }}
+              >
+                {settingPassword ? "Saving..." : "Save password"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
       {/* Sidebar */}
       <div style={{ width: 164, borderRight: "0.5px solid #e5e7eb", background: "white", display: "flex", flexDirection: "column", flexShrink: 0 }}>
         <div style={{ padding: "14px 16px 10px", fontWeight: 700, fontSize: 14, color: "#4F46E5", borderBottom: "0.5px solid #f3f4f6" }}>GeoIQ</div>
@@ -1764,6 +1883,7 @@ export default function Dashboard() {
           </div>
         );
       })()}
+    </div>
     </div>
   );
 }

@@ -92,4 +92,4 @@ export async function requirePaidAuth(req: Request, res: Response, next: NextFun
   next();
 }
 
-export type AuthRequest = Request & { user: { id: string; email: string; plan: string; auditCount: number; razorpaySubscriptionId: string | null; createdAt: Date; lastLogin: Date | null; passwordHash: string; agentMessagesUsed: number; agentMessagesReset: string | null } };
+export type AuthRequest = Request & { user: { id: string; email: string; plan: string; auditCount: number; razorpaySubscriptionId: string | null; createdAt: Date; lastLogin: Date | null; passwordHash: string | null; emailVerified: boolean; agentMessagesUsed: number; agentMessagesReset: string | null } };

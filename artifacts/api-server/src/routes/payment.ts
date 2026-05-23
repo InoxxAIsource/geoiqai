@@ -203,6 +203,7 @@ router.post("/payment/verify", async (req: Request, res: Response): Promise<void
     const [newUser] = await db.insert(usersTable).values({
       email: cleanEmail,
       passwordHash: `nologin:${randomPwd}`,
+      emailVerified: true,
       plan,
       razorpaySubscriptionId: razorpay_subscription_id,
       subscriptionStatus: "active",

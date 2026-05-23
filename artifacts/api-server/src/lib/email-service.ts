@@ -100,6 +100,44 @@ export async function sendWeeklyDigest(
   );
 }
 
+export async function sendEmailVerification(email: string, verifyUrl: string): Promise<void> {
+  const html = `
+<div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
+  <h2 style="color:#4F46E5;font-size:20px;font-weight:600;margin-bottom:8px">Verify your GeoIQ email</h2>
+  <p style="color:#6b7280;font-size:14px;line-height:1.6;margin-bottom:28px">
+    Click the button below to verify your email address and activate your GeoIQ account. This link expires in 24 hours.
+  </p>
+  <a href="${verifyUrl}" style="display:block;background:#4F46E5;color:white;text-decoration:none;text-align:center;padding:14px;border-radius:8px;font-size:14px;font-weight:500;margin-bottom:20px">
+    Verify my email
+  </a>
+  <p style="font-size:13px;color:#9ca3af;text-align:center">
+    If you did not create a GeoIQ account, you can safely ignore this email.
+  </p>
+  <p style="font-size:12px;color:#9ca3af;margin-top:24px;text-align:center">GeoIQ · Built for founders in India</p>
+</div>`;
+
+  await sendEmail(email, "Verify your GeoIQ email", html);
+}
+
+export async function sendPasswordResetEmail(email: string, resetUrl: string): Promise<void> {
+  const html = `
+<div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
+  <h2 style="color:#4F46E5;font-size:20px;font-weight:600;margin-bottom:8px">Reset your GeoIQ password</h2>
+  <p style="color:#6b7280;font-size:14px;line-height:1.6;margin-bottom:28px">
+    Click the button below to set a new password. This link expires in 1 hour.
+  </p>
+  <a href="${resetUrl}" style="display:block;background:#4F46E5;color:white;text-decoration:none;text-align:center;padding:14px;border-radius:8px;font-size:14px;font-weight:500;margin-bottom:20px">
+    Reset my password
+  </a>
+  <p style="font-size:13px;color:#9ca3af;text-align:center">
+    If you did not request a password reset, you can safely ignore this email.
+  </p>
+  <p style="font-size:12px;color:#9ca3af;margin-top:24px;text-align:center">GeoIQ · Built for founders in India</p>
+</div>`;
+
+  await sendEmail(email, "Reset your GeoIQ password", html);
+}
+
 export async function sendSubscribeConfirmation(email: string, domain?: string): Promise<void> {
   const html = `
 <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">

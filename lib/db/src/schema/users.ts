@@ -1,11 +1,12 @@
-import { pgTable, text, uuid, timestamp, integer, date } from "drizzle-orm/pg-core";
+import { pgTable, text, uuid, timestamp, integer, date, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export const usersTable = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").unique().notNull(),
-  passwordHash: text("password_hash").notNull(),
+  passwordHash: text("password_hash"),
+  emailVerified: boolean("email_verified").notNull().default(false),
   plan: text("plan").notNull().default("free"),
   auditCount: integer("audit_count").notNull().default(0),
   razorpaySubscriptionId: text("razorpay_subscription_id"),

@@ -145,8 +145,8 @@ export function Navbar() {
               >
                 Sign in
               </Link>
-              <button
-                onClick={handleStartFree}
+              <Link
+                href="/signup"
                 style={{
                   fontSize: 14,
                   fontWeight: 500,
@@ -154,15 +154,14 @@ export function Navbar() {
                   background: "#4F46E5",
                   padding: "8px 16px",
                   borderRadius: 9999,
-                  border: "none",
-                  cursor: "pointer",
+                  textDecoration: "none",
                   transition: "background 150ms",
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = "#4338CA")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "#4F46E5")}
               >
-                Start free
-              </button>
+                Sign up free
+              </Link>
             </>
           )}
         </div>
@@ -275,21 +274,22 @@ export function Navbar() {
                 >
                   Sign in
                 </Link>
-                <button
-                  onClick={handleStartFree}
+                <Link
+                  href="/signup"
+                  onClick={() => setMobileOpen(false)}
                   style={{
+                    textAlign: "center",
                     padding: 10,
                     background: "#4F46E5",
                     color: "white",
                     borderRadius: 9999,
-                    border: "none",
-                    cursor: "pointer",
+                    textDecoration: "none",
                     fontSize: 14,
                     fontWeight: 500,
                   }}
                 >
-                  Start free
-                </button>
+                  Sign up free
+                </Link>
               </>
             )}
           </div>
