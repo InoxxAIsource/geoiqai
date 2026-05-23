@@ -69,26 +69,30 @@ router.post("/audit", async (req, res): Promise<void> => {
     return;
   }
 
-  const { url, brandName: brandNameOverride, category: categoryOverride, market: marketOverride } = parsed.data;
+  const { url, brandName: brandNameOverride, category: categoryOverride, market: marketOverride, force } = parsed.data;
   const domain = extractDomain(url);
   const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ?? req.ip ?? "unknown";
   const subscriberEmail = (req.headers["x-subscriber-email"] as string)?.trim() ?? "";
 
   try {
-    // Layer 0: Cache check - 24h, never counts against rate limit
-    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const [cachedAudit] = await db
-      .select()
-      .from(auditsTable)
-      .where(and(eq(auditsTable.domain, domain), gt(auditsTable.createdAt, cutoff)))
-      .orderBy(desc(auditsTable.createdAt))
-      .limit(1);
+    // Layer 0: Cache check - 24h, never counts against rate limit (skipped when force=true)
+    if (!force) {
+      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const [cachedAudit] = await db
+        .select()
+        .from(auditsTable)
+        .where(and(eq(auditsTable.domain, domain), gt(auditsTable.createdAt, cutoff)))
+        .orderBy(desc(auditsTable.createdAt))
+        .limit(1);
 
-    if (cachedAudit) {
-      const hoursAgo = Math.floor((Date.now() - cachedAudit.createdAt.getTime()) / (60 * 60 * 1000));
-      req.log.info({ domain, hoursAgo }, `${domain} - returning cached audit`);
-      res.json(serializeAudit(cachedAudit, { fromCache: true, cachedHoursAgo: hoursAgo }));
-      return;
+      if (cachedAudit) {
+        const hoursAgo = Math.floor((Date.now() - cachedAudit.createdAt.getTime()) / (60 * 60 * 1000));
+        req.log.info({ domain, hoursAgo }, `${domain} - returning cached audit`);
+        res.json(serializeAudit(cachedAudit, { fromCache: true, cachedHoursAgo: hoursAgo }));
+        return;
+      }
+    } else {
+      req.log.info({ domain }, `${domain} - force refresh requested, skipping cache`);
     }
 
     // Layer 1: Check for paid user via optional bearer token - skip all limits

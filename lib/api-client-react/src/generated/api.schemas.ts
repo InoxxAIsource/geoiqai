@@ -17,6 +17,8 @@ export interface AuditInput {
   category?: string | null;
   /** @nullable */
   market?: string | null;
+  /** Skip cache and run a fresh audit */
+  force?: boolean;
 }
 
 export type TechnicalCheckStatus = typeof TechnicalCheckStatus[keyof typeof TechnicalCheckStatus];

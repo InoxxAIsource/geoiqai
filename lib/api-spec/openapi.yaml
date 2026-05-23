@@ -394,6 +394,9 @@ components:
           type: ["string", "null"]
         market:
           type: ["string", "null"]
+        force:
+          type: boolean
+          description: Skip cache and run a fresh audit
 
     TechnicalCheck:
       type: object

@@ -70,7 +70,8 @@ export const RunAuditBody = zod.object({
   "url": zod.string(),
   "brandName": zod.string().nullish(),
   "category": zod.string().nullish(),
-  "market": zod.string().nullish()
+  "market": zod.string().nullish(),
+  "force": zod.boolean().optional().describe('Skip cache and run a fresh audit')
 })
 
 export const RunAuditResponse = zod.object({

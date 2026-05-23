@@ -511,6 +511,9 @@ export default function Audit() {
   const runAuditMutation = useRunAudit();
   const subscribeMutation = useEmailSubscribe();
 
+  const meQuery = useGetMe();
+  const isPaidUser = (meQuery.data as any)?.plan && (meQuery.data as any).plan !== "free";
+
   const [auditResult, setAuditResult] = useState<any>(null);
   const [loadingStep, setLoadingStep] = useState(0);
   const [doneSteps, setDoneSteps] = useState<boolean[]>(LOADING_STEPS.map(() => false));
@@ -521,6 +524,7 @@ export default function Audit() {
   } | null>(null);
   const [subscriberEmail, setSubscriberEmail] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const emailForm = useForm<z.infer<typeof emailSchema>>({
     resolver: zodResolver(emailSchema),
@@ -581,7 +585,7 @@ export default function Audit() {
   }, [urlParam]);
 
   useEffect(() => {
-    const isActive = runAuditMutation.isPending || retrying;
+    const isActive = runAuditMutation.isPending || retrying || refreshing;
     if (!isActive) return;
     let step = 0;
     const interval = setInterval(() => {
@@ -593,7 +597,37 @@ export default function Audit() {
     }, 1800);
     return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runAuditMutation.isPending, retrying]);
+  }, [runAuditMutation.isPending, retrying, refreshing]);
+
+  const runFreshAudit = async () => {
+    if (!urlParam) return;
+    setRefreshing(true);
+    setAuditResult(null);
+    setAuditError(null);
+    setLoadingStep(0);
+    setDoneSteps(LOADING_STEPS.map(() => false));
+    const token = localStorage.getItem("geoscore_token");
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    if (subscriberEmail) headers["X-Subscriber-Email"] = subscriberEmail;
+    try {
+      const res = await fetch("/api/audit", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ url: urlParam, force: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        handleAuditError({ status: res.status, body: data });
+        return;
+      }
+      setAuditResult(data);
+    } catch {
+      setAuditError({ type: "generic" });
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const onSubscribeAndRetry = (values: z.infer<typeof emailSchema>) => {
     const email = values.email;
@@ -665,6 +699,42 @@ export default function Audit() {
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 60, width: "100%", maxWidth: 440 }}>
             <div style={{ fontWeight: 700, fontSize: 18, color: "#111827", textAlign: "center", marginBottom: 6 }}>
               Hang tight...
+            </div>
+            <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 32, textAlign: "center", lineHeight: 1.5 }}>
+              Scanning <strong style={{ color: "#374151" }}>{urlParam}</strong> across<br />
+              ChatGPT, Gemini, Perplexity, Claude &amp; Grok
+            </p>
+            <div style={{ width: "100%", marginBottom: 28 }}>
+              {LOADING_STEPS.map((label, i) => {
+                const isDone = doneSteps[i];
+                const isCurrent = loadingStep === i && !isDone;
+                return (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0", opacity: i > loadingStep ? 0.3 : 1, transition: "opacity 0.4s" }}>
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: isDone ? "#10b981" : isCurrent ? "#4F46E5" : "#e5e7eb", transition: "background 0.35s" }}>
+                      {isDone
+                        ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                        : isCurrent
+                          ? <Loader2 style={{ width: 13, height: 13, color: "white", animation: "spin 1s linear infinite" }} />
+                          : <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#9ca3af", display: "block" }} />}
+                    </div>
+                    <span style={{ fontSize: 14, color: isDone ? "#10b981" : isCurrent ? "#4F46E5" : "#6b7280", fontWeight: isCurrent ? 500 : 400 }}>
+                      {label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ width: "100%", height: 6, background: "#e5e7eb", borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ height: "100%", background: "linear-gradient(90deg, #4F46E5, #7C3AED)", borderRadius: 4, width: `${progress}%`, transition: "width 1.6s ease" }} />
+            </div>
+          </div>
+        )}
+
+        {/* Refreshing state - force fresh audit */}
+        {refreshing && (
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 60, width: "100%", maxWidth: 440 }}>
+            <div style={{ fontWeight: 700, fontSize: 18, color: "#111827", textAlign: "center", marginBottom: 6 }}>
+              Running fresh audit...
             </div>
             <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 32, textAlign: "center", lineHeight: 1.5 }}>
               Scanning <strong style={{ color: "#374151" }}>{urlParam}</strong> across<br />
@@ -817,15 +887,46 @@ export default function Audit() {
         )}
 
         {/* Results */}
-        {auditResult && !runAuditMutation.isPending && (
+        {auditResult && !runAuditMutation.isPending && !refreshing && !retrying && (
           <div className="audit-result-anim" style={{ width: "100%", maxWidth: 700 }}>
+
+            {/* Cache age banner */}
+            {auditResult.fromCache && auditResult.cachedHoursAgo >= 1 && auditResult.cachedHoursAgo < 24 && (
+              <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                <span style={{ fontSize: 13, color: "#92400e" }}>
+                  These results are from {auditResult.cachedHoursAgo} hour{auditResult.cachedHoursAgo !== 1 ? "s" : ""} ago. Fixed your issues? Run a fresh audit to see your updated score.
+                </span>
+                <button onClick={runFreshAudit} style={{ fontSize: 12, color: "#4F46E5", border: "1px solid #4F46E5", background: "none", borderRadius: 6, padding: "3px 10px", cursor: "pointer", whiteSpace: "nowrap", fontWeight: 500 }}>
+                  Run fresh audit
+                </button>
+              </div>
+            )}
+            {auditResult.fromCache && auditResult.cachedHoursAgo >= 24 && (
+              <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                <span style={{ fontSize: 13, color: "#1e40af" }}>
+                  Daily audit runs at 2am UTC. Last checked: {auditResult.cachedHoursAgo} hours ago.
+                </span>
+                <button onClick={runFreshAudit} style={{ fontSize: 12, color: "#4F46E5", border: "1px solid #4F46E5", background: "none", borderRadius: 6, padding: "3px 10px", cursor: "pointer", whiteSpace: "nowrap", fontWeight: 500 }}>
+                  Run now
+                </button>
+              </div>
+            )}
 
             {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, flexWrap: "wrap", gap: 16 }}>
               <div>
                 <div style={{ fontWeight: 500, fontSize: 18, color: "#111827" }}>{auditResult.domain}</div>
-                <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
-                  AI visibility audit, just now, {auditResult.category ?? "saas tool"}, {auditResult.market ?? "India"}
+                <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  {auditResult.fromCache && auditResult.cachedHoursAgo != null
+                    ? <>
+                        AI visibility audit, {auditResult.cachedHoursAgo === 0 ? "just now" : `${auditResult.cachedHoursAgo}h ago`},{" "}
+                        {auditResult.category ?? "saas tool"}, {auditResult.market ?? "India"}
+                        <button onClick={runFreshAudit} style={{ fontSize: 11, color: "#4F46E5", border: "none", background: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontWeight: 500 }}>
+                          Refresh
+                        </button>
+                      </>
+                    : <>AI visibility audit, just now, {auditResult.category ?? "saas tool"}, {auditResult.market ?? "India"}</>
+                  }
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
