@@ -5,7 +5,7 @@ import {
 } from "recharts";
 import { Copy, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import type {
-  Brand, TrendPoint, KeywordEntry, FixAction, CitationData, VisualData, VisualType, TechnicalCheck as TechnicalCheckType, AuditToolResult,
+  Brand, TrendPoint, KeywordEntry, FixAction, CitationData, VisualData, VisualType, TechnicalCheck as TechnicalCheckType, AuditToolResult, CompetitorEntry,
 } from "./agent-visual-utils";
 
 // ─── Animation wrapper ────────────────────────────────────────────────────────
@@ -128,33 +128,65 @@ function ScoreBreakdown({ brand }: { brand: Brand }) {
 
 // ─── 2. COMPETITOR CHART ──────────────────────────────────────────────────────
 
-function CompetitorChart({ brand, competitorDisplayName }: { brand: Brand; competitorDisplayName: string }) {
+function CompetitorChart({ brand, competitorDisplayName, competitorResult }: {
+  brand: Brand;
+  competitorDisplayName: string;
+  competitorResult?: { comparison: CompetitorEntry[] } | null;
+}) {
   const myScore = brand.latestScore ?? 0;
   const cat = (brand.category ?? "").toLowerCase();
-  const getCompetitors = () => {
-    if (cat.includes("health") || cat.includes("food") || cat.includes("diet") || cat.includes("nutrition")) return ["HealthifyMe", "Sugar.fit", "Cult.fit", "Practo"];
-    if (cat.includes("fintech") || cat.includes("finance")) return ["Razorpay", "Paytm", "PhonePe", "Groww"];
-    if (cat.includes("saas") || cat.includes("tool")) return ["Notion", "Slack", "Linear", "Figma"];
-    return [competitorDisplayName, "Competitor B", "Competitor C", "Competitor D"];
-  };
-  const competitors = getCompetitors();
-  const data = [
-    { name: competitors[0], score: Math.min(100, myScore + 54), isYours: false },
-    { name: competitors[1], score: Math.min(100, myScore + 40), isYours: false },
-    { name: brand.brandName ?? brand.domain, score: myScore, isYours: true },
-    { name: competitors[2], score: Math.max(0, myScore - 6), isYours: false },
-    { name: competitors[3], score: Math.max(0, myScore - 18), isYours: false },
-  ].sort((a, b) => b.score - a.score);
+
+  // Use real tool data if available, otherwise fall back to estimated data
+  const realEntries = competitorResult?.comparison?.filter(c => c.hasData || c.isYours);
+  const useRealData = realEntries && realEntries.length > 1;
+
+  let data: { name: string; score: number; isYours: boolean }[];
+  let isEstimated = false;
+
+  if (useRealData) {
+    data = realEntries!
+      .map(c => ({
+        name: c.isYours ? (brand.brandName ?? brand.domain) : c.domain,
+        score: c.scoreTotal ?? 0,
+        isYours: c.isYours,
+      }))
+      .sort((a, b) => b.score - a.score);
+  } else {
+    isEstimated = true;
+    const getCompetitors = () => {
+      if (cat.includes("health") || cat.includes("food") || cat.includes("diet") || cat.includes("nutrition")) return ["HealthifyMe", "Sugar.fit", "Cult.fit", "Practo"];
+      if (cat.includes("fintech") || cat.includes("finance")) return ["Razorpay", "Paytm", "PhonePe", "Groww"];
+      if (cat.includes("saas") || cat.includes("tool")) return ["Notion", "Slack", "Linear", "Figma"];
+      return [competitorDisplayName, "Competitor B", "Competitor C", "Competitor D"];
+    };
+    const competitors = getCompetitors();
+    data = [
+      { name: competitors[0], score: Math.min(100, myScore + 54), isYours: false },
+      { name: competitors[1], score: Math.min(100, myScore + 40), isYours: false },
+      { name: brand.brandName ?? brand.domain, score: myScore, isYours: true },
+      { name: competitors[2], score: Math.max(0, myScore - 6), isYours: false },
+      { name: competitors[3], score: Math.max(0, myScore - 18), isYours: false },
+    ].sort((a, b) => b.score - a.score);
+  }
+
   const myRank = data.findIndex(d => d.isYours) + 1;
-  const gap = (data[0]?.score ?? 0) - myScore;
+  const gap = (data[0]?.score ?? 0) - (data.find(d => d.isYours)?.score ?? myScore);
+
   return (
     <VisualCard>
-      <VisualTitle>AI Mention Rates - Your Category</VisualTitle>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <VisualTitle>AI Mention Rates - Your Category</VisualTitle>
+        {isEstimated && (
+          <span style={{ fontSize: 10, color: "#D97706", background: "#FFFBEB", borderRadius: 4, padding: "2px 7px", fontWeight: 500 }}>
+            Estimated - ask me to compare with competitors for real scores
+          </span>
+        )}
+      </div>
       <ResponsiveContainer width="100%" height={160}>
         <BarChart data={data} layout="vertical" margin={{ top: 0, right: 30, bottom: 0, left: 0 }}>
           <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 9, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
           <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "#374151" }} axisLine={false} tickLine={false} width={80} />
-          <Tooltip formatter={(v: number) => [`${v}%`, "AI visibility"]} contentStyle={{ fontSize: 11, borderRadius: 6 }} />
+          <Tooltip formatter={(v: number) => [`${v}`, "GEO IQ score"]} contentStyle={{ fontSize: 11, borderRadius: 6 }} />
           <Bar dataKey="score" radius={[0, 3, 3, 0]}>
             {data.map((entry, i) => <Cell key={i} fill={entry.isYours ? "#4F46E5" : "#E5E7EB"} />)}
           </Bar>
@@ -211,6 +243,14 @@ function CitationGapChart({ brand, citationData }: { brand: Brand; citationData:
 
 // ─── 4. PRIORITY ACTION CARDS ─────────────────────────────────────────────────
 
+const CITE_COLORS: Record<string, { bg: string; text: string }> = {
+  AUTHORITY: { bg: "#EEF2FF", text: "#4338CA" },
+  CONTENT: { bg: "#F0FDF4", text: "#166534" },
+  TECH: { bg: "#FFF7ED", text: "#9A3412" },
+  ENTITY: { bg: "#FDF4FF", text: "#7E22CE" },
+  CRAWL: { bg: "#F0F9FF", text: "#0C4A6E" },
+};
+
 function PriorityActionCards({ fixActions, brand }: { fixActions: FixAction[]; brand: Brand }) {
   const [copied, setCopied] = useState<number | null>(null);
   const shown = fixActions.filter(a => !a.done).slice(0, 5);
@@ -231,10 +271,17 @@ function PriorityActionCards({ fixActions, brand }: { fixActions: FixAction[]; b
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {shown.map(a => {
           const cfg = prioConfig[a.priority] ?? prioConfig.medium;
+          const citeKey = (a.cite ?? "").toUpperCase();
+          const citeCfg = CITE_COLORS[citeKey];
           return (
             <div key={a.id} style={{ borderLeft: `3px solid ${cfg.color}`, background: cfg.bg, borderRadius: "0 8px 8px 0", padding: "10px 14px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: cfg.color }}>{cfg.label}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                {citeCfg && (
+                  <span style={{ background: citeCfg.bg, color: citeCfg.text, borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 600, flexShrink: 0 }}>
+                    [{citeKey}]
+                  </span>
+                )}
+                <span style={{ fontSize: 10, fontWeight: 700, color: cfg.color, flexShrink: 0 }}>{cfg.label.toUpperCase()}</span>
                 <span style={{ fontSize: 11, color: "#374151", flex: 1 }}>{a.action}</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -667,7 +714,7 @@ function AuditScoreCard({ result }: { result: AuditToolResult }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
         <VisualTitle>GEO IQ Score - {result.brandName}</VisualTitle>
         <span style={{ background: "#EEF2FF", color: "#4F46E5", borderRadius: 9999, padding: "2px 10px", fontSize: 10, fontWeight: 600, flexShrink: 0 }}>
-          Fresh audit
+          Fresh audit - just now
         </span>
       </div>
       <div style={{ textAlign: "center", marginBottom: 16 }}>
@@ -778,7 +825,7 @@ export function AgentVisual({ visualType, data }: { visualType: VisualType; data
     switch (visualType) {
       case "audit_result": return data.auditToolResult ? <AuditResultVisual auditToolResult={data.auditToolResult} /> : null;
       case "score_breakdown": return <ScoreBreakdown brand={brand} />;
-      case "competitor_chart": return <CompetitorChart brand={brand} competitorDisplayName={competitorDisplayName} />;
+      case "competitor_chart": return <CompetitorChart brand={brand} competitorDisplayName={competitorDisplayName} competitorResult={data.competitorResult} />;
       case "citation_gap": return <CitationGapChart brand={brand} citationData={citationData} />;
       case "action_cards": return <PriorityActionCards fixActions={fixActions} brand={brand} />;
       case "trend_chart": return <TrendChart lineChartData={lineChartData} weekChange={weekChange} brand={brand} competitorDisplayName={competitorDisplayName} />;

@@ -11,6 +11,7 @@ import {
   type CitationData,
   type TechnicalCheck,
   type AuditToolResult,
+  type CompetitorEntry,
 } from "./agent-visual-utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -69,7 +70,7 @@ const THINKING_SETS: Record<string, string[]> = {
     "Building competitive analysis...",
   ],
   blog: [
-    "Researching your top keywords...",
+    "Researching {brand}'s top keywords...",
     "Structuring for AI citability...",
     "Applying GEO content framework...",
     "Optimizing for {category} queries...",
@@ -81,7 +82,7 @@ const THINKING_SETS: Record<string, string[]> = {
     "Adding authentic voice...",
   ],
   technical: [
-    "Fetching latest technical audit...",
+    "Reading latest audit data...",
     "Checking crawler access...",
     "Reviewing schema signals...",
     "Calculating technical score...",
@@ -144,7 +145,7 @@ const CHIP_SETS: Record<string, string[]> = {
   after_score: ["Write the article it mentioned", "Show competitor comparison", "Generate my FAQ page", "What should I fix first?"],
   after_competitor: ["Close the biggest gap", "Write content to compete", "Show their citation sources", "Build my week plan"],
   after_citations: ["Write my Crunchbase description", "Generate Product Hunt listing", "Write pitch email", "Show submission URLs"],
-  after_blog: ["Generate tweets from this", "Write shorter version", "Copy for Medium", "Copy for dev.to"],
+  after_blog: ["Copy for Medium", "Copy for dev.to", "Write shorter version", "Generate tweets from this"],
   after_tweets: ["Rewrite for LinkedIn", "Generate 3 more options", "Make these shorter", "Plan content calendar"],
   after_calendar: ["Generate Monday content", "Generate all 7 days now", "Focus on top keywords", "Build content schedule"],
   after_technical: ["Generate robots.txt fix", "Write my llms.txt file", "Generate Schema JSON", "Highest impact fix first?"],
@@ -335,6 +336,7 @@ export function GeoAgentTab({
   const [apiTechnicalChecks, setApiTechnicalChecks] = useState<TechnicalCheck[]>([]);
   const [apiTechnicalScore, setApiTechnicalScore] = useState<number | undefined>(undefined);
   const [apiCheckedAt, setApiCheckedAt] = useState<string | null>(null);
+  const [apiCompetitorData, setApiCompetitorData] = useState<{ comparison: CompetitorEntry[] } | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -416,6 +418,7 @@ export function GeoAgentTab({
         technicalOverallScore?: number;
         auditCheckedAt?: string | null;
         auditResult?: AuditToolResult | null;
+        competitorResult?: { comparison: CompetitorEntry[] } | null;
       };
 
       if (data.keywords && data.keywords.length > 0) setApiKeywords(data.keywords);
@@ -423,6 +426,9 @@ export function GeoAgentTab({
         setApiTechnicalChecks(data.technicalChecks);
         setApiTechnicalScore(data.technicalOverallScore);
         setApiCheckedAt(data.auditCheckedAt ?? null);
+      }
+      if (data.competitorResult?.comparison && data.competitorResult.comparison.some(c => c.hasData)) {
+        setApiCompetitorData(data.competitorResult);
       }
 
       const auditToolResult = data.auditResult && !("error" in (data.auditResult as object))
@@ -434,7 +440,7 @@ export function GeoAgentTab({
       }
 
       const visualType = auditToolResult ? "audit_result" : detectVisualType(msg, data.reply);
-      const followUpChips = getFollowUpChips(msg, data.reply);
+      const followUpChips = auditToolResult ? CHIP_SETS.after_technical : getFollowUpChips(msg, data.reply);
 
       setMessages(prev => [...prev.slice(0, -1), {
         role: "agent",
@@ -489,6 +495,7 @@ export function GeoAgentTab({
     technicalOverallScore: apiTechnicalScore,
     auditCheckedAt: apiCheckedAt,
     auditToolResult: msg.auditToolResult,
+    competitorResult: apiCompetitorData,
   });
 
   return (

@@ -602,7 +602,9 @@ ABSOLUTE RULES:
 4. When writing content (tweets, blogs, FAQs, pitch emails) - write for the real audience the brand description describes.
 5. No em dashes. No filler like "leverage" or "seamlessly". Write like a smart person talking to another smart person.
 6. If you're unsure who the target audience is, ask before writing any content.
-7. Never say you cannot check the site or that you don't have access to the website. You have the latest audit data and the run_audit tool.`;
+7. Never say you cannot check the site or that you don't have access to the website. You have the latest audit data and the run_audit tool.
+8. If the user asks something completely unrelated to GEO or ${brandName} (e.g. general knowledge questions), answer briefly and naturally, then bring it back: "Anyway, back to ${brandName} - [one relevant thing you noticed in the data]."`;
+
 }
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
@@ -689,6 +691,7 @@ router.post("/agent/chat", requireAuth, async (req, res): Promise<void> => {
   }
 
   const auditResult = toolResults.run_audit ?? null;
+  const competitorResult = toolResults.get_competitor_data ?? null;
 
   res.json({
     reply,
@@ -700,6 +703,7 @@ router.post("/agent/chat", requireAuth, async (req, res): Promise<void> => {
     technicalOverallScore: finalCtx.technicalOverallScore,
     auditCheckedAt: finalCtx.auditCheckedAt,
     auditResult,
+    competitorResult,
   });
 });
 

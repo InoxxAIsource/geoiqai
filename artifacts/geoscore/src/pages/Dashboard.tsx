@@ -64,6 +64,7 @@ interface FixAction {
   effortHours: number;
   impactScore: number;
   done: boolean;
+  cite?: string;
 }
 
 const NAV_ITEMS: { label: NavTab; icon: React.FC<{ size?: number; color?: string }> }[] = [
@@ -232,11 +233,11 @@ function getCompetitorBase(category: string | null | undefined): string {
 function generateFixActions(brand: { domain: string } | null | undefined): FixAction[] {
   const domain = brand?.domain ?? "your brand";
   return [
-    { id: 1, priority: "high", action: `Get ${domain} listed on G2, Capterra, and ProductHunt with complete profiles.`, effortHours: 2, impactScore: 15, done: false },
-    { id: 2, priority: "high", action: `Publish a comparison article positioning ${domain} against top 3 competitors.`, effortHours: 4, impactScore: 12, done: false },
-    { id: 3, priority: "medium", action: `Create a structured FAQ page with 20+ natural language questions.`, effortHours: 3, impactScore: 10, done: false },
-    { id: 4, priority: "medium", action: `Add JSON-LD structured data markup to your homepage.`, effortHours: 2, impactScore: 8, done: false },
-    { id: 5, priority: "low", action: `Publish original research or a data report about trends in your industry.`, effortHours: 8, impactScore: 6, done: false },
+    { id: 1, priority: "high", cite: "AUTHORITY", action: `Get ${domain} listed on G2, Capterra, and ProductHunt with complete profiles.`, effortHours: 2, impactScore: 15, done: false },
+    { id: 2, priority: "high", cite: "CONTENT", action: `Publish a comparison article positioning ${domain} against top 3 competitors.`, effortHours: 4, impactScore: 12, done: false },
+    { id: 3, priority: "medium", cite: "CONTENT", action: `Create a structured FAQ page with 20+ natural language questions.`, effortHours: 3, impactScore: 10, done: false },
+    { id: 4, priority: "medium", cite: "TECH", action: `Add JSON-LD structured data markup to your homepage.`, effortHours: 2, impactScore: 8, done: false },
+    { id: 5, priority: "low", cite: "CONTENT", action: `Publish original research or a data report about trends in your industry.`, effortHours: 8, impactScore: 6, done: false },
   ];
 }
 

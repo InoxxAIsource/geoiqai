@@ -29,6 +29,7 @@ export interface FixAction {
   effortHours: number;
   impactScore: number;
   done: boolean;
+  cite?: string;
 }
 
 export interface CitationEntry {
@@ -66,6 +67,13 @@ export interface AuditToolResult {
   technicalHighlights: { name: string; score: number; status: string }[];
 }
 
+export interface CompetitorEntry {
+  domain: string;
+  isYours: boolean;
+  scoreTotal: number | null;
+  hasData: boolean;
+}
+
 export interface VisualData {
   brand: Brand;
   lineChartData: TrendPoint[];
@@ -79,6 +87,7 @@ export interface VisualData {
   technicalOverallScore?: number;
   auditCheckedAt?: string | null;
   auditToolResult?: AuditToolResult;
+  competitorResult?: { comparison: CompetitorEntry[] } | null;
 }
 
 export type VisualType =
