@@ -24,7 +24,7 @@ import {
   Loader2, Bell, Settings, BarChart2, Bot, Lightbulb, Users, Plug,
   ChevronRight, Target, TrendingUp, Link2, MessageSquare, Zap, Key,
   Eye, RefreshCw, Copy, ChevronDown, ChevronUp, Search, ExternalLink,
-  AlertCircle, CheckCircle2,
+  AlertCircle, CheckCircle2, Menu, X,
 } from "lucide-react";
 
 type NavTab =
@@ -361,6 +361,14 @@ export default function Dashboard() {
   const [bannerDismissed, setBannerDismissed] = useState(
     localStorage.getItem("geoiq_pw_banner_dismissed") === "true"
   );
+  const [isMobile, setIsMobile] = useState(typeof window !== "undefined" && window.innerWidth < 768);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
 
   const { data: user } = useGetMe({ query: { enabled: isAuthenticated } as never });
   const { data: summary, isLoading: loadingSummary } = useGetDashboardSummary({ query: { enabled: isAuthenticated } as never });
@@ -680,8 +688,56 @@ export default function Dashboard() {
       )}
 
     <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-      {/* Sidebar */}
-      <div style={{ width: 164, borderRight: "0.5px solid #e5e7eb", background: "white", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+
+      {/* Mobile drawer overlay */}
+      {isMobile && mobileDrawerOpen && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex" }}>
+          <div style={{ width: 220, background: "white", display: "flex", flexDirection: "column", flexShrink: 0, boxShadow: "4px 0 24px rgba(0,0,0,0.12)" }}>
+            <div style={{ padding: "14px 16px 10px", fontWeight: 700, fontSize: 14, color: "#4F46E5", borderBottom: "0.5px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              GeoIQ
+              <button onClick={() => setMobileDrawerOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2, color: "#9ca3af" }}>
+                <X size={16} />
+              </button>
+            </div>
+            <nav style={{ flex: 1, overflowY: "auto", padding: "6px 0" }}>
+              {NAV_ITEMS.map(({ label, icon: Icon }) => {
+                const isActive = activeTab === label;
+                return (
+                  <button
+                    key={label}
+                    onClick={() => { setActiveTab(label); setMobileDrawerOpen(false); }}
+                    style={{
+                      width: "100%", height: 42, padding: "0 16px", display: "flex", alignItems: "center", gap: 10,
+                      fontSize: 13, cursor: "pointer",
+                      background: isActive ? "#EEF2FF" : "transparent",
+                      color: isActive ? "#4F46E5" : "#6b7280",
+                      fontWeight: isActive ? 600 : 400,
+                      borderRight: isActive ? "2.5px solid #4F46E5" : "2.5px solid transparent",
+                      border: "none", textAlign: "left",
+                    }}
+                  >
+                    <Icon size={15} color={isActive ? "#4F46E5" : "#9ca3af"} />
+                    {label}
+                  </button>
+                );
+              })}
+            </nav>
+            <div style={{ padding: "10px 14px", borderTop: "0.5px solid #f3f4f6", fontSize: 11, color: "#9ca3af" }}>
+              {user?.plan === "free" ? (
+                <button style={{ width: "100%", background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "7px 0", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
+                  Upgrade plan
+                </button>
+              ) : (
+                <span style={{ textTransform: "capitalize" }}>{user?.plan ?? ""} plan</span>
+              )}
+            </div>
+          </div>
+          <div style={{ flex: 1, background: "rgba(0,0,0,0.4)" }} onClick={() => setMobileDrawerOpen(false)} />
+        </div>
+      )}
+
+      {/* Sidebar (desktop only) */}
+      <div style={{ width: 164, borderRight: "0.5px solid #e5e7eb", background: "white", display: isMobile ? "none" : "flex", flexDirection: "column", flexShrink: 0 }}>
         <div style={{ padding: "14px 16px 10px", fontWeight: 700, fontSize: 14, color: "#4F46E5", borderBottom: "0.5px solid #f3f4f6" }}>GeoIQ</div>
         <nav style={{ flex: 1, overflowY: "auto", padding: "6px 0" }}>
           {NAV_ITEMS.map(({ label, icon: Icon }) => {
@@ -763,8 +819,18 @@ export default function Dashboard() {
         )}
 
         {/* Top bar */}
-        <div style={{ background: "white", padding: "10px 20px", borderBottom: "0.5px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>{scoresDomain || "No brand selected"}</div>
+        <div style={{ background: "white", padding: isMobile ? "10px 14px" : "10px 20px", borderBottom: "0.5px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {isMobile && (
+              <button
+                onClick={() => setMobileDrawerOpen(true)}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center", color: "#374151" }}
+              >
+                <Menu size={20} />
+              </button>
+            )}
+            <div style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>{scoresDomain || "No brand selected"}</div>
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {selectedBrand && !isScanning && (
               <button
