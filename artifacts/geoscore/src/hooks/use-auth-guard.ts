@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
-import { getToken, initAuth, isPaidUser } from "@/lib/auth";
+import { getToken, initAuth } from "@/lib/auth";
 
 export function useAuthGuard() {
   const [location, setLocation] = useLocation();
@@ -8,14 +8,13 @@ export function useAuthGuard() {
   useEffect(() => {
     initAuth();
     if (location.startsWith("/dashboard")) {
-      if (!getToken() || !isPaidUser()) {
-        setLocation("/pricing?reason=login_required");
+      if (!getToken()) {
+        setLocation("/login?reason=login_required");
       }
     }
   }, [location, setLocation]);
 
   return {
     isAuthenticated: !!getToken(),
-    isPaid: isPaidUser(),
   };
 }
