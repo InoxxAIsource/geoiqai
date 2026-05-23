@@ -890,11 +890,14 @@ export default function Audit() {
         {auditResult && !runAuditMutation.isPending && !refreshing && !retrying && (
           <div className="audit-result-anim" style={{ width: "100%", maxWidth: 700 }}>
 
-            {/* Cache age banner */}
-            {auditResult.fromCache && auditResult.cachedHoursAgo >= 1 && auditResult.cachedHoursAgo < 24 && (
+            {/* Cache age banner - show for ANY cached result so users who just fixed their site know to refresh */}
+            {auditResult.fromCache && auditResult.cachedHoursAgo < 24 && (
               <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
                 <span style={{ fontSize: 13, color: "#92400e" }}>
-                  These results are from {auditResult.cachedHoursAgo} hour{auditResult.cachedHoursAgo !== 1 ? "s" : ""} ago. Fixed your issues? Run a fresh audit to see your updated score.
+                  {auditResult.cachedHoursAgo === 0
+                    ? "These results were cached recently. If you just made changes to your site, run a fresh audit to see your updated score."
+                    : `These results are from ${auditResult.cachedHoursAgo} hour${auditResult.cachedHoursAgo !== 1 ? "s" : ""} ago. Fixed your issues? Run a fresh audit to see your updated score.`
+                  }
                 </span>
                 <button onClick={runFreshAudit} style={{ fontSize: 12, color: "#4F46E5", border: "1px solid #4F46E5", background: "none", borderRadius: 6, padding: "3px 10px", cursor: "pointer", whiteSpace: "nowrap", fontWeight: 500 }}>
                   Run fresh audit
@@ -904,7 +907,7 @@ export default function Audit() {
             {auditResult.fromCache && auditResult.cachedHoursAgo >= 24 && (
               <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
                 <span style={{ fontSize: 13, color: "#1e40af" }}>
-                  Daily audit runs at 2am UTC. Last checked: {auditResult.cachedHoursAgo} hours ago.
+                  Last checked {auditResult.cachedHoursAgo} hours ago. Made changes to your site? Run a fresh audit.
                 </span>
                 <button onClick={runFreshAudit} style={{ fontSize: 12, color: "#4F46E5", border: "1px solid #4F46E5", background: "none", borderRadius: 6, padding: "3px 10px", cursor: "pointer", whiteSpace: "nowrap", fontWeight: 500 }}>
                   Run now

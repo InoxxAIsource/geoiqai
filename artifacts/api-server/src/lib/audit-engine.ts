@@ -197,7 +197,7 @@ async function fetchText(url: string): Promise<string | null> {
 }
 
 function checkCrawlerAccess(robotsTxt: string | null): TechnicalCheck {
-  const AI_CRAWLERS = ["GPTBot", "ChatGPT-User", "PerplexityBot", "Claude-Web", "anthropic-ai", "GoogleBot"];
+  const AI_CRAWLERS = ["GPTBot", "ChatGPT-User", "OAI-SearchBot", "PerplexityBot", "Claude-Web", "anthropic-ai", "ClaudeBot", "GoogleBot"];
   if (!robotsTxt) {
     return {
       id: "robots",
@@ -207,14 +207,35 @@ function checkCrawlerAccess(robotsTxt: string | null): TechnicalCheck {
       detail: "No robots.txt found. AI crawlers can access your site by default, but explicit rules are recommended.",
     };
   }
+
+  // Check for universal Allow: / with no broad Disallow - this is fully open access
+  const hasUniversalAllow = /User-agent:\s*\*[\s\S]*?Allow:\s*\/(?:\s|$)/i.test(robotsTxt);
+  const hasBroadDisallow = /User-agent:\s*\*[\s\S]*?Disallow:\s*\/(?:\s|$)/i.test(robotsTxt);
+
+  // Check if specific AI bots are explicitly blocked
+  const blockedAiBots = AI_CRAWLERS.filter((c) => {
+    const botSection = new RegExp(`User-agent:\\s*${c}[\\s\\S]*?Disallow:\\s*\\/(?:\\s|$)`, "i");
+    return botSection.test(robotsTxt);
+  });
+
+  if (blockedAiBots.length > 0) {
+    return { id: "robots", name: "Crawler Access (robots.txt)", score: 0, status: "fail", detail: `AI crawlers may be blocked (${blockedAiBots.join(", ")} has Disallow: /). This significantly hurts visibility.` };
+  }
+
+  if (hasBroadDisallow) {
+    return { id: "robots", name: "Crawler Access (robots.txt)", score: 0, status: "fail", detail: "robots.txt blocks all crawlers (Disallow: /). AI crawlers cannot access your site." };
+  }
+
   const mentioned = AI_CRAWLERS.filter((c) => new RegExp(c, "i").test(robotsTxt));
-  if (mentioned.length >= 5) {
-    return { id: "robots", name: "Crawler Access (robots.txt)", score: 100, status: "pass", detail: "All major AI crawlers are explicitly named in your robots.txt." };
+
+  if (hasUniversalAllow || mentioned.length >= 5) {
+    return { id: "robots", name: "Crawler Access (robots.txt)", score: 100, status: "pass", detail: "AI crawlers can access your site. robots.txt allows crawling." };
   }
   if (mentioned.length >= 3) {
-    return { id: "robots", name: "Crawler Access (robots.txt)", score: 70, status: "warn", detail: "robots.txt found but doesn't explicitly name all AI crawlers." };
+    return { id: "robots", name: "Crawler Access (robots.txt)", score: 70, status: "warn", detail: "robots.txt found but doesn't explicitly name all AI crawlers. Consider adding GPTBot, PerplexityBot, and anthropic-ai." };
   }
-  return { id: "robots", name: "Crawler Access (robots.txt)", score: 0, status: "fail", detail: "AI crawlers may be blocked. This significantly hurts visibility." };
+  // robots.txt exists, not blocking anything - treat as open
+  return { id: "robots", name: "Crawler Access (robots.txt)", score: 70, status: "warn", detail: "robots.txt found. Add explicit Allow rules for GPTBot, PerplexityBot, and anthropic-ai to confirm AI crawler access." };
 }
 
 function checkLlmsTxt(llmsTxt: string | null): TechnicalCheck {
@@ -263,15 +284,33 @@ function checkContentStructure(rawHtml: string, bodyText: string): TechnicalChec
 function checkEntityConsistency(rawHtml: string): { check: TechnicalCheck; socialLinks: string[]; contactEmail: string | null } {
   const socialPatterns = [
     /https?:\/\/(www\.)?(twitter|x)\.com\/[a-zA-Z0-9_]{1,50}/gi,
-    /https?:\/\/(www\.)?linkedin\.com\/company\/[a-zA-Z0-9-]{1,50}/gi,
+    /https?:\/\/(www\.)?linkedin\.com\/(company|in)\/[a-zA-Z0-9-]{1,50}/gi,
     /https?:\/\/(www\.)?facebook\.com\/[a-zA-Z0-9.]{1,50}/gi,
+    /https?:\/\/(www\.)?instagram\.com\/[a-zA-Z0-9_.]{1,50}/gi,
+    /https?:\/\/(www\.)?youtube\.com\/(channel|@|c\/)[a-zA-Z0-9_.-]{1,100}/gi,
     /https?:\/\/(www\.)?github\.com\/[a-zA-Z0-9-]{1,50}/gi,
+    /https?:\/\/(www\.)?producthunt\.com\/[a-zA-Z0-9/_-]{1,100}/gi,
+    /https?:\/\/(www\.)?crunchbase\.com\/organization\/[a-zA-Z0-9-]{1,100}/gi,
   ];
 
   const socialLinks: string[] = [];
   for (const pattern of socialPatterns) {
     const matches = rawHtml.match(pattern);
     if (matches && matches[0]) socialLinks.push(matches[0]!);
+  }
+
+  // Also extract sameAs from JSON-LD to catch links only in structured data
+  const jsonLdMatches = rawHtml.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) ?? [];
+  for (const block of jsonLdMatches) {
+    try {
+      const json = JSON.parse(block.replace(/<script[^>]*>|<\/script>/gi, "").trim());
+      const sameAs: unknown[] = Array.isArray(json?.sameAs) ? json.sameAs : (json?.sameAs ? [json.sameAs] : []);
+      for (const url of sameAs) {
+        if (typeof url === "string" && !socialLinks.includes(url)) {
+          socialLinks.push(url);
+        }
+      }
+    } catch { /* skip malformed JSON-LD */ }
   }
 
   const emailMatch = rawHtml.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
