@@ -3,6 +3,7 @@ import { db, monitoredBrandsTable, dailyScoresTable, auditsTable, keywordCacheTa
 import { eq, desc, and, count } from "drizzle-orm";
 import { AddMonitoredBrandBody, RemoveMonitoredBrandParams } from "@workspace/api-zod";
 import { requirePaidAuth, type AuthRequest } from "../lib/auth";
+import { runAuditEngine } from "../lib/audit-engine";
 
 const router: IRouter = Router();
 
@@ -74,6 +75,95 @@ router.post("/dashboard/brands", requirePaidAuth, async (req, res): Promise<void
     lastChecked: null,
     createdAt: brand!.createdAt.toISOString(),
   });
+});
+
+router.post("/dashboard/brands/:id/scan", requirePaidAuth, async (req, res): Promise<void> => {
+  const user = (req as AuthRequest).user;
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+  const [brand] = await db
+    .select()
+    .from(monitoredBrandsTable)
+    .where(and(eq(monitoredBrandsTable.id, rawId!), eq(monitoredBrandsTable.userId, user.id)))
+    .limit(1);
+
+  if (!brand) {
+    res.status(404).json({ error: "Brand not found" });
+    return;
+  }
+
+  try {
+    req.log.info({ domain: brand.domain }, "Starting brand scan");
+
+    const engineResult = await runAuditEngine(
+      `https://${brand.domain}`,
+      brand.brandName,
+      brand.category,
+      brand.market,
+    );
+
+    const { chatgpt, gemini, perplexity } = engineResult;
+    const scoreTotal = Math.min(chatgpt.score + gemini.score + perplexity.score, 100);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const [existing] = await db
+      .select({ id: dailyScoresTable.id })
+      .from(dailyScoresTable)
+      .where(and(eq(dailyScoresTable.brandId, brand.id), eq(dailyScoresTable.date, today)))
+      .limit(1);
+
+    if (existing) {
+      await db
+        .update(dailyScoresTable)
+        .set({
+          scoreTotal,
+          scoreChatgpt: chatgpt.score,
+          scoreGemini: gemini.score,
+          scorePerplexity: perplexity.score,
+        })
+        .where(eq(dailyScoresTable.id, existing.id));
+    } else {
+      await db.insert(dailyScoresTable).values({
+        brandId: brand.id,
+        date: today,
+        scoreTotal,
+        scoreChatgpt: chatgpt.score,
+        scoreGemini: gemini.score,
+        scorePerplexity: perplexity.score,
+      });
+    }
+
+    await db
+      .update(monitoredBrandsTable)
+      .set({ lastChecked: new Date() })
+      .where(eq(monitoredBrandsTable.id, brand.id));
+
+    const allCompetitors = [...new Set([
+      ...chatgpt.competitors,
+      ...gemini.competitors,
+      ...perplexity.competitors,
+    ])];
+
+    req.log.info({ domain: brand.domain, scoreTotal }, "Brand scan complete");
+
+    res.json({
+      scoreTotal,
+      scoreChatgpt: chatgpt.score,
+      scoreGemini: gemini.score,
+      scorePerplexity: perplexity.score,
+      chatgptFound: chatgpt.found,
+      geminiFound: gemini.found,
+      perplexityFound: perplexity.found,
+      rawChatgptResponse: engineResult.rawChatgptResponse,
+      rawGeminiResponse: engineResult.rawGeminiResponse,
+      rawPerplexityResponse: engineResult.rawPerplexityResponse,
+      keywordsUsed: engineResult.keywordsUsed,
+      competitors: allCompetitors,
+    });
+  } catch (err) {
+    req.log.error({ err, domain: brand.domain }, "Brand scan failed");
+    res.status(500).json({ error: "Scan failed. Please try again." });
+  }
 });
 
 router.delete("/dashboard/brands/:id", requirePaidAuth, async (req, res): Promise<void> => {

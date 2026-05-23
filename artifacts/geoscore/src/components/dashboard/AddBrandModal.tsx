@@ -23,7 +23,11 @@ const addBrandSchema = z.object({
   brandName: z.string().optional(),
 });
 
-export function AddBrandModal() {
+interface AddBrandModalProps {
+  onBrandAdded?: (brandId: string, domain: string) => void;
+}
+
+export function AddBrandModal({ onBrandAdded }: AddBrandModalProps) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -39,12 +43,14 @@ export function AddBrandModal() {
 
   const onSubmit = (values: z.infer<typeof addBrandSchema>) => {
     addBrandMutation.mutate({ data: values }, {
-      onSuccess: () => {
-        toast({ title: "Brand added", description: "Successfully added brand for monitoring." });
+      onSuccess: (data) => {
         setOpen(false);
         form.reset();
         queryClient.invalidateQueries({ queryKey: getGetMonitoredBrandsQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
+        if (onBrandAdded && data?.id) {
+          onBrandAdded(data.id, values.domain);
+        }
       },
       onError: () => {
         toast({ title: "Error", description: "Failed to add brand. Please check your plan limits.", variant: "destructive" });
@@ -55,7 +61,7 @@ export function AddBrandModal() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2">
+        <Button className="gap-2" size="sm">
           <Plus className="w-4 h-4" /> Add Brand
         </Button>
       </DialogTrigger>
@@ -63,7 +69,7 @@ export function AddBrandModal() {
         <DialogHeader>
           <DialogTitle>Monitor a new brand</DialogTitle>
           <DialogDescription>
-            Add a domain to start tracking its visibility in AI search engines.
+            Add a domain to start tracking its AI visibility. We will run a full audit right away.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -86,7 +92,7 @@ export function AddBrandModal() {
               name="brandName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Brand Name (Optional)</FormLabel>
+                  <FormLabel>Brand Name (optional)</FormLabel>
                   <FormControl>
                     <Input placeholder="Startup Inc." {...field} />
                   </FormControl>
