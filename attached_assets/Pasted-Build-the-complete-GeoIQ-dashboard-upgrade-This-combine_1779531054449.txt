@@ -1,0 +1,452 @@
+Build the complete GeoIQ dashboard upgrade.
+This combines Fix Actions redesign + 
+Elmo-inspired features + AI content 
+generators + GEO Agent.
+
+CITE framework already integrated.
+EEAT framework already integrated.
+Build everything below on top of those.
+
+=== STEP 1: FIX DASHBOARD SCAN BUG ===
+
+When paid user enters domain on dashboard
+it shows 0/100 instantly without scanning.
+
+Fix immediately:
+- Run real full audit when domain entered
+- Show dark terminal loading screen
+  (same as free audit page)
+- Show real results after scan completes
+- Never show instant 0/100
+
+=== STEP 2: DASHBOARD SIDEBAR UPDATE ===
+
+Update sidebar navigation to:
+
+📊 Overview
+🤖 GEO Agent (NEW)
+📈 Visibility (NEW — from Elmo)
+🔗 Citations (NEW — from Elmo)
+💬 Prompts (NEW — from Elmo)
+🤖 ChatGPT
+💎 Gemini
+🔍 Perplexity
+👥 Competition (enhanced)
+⚡ Fix Actions (enhanced)
+🔑 Keywords
+🔌 Integrations
+⚙️ Settings
+
+=== STEP 3: OVERVIEW TAB UPGRADE ===
+
+Keep existing metrics row.
+Add below it:
+
+CITATION LANDSCAPE section:
+Donut chart showing:
+- Your brand citations: X%
+- Competitor citations: Y%
+- Authority sites: Z%
+- Social sources: W%
+
+Below chart:
+"Top 5 most cited domains 
+in your category:"
+1. healthifyme.com — 23 citations
+2. sugarfit.com — 18 citations
+3. practo.com — 14 citations
+4. [your brand] — 0 citations
+5. 1mg.com — 11 citations
+
+If brand not in top 5:
+"You are not in the top 5 cited 
+sources for your category.
+[See how to get there →]"
+Links to Citations tab
+
+VISIBILITY TREND chart:
+Line chart showing last 30 days
+Your brand vs top competitor
+Two lines, different colors
+Show % mention rate not just score
+
+=== STEP 4: VISIBILITY TAB (from Elmo) ===
+
+New tab inspired by Elmo's 
+visibility feature.
+
+Title: "Visibility across all prompts"
+
+Filters row:
+[All AI systems ▼] 
+[Last 30 days ▼] 
+[All prompts ▼]
+
+Table below filters:
+Prompt | ChatGPT | Gemini | Perplexity | 
+Trend | vs Competitor
+
+Each row:
+- Prompt text (truncated, click to expand)
+- Score per AI system (colored circle)
+  Green: 25+ | Amber: 1-24 | Red: 0
+- Trend arrow: ↑ ↓ →
+- Competitor score in same cell
+  e.g. "You: 0 | Sugar.fit: 45"
+
+Row colors:
+Score 0 all systems: light red bg
+Mixed scores: light amber bg
+All visible: light green bg
+
+Click any row:
+Expand to show full deep dive:
+- Raw ChatGPT response for this prompt
+- Raw Gemini response
+- Raw Perplexity response
+- Highlight where brand is/isn't mentioned
+- Citations extracted from this response
+- "Improve this prompt score →" button
+  Shows specific fix for this prompt
+
+Sort options:
+- Lowest score first (default)
+- Highest opportunity
+- Most recent change
+
+=== STEP 5: CITATIONS TAB (from Elmo) ===
+
+New tab — most powerful feature.
+
+Title: "Where AI gets its information"
+Subtitle: "These are the sources AI systems 
+cite when answering questions in your category"
+
+SECTION 1: Citation overview metrics
+4 metric cards:
+- Total citations found: X
+- Your brand cited: X times
+- Competitors cited: X times  
+- New this week: +X
+
+SECTION 2: Citation source table
+Columns:
+Domain | DR | Type | AI System | 
+Times Cited | Trend | Action
+
+For each domain:
+If YOUR domain:
+  Green row
+  Type: "Your brand" 
+  Action: "✓ You are cited here"
+
+If competitor:
+  Red row
+  Type: "Competitor"
+  Action: "Outrank them →"
+  Click → shows how to create 
+  better content for this domain
+
+If authority site:
+  Amber row  
+  Type: "Authority"
+  Action: "Get mentioned here →"
+  Click → shows submission URL 
+  and pre-written pitch
+
+If social:
+  Blue row
+  Type: "Social"
+  Action: "Join this conversation →"
+
+SECTION 3: Citation gap analysis
+Visual bar chart:
+Your brand: ████░░░░░░ 2 citations
+Competitor 1: ████████░░ 18 citations
+Competitor 2: ██████░░░░ 12 citations
+
+"You need 16 more citations to 
+match {top competitor}"
+"[See which sites to target →]"
+
+SECTION 4: New and dropped citations
+This week:
++ healthshots.com started citing 
+  sugar.fit for 'diabetes app India'
+- practo.com dropped from Perplexity 
+  results for your top keyword
+
+These are real-time intelligence alerts.
+
+=== STEP 6: PROMPTS TAB (from Elmo) ===
+
+New tab for prompt management.
+
+Title: "Your tracked prompts"
+Subtitle: "These are the queries we run 
+across AI systems to measure your visibility"
+
+Search bar:
+"Search prompts..."
+Full text search across all prompts
+
+Filter tags:
+[All] [Brand] [Category] [Competitor] 
+[High priority] [Needs attention]
+
+Prompt cards:
+Each prompt shows:
+- Prompt text
+- Category tag (brand/category/competitor)
+- Visibility score per AI system
+- Trend (7 day)
+- Last checked timestamp
+
+Add custom prompt button:
+"+ Add prompt"
+User types any query
+GeoIQ will track this prompt 
+across all AI systems
+
+When adding prompt:
+Suggest: "Try prompts your customers 
+actually use. What would they type 
+into ChatGPT to find you?"
+
+=== STEP 7: COMPETITION TAB (enhanced) ===
+
+Inspired by Elmo's competition feature.
+
+Show competitor mention rates 
+as horizontal bar chart:
+
+Your brand: ████░░░░░░ 20%
+HealthifyMe: ██████████ 78%
+Sugar.fit:   ████████░░ 64%
+mySugr:      ██████░░░░ 48%
+
+Below chart — per prompt breakdown:
+Which competitor dominates which prompt:
+
+"best Indian diet app" → HealthifyMe (78%)
+"diabetes meal planner" → Sugar.fit (64%)
+"AI nutrition app India" → You (45%) ← green
+"PCOS diet plan" → HealthifyMe (71%)
+
+"You win on 1 of your 8 tracked prompts.
+Here is how to win more:"
+[View Fix Actions →]
+
+=== STEP 8: FIX ACTIONS REBUILD ===
+
+4 week tabs with CITE tags.
+Same as previous prompt — 
+build exactly this:
+
+WEEK 1-2 FOUNDATION:
+[I] robots.txt — CRITICAL — +8pts
+[I] llms.txt — CRITICAL — +10pts
+[T] Schema markup — HIGH — +8pts
+[T] Social links — HIGH — +6pts
+[C] Crunchbase — HIGH — +12pts
+[C] Product Hunt — HIGH — +15pts
+[C] LinkedIn — HIGH — +8pts
+[C] AI directories — MEDIUM — +15pts
+
+Platform list by category with DR:
+Health: healthshots(DR67), 1mg(DR78), 
+        practo(DR79)
+SaaS: g2(DR91), capterra(DR88)
+Fintech: inc42(DR71), entrackr(DR55)
+All: theresanaiforthat(DR67), 
+     futuretools(DR58), toolify(DR45)
+
+WEEK 2-3 CONTENT:
+[T] Fix title tag — before/after
+[T] Fix meta description — before/after
+[T] Brand summary paragraph
+[C] Foundational article — generate
+[C] FAQ page — 20 Q&As generated
+[C] Republish on Medium/dev.to
+
+WEEK 3-4 AUTHORITY:
+[C] Reddit strategy — 3 subreddits
+[C] Comparison article — generated
+[C] Content calendar — 4 weeks
+[E] Wikipedia/Wikidata submission
+[E] Google Knowledge Panel claim
+
+WEEK 4-5 PR:
+[C] Newsletter pitches — generated
+[C] Blog guest posts — with DR
+[C] Podcast outreach — generated
+[C] Competitor gap closing
+
+=== STEP 9: CONTENT GENERATORS ===
+
+4 buttons at top of Fix Actions:
+[Write tweet] [Write blog] 
+[Generate FAQs] [Write pitch]
+
+TWEET GENERATOR:
+3 options using 7 angle framework:
+Trust/Best/Solution/Struggle/How/What/Why
+EEAT score per tweet
+[Copy] per tweet
+
+BLOG GENERATOR:
+Pick angle (7 buttons)
+Claude generates 800-1500 words
+Full H2 structure
+EEAT Score: X/100
+Specific improvement suggestions
+[Copy full post]
+
+FAQ GENERATOR:
+20 Q&As specific to brand
+Conversational format for AI retrieval
+[Copy all]
+
+PITCH GENERATOR:
+Enter publication name
+Subject + 3-sentence body generated
+Specific to brand and category
+[Copy pitch]
+
+=== STEP 10: GEO AGENT TAB ===
+
+Full chat interface.
+Context-aware Claude agent.
+
+System prompt includes:
+- Brand name, domain, category
+- Current scores per AI system
+- Top DataForSEO keywords
+- Competitor scores
+- Completed tasks
+- Pending tasks  
+- Score history 7 days
+- Citations found
+- Technical audit results
+
+Auto-generates daily briefing on open.
+
+4 quick action chips:
+[Write a tweet]
+[Plan my week]
+[Why is my score low?]
+[Generate blog post]
+
+Content actions after generation:
+[Copy] [Copy for Twitter] 
+[Copy for LinkedIn] [Edit]
+
+EEAT score shown on all 
+generated content.
+
+Message limit:
+Starter: 50 messages/month
+Agency: Unlimited
+
+=== STEP 11: DEEP DIVE (from Elmo) ===
+
+On any prompt in Visibility tab
+clicking "deep dive" shows:
+
+Full page view:
+- Prompt text at top
+- One card per AI system
+- Each card shows:
+  Full raw response
+  Brand highlighted in green 
+    if mentioned
+  Competitors highlighted in red
+  Citations listed below response
+  Sentiment: Positive/Neutral/Negative
+  
+Navigation: prev/next prompt arrows
+
+=== DATABASE ADDITIONS ===
+
+CREATE TABLE citations (
+  id UUID PRIMARY KEY 
+    DEFAULT gen_random_uuid(),
+  audit_id UUID REFERENCES audits(id),
+  brand_id UUID REFERENCES 
+    monitored_brands(id),
+  ai_system TEXT,
+  prompt TEXT,
+  cited_url TEXT,
+  cited_domain TEXT,
+  citation_type TEXT,
+  domain_rating INTEGER,
+  detected_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE agent_conversations (
+  id UUID PRIMARY KEY 
+    DEFAULT gen_random_uuid(),
+  brand_id UUID REFERENCES 
+    monitored_brands(id),
+  user_message TEXT,
+  agent_response TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE custom_prompts (
+  id UUID PRIMARY KEY 
+    DEFAULT gen_random_uuid(),
+  brand_id UUID REFERENCES 
+    monitored_brands(id),
+  prompt TEXT,
+  tags TEXT[],
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+=== EXTRACT CITATIONS FROM API RESPONSES ===
+
+For Perplexity:
+Parse citations array from API response
+Perplexity returns explicit source URLs
+Store each URL in citations table
+
+For ChatGPT and Gemini:
+After main query, send follow-up:
+"List the specific websites and URLs 
+that informed your previous answer. 
+Return only URLs, one per line."
+Parse URLs from response
+Store in citations table
+
+Get domain rating for each citation:
+Use DataForSEO backlinks summary API
+or hardcode DR for top 100 known domains
+
+=== TEST CHECKLIST ===
+
+After building test all of these:
+
+□ Dashboard scan runs real audit
+□ Visibility tab shows per-prompt scores
+□ Click prompt → deep dive shows raw responses
+□ Citations tab shows real extracted URLs
+□ Citation gap chart renders correctly
+□ Competition tab shows % mention rates
+□ Fix Actions has 4 week tabs with CITE tags
+□ Platform list shows DR numbers
+□ Tweet generator gives 3 options
+□ Blog generator uses 7 angle framework
+□ EEAT score shows on generated content
+□ GEO Agent opens with auto briefing
+□ Agent uses real brand data in responses
+□ Custom prompt can be added
+□ Prompts tab shows all tracked prompts
+
+Show screenshots of:
+1. Visibility tab with per-prompt scores
+2. Citations tab with source table
+3. Competition bar chart
+4. Fix Actions Week 1-2 with CITE tags
+5. Tweet generator output
+6. GEO Agent daily briefing
+7. Deep dive for one prompt
