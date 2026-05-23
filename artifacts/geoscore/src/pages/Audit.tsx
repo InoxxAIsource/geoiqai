@@ -1026,33 +1026,60 @@ export default function Audit() {
               </div>
             )}
 
-            {/* Section 03: Free GEO Files */}
-            <div style={{ marginBottom: 28 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>
-                03 - Free GEO Files for Your Site
-              </div>
-              <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 14 }}>
-                Download and add these files to immediately improve your technical GEO score.
-              </p>
-              <GeoFileBlock
-                title="llms.txt"
-                filename={`Save as llms.txt and upload to ${domain}/llms.txt`}
-                instruction={`Upload this file to your web root at https://${domain}/llms.txt — it tells AI systems about your brand directly.`}
-                content={generateLlmsTxt(brandName, domain, description, socialLinks, contactEmail)}
-              />
-              <GeoFileBlock
-                title="robots.txt additions"
-                filename="Add these lines to your existing robots.txt"
-                instruction="Open your robots.txt file and paste these lines at the end. This explicitly allows all major AI crawlers to index your site."
-                content={generateRobotsTxtAdditions()}
-              />
-              <GeoFileBlock
-                title="Schema markup (JSON-LD)"
-                filename={`Add inside a <script type="application/ld+json"> tag in your homepage <head>`}
-                instruction={`Paste this block inside your homepage's <head> section inside a <script type="application/ld+json"> tag. It helps AI engines identify your brand entity.`}
-                content={generateSchemaJson(brandName, domain, description, socialLinks, contactEmail)}
-              />
-            </div>
+            {/* Section 03: Free GEO Files - only show what still needs fixing */}
+            {(() => {
+              const robotsCheck = tech?.checks?.find((c: { id: string; status: string }) => c.id === "robots");
+              const schemaCheck = tech?.checks?.find((c: { id: string; status: string }) => c.id === "schema");
+              const llmsCheck = tech?.checks?.find((c: { id: string; status: string }) => c.id === "llms");
+              const needsRobots = !robotsCheck || robotsCheck.status !== "pass";
+              const needsSchema = !schemaCheck || schemaCheck.status !== "pass";
+              const needsLlms = !llmsCheck || llmsCheck.status !== "pass";
+              const hasAnything = needsRobots || needsSchema || needsLlms;
+              return (
+                <div style={{ marginBottom: 28 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>
+                    03 - Free GEO Files for Your Site
+                  </div>
+                  <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 14 }}>
+                    {hasAnything
+                      ? "Add these files to immediately improve your technical GEO score."
+                      : "Your technical setup looks good. Keep your llms.txt updated as your product evolves."}
+                  </p>
+                  {needsLlms && (
+                    <GeoFileBlock
+                      title="llms.txt"
+                      filename={`Save as llms.txt and upload to ${domain}/llms.txt`}
+                      instruction={`Upload this file to your web root at https://${domain}/llms.txt — it tells AI systems about your brand directly.`}
+                      content={generateLlmsTxt(brandName, domain, description, socialLinks, contactEmail)}
+                    />
+                  )}
+                  {needsRobots && (
+                    <GeoFileBlock
+                      title="robots.txt additions"
+                      filename="Add these lines to your existing robots.txt"
+                      instruction="Open your robots.txt file and paste these lines at the end. This explicitly allows all major AI crawlers to index your site."
+                      content={generateRobotsTxtAdditions()}
+                    />
+                  )}
+                  {needsSchema && (
+                    <GeoFileBlock
+                      title="Schema markup (JSON-LD)"
+                      filename={`Add inside a <script type="application/ld+json"> tag in your homepage <head>`}
+                      instruction={`Paste this block inside your homepage's <head> section inside a <script type="application/ld+json"> tag. It helps AI engines identify your brand entity.`}
+                      content={generateSchemaJson(brandName, domain, description, socialLinks, contactEmail)}
+                    />
+                  )}
+                  {!hasAnything && (
+                    <GeoFileBlock
+                      title="llms.txt (keep updated)"
+                      filename={`Save as llms.txt and upload to ${domain}/llms.txt`}
+                      instruction={`Your llms.txt is live. Re-upload this whenever your product description, features, or social profiles change.`}
+                      content={generateLlmsTxt(brandName, domain, description, socialLinks, contactEmail)}
+                    />
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Section 04: GEO IQ Roadmap */}
             {(() => {
