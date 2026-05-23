@@ -5,7 +5,7 @@ import {
 } from "recharts";
 import { Copy, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import type {
-  Brand, TrendPoint, KeywordEntry, FixAction, CitationData, VisualData, VisualType,
+  Brand, TrendPoint, KeywordEntry, FixAction, CitationData, VisualData, VisualType, TechnicalCheck as TechnicalCheckType,
 } from "./agent-visual-utils";
 
 // ─── Animation wrapper ────────────────────────────────────────────────────────
@@ -359,23 +359,44 @@ function BlogCard({ agentResponse, brand }: { agentResponse: string; brand: Bran
 
 // ─── 7. TWEET CARDS ──────────────────────────────────────────────────────────
 
+const SKIP_PATTERNS = /here are|assuming|before i|want me|let me know|character count|certainly|great question|of course|i'll write|i will write|i've written/i;
+
+function extractTweetText(raw: string): string {
+  return raw
+    .split("\n")
+    .filter(l => {
+      const t = l.trim();
+      return t.length > 0 && !SKIP_PATTERNS.test(t);
+    })
+    .join("\n")
+    .trim();
+}
+
 function TweetCards({ agentResponse, brand }: { agentResponse: string; brand: Brand }) {
   const [copied, setCopied] = useState<number | null>(null);
 
   const tweetBlocks: { text: string; angle: string; charCount: number }[] = [];
-  const tweetRe = /TWEET\s+\d+\s*\[([^\]]*)\]\s*\n([\s\S]*?)(?:CHARACTER COUNT:\s*(\d+))?(?=\nTWEET\s|\n*$)/gi;
+
+  // Primary parser: look for TWEET 1/2/3 [angle] markers
+  const tweetRe = /TWEET\s+\d+\s*(?:\[([^\]]*)\])?\s*\n+([\s\S]*?)(?=\nTWEET\s+\d|\s*$)/gi;
   let match;
   while ((match = tweetRe.exec(agentResponse)) !== null) {
     const angle = match[1]?.trim() ?? "";
-    const text = match[2]?.trim() ?? "";
-    const charCount = match[3] ? parseInt(match[3]) : text.length;
-    if (text) tweetBlocks.push({ angle, text, charCount });
+    const rawText = match[2] ?? "";
+    const text = extractTweetText(rawText);
+    if (text && text.length >= 20) {
+      tweetBlocks.push({ angle, text, charCount: text.length });
+    }
   }
+
+  // Fallback: split by "---" or numbered blocks if no TWEET markers found
   if (tweetBlocks.length === 0) {
-    const lines = agentResponse.split("\n").filter(l => l.trim().length > 20 && l.trim().length <= 280);
-    lines.slice(0, 3).forEach((t, i) => {
-      const trimmed = t.trim();
-      if (trimmed) tweetBlocks.push({ text: trimmed, angle: `Option ${i + 1}`, charCount: trimmed.length });
+    const sections = agentResponse.split(/\n---\n|\n\n\n/);
+    sections.slice(0, 3).forEach((s, i) => {
+      const text = extractTweetText(s);
+      if (text && text.length >= 20 && text.length <= 300) {
+        tweetBlocks.push({ text, angle: `Option ${i + 1}`, charCount: text.length });
+      }
     });
   }
 
@@ -557,20 +578,46 @@ function KeywordTable({ keywords, brand }: { keywords: KeywordEntry[]; brand: Br
 
 // ─── 10. TECHNICAL SCORECARD ──────────────────────────────────────────────────
 
-function TechnicalScorecard({ brand }: { brand: Brand }) {
+function TechnicalScorecard({ brand, technicalChecks, technicalOverallScore, auditCheckedAt }: {
+  brand: Brand;
+  technicalChecks?: TechnicalCheckType[];
+  technicalOverallScore?: number;
+  auditCheckedAt?: string | null;
+}) {
+  const hasRealData = technicalChecks && technicalChecks.length > 0;
+
+  // Fall back to score-derived estimates when no real data available
   const score = brand.latestScore ?? 0;
-  const checks = [
-    { name: "robots.txt (GPTBot)", score: score > 30 ? 80 : 0, desc: score > 30 ? "AI crawlers appear to be allowed" : "Add 'User-agent: GPTBot\\nAllow: /' to robots.txt" },
-    { name: "llms.txt", score: score > 40 ? 80 : 0, desc: score > 40 ? "LLMs.txt file is likely configured" : "Create /llms.txt with structured brand info for AI systems" },
-    { name: "JSON-LD Schema", score: score > 55 ? 100 : 40, desc: score > 55 ? "Schema markup detected" : "Add Organization and Product schema to homepage" },
-    { name: "Content depth", score: score > 20 ? 100 : 30, desc: score > 20 ? "Homepage has sufficient content depth" : "Add more detailed descriptions, FAQs, and use cases" },
-    { name: "Entity signals", score: score > 65 ? 90 : 30, desc: score > 65 ? "Brand entity is being recognized" : "Add founder bio, About page, and press mentions to build entity" },
+  const fallbackChecks = [
+    { name: "Crawler Access (robots.txt)", score: score > 30 ? 70 : 0, status: score > 30 ? "warn" : "fail", detail: score > 30 ? "robots.txt found but AI crawlers may not be explicitly named" : "Add 'User-agent: GPTBot\\nAllow: /' to your robots.txt" },
+    { name: "llms.txt File", score: score > 40 ? 80 : 0, status: score > 40 ? "pass" : "fail", detail: score > 40 ? "llms.txt detected - good AI accessibility" : "Create /llms.txt with structured brand info for AI systems" },
+    { name: "Schema Markup", score: score > 55 ? 100 : 40, status: score > 55 ? "pass" : "warn", detail: score > 55 ? "Schema.org Organization markup found" : "Add Organization and Product schema to your homepage" },
+    { name: "Content Structure", score: score > 20 ? 80 : 30, status: score > 20 ? "pass" : "fail", detail: score > 20 ? "Homepage has sufficient content depth" : "Add more detailed descriptions, FAQs, and use cases" },
+    { name: "Entity Signals", score: score > 65 ? 90 : 30, status: score > 65 ? "pass" : "fail", detail: score > 65 ? "Brand entity is being recognized by AI systems" : "Add founder bio, About page, and press mentions" },
   ];
-  const techTotal = Math.round(checks.reduce((s, c) => s + c.score, 0) / checks.length);
+
+  const checks = hasRealData ? technicalChecks! : fallbackChecks;
+  const techTotal = hasRealData ? (technicalOverallScore ?? 0) : Math.round(fallbackChecks.reduce((s, c) => s + c.score, 0) / fallbackChecks.length);
   const totalColor = techTotal >= 70 ? "#16A34A" : techTotal >= 40 ? "#D97706" : "#DC2626";
+
+  const checkedAgo = auditCheckedAt
+    ? (() => {
+      const hours = Math.round((Date.now() - new Date(auditCheckedAt).getTime()) / 36e5);
+      return hours < 1 ? "just now" : hours < 24 ? `${hours}h ago` : `${Math.round(hours / 24)}d ago`;
+    })()
+    : null;
+
   return (
     <VisualCard>
-      <VisualTitle>Technical GEO Audit - {brand.domain}</VisualTitle>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>Technical GEO Audit - {brand.domain}</div>
+        {checkedAgo && hasRealData && (
+          <div style={{ fontSize: 10, color: "#9ca3af" }}>Checked {checkedAgo}</div>
+        )}
+        {!hasRealData && (
+          <div style={{ fontSize: 10, color: "#D97706", background: "#FFFBEB", borderRadius: 4, padding: "2px 7px" }}>Estimated</div>
+        )}
+      </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {checks.map((c, i) => (
           <div key={i} style={{ background: "#F9FAFB", borderRadius: 7, padding: "10px 12px" }}>
@@ -582,7 +629,7 @@ function TechnicalScorecard({ brand }: { brand: Brand }) {
                 {c.score >= 80 ? "PASS" : c.score >= 40 ? "WARN" : "FAIL"}
               </span>
             </div>
-            <div style={{ fontSize: 11, color: "#6b7280" }}>{c.desc}</div>
+            <div style={{ fontSize: 11, color: "#6b7280" }}>{c.detail}</div>
             <div style={{ height: 4, background: "#E5E7EB", borderRadius: 9999, marginTop: 7, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${c.score}%`, background: c.score >= 80 ? "#16A34A" : c.score >= 40 ? "#D97706" : "#DC2626", borderRadius: 9999, transition: "width 1s ease" }} />
             </div>
@@ -590,11 +637,14 @@ function TechnicalScorecard({ brand }: { brand: Brand }) {
         ))}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14, padding: "10px 12px", background: "#F9FAFB", borderRadius: 8 }}>
-        <span style={{ fontSize: 12, color: "#374151" }}>Total technical score:</span>
+        <span style={{ fontSize: 12, color: "#374151" }}>Technical total:</span>
         <span style={{ fontSize: 16, fontWeight: 700, color: totalColor }}>{techTotal}/100</span>
         <div style={{ flex: 1, height: 6, background: "#E5E7EB", borderRadius: 9999, overflow: "hidden" }}>
           <div style={{ height: "100%", width: `${techTotal}%`, background: totalColor, borderRadius: 9999, transition: "width 1s ease" }} />
         </div>
+        {!hasRealData && (
+          <span style={{ fontSize: 10, color: "#9ca3af" }}>Run audit for exact scores</span>
+        )}
       </div>
     </VisualCard>
   );
@@ -615,7 +665,7 @@ export function AgentVisual({ visualType, data }: { visualType: VisualType; data
       case "tweet_cards": return <TweetCards agentResponse={agentResponse} brand={brand} />;
       case "content_calendar": return <ContentCalendar brand={brand} />;
       case "keyword_table": return <KeywordTable keywords={keywords} brand={brand} />;
-      case "technical_scorecard": return <TechnicalScorecard brand={brand} />;
+      case "technical_scorecard": return <TechnicalScorecard brand={brand} technicalChecks={data.technicalChecks} technicalOverallScore={data.technicalOverallScore} auditCheckedAt={data.auditCheckedAt} />;
       default: return null;
     }
   })();

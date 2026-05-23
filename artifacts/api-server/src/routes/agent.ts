@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { requireAuth, type AuthRequest } from "../lib/auth";
 import { db, usersTable, monitoredBrandsTable, dailyScoresTable, auditsTable, keywordCacheTable } from "@workspace/db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, gt } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 
 const router: IRouter = Router();
@@ -23,6 +23,13 @@ async function callClaude(
   return block.type === "text" ? block.text : "";
 }
 
+interface TechnicalCheckInfo {
+  name: string;
+  score: number;
+  status: string;
+  detail: string;
+}
+
 interface FullBrandContext {
   brandName: string;
   domain: string;
@@ -34,13 +41,18 @@ interface FullBrandContext {
   scorePerplexity: number;
   brandDescription: string;
   keywords: string[];
+  rawKeywords: { keyword: string; volume: number }[];
   competitors: string[];
   hasAuditData: boolean;
+  technicalChecks: TechnicalCheckInfo[];
+  technicalOverallScore: number;
+  auditCheckedAt: string | null;
 }
 
 async function getFullBrandContext(
   brand: { id: string; domain: string; brandName: string | null; category: string | null; market: string | null }
 ): Promise<FullBrandContext> {
+  const now = new Date();
   const [scoresRow, latestAudit, cachedKws] = await Promise.all([
     db.select().from(dailyScoresTable)
       .where(eq(dailyScoresTable.brandId, brand.id))
@@ -51,7 +63,10 @@ async function getFullBrandContext(
       .orderBy(desc(auditsTable.createdAt))
       .limit(1),
     db.select().from(keywordCacheTable)
-      .where(eq(keywordCacheTable.domain, brand.domain))
+      .where(and(
+        eq(keywordCacheTable.domain, brand.domain),
+        gt(keywordCacheTable.expiresAt, now),
+      ))
       .limit(1),
   ]);
 
@@ -61,11 +76,24 @@ async function getFullBrandContext(
 
   const brandDescription = String(raw.chatgptRawResponse ?? "").trim();
   const auditKeywords = (audit?.keywordsUsed ?? []).slice(0, 10);
-  const dfsKeywords = (cachedKws[0]?.keywords ?? []).slice(0, 8).map(
-    (k: { keyword: string; volume?: number }) => `${k.keyword}${k.volume ? ` (${k.volume}/mo)` : ""}`
-  );
+
+  // Keywords from DataForSEO cache
+  const cachedKeywordRows = (cachedKws[0]?.keywords ?? []) as { keyword: string; volume: number; competition?: number }[];
+  const rawKeywords = cachedKeywordRows.slice(0, 12).map(k => ({ keyword: k.keyword, volume: k.volume ?? 0 }));
+  const dfsKeywords = rawKeywords.slice(0, 8).map(k => `${k.keyword}${k.volume ? ` (${k.volume}/mo)` : ""}`);
   const keywords = dfsKeywords.length > 0 ? dfsKeywords : auditKeywords;
   const competitors = (audit?.competitorsFound ?? []).slice(0, 5);
+
+  // Technical audit data from rawResults
+  const techAudit = raw.technicalAudit as { checks?: TechnicalCheckInfo[]; overallScore?: number } | null;
+  const technicalChecks: TechnicalCheckInfo[] = (techAudit?.checks ?? []).map(c => ({
+    name: c.name,
+    score: typeof c.score === "number" ? c.score : 0,
+    status: c.status ?? "fail",
+    detail: c.detail ?? "",
+  }));
+  const technicalOverallScore = typeof techAudit?.overallScore === "number" ? techAudit.overallScore : 0;
+  const auditCheckedAt = audit?.createdAt ? new Date(audit.createdAt).toISOString() : null;
 
   return {
     brandName: brand.brandName ?? brand.domain,
@@ -78,14 +106,20 @@ async function getFullBrandContext(
     scorePerplexity: scores?.scorePerplexity ?? 0,
     brandDescription,
     keywords,
+    rawKeywords,
     competitors,
     hasAuditData: !!audit,
+    technicalChecks,
+    technicalOverallScore,
+    auditCheckedAt,
   };
 }
 
 function buildSystemPrompt(ctx: FullBrandContext): string {
-  const { brandName, domain, category, market, scoreTotal, scoreChatgpt, scoreGemini, scorePerplexity,
-    brandDescription, keywords, competitors, hasAuditData } = ctx;
+  const {
+    brandName, domain, category, market, scoreTotal, scoreChatgpt, scoreGemini, scorePerplexity,
+    brandDescription, keywords, competitors, hasAuditData, technicalChecks, technicalOverallScore, auditCheckedAt,
+  } = ctx;
 
   const chatgptStatus = scoreChatgpt === 0 ? "Invisible" : scoreChatgpt < 12 ? "Low" : scoreChatgpt < 24 ? "Moderate" : "Strong";
   const geminiStatus = scoreGemini === 0 ? "Invisible" : scoreGemini < 12 ? "Low" : scoreGemini < 24 ? "Moderate" : "Strong";
@@ -98,7 +132,7 @@ ${brandDescription}`
 No website analysis available yet. Ask the user to describe their product, or ask them to run an audit first.`;
 
   const keywordsBlock = keywords.length > 0
-    ? `KEYWORDS THESE AI SYSTEMS ARE BEING ASKED ABOUT ${brandName}:
+    ? `KEYWORDS AI SYSTEMS ARE BEING ASKED ABOUT ${brandName}:
 ${keywords.map(k => `- ${k}`).join("\n")}`
     : "";
 
@@ -106,6 +140,20 @@ ${keywords.map(k => `- ${k}`).join("\n")}`
     ? `KNOWN COMPETITORS:
 ${competitors.map(c => `- ${c}`).join("\n")}`
     : "";
+
+  const checkedAgo = auditCheckedAt
+    ? (() => {
+      const hours = Math.round((Date.now() - new Date(auditCheckedAt).getTime()) / 36e5);
+      return hours < 24 ? `${hours} hours ago` : `${Math.round(hours / 24)} days ago`;
+    })()
+    : null;
+
+  const technicalBlock = technicalChecks.length > 0
+    ? `TECHNICAL AUDIT DATA (last checked: ${checkedAgo ?? "unknown"} - use these exact scores, never say you cannot check the site):
+${technicalChecks.map(c => `- ${c.name}: ${c.score}/100 (${c.status}) - ${c.detail}`).join("\n")}
+Technical total: ${technicalOverallScore}/100`
+    : `TECHNICAL AUDIT:
+No technical audit data yet. Tell the user to run an audit first. Never make up technical scores.`;
 
   return `You are a GEO (Generative Engine Optimization) strategist and advisor for ${brandName} (${domain}).
 
@@ -121,9 +169,31 @@ ChatGPT: ${scoreChatgpt}/33 (${chatgptStatus})
 Gemini: ${scoreGemini}/33 (${geminiStatus})
 Perplexity: ${scorePerplexity}/33 (${perplexityStatus})
 
+${technicalBlock}
+
 ${keywordsBlock}
 
 ${competitorsBlock}
+
+WRITING STYLE (MANDATORY - violating these is your biggest failure mode):
+- Never use **bold** or any markdown formatting. No asterisks. No underscores for emphasis.
+- Never use ## or ### headers.
+- Write in natural flowing paragraphs. Use simple numbered lists (1. 2. 3.) when listing things - not bold headers.
+- Maximum 3 paragraphs for any conversational response.
+- End every conversational response with exactly one clear question to the user.
+- Sound like a smart knowledgeable friend, not a consultant writing a report.
+- Never start a response with a bold label or the word "Certainly" or "Great".
+- Exception: when writing tweets, blog posts, or FAQs, use the required structured format below.
+
+TWEET FORMAT (use exactly this when writing tweets, zero intro text before TWEET 1):
+TWEET 1 [angle label]
+[tweet text only, max 280 chars]
+
+TWEET 2 [angle label]
+[tweet text only, max 280 chars]
+
+TWEET 3 [angle label]
+[tweet text only, max 280 chars]
 
 ABSOLUTE RULES:
 1. Every response must be specific to ${brandName} - never generic startup advice.
@@ -131,7 +201,8 @@ ABSOLUTE RULES:
 3. Always reference actual scores and data. If score is 0, say it's invisible. If ChatGPT is strong but Gemini is weak, point that out specifically.
 4. When writing content (tweets, blogs, FAQs, pitch emails) - write for the real audience the brand description describes.
 5. No em dashes. No filler like "leverage" or "seamlessly". Write like a smart person talking to another smart person.
-6. If you're unsure who the target audience is, ask before writing any content.`;
+6. If you're unsure who the target audience is, ask before writing any content.
+7. Never say you cannot check the site or that you don't have access to the website. You have the latest audit data in your context. Use it.`;
 }
 
 router.post("/agent/chat", requireAuth, async (req, res): Promise<void> => {
@@ -201,7 +272,15 @@ router.post("/agent/chat", requireAuth, async (req, res): Promise<void> => {
   const remaining =
     user.plan === "starter" ? Math.max(0, STARTER_LIMIT - (user.agentMessagesUsed ?? 0) - 1) : null;
 
-  res.json({ reply, remaining, plan: user.plan });
+  res.json({
+    reply,
+    remaining,
+    plan: user.plan,
+    keywords: ctx.rawKeywords,
+    technicalChecks: ctx.technicalChecks,
+    technicalOverallScore: ctx.technicalOverallScore,
+    auditCheckedAt: ctx.auditCheckedAt,
+  });
 });
 
 router.post("/agent/briefing", requireAuth, async (req, res): Promise<void> => {
@@ -230,7 +309,7 @@ router.post("/agent/briefing", requireAuth, async (req, res): Promise<void> => {
     ? `Brand description (from website analysis): ${ctx.brandDescription.slice(0, 400)}`
     : "No website analysis yet.";
 
-  const systemPrompt = `You are a GEO strategist writing a daily briefing for the founder of ${ctx.brandName}.`;
+  const systemPrompt = `You are a GEO strategist writing a daily briefing for the founder of ${ctx.brandName}. Write in plain flowing paragraphs. Never use **bold** or ## headers or markdown formatting of any kind.`;
 
   const prompt = `${descriptionNote}
 
@@ -246,7 +325,7 @@ Paragraph 3: The single most important action today, written for ${ctx.brandName
 
 End with exactly one sentence: "I understand ${ctx.brandName} is a [what it does] for [actual target audience] in [market]. Is that right?"
 
-Rules: No bullet points. Flowing paragraphs. No em dashes. No filler. Write for the actual audience of ${ctx.brandName}, not generic founders unless that IS the audience.`;
+Rules: No bullet points. No bold. No markdown. Flowing paragraphs only. No em dashes. No filler. Write for the actual audience of ${ctx.brandName}, not generic founders unless that IS the audience.`;
 
   const reply = await callClaude(systemPrompt, [{ role: "user", content: prompt }], 1024);
   res.json({ briefing: reply });
@@ -293,7 +372,7 @@ GEO IQ Score: ${ctx.scoreTotal}/100 | ChatGPT: ${ctx.scoreChatgpt}/33 | Gemini: 
 ${ctx.keywords.length > 0 ? `Keywords: ${ctx.keywords.slice(0, 6).join(", ")}` : ""}
 ${ctx.competitors.length > 0 ? `Competitors: ${ctx.competitors.join(", ")}` : ""}`;
 
-  const systemPrompt = `You are a GEO content strategist for ${brandN}. Write content that is specific, accurate, and directly useful.`;
+  const systemPrompt = `You are a GEO content strategist for ${brandN}. Write content that is specific, accurate, and directly useful. Never use **bold** or ## markdown formatting.`;
 
   let prompt = "";
   let maxTok = 2048;
@@ -310,19 +389,17 @@ Rules:
 - Make them specific to ${brandN} and the ${cat} space
 - Reference real problems the audience has
 - No filler phrases
+- Zero intro text. Start immediately with TWEET 1.
 
 Format exactly like this:
 TWEET 1 [angle label]
 [tweet text]
-CHARACTER COUNT: [number]
 
 TWEET 2 [angle label]
 [tweet text]
-CHARACTER COUNT: [number]
 
 TWEET 3 [angle label]
-[tweet text]
-CHARACTER COUNT: [number]`;
+[tweet text]`;
     maxTok = 1024;
   } else if (type === "blog") {
     const angle = params?.angle ?? "How";

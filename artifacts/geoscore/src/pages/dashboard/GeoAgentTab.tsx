@@ -9,6 +9,7 @@ import {
   type KeywordEntry,
   type FixAction,
   type CitationData,
+  type TechnicalCheck,
 } from "./agent-visual-utils";
 
 interface Brand {
@@ -65,6 +66,10 @@ export function GeoAgentTab({
   const [remaining, setRemaining] = useState<number | null>(plan === "starter" ? STARTER_LIMIT : null);
   const [limitReached, setLimitReached] = useState(false);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [apiKeywords, setApiKeywords] = useState<KeywordEntry[]>([]);
+  const [apiTechnicalChecks, setApiTechnicalChecks] = useState<TechnicalCheck[]>([]);
+  const [apiTechnicalScore, setApiTechnicalScore] = useState<number | undefined>(undefined);
+  const [apiCheckedAt, setApiCheckedAt] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -132,7 +137,22 @@ export function GeoAgentTab({
       }
 
       if (!res.ok) throw new Error("Failed");
-      const data = (await res.json()) as { reply: string; remaining: number | null };
+      const data = (await res.json()) as {
+        reply: string;
+        remaining: number | null;
+        keywords?: KeywordEntry[];
+        technicalChecks?: TechnicalCheck[];
+        technicalOverallScore?: number;
+        auditCheckedAt?: string | null;
+      };
+
+      // Store API-returned enrichment data for use in visuals
+      if (data.keywords && data.keywords.length > 0) setApiKeywords(data.keywords);
+      if (data.technicalChecks && data.technicalChecks.length > 0) {
+        setApiTechnicalChecks(data.technicalChecks);
+        setApiTechnicalScore(data.technicalOverallScore);
+        setApiCheckedAt(data.auditCheckedAt ?? null);
+      }
 
       const visualType = detectVisualType(msg, data.reply);
       setMessages(prev => [...prev.slice(0, -1), {
@@ -175,12 +195,15 @@ export function GeoAgentTab({
       latestScorePerplexity: brand.latestScorePerplexity,
     },
     lineChartData,
-    keywords,
+    keywords: apiKeywords.length > 0 ? apiKeywords : keywords,
     fixActions,
     citationData,
     competitorDisplayName,
     weekChange,
     agentResponse,
+    technicalChecks: apiTechnicalChecks.length > 0 ? apiTechnicalChecks : undefined,
+    technicalOverallScore: apiTechnicalScore,
+    auditCheckedAt: apiCheckedAt,
   });
 
   return (

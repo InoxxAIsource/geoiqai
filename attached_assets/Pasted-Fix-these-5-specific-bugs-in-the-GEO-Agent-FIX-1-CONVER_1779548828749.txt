@@ -1,0 +1,195 @@
+Fix these 5 specific bugs in the GEO Agent.
+
+=== FIX 1: CONVERSATION TONE ===
+
+The agent writes like a robot using
+**markdown bold** and dumps walls of text.
+
+Update the system prompt with these rules:
+
+WRITING STYLE RULES:
+1. Never use **bold** markdown in responses
+2. Never use ## headers in responses
+3. Never start with bold labels like
+   **Tweet 1 (Problem-aware)**
+4. Write in natural flowing paragraphs
+5. Maximum 3 paragraphs per response
+   unless writing actual content like
+   a blog post or tweets
+6. When listing things use simple numbers:
+   1. 2. 3. — not bold headers
+7. Sound like a smart knowledgeable friend
+   not a consultant writing a report
+8. End every response with one clear
+   next action question
+
+BAD example (never do this):
+**Your GEO IQ Score of 0 means...**
+**The three specific reasons:**
+**1. No content depth**
+
+GOOD example (always do this):
+Your score is at zero because AI systems
+have nothing to cite about MealCoreAI yet.
+The fastest fix is one well-written article.
+Want me to draft it for you right now?
+
+=== FIX 2: SCORE SYNC ===
+
+Agent shows wrong technical score.
+Showing 20/100 but homepage shows 66/100.
+
+Fix: Always load LATEST audit data.
+
+When building agent system prompt,
+fetch from database:
+
+SELECT * FROM audits
+WHERE domain = $1
+ORDER BY created_at DESC
+LIMIT 1
+
+SELECT * FROM technical_audits  
+WHERE domain = $1
+ORDER BY created_at DESC
+LIMIT 1
+
+Pass latest scores to system prompt:
+"Latest technical audit:
+robots.txt: {latest_robots_score}/100
+llms.txt: {latest_llms_score}/100
+Schema: {latest_schema_score}/100
+Content: {latest_content_score}/100
+Entity: {latest_entity_score}/100
+Technical total: {latest_total}/100
+Last checked: {checked_at}
+
+The user may have already fixed issues.
+Always reference this latest data.
+Never say the technical score is 
+lower than what is shown here."
+
+=== FIX 3: TWEET CARD PARSING ===
+
+Tweet cards show intro text not tweet text.
+Card 1 shows: "Assuming they are for 
+your actual users, here are 3 tweets:"
+This is wrong — should show the tweet.
+
+Two part fix:
+
+Part A — Update system prompt tweet format:
+"When writing tweets use exactly this format.
+No intro text. No explanations between.
+Just this:
+
+TWEET 1 [angle]
+[tweet text only]
+
+TWEET 2 [angle]
+[tweet text only]
+
+TWEET 3 [angle]
+[tweet text only]"
+
+Part B — Fix tweet parser:
+Current parser splits on "---"
+New parser should:
+1. Find lines starting with "TWEET 1"
+   "TWEET 2" "TWEET 3"
+2. Text on NEXT line(s) = tweet content
+3. Skip any line containing:
+   "here are" "assuming" "before I"
+   "want me" "let me know"
+4. Only render cards with 
+   actual tweet text (min 20 chars)
+
+=== FIX 4: KEYWORD TABLE DATA ===
+
+Keyword Opportunities table shows:
+"Keyword data will appear after 
+your next audit with DataForSEO 
+credentials configured"
+
+But DataForSEO IS already configured.
+
+Fix the data loading order:
+
+1. Check keyword_cache table first:
+   SELECT keywords, cached_at
+   FROM keyword_cache
+   WHERE domain = $1
+   AND expires_at > NOW()
+
+2. If cache found → use it immediately
+   Show keyword table from cache
+
+3. If no cache → call DataForSEO API
+   Store result → show table
+
+4. Pass to agent system prompt:
+   "DataForSEO keywords:
+   {keywords.map(k =>
+     k.keyword + ' (' + k.volume + '/mo)'
+   ).join(', ')}"
+
+Table must show real data immediately.
+Never show the "credentials" message
+if DataForSEO is already configured.
+
+=== FIX 5: TECHNICAL SCORECARD DATA ===
+
+Agent says "I cannot directly crawl 
+mealcoreai.com myself"
+
+Agent does not need to crawl.
+The audit data is already in the database.
+
+Add to system prompt:
+"You have access to the latest 
+technical audit data in your context.
+When user asks about technical setup,
+use this data to answer specifically.
+Never say you cannot check the site.
+Reference the real scores above."
+
+Technical scorecard visual:
+Pull from technical_audits table
+(most recent row for this domain)
+
+Show:
+- Real scores with progress bars
+- "Last checked: X hours ago" timestamp
+- Rescan button (triggers fresh audit)
+
+=== TEST ALL 5 FIXES ===
+
+Test 1 — Tone:
+Ask "Why is my score low?"
+Expected: clean paragraphs
+zero asterisks or bold text
+ends with one question
+
+Test 2 — Score sync:
+Check auto briefing shows
+correct technical score (66/100)
+matching what homepage shows
+
+Test 3 — Tweet parsing:
+Ask "Write me 3 tweets"
+Expected: cards show actual
+tweet text not intro sentences
+
+Test 4 — Keywords:
+Ask "What keywords should I target?"
+Expected: table shows real
+DataForSEO keywords immediately
+
+Test 5 — Technical:
+Ask "Check my technical setup"
+Expected: scorecard shows real
+scores from latest audit
+with timestamp shown
+
+Show before/after screenshot
+for each of the 5 fixes.

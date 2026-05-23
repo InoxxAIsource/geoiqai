@@ -42,6 +42,13 @@ export interface CitationData {
   topDomains: CitationEntry[];
 }
 
+export interface TechnicalCheck {
+  name: string;
+  score: number;
+  status: string;
+  detail: string;
+}
+
 export interface VisualData {
   brand: Brand;
   lineChartData: TrendPoint[];
@@ -51,6 +58,9 @@ export interface VisualData {
   competitorDisplayName: string;
   weekChange: number | null;
   agentResponse: string;
+  technicalChecks?: TechnicalCheck[];
+  technicalOverallScore?: number;
+  auditCheckedAt?: string | null;
 }
 
 export type VisualType =
