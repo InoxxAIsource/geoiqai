@@ -6,6 +6,7 @@ interface PricingPlan {
   name: string;
   price: string;
   period: string;
+  inrNote?: string;
   description: string;
   features: string[];
   cta: string;
@@ -37,6 +38,7 @@ const plans: PricingPlan[] = [
     name: "Starter",
     price: "$49",
     period: "/month",
+    inrNote: "Billed as ₹4,743/mo in INR",
     description: "For founders who want to stay ahead of AI search.",
     isPopular: true,
     features: [
@@ -55,8 +57,9 @@ const plans: PricingPlan[] = [
   {
     id: "agency",
     name: "Agency",
-    price: "$129",
+    price: "$99",
     period: "/month",
+    inrNote: "Billed as ₹9,583/mo in INR",
     description: "For agencies managing multiple brands.",
     isOutline: true,
     features: [
@@ -134,10 +137,13 @@ export function PricingCards({ onSelectPlan }: { onSelectPlan?: (planId: string)
 
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: "#6b7280", marginBottom: 6 }}>{plan.name}</div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 8 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: plan.inrNote ? 4 : 8 }}>
               <span style={{ fontSize: 30, fontWeight: 800, color: "#111827", letterSpacing: "-0.03em" }}>{plan.price}</span>
               {plan.period && <span style={{ fontSize: 14, color: "#9ca3af" }}>{plan.period}</span>}
             </div>
+            {plan.inrNote && (
+              <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 8 }}>{plan.inrNote}</div>
+            )}
             <p style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.5, margin: 0 }}>{plan.description}</p>
           </div>
 
@@ -171,9 +177,14 @@ export function PricingCards({ onSelectPlan }: { onSelectPlan?: (planId: string)
           </button>
         </div>
       ))}
-      <p style={{ gridColumn: "1 / -1", textAlign: "center", fontSize: 13, color: "#9ca3af", margin: "8px 0 0" }}>
-        All plans include the free audit. No card for the free tier. Cancel anytime on paid plans.
-      </p>
+      <div style={{ gridColumn: "1 / -1", textAlign: "center", margin: "8px 0 0" }}>
+        <p style={{ fontSize: 13, color: "#9ca3af", margin: "0 0 6px" }}>
+          All plans include the free audit. No card for the free tier. Cancel anytime on paid plans.
+        </p>
+        <p style={{ fontSize: 12, color: "#9ca3af", margin: 0, lineHeight: 1.6 }}>
+          Prices in USD. Charged in INR at current exchange rate. Powered by Razorpay.
+        </p>
+      </div>
     </div>
   );
 }

@@ -234,7 +234,7 @@ export default function Pricing() {
                       Opening payment...
                     </span>
                   ) : (
-                    `Pay ${pendingPlan === "starter" ? "$49" : "$129"}/month`
+                    `Pay ${pendingPlan === "starter" ? "$49" : "$99"}/month`
                   )}
                 </Button>
                 <p style={{ fontSize: 11, color: "#9ca3af", textAlign: "center", marginTop: 12 }}>
