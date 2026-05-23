@@ -2,35 +2,25 @@ import { Router, type IRouter } from "express";
 import { requireAuth, type AuthRequest } from "../lib/auth";
 import { db, usersTable, monitoredBrandsTable, dailyScoresTable, auditsTable, keywordCacheTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
+import { anthropic } from "@workspace/integrations-anthropic-ai";
 
 const router: IRouter = Router();
 
-const XAI_BASE = "https://api.x.ai/v1";
-const XAI_KEY = process.env.XAI_API_KEY ?? "";
-const AI_BASE = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "";
-const AI_KEY = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? "";
-
 const STARTER_LIMIT = 50;
 
-async function callAI(messages: { role: string; content: string }[], maxTokens = 1500): Promise<string> {
-  const useXAI = !!XAI_KEY;
-  const baseUrl = useXAI ? XAI_BASE : AI_BASE;
-  const apiKey = useXAI ? XAI_KEY : AI_KEY;
-  const model = useXAI ? "grok-3-fast-beta" : "gpt-4o-mini";
-
-  const res = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({ model, messages, max_tokens: maxTokens, temperature: 0.7 }),
+async function callClaude(
+  systemPrompt: string,
+  messages: { role: "user" | "assistant"; content: string }[],
+  maxTokens = 8192
+): Promise<string> {
+  const response = await anthropic.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: maxTokens,
+    system: systemPrompt,
+    messages,
   });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`AI call failed: ${res.status} ${err}`);
-  }
-
-  const data = (await res.json()) as { choices: { message: { content: string } }[] };
-  return data.choices[0]?.message?.content ?? "";
+  const block = response.content[0];
+  return block.type === "text" ? block.text : "";
 }
 
 interface FullBrandContext {
@@ -196,13 +186,12 @@ router.post("/agent/chat", requireAuth, async (req, res): Promise<void> => {
   const ctx = await getFullBrandContext(brand);
   const systemPrompt = buildSystemPrompt(ctx);
 
-  const messages = [
-    { role: "system", content: systemPrompt },
-    ...((history ?? []).slice(-10) as { role: string; content: string }[]),
-    { role: "user", content: message },
+  const chatMessages = [
+    ...((history ?? []).slice(-10) as { role: "user" | "assistant"; content: string }[]),
+    { role: "user" as const, content: message },
   ];
 
-  const reply = await callAI(messages, 1200);
+  const reply = await callClaude(systemPrompt, chatMessages, 1200);
 
   await db
     .update(usersTable)
@@ -241,9 +230,9 @@ router.post("/agent/briefing", requireAuth, async (req, res): Promise<void> => {
     ? `Brand description (from website analysis): ${ctx.brandDescription.slice(0, 400)}`
     : "No website analysis yet.";
 
-  const prompt = `You are a GEO strategist for ${ctx.brandName} (${ctx.domain}).
+  const systemPrompt = `You are a GEO strategist writing a daily briefing for the founder of ${ctx.brandName}.`;
 
-${descriptionNote}
+  const prompt = `${descriptionNote}
 
 Category: ${ctx.category} | Market: ${ctx.market}
 GEO IQ Score: ${ctx.scoreTotal}/100
@@ -259,7 +248,7 @@ End with exactly one sentence: "I understand ${ctx.brandName} is a [what it does
 
 Rules: No bullet points. Flowing paragraphs. No em dashes. No filler. Write for the actual audience of ${ctx.brandName}, not generic founders unless that IS the audience.`;
 
-  const reply = await callAI([{ role: "user", content: prompt }], 700);
+  const reply = await callClaude(systemPrompt, [{ role: "user", content: prompt }], 1024);
   res.json({ briefing: reply });
 });
 
@@ -304,8 +293,10 @@ GEO IQ Score: ${ctx.scoreTotal}/100 | ChatGPT: ${ctx.scoreChatgpt}/33 | Gemini: 
 ${ctx.keywords.length > 0 ? `Keywords: ${ctx.keywords.slice(0, 6).join(", ")}` : ""}
 ${ctx.competitors.length > 0 ? `Competitors: ${ctx.competitors.join(", ")}` : ""}`;
 
+  const systemPrompt = `You are a GEO content strategist for ${brandN}. Write content that is specific, accurate, and directly useful.`;
+
   let prompt = "";
-  let maxTok = 1200;
+  let maxTok = 2048;
 
   if (type === "tweet") {
     const tone = params?.tone ?? "Professional";
@@ -332,7 +323,7 @@ CHARACTER COUNT: [number]
 TWEET 3 [angle label]
 [tweet text]
 CHARACTER COUNT: [number]`;
-    maxTok = 600;
+    maxTok = 1024;
   } else if (type === "blog") {
     const angle = params?.angle ?? "How";
     const keyword = params?.keyword ?? brandN;
@@ -359,7 +350,7 @@ Expertise: [X/25] - [one sentence note]
 Authority: [X/25] - [one sentence note]
 Trust: [X/25] - [one sentence note]
 Total: [X/100]`;
-    maxTok = 2000;
+    maxTok = 4096;
   } else if (type === "faq") {
     prompt = `${brandCtx}
 
@@ -376,7 +367,7 @@ Q: [question]
 A: [answer]
 
 [repeat for all 20]`;
-    maxTok = 1800;
+    maxTok = 3000;
   } else if (type === "pitch") {
     const publication = params?.publication ?? "a tech newsletter";
     prompt = `${brandCtx}
@@ -394,7 +385,7 @@ Format:
 SUBJECT: [subject line]
 
 [email body]`;
-    maxTok = 400;
+    maxTok = 1024;
   }
 
   if (!prompt) {
@@ -402,7 +393,7 @@ SUBJECT: [subject line]
     return;
   }
 
-  const result = await callAI([{ role: "user", content: prompt }], maxTok);
+  const result = await callClaude(systemPrompt, [{ role: "user", content: prompt }], maxTok);
   res.json({ result, type });
 });
 
