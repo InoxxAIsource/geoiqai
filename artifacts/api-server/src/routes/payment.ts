@@ -42,6 +42,7 @@ interface RazorpayInstance {
 router.get("/payment/config-check", (_req, res: Response): void => {
   const keyId = RAZORPAY_KEY_ID;
   const keyMode = keyId.startsWith("rzp_test_") ? "test" : keyId.startsWith("rzp_live_") ? "live" : "unknown";
+  const resendKey = process.env.RESEND_API_KEY ?? "";
   res.json({
     configured: !!(keyId && RAZORPAY_KEY_SECRET),
     keyMode,
@@ -50,7 +51,22 @@ router.get("/payment/config-check", (_req, res: Response): void => {
     agencyPlanSet: !!AGENCY_PLAN_ID,
     starterPlanId: STARTER_PLAN_ID ? `${STARTER_PLAN_ID.slice(0, 8)}...` : "(not set)",
     agencyPlanId: AGENCY_PLAN_ID ? `${AGENCY_PLAN_ID.slice(0, 8)}...` : "(not set)",
+    resendConfigured: !!resendKey,
+    resendKeyPrefix: resendKey ? `${resendKey.slice(0, 6)}...` : "(not set)",
   });
+});
+
+// POST /api/payment/test-email  - dev-only endpoint to verify Resend is working
+router.post("/payment/test-email", async (req: Request, res: Response): Promise<void> => {
+  const { email } = req.body as { email?: string };
+  if (!email) { res.status(400).json({ error: "email required" }); return; }
+  const { sendMagicLinkEmail } = await import("../lib/email");
+  try {
+    await sendMagicLinkEmail(email, "https://geoiqai.com/dashboard");
+    res.json({ sent: true });
+  } catch (err) {
+    res.status(500).json({ sent: false, error: String(err) });
+  }
 });
 
 // POST /api/payment/create-subscription
