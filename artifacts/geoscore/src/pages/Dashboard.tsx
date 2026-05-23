@@ -1291,6 +1291,12 @@ export default function Dashboard() {
                     latestScorePerplexity: selectedBrand.latestScorePerplexity ?? null,
                   }}
                   plan={user?.plan ?? "free"}
+                  lineChartData={lineChartData}
+                  keywords={(brandKeywords as { keywords?: { keyword: string; volume: number }[] } | undefined)?.keywords ?? []}
+                  fixActions={fixActions}
+                  citationData={citationData}
+                  competitorDisplayName={competitorDisplayName}
+                  weekChange={weekChange}
                 />
               )}
 
