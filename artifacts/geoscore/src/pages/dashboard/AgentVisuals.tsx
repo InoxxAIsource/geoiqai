@@ -5,7 +5,7 @@ import {
 } from "recharts";
 import { Copy, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import type {
-  Brand, TrendPoint, KeywordEntry, FixAction, CitationData, VisualData, VisualType, TechnicalCheck as TechnicalCheckType,
+  Brand, TrendPoint, KeywordEntry, FixAction, CitationData, VisualData, VisualType, TechnicalCheck as TechnicalCheckType, AuditToolResult,
 } from "./agent-visual-utils";
 
 // ─── Animation wrapper ────────────────────────────────────────────────────────
@@ -650,12 +650,133 @@ function TechnicalScorecard({ brand, technicalChecks, technicalOverallScore, aud
   );
 }
 
+// ─── Audit Result Visual (compound: score + technical + actions) ──────────────
+
+function AuditScoreCard({ result }: { result: AuditToolResult }) {
+  const total = result.scoreTotal;
+  const totalColor = total >= 67 ? "#16A34A" : total >= 34 ? "#D97706" : "#DC2626";
+  const systems = [
+    { name: "ChatGPT", score: result.scoreChatgpt, color: "#10a37f", status: result.chatgptStatus },
+    { name: "Gemini", score: result.scoreGemini, color: "#4285f4", status: result.geminiStatus },
+    { name: "Perplexity", score: result.scorePerplexity, color: "#22d3ee", status: result.perplexityStatus },
+  ];
+  const getStatusLabel = (s: string) => s === "not_found" ? "Not found" : s === "partial" ? "Partial" : "Strong";
+  const getStatusColor = (s: string) => s === "not_found" ? "#DC2626" : s === "partial" ? "#D97706" : "#16A34A";
+  return (
+    <VisualCard>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+        <VisualTitle>GEO IQ Score - {result.brandName}</VisualTitle>
+        <span style={{ background: "#EEF2FF", color: "#4F46E5", borderRadius: 9999, padding: "2px 10px", fontSize: 10, fontWeight: 600, flexShrink: 0 }}>
+          Fresh audit
+        </span>
+      </div>
+      <div style={{ textAlign: "center", marginBottom: 16 }}>
+        <div style={{ fontSize: 42, fontWeight: 700, color: totalColor, lineHeight: 1 }}>
+          <CountUp target={total} /><span style={{ fontSize: 18, color: "#9ca3af" }}>/100</span>
+        </div>
+        <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
+          {total < 34 ? "Largely invisible - most AI queries return competitors instead" : total < 67 ? "Moderate visibility - appearing in some answers, gaps remain" : "Strong presence - appearing consistently across AI systems"}
+        </div>
+        <div style={{ height: 8, background: "#f3f4f6", borderRadius: 9999, overflow: "hidden", margin: "10px 0 0" }}>
+          <div style={{ height: "100%", width: `${total}%`, background: totalColor, borderRadius: 9999, transition: "width 1s ease" }} />
+        </div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {systems.map(s => (
+          <div key={s.name} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 72, fontSize: 12, fontWeight: 500, color: "#374151", flexShrink: 0 }}>{s.name}</div>
+            <ScoreBar value={s.score} max={33} color={s.score === 0 ? "#FCA5A5" : s.score < 11 ? "#FCD34D" : s.color} />
+            <div style={{ width: 32, fontSize: 12, fontWeight: 600, color: "#374151", flexShrink: 0 }}>{s.score}/33</div>
+            <div style={{ fontSize: 10, fontWeight: 500, color: getStatusColor(s.status), flexShrink: 0, width: 60 }}>{getStatusLabel(s.status)}</div>
+          </div>
+        ))}
+      </div>
+    </VisualCard>
+  );
+}
+
+function AuditTechCard({ result }: { result: AuditToolResult }) {
+  const checks = result.technicalHighlights;
+  const techScore = result.scoreTechnical;
+  const techColor = techScore >= 70 ? "#16A34A" : techScore >= 40 ? "#D97706" : "#DC2626";
+  const getIcon = (status: string) => {
+    if (status === "pass" || status === "good") return <CheckCircle2 size={13} color="#16A34A" />;
+    if (status === "warning" || status === "partial") return <AlertCircle size={13} color="#D97706" />;
+    return <XCircle size={13} color="#DC2626" />;
+  };
+  return (
+    <VisualCard>
+      <VisualTitle>Technical GEO Signals</VisualTitle>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {checks.map((c, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {getIcon(c.status)}
+            <div style={{ flex: 1, fontSize: 12, color: "#374151" }}>{c.name}</div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: c.score >= 70 ? "#16A34A" : c.score >= 40 ? "#D97706" : "#DC2626" }}>{c.score}/100</div>
+            <div style={{ width: 70, height: 4, background: "#E5E7EB", borderRadius: 9999, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${c.score}%`, background: c.score >= 70 ? "#16A34A" : c.score >= 40 ? "#D97706" : "#DC2626", borderRadius: 9999, transition: "width 0.9s ease" }} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, padding: "8px 10px", background: "#F9FAFB", borderRadius: 8 }}>
+        <span style={{ fontSize: 12, color: "#374151" }}>Technical total:</span>
+        <span style={{ fontSize: 15, fontWeight: 700, color: techColor }}>{techScore}/100</span>
+        <div style={{ flex: 1, height: 5, background: "#E5E7EB", borderRadius: 9999, overflow: "hidden" }}>
+          <div style={{ height: "100%", width: `${techScore}%`, background: techColor, borderRadius: 9999, transition: "width 1s ease" }} />
+        </div>
+      </div>
+    </VisualCard>
+  );
+}
+
+function AuditActionsCard({ result }: { result: AuditToolResult }) {
+  const recs = result.recommendations.slice(0, 3);
+  const priorityColors: Record<string, { bg: string; text: string }> = {
+    high: { bg: "#FCEBEB", text: "#791F1F" },
+    medium: { bg: "#FAEEDA", text: "#633806" },
+    low: { bg: "#E1F5EE", text: "#085041" },
+  };
+  if (recs.length === 0) return null;
+  return (
+    <VisualCard>
+      <VisualTitle>Top actions from this audit</VisualTitle>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {recs.map((r, i) => {
+          const c = priorityColors[r.priority] ?? priorityColors.medium!;
+          return (
+            <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px", background: "#F9FAFB", borderRadius: 8 }}>
+              <span style={{ background: c.bg, color: c.text, borderRadius: 9999, padding: "2px 8px", fontSize: 10, fontWeight: 600, flexShrink: 0, marginTop: 1 }}>
+                {r.priority}
+              </span>
+              <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.5 }}>{r.action}</div>
+            </div>
+          );
+        })}
+      </div>
+    </VisualCard>
+  );
+}
+
+function AuditResultVisual({ auditToolResult }: { auditToolResult: AuditToolResult }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <FadeIn delay={0}><AuditScoreCard result={auditToolResult} /></FadeIn>
+      <FadeIn delay={180}><AuditTechCard result={auditToolResult} /></FadeIn>
+      {auditToolResult.recommendations.length > 0 && (
+        <FadeIn delay={360}><AuditActionsCard result={auditToolResult} /></FadeIn>
+      )}
+    </div>
+  );
+}
+
 // ─── Main renderer - only exports React components ────────────────────────────
 
 export function AgentVisual({ visualType, data }: { visualType: VisualType; data: VisualData }) {
   const { brand, lineChartData, keywords, fixActions, citationData, competitorDisplayName, weekChange, agentResponse } = data;
   const inner = (() => {
     switch (visualType) {
+      case "audit_result": return data.auditToolResult ? <AuditResultVisual auditToolResult={data.auditToolResult} /> : null;
       case "score_breakdown": return <ScoreBreakdown brand={brand} />;
       case "competitor_chart": return <CompetitorChart brand={brand} competitorDisplayName={competitorDisplayName} />;
       case "citation_gap": return <CitationGapChart brand={brand} citationData={citationData} />;
@@ -670,5 +791,6 @@ export function AgentVisual({ visualType, data }: { visualType: VisualType; data
     }
   })();
   if (!inner) return null;
+  if (visualType === "audit_result") return <>{inner}</>;
   return <FadeIn delay={120}>{inner}</FadeIn>;
 }

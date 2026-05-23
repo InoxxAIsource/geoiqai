@@ -49,6 +49,23 @@ export interface TechnicalCheck {
   detail: string;
 }
 
+export interface AuditToolResult {
+  domain: string;
+  brandName: string;
+  scoreTotal: number;
+  scoreChatgpt: number;
+  scoreGemini: number;
+  scorePerplexity: number;
+  scoreTechnical: number;
+  chatgptStatus: string;
+  geminiStatus: string;
+  perplexityStatus: string;
+  topKeywords: string[];
+  competitors: string[];
+  recommendations: { action: string; priority: string }[];
+  technicalHighlights: { name: string; score: number; status: string }[];
+}
+
 export interface VisualData {
   brand: Brand;
   lineChartData: TrendPoint[];
@@ -61,6 +78,7 @@ export interface VisualData {
   technicalChecks?: TechnicalCheck[];
   technicalOverallScore?: number;
   auditCheckedAt?: string | null;
+  auditToolResult?: AuditToolResult;
 }
 
 export type VisualType =
@@ -73,7 +91,8 @@ export type VisualType =
   | "tweet_cards"
   | "content_calendar"
   | "keyword_table"
-  | "technical_scorecard";
+  | "technical_scorecard"
+  | "audit_result";
 
 export function detectVisualType(userMsg: string, agentResponse: string): VisualType | null {
   const msg = userMsg.toLowerCase();

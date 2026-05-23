@@ -260,6 +260,45 @@ router.get("/dashboard/summary", requirePaidAuth, async (req, res): Promise<void
   });
 });
 
+router.get("/dashboard/brands/:id/technical-checks", requirePaidAuth, async (req, res): Promise<void> => {
+  const user = (req as AuthRequest).user;
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+  const [brand] = await db
+    .select()
+    .from(monitoredBrandsTable)
+    .where(and(eq(monitoredBrandsTable.id, rawId!), eq(monitoredBrandsTable.userId, user.id)))
+    .limit(1);
+
+  if (!brand) {
+    res.status(404).json({ error: "Brand not found" });
+    return;
+  }
+
+  const [latestAudit] = await db.select()
+    .from(auditsTable)
+    .where(eq(auditsTable.domain, brand.domain))
+    .orderBy(desc(auditsTable.createdAt))
+    .limit(1);
+
+  if (!latestAudit) {
+    res.json({ checks: [], overallScore: 0 });
+    return;
+  }
+
+  const raw = (latestAudit.rawResults ?? {}) as Record<string, unknown>;
+  const techAudit = raw.technicalAudit as {
+    checks?: { name: string; score: number; status: string; detail: string }[];
+    overallScore?: number;
+  } | null;
+
+  res.json({
+    checks: techAudit?.checks ?? [],
+    overallScore: techAudit?.overallScore ?? 0,
+    auditDate: latestAudit.createdAt,
+  });
+});
+
 router.get("/dashboard/brands/:id/keywords", requirePaidAuth, async (req, res): Promise<void> => {
   const user = (req as AuthRequest).user;
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

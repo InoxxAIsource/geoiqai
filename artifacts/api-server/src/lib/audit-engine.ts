@@ -1171,6 +1171,31 @@ export async function generateRecommendations(
 ): Promise<{ recommendations: Recommendation[]; eeatScore: EeatScore }> {
   const techSignals = technicalAudit.checks.map((c) => `${c.name}: ${c.status} (${c.score}/100) — ${c.detail}`).join("\n");
 
+  // Determine what is already fixed so Claude does not recommend re-doing it
+  const findCheck = (keyword: string) => technicalAudit.checks.find(c => c.name.toLowerCase().includes(keyword));
+  const robotsCheck = findCheck("robot");
+  const llmsCheck = findCheck("llm");
+  const schemaCheck = findCheck("schema");
+  const contentCheck = findCheck("content");
+  const entityCheck = findCheck("entity") ?? findCheck("social");
+
+  const stateFor = (check: typeof robotsCheck, friendlyName: string) => {
+    if (!check) return "";
+    return check.score >= 70
+      ? `${friendlyName}: ALREADY DONE (${check.score}/100) — do NOT recommend this, it is fixed`
+      : `${friendlyName}: NEEDS FIX (${check.score}/100) — recommend this`;
+  };
+
+  const currentStateBlock = [
+    stateFor(robotsCheck, "Robots.txt AI crawler access"),
+    stateFor(llmsCheck, "llms.txt file"),
+    stateFor(schemaCheck, "Schema markup"),
+    stateFor(contentCheck, "Content structure"),
+    stateFor(entityCheck, "Social/entity signals"),
+  ].filter(Boolean).join("\n");
+
+  const aiTotal = chatgpt.score + gemini.score + perplexity.score;
+
   const auditSummary = `Brand: ${brandName}
 Domain: ${domain}
 Category: ${category}
@@ -1178,10 +1203,14 @@ Market: ${market}
 ChatGPT score: ${chatgpt.score}/33 — Found: ${chatgpt.found}
 Gemini score: ${gemini.score}/33 — Found: ${gemini.found}
 Perplexity score: ${perplexity.score}/33 — Found: ${perplexity.found}
+Current AI visibility: ${aiTotal}/99 (${Math.round(aiTotal * 100 / 99)}%)
 Social profiles found: ${technicalAudit.socialLinks.length}
 Contact email: ${technicalAudit.contactEmail ? "yes" : "no"}
 Technical signals:
-${techSignals}`;
+${techSignals}
+
+CURRENT STATE — items already fixed (do NOT recommend these):
+${currentStateBlock || "No technical data available yet."}`;
 
   try {
     const response = await openaiClient.chat.completions.create({
@@ -1207,7 +1236,7 @@ You understand ChatGPT and Gemini answer from training data (cutoff 2023-2024) s
         },
         {
           role: "user",
-          content: `Here is the AI visibility audit:\n\n${auditSummary}\n\nReturn a JSON object with exactly this structure:\n{\n  "recommendations": [\n    {\n      "action": "specific 2-sentence action including WHY it helps and expected timeline",\n      "priority": "high",\n      "effort_hours": 2,\n      "impact_score": 12,\n      "category": "citations",\n      "cite_category": "C"\n    }\n  ],\n  "eeat": {\n    "experience": 8,\n    "expertise": 18,\n    "authoritativeness": 12,\n    "trustworthiness": 15,\n    "strengths": "Strong on Expertise and Trustworthiness.",\n    "weaknesses": "Weak on Experience — add personal examples or case studies. Weak on Authoritativeness — get listed on G2 and Crunchbase."\n  }\n}\n\nGenerate exactly 5 recommendations. Each must have cite_category of C, I, T, or E.\npriority: high, medium, or low\ncategory: citations, content, technical, pr, social\nEEAT scores must be 0-25 each. Be realistic based on the technical signals above.`,
+          content: `Here is the AI visibility audit:\n\n${auditSummary}\n\nIMPORTANT: The CURRENT STATE section above lists items that are ALREADY DONE. Do NOT recommend fixing things that are already done. Only recommend actions that are actually needed right now based on what is broken or missing.\n\nReturn a JSON object with exactly this structure:\n{\n  "recommendations": [\n    {\n      "action": "specific 2-sentence action including WHY it helps and expected timeline",\n      "priority": "high",\n      "effort_hours": 2,\n      "impact_score": 12,\n      "category": "citations",\n      "cite_category": "C"\n    }\n  ],\n  "eeat": {\n    "experience": 8,\n    "expertise": 18,\n    "authoritativeness": 12,\n    "trustworthiness": 15,\n    "strengths": "Strong on Expertise and Trustworthiness.",\n    "weaknesses": "Weak on Experience — add personal examples or case studies. Weak on Authoritativeness — get listed on G2 and Crunchbase."\n  }\n}\n\nGenerate exactly 5 recommendations for what this brand needs to do RIGHT NOW (not things already done).\nEach must have cite_category of C, I, T, or E.\npriority: high, medium, or low\ncategory: citations, content, technical, pr, social\nEEAT scores must be 0-25 each. Be realistic based on the technical signals above.`,
         },
       ],
       max_tokens: 1000,

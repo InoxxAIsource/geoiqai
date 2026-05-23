@@ -370,6 +370,15 @@ export default function Dashboard() {
     return () => window.removeEventListener("resize", handler);
   }, []);
 
+  useEffect(() => {
+    const handler = () => {
+      queryClient.invalidateQueries({ queryKey: getGetMonitoredBrandsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
+    };
+    window.addEventListener("audit-updated", handler);
+    return () => window.removeEventListener("audit-updated", handler);
+  }, [queryClient]);
+
   const { data: user } = useGetMe({ query: { enabled: isAuthenticated } as never });
   const { data: summary, isLoading: loadingSummary } = useGetDashboardSummary({ query: { enabled: isAuthenticated } as never });
   const { data: brands, isLoading: loadingBrands } = useGetMonitoredBrands({ query: { enabled: isAuthenticated } as never });
@@ -1680,6 +1689,7 @@ export default function Dashboard() {
                   />
                   <FixActionsTab
                     brand={{
+                      id: selectedBrand.id,
                       domain: selectedBrand.domain,
                       brandName: selectedBrand.brandName ?? null,
                       category: selectedBrand.category ?? null,

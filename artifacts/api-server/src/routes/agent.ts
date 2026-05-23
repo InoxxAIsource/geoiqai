@@ -358,8 +358,9 @@ async function callClaudeWithTools(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   messages: any[],
   maxTokens = 4096
-): Promise<{ text: string; toolsUsed: ToolUsed[] }> {
+): Promise<{ text: string; toolsUsed: ToolUsed[]; toolResults: Record<string, unknown> }> {
   const toolsUsed: ToolUsed[] = [];
+  const capturedToolResults: Record<string, unknown> = {};
   const currentMessages = [...messages];
 
   for (let iteration = 0; iteration < 6; iteration++) {
@@ -377,6 +378,7 @@ async function callClaudeWithTools(
       return {
         text: textBlock ? (textBlock as { type: "text"; text: string }).text : "",
         toolsUsed,
+        toolResults: capturedToolResults,
       };
     }
 
@@ -401,6 +403,7 @@ async function callClaudeWithTools(
         } catch (err) {
           result = { error: String(err) };
         }
+        capturedToolResults[block.name] = result;
         return { toolUseId: block.id, content: JSON.stringify(result) };
       })
     );
@@ -415,7 +418,7 @@ async function callClaudeWithTools(
     });
   }
 
-  return { text: "I ran into an issue completing your request. Please try again.", toolsUsed };
+  return { text: "I ran into an issue completing your request. Please try again.", toolsUsed, toolResults: capturedToolResults };
 }
 
 // ─── Brand context ────────────────────────────────────────────────────────────
@@ -661,7 +664,7 @@ router.post("/agent/chat", requireAuth, async (req, res): Promise<void> => {
     { role: "user" as const, content: message },
   ];
 
-  const { text: reply, toolsUsed } = await callClaudeWithTools(systemPrompt, chatMessages, 4096);
+  const { text: reply, toolsUsed, toolResults } = await callClaudeWithTools(systemPrompt, chatMessages, 4096);
 
   await db
     .update(usersTable)
@@ -671,9 +674,21 @@ router.post("/agent/chat", requireAuth, async (req, res): Promise<void> => {
   const remaining =
     user.plan === "starter" ? Math.max(0, STARTER_LIMIT - (user.agentMessagesUsed ?? 0) - 1) : null;
 
-  // If an audit was run, refresh context so we return updated scores
+  // If an audit was run, refresh context + update lastChecked for any matching brand
   const auditTool = toolsUsed.find(t => t.name === "run_audit");
   const finalCtx = auditTool ? await getFullBrandContext(brand) : ctx;
+
+  if (auditTool) {
+    const auditedDomain = String(auditTool.domain ?? "").trim().toLowerCase();
+    if (auditedDomain === brand.domain.toLowerCase()) {
+      await db
+        .update(monitoredBrandsTable)
+        .set({ lastChecked: new Date() })
+        .where(eq(monitoredBrandsTable.id, brand.id));
+    }
+  }
+
+  const auditResult = toolResults.run_audit ?? null;
 
   res.json({
     reply,
@@ -684,6 +699,7 @@ router.post("/agent/chat", requireAuth, async (req, res): Promise<void> => {
     technicalChecks: finalCtx.technicalChecks,
     technicalOverallScore: finalCtx.technicalOverallScore,
     auditCheckedAt: finalCtx.auditCheckedAt,
+    auditResult,
   });
 });
 

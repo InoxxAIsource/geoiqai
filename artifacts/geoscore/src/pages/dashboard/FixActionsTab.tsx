@@ -1,11 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Copy, ChevronDown, ChevronRight, ExternalLink, CheckCircle2 } from "lucide-react";
 
 interface Brand {
+  id: string;
   domain: string;
   brandName: string | null;
   category: string | null;
   latestScore: number | null;
+}
+
+interface TechCheck {
+  name: string;
+  score: number;
+  status: string;
 }
 
 interface Platform {
@@ -320,19 +327,50 @@ function CodeBox({ code, label }: { code: string; label?: string }) {
   );
 }
 
+const TECH_TASK_MAP: { taskId: string; keyword: string }[] = [
+  { taskId: "w1-1", keyword: "robot" },
+  { taskId: "w1-2", keyword: "llm" },
+  { taskId: "w1-3", keyword: "schema" },
+];
+
+function computeAutoCompleted(checks: TechCheck[]): Set<string> {
+  const auto = new Set<string>();
+  for (const { taskId, keyword } of TECH_TASK_MAP) {
+    const check = checks.find(c => c.name.toLowerCase().includes(keyword));
+    if (check && check.score >= 70) auto.add(taskId);
+  }
+  return auto;
+}
+
 export function FixActionsTab({ brand }: { brand: Brand }) {
   const [activeWeek, setActiveWeek] = useState(0);
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const [platformChecks, setPlatformChecks] = useState<Record<string, boolean>>({});
+  const [autoCompleted, setAutoCompleted] = useState<Set<string>>(new Set());
+  const [showDoneSection, setShowDoneSection] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("geoscore_token");
+    if (!token || !brand.id) return;
+    fetch(`/api/dashboard/brands/${brand.id}/technical-checks`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() as Promise<{ checks: TechCheck[] }> : Promise.resolve({ checks: [] }))
+      .then(data => setAutoCompleted(computeAutoCompleted(data.checks)))
+      .catch(() => {});
+  }, [brand.id]);
 
   const weeks = buildWeeks(brand);
   const currentWeek = weeks[activeWeek]!;
-  const doneCount = currentWeek.tasks.filter(t => completed.has(t.id)).length;
+  const isDone = (id: string) => completed.has(id) || autoCompleted.has(id);
+  const doneCount = currentWeek.tasks.filter(t => isDone(t.id)).length;
   const totalImpact = currentWeek.tasks.reduce((s, t) => s + t.impact, 0);
   const progress = currentWeek.tasks.length > 0 ? (doneCount / currentWeek.tasks.length) * 100 : 0;
+  const manualOrAutoCompleted = currentWeek.tasks.filter(t => isDone(t.id));
 
   const toggleDone = (id: string) => {
+    if (autoCompleted.has(id)) return;
     setCompleted(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -390,11 +428,10 @@ export function FixActionsTab({ brand }: { brand: Brand }) {
         )}
       </div>
 
-      {/* Task cards */}
-      {currentWeek.tasks.map(task => {
+      {/* Task cards - only show incomplete tasks */}
+      {currentWeek.tasks.filter(t => !isDone(t.id)).map(task => {
         const cite = CITE_COLORS[task.cite]!;
         const prio = PRIORITY_COLORS[task.priority]!;
-        const isDone = completed.has(task.id);
         const isExpanded = expandedTask === task.id;
 
         return (
@@ -402,11 +439,10 @@ export function FixActionsTab({ brand }: { brand: Brand }) {
             key={task.id}
             style={{
               background: "white",
-              border: `1px solid ${isDone ? "#D1FAE5" : "#E5E7EB"}`,
+              border: "1px solid #E5E7EB",
               borderRadius: 12,
               padding: 16,
               marginBottom: 10,
-              opacity: isDone ? 0.75 : 1,
               transition: "all 200ms",
             }}
           >
@@ -422,7 +458,7 @@ export function FixActionsTab({ brand }: { brand: Brand }) {
               </span>
               {/* Title */}
               <div
-                style={{ flex: 1, fontSize: 13, fontWeight: 500, color: isDone ? "#9ca3af" : "#111827", textDecoration: isDone ? "line-through" : "none", cursor: "pointer" }}
+                style={{ flex: 1, fontSize: 13, fontWeight: 500, color: "#111827", cursor: "pointer" }}
                 onClick={() => setExpandedTask(isExpanded ? null : task.id)}
               >
                 {task.title}
@@ -434,21 +470,20 @@ export function FixActionsTab({ brand }: { brand: Brand }) {
                 <button
                   onClick={() => toggleDone(task.id)}
                   style={{
-                    background: isDone ? "#ECFDF5" : "transparent",
-                    border: `1px solid ${isDone ? "#10b981" : "#e5e7eb"}`,
+                    background: "transparent",
+                    border: "1px solid #e5e7eb",
                     borderRadius: 6,
                     padding: "3px 10px",
                     fontSize: 11,
-                    color: isDone ? "#059669" : "#6b7280",
+                    color: "#6b7280",
                     cursor: "pointer",
-                    fontWeight: isDone ? 500 : 400,
+                    fontWeight: 400,
                     display: "flex",
                     alignItems: "center",
                     gap: 4,
                   }}
                 >
-                  {isDone && <CheckCircle2 size={10} />}
-                  {isDone ? "Done" : "Mark done"}
+                  Mark done
                 </button>
                 <button
                   onClick={() => setExpandedTask(isExpanded ? null : task.id)}
@@ -546,6 +581,62 @@ export function FixActionsTab({ brand }: { brand: Brand }) {
           </div>
         );
       })}
+
+      {/* What you have done section */}
+      {manualOrAutoCompleted.length > 0 && (
+        <div style={{ marginTop: 6 }}>
+          <button
+            onClick={() => setShowDoneSection(v => !v)}
+            style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: "none", cursor: "pointer", padding: "4px 0", width: "100%" }}
+          >
+            <div style={{ flex: 1, height: 1, background: "#E5E7EB" }} />
+            <span style={{ fontSize: 12, color: "#6b7280", fontWeight: 500, whiteSpace: "nowrap" }}>
+              {manualOrAutoCompleted.length} task{manualOrAutoCompleted.length !== 1 ? "s" : ""} done
+            </span>
+            {showDoneSection ? <ChevronDown size={13} color="#9ca3af" /> : <ChevronRight size={13} color="#9ca3af" />}
+            <div style={{ flex: 1, height: 1, background: "#E5E7EB" }} />
+          </button>
+
+          {showDoneSection && (
+            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+              {manualOrAutoCompleted.map(task => {
+                const isAuto = autoCompleted.has(task.id);
+                return (
+                  <div
+                    key={task.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      background: isAuto ? "#F0FDF4" : "#F9FAFB",
+                      border: `1px solid ${isAuto ? "#D1FAE5" : "#E5E7EB"}`,
+                      borderRadius: 8,
+                      padding: "9px 12px",
+                    }}
+                  >
+                    <CheckCircle2 size={14} color={isAuto ? "#059669" : "#9ca3af"} />
+                    <div style={{ flex: 1, fontSize: 12, color: "#6b7280", textDecoration: "line-through" }}>{task.title}</div>
+                    <span style={{ fontSize: 11, color: "#16A34A", fontWeight: 600, flexShrink: 0 }}>+{task.impact} pts</span>
+                    {isAuto && (
+                      <span style={{ background: "#D1FAE5", color: "#065F46", borderRadius: 9999, padding: "1px 7px", fontSize: 10, fontWeight: 600, flexShrink: 0 }}>
+                        verified
+                      </span>
+                    )}
+                    {!isAuto && (
+                      <button
+                        onClick={() => toggleDone(task.id)}
+                        style={{ background: "transparent", border: "0.5px solid #e5e7eb", borderRadius: 5, padding: "2px 8px", fontSize: 10, color: "#9ca3af", cursor: "pointer" }}
+                      >
+                        Undo
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

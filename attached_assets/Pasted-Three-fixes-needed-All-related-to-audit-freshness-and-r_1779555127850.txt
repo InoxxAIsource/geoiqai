@@ -1,0 +1,333 @@
+Three fixes needed. All related to 
+audit freshness and recommendation accuracy.
+
+=== FIX 1: DASHBOARD SYNCS AFTER AGENT AUDIT ===
+
+When agent runs live audit via run_audit tool,
+save results to database and refresh dashboard.
+
+In run_audit tool handler:
+async function handleRunAuditTool(domain) {
+  const result = await runFullAudit(domain)
+  
+  // Save to audits table
+  await saveAuditToDatabase(result)
+  
+  // Clear cache so dashboard shows fresh data
+  await db.delete(auditCacheTable)
+    .where(eq(auditCacheTable.domain, domain))
+  
+  // Update monitored_brands last_checked
+  if (userId) {
+    await db.update(monitoredBrandsTable)
+      .set({ lastChecked: new Date() })
+      .where(eq(
+        monitoredBrandsTable.domain, domain))
+  }
+  
+  return result
+}
+
+After tool completes emit refresh event:
+window.dispatchEvent(
+  new CustomEvent('audit-updated', {
+    detail: { domain: domain }
+  })
+)
+
+Dashboard listens and auto-refreshes:
+window.addEventListener('audit-updated',
+  (e) => {
+    if (e.detail.domain === currentDomain) {
+      refetchDashboardData()
+    }
+  }
+)
+
+=== FIX 2: VISUALS AFTER AGENT AUDIT ===
+
+When agent runs live audit render 
+visual components below text response.
+
+Attach tool result to message:
+{
+  role: "assistant",
+  content: "Good news and bad news...",
+  toolUsed: "run_audit",
+  toolResult: { ...auditData }
+}
+
+Update visual detection — check tool first:
+function detectVisualType(
+  userMessage, 
+  agentResponse, 
+  toolUsed, 
+  toolResult) {
+  
+  if (toolUsed === 'run_audit' && toolResult) {
+    return {
+      type: 'audit_result',
+      data: toolResult
+    }
+  }
+  
+  if (toolUsed === 'get_keyword_data' 
+      && toolResult) {
+    return {
+      type: 'keyword_table',
+      data: toolResult
+    }
+  }
+  
+  // existing detection continues below...
+}
+
+For audit_result render 3 components:
+
+Component 1 — Score breakdown:
+Use toolResult.scoreTotal,
+scoreChatgpt, scoreGemini, scorePerplexity
+Add label: "Fresh audit — just now"
+
+Component 2 — Technical scorecard:
+Use toolResult.technicalChecks
+Show all 5 checks with real scores
+
+Component 3 — Priority actions:
+Show top 3 from toolResult.recommendations
+With CITE tags and impact scores
+
+All fade in staggered below text.
+
+Also add to system prompt:
+"When fresh audit score differs from
+previous context, acknowledge it:
+'The fresh audit shows X/100, up/down
+from the Y we saw earlier.
+Here is what changed.'"
+
+=== FIX 3: RECOMMENDATIONS MUST REFLECT 
+CURRENT STATE — NOT CACHED STATE ===
+
+This is the most important fix.
+
+CURRENT BROKEN BEHAVIOR:
+1. User runs audit → robots.txt scores 0
+2. Recommendations say "fix robots.txt"
+3. User fixes robots.txt on their site
+4. User reruns audit → robots.txt now 100
+5. Recommendations STILL say "fix robots.txt"
+6. This is wrong — issue is already fixed
+
+The problem: recommendations are generated
+ONCE and cached. They never regenerate
+based on what has actually been fixed.
+
+THREE PARTS TO FIX:
+
+PART A — Regenerate recommendations 
+on every fresh audit
+
+Recommendations must be generated fresh
+every time a new audit runs.
+
+Never use cached recommendations.
+Never show recommendations from a
+previous audit run.
+
+In audit pipeline:
+// Always regenerate — never cache recs
+const recommendations = 
+  await generateRecommendations(
+    brandName,
+    domain,
+    category,
+    market,
+    FRESH_scores,  // use current scores
+    FRESH_technical_checks,  // current checks
+    keywords
+  )
+
+// Save fresh recommendations
+await saveRecommendations(
+  auditId, recommendations)
+
+PART B — Recommendations must check 
+current technical state before suggesting
+
+Before generating recommendations,
+check current state of each technical item:
+
+const currentState = {
+  robotsFixed: technicalChecks.robots.score > 50,
+  llmsExists: technicalChecks.llms.score > 50,
+  schemaAdded: technicalChecks.schema.score > 50,
+  contentGood: technicalChecks.content.score > 70,
+  entityGood: technicalChecks.entity.score > 50
+}
+
+Pass currentState to Claude recommendation prompt:
+
+"Generate 5 fix recommendations.
+IMPORTANT — do NOT recommend things 
+that are already done:
+
+Current technical state:
+robots.txt AI crawlers: ${currentState.robotsFixed ? 
+  'ALREADY FIXED — do not recommend' : 
+  'NEEDS FIX — recommend this'}
+  
+llms.txt file: ${currentState.llmsExists ? 
+  'ALREADY EXISTS — do not recommend' : 
+  'MISSING — recommend this'}
+  
+Schema markup: ${currentState.schemaAdded ? 
+  'ALREADY ADDED — do not recommend' : 
+  'MISSING — recommend this'}
+
+Only recommend things that are 
+actually missing or broken right now.
+Focus recommendations on what will 
+move the score from its CURRENT value
+of ${currentScore}/100."
+
+PART C — Fix Actions tab shows 
+completed items differently
+
+When a technical check passes (score > 70):
+Mark that task in Fix Actions as completed:
+
+[I] robots.txt ← if score = 100
+Show as: 
+  ✓ completed
+  strikethrough text
+  green checkmark
+  "Fixed — score improved by +8 pts"
+  
+Do NOT show as an active task
+if it is already done.
+
+For citation tasks (cannot auto-verify):
+Keep as active — user marks manually
+
+For content tasks (can partially verify):
+Check content structure score
+If content score > 70: mark content
+tasks as lower priority
+
+=== HOW RECOMMENDATIONS SHOULD WORK ===
+
+BEFORE fix (robots.txt = 0/100):
+Recommendation 1 [I] CRITICAL:
+"Allow AI crawlers in robots.txt"
++8 pts · 10 mins · active task
+
+AFTER fix (robots.txt = 100/100):
+Recommendation 1 changes to:
+✓ "AI crawlers allowed in robots.txt"
+Completed · Score gained: +8 pts
+Replace with next highest priority task:
+[C] HIGH: "Create Crunchbase profile"
+
+The Fix Actions list always shows
+5 ACTIVE tasks that still need doing.
+Completed tasks move to a 
+"Completed" section at the bottom.
+
+=== COMPLETED TASKS SECTION ===
+
+Add "Completed" section below active tasks:
+
+Title: "What you have fixed"
+Collapsed by default
+Click to expand
+
+Shows completed items:
+✓ robots.txt AI crawlers — +8 pts gained
+✓ llms.txt file — +10 pts gained
+✓ Schema markup — +8 pts gained
+
+Running total:
+"You have completed 3 tasks
+and gained +26 points so far"
+
+This shows users their progress
+and motivates them to keep going.
+
+=== GEO AGENT RECOMMENDATIONS ===
+
+When agent gives recommendations
+it must also check current state first.
+
+Add to agent system prompt:
+"Before recommending any technical fix,
+check the technicalChecks data in your
+context. If a check already passes
+(score > 70), do NOT recommend that fix.
+The user has already done it.
+
+Focus only on what is currently broken:
+${Object.entries(technicalChecks)
+  .filter(([key, check]) => check.score < 70)
+  .map(([key, check]) => 
+    `${key}: ${check.score}/100 — NEEDS FIX`)
+  .join('\n')}
+
+Already fixed (do not mention):
+${Object.entries(technicalChecks)
+  .filter(([key, check]) => check.score >= 70)
+  .map(([key, check]) => 
+    `${key}: ${check.score}/100 — DONE`)
+  .join('\n')}"
+
+=== WEEKLY DIGEST REGENERATES RECS ===
+
+When weekly digest runs on Monday:
+1. Run fresh audit for each brand
+2. Generate fresh recommendations
+   based on current state
+3. Only email recommendations for
+   things still not fixed
+4. Add progress section:
+   "Since last week you fixed X items
+   and your score improved by Y points"
+
+=== TEST ALL THREE FIXES ===
+
+Test 1 — Dashboard sync after agent audit:
+Open Overview tab — note score
+Go to Agent — type "Rerun audit"
+Go back to Overview tab
+Expected: score matches agent result
+
+Test 2 — Visuals after agent audit:
+Type "Run fresh audit on mealcoreai.com"
+Expected: score breakdown + technical
+scorecard render below agent text
+
+Test 3 — Recommendations update:
+Note current recommendations
+Fix robots.txt on mealcoreai.com
+(it is actually already fixed)
+Run fresh audit via agent
+Expected: robots.txt task shows 
+as COMPLETED not as active task
+
+Test 4 — Agent knows what is fixed:
+Ask agent: "What should I fix first?"
+Expected: agent does NOT recommend
+things with score > 70
+Agent recommends only broken items
+
+Test 5 — Completed section:
+Go to Fix Actions tab
+Expected: completed technical items
+appear in "What you have fixed" section
+with points gained shown
+
+Show screenshots of:
+1. Score breakdown visual in agent
+2. Technical scorecard visual in agent  
+3. Fix Actions with completed section
+4. Agent response that skips fixed items
+5. Dashboard refreshed after agent audit

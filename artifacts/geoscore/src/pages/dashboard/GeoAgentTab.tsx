@@ -10,6 +10,7 @@ import {
   type FixAction,
   type CitationData,
   type TechnicalCheck,
+  type AuditToolResult,
 } from "./agent-visual-utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -39,6 +40,7 @@ interface Message {
   triggerUserMsg?: string;
   followUpChips?: string[];
   toolsUsed?: ToolUsed[];
+  auditToolResult?: AuditToolResult;
 }
 
 const STARTER_LIMIT = 50;
@@ -413,6 +415,7 @@ export function GeoAgentTab({
         technicalChecks?: TechnicalCheck[];
         technicalOverallScore?: number;
         auditCheckedAt?: string | null;
+        auditResult?: AuditToolResult | null;
       };
 
       if (data.keywords && data.keywords.length > 0) setApiKeywords(data.keywords);
@@ -422,7 +425,15 @@ export function GeoAgentTab({
         setApiCheckedAt(data.auditCheckedAt ?? null);
       }
 
-      const visualType = detectVisualType(msg, data.reply);
+      const auditToolResult = data.auditResult && !("error" in (data.auditResult as object))
+        ? (data.auditResult as AuditToolResult)
+        : undefined;
+
+      if (auditToolResult) {
+        window.dispatchEvent(new CustomEvent("audit-updated", { detail: { domain: auditToolResult.domain } }));
+      }
+
+      const visualType = auditToolResult ? "audit_result" : detectVisualType(msg, data.reply);
       const followUpChips = getFollowUpChips(msg, data.reply);
 
       setMessages(prev => [...prev.slice(0, -1), {
@@ -432,6 +443,7 @@ export function GeoAgentTab({
         triggerUserMsg: msg,
         followUpChips,
         toolsUsed: data.toolsUsed ?? [],
+        auditToolResult,
       }]);
 
       if (data.remaining !== null) {
@@ -456,7 +468,7 @@ export function GeoAgentTab({
     setTimeout(() => setCopiedIdx(null), 2000);
   };
 
-  const buildVisualData = (agentResponse: string): VisualData => ({
+  const buildVisualData = (msg: Message): VisualData => ({
     brand: {
       domain: brand.domain,
       brandName: brand.brandName,
@@ -472,10 +484,11 @@ export function GeoAgentTab({
     citationData,
     competitorDisplayName,
     weekChange,
-    agentResponse,
+    agentResponse: msg.content,
     technicalChecks: apiTechnicalChecks.length > 0 ? apiTechnicalChecks : undefined,
     technicalOverallScore: apiTechnicalScore,
     auditCheckedAt: apiCheckedAt,
+    auditToolResult: msg.auditToolResult,
   });
 
   return (
@@ -584,7 +597,7 @@ export function GeoAgentTab({
             {/* Visual component below agent message */}
             {msg.role === "agent" && !msg.isLoading && msg.visualType && msg.content && (
               <div style={{ marginLeft: 36, marginTop: 2 }}>
-                <AgentVisual visualType={msg.visualType} data={buildVisualData(msg.content)} />
+                <AgentVisual visualType={msg.visualType} data={buildVisualData(msg)} />
               </div>
             )}
 
