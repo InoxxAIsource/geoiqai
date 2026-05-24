@@ -1,0 +1,131 @@
+Update pricing page to show 
+the full value of what is built.
+
+Current listing undersells the product.
+Users cannot see the GEO Agent or
+Content Improvements features.
+
+=== UPDATE STARTER FEATURES LIST ===
+
+Replace current Starter features with:
+
+✓ Everything in Free
+✓ GEO Agent — personal AI strategist
+  powered by Claude
+✓ Run live audits from conversation
+✓ Generate tweets, blogs, pitches
+✓ Content improvements — AI rewrites
+  of your actual homepage copy
+✓ 4-week fix roadmap with CITE tags
+✓ Full recommendations with 
+  step-by-step instructions
+✓ Citation tracking — see which sites
+  AI cites for your keywords
+✓ Competition analysis — 
+  AI mention rate comparison
+✓ Daily automated monitoring
+✓ Weekly digest email
+✓ 3 competitors tracked
+✓ 90 days score history
+✓ Unlimited audits
+✓ 50 GEO Agent messages/month
+
+=== UPDATE AGENCY FEATURES LIST ===
+
+Replace current Agency features with:
+
+✓ Everything in Starter
+✓ Unlimited GEO Agent messages
+✓ 10 brands monitored
+✓ 10 competitors tracked
+✓ Google AI Overview tracking
+✓ White label PDF reports
+✓ Team seats (3 users)
+✓ Priority support
+✓ API access
+
+=== ADD FEATURE CALLOUT ABOVE PLANS ===
+
+Above the 3 pricing cards add:
+
+A highlighted feature callout box:
+bg: #EEF2FF
+border: 1px solid #C7D2FE
+border-radius: 12px
+padding: 20px 24px
+margin-bottom: 32px
+text-align: center
+
+Icon: 🤖
+
+Title: "Every paid plan includes 
+GeoIQ Agent"
+font-size: 16px, font-weight: 600
+color: #1E1B4B
+
+Body: "A Claude-powered AI strategist 
+that knows your brand, scores, and 
+competitors. Ask it anything, 
+run live audits, generate content — 
+all from a single conversation."
+font-size: 14px, color: #4338CA
+
+=== ADD COMPARISON TABLE ===
+
+Below the 3 pricing cards add a 
+feature comparison table:
+
+Title: "Full feature comparison"
+
+Table columns:
+Feature | Free | Starter | Agency
+
+Rows:
+GEO IQ Score | ✓ | ✓ | ✓
+AI systems checked | 3 | 5 | 5
+Technical audit | ✓ | ✓ | ✓
+GEO files download | ✓ | ✓ | ✓
+Daily monitoring | ✗ | ✓ | ✓
+GEO Agent (Claude AI) | ✗ | ✓ | ✓
+GEO Agent messages | ✗ | 50/mo | Unlimited
+Live audit from chat | ✗ | ✓ | ✓
+Content generator | ✗ | ✓ | ✓
+Content improvements | ✗ | ✓ | ✓
+Citation tracking | ✗ | ✓ | ✓
+Fix Actions roadmap | Preview | Full | Full
+Competitors tracked | ✗ | 3 | 10
+Score history | ✗ | 90 days | 1 year
+Weekly digest | ✗ | ✓ | ✓
+Brands monitored | 1 audit | 1 | 10
+Google AI Overview | ✗ | ✗ | ✓
+White label reports | ✗ | ✗ | ✓
+Team seats | ✗ | ✗ | 3 users
+API access | ✗ | ✗ | ✓
+Audits per month | 5 | Unlimited | Unlimited
+
+Style:
+Alternating row bg
+✓ in green #059669
+✗ in gray #9CA3AF
+Your plan column highlighted
+
+=== UPDATE CTA BUTTONS ===
+
+Free: "Check my GEO IQ →"
+Starter: "Start monitoring →"
+Agency: "Contact us →"
+
+Keep same colors as current.
+
+=== VERIFY AFTER UPDATE ===
+
+□ GEO Agent callout shows
+□ Starter features updated
+□ Agency features updated  
+□ Comparison table renders
+□ Mobile looks clean
+□ INR conversion shows correctly
+  below USD price
+
+Show screenshot of updated 
+pricing page.
