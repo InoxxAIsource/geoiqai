@@ -744,41 +744,91 @@ export default function Dashboard() {
       )}
 
       {/* Sidebar (desktop only) */}
-      <div style={{ width: 164, borderRight: "0.5px solid #e5e7eb", background: "white", display: isMobile ? "none" : "flex", flexDirection: "column", flexShrink: 0 }}>
-        <div style={{ padding: "14px 16px 10px", fontWeight: 700, fontSize: 14, color: "#4F46E5", borderBottom: "0.5px solid #f3f4f6" }}>GeoIQ</div>
-        <nav style={{ flex: 1, overflowY: "auto", padding: "6px 0" }}>
-          {NAV_ITEMS.map(({ label, icon: Icon }) => {
+      <div style={{ width: 240, background: "#0F172A", display: isMobile ? "none" : "flex", flexDirection: "column", flexShrink: 0 }}>
+        {/* Logo area */}
+        <div style={{ height: 64, padding: "0 20px", display: "flex", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <span style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 18, color: "white", letterSpacing: "-0.01em" }}>GeoIQ</span>
+        </div>
+
+        {/* Brand selector */}
+        {selectedBrand && (
+          <div style={{ background: "#1E293B", borderRadius: 8, margin: "12px 12px 4px", padding: "10px 12px", display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 20, height: 20, borderRadius: 4, background: "#4F46E5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "white", fontWeight: 700, flexShrink: 0 }}>
+              {selectedBrand.domain.charAt(0).toUpperCase()}
+            </div>
+            <span style={{ fontSize: 13, color: "white", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{selectedBrand.domain}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+          </div>
+        )}
+
+        {/* OVERVIEW section */}
+        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "#475569", textTransform: "uppercase" as const, padding: "16px 20px 6px" }}>Overview</div>
+        <nav style={{ padding: "0 8px" }}>
+          {NAV_ITEMS.filter(n => ["Overview", "Last Audit", "Visibility"].includes(n.label)).map(({ label, icon: Icon }) => {
             const isActive = activeTab === label;
             return (
               <button
                 key={label}
                 onClick={() => setActiveTab(label)}
                 style={{
-                  width: "100%", height: 38, padding: "0 14px", display: "flex", alignItems: "center", gap: 8,
-                  fontSize: 12.5, cursor: "pointer",
-                  background: isActive ? "#EEF2FF" : "transparent",
-                  color: isActive ? "#4F46E5" : "#6b7280",
-                  fontWeight: isActive ? 600 : 400,
-                  borderRight: isActive ? "2.5px solid #4F46E5" : "2.5px solid transparent",
-                  border: "none", textAlign: "left", transition: "background 0.1s",
+                  width: "100%", height: 36, padding: "0 12px", display: "flex", alignItems: "center", gap: 10,
+                  fontSize: 13, fontWeight: 500, cursor: "pointer",
+                  background: isActive ? "#4F46E5" : "transparent",
+                  color: isActive ? "white" : "#94A3B8",
+                  borderRadius: 6, border: "none", textAlign: "left",
+                  transition: "background 0.1s, color 0.1s",
+                  marginBottom: 2,
                 }}
-                onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f9fafb"; }}
-                onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                onMouseEnter={e => { if (!isActive) { (e.currentTarget as HTMLButtonElement).style.background = "#1E293B"; (e.currentTarget as HTMLButtonElement).style.color = "#E2E8F0"; } }}
+                onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "#94A3B8"; } }}
               >
-                <Icon size={14} color={isActive ? "#4F46E5" : "#9ca3af"} />
+                <Icon size={16} color={isActive ? "white" : "#94A3B8"} />
                 {label}
               </button>
             );
           })}
         </nav>
-        <div style={{ padding: "10px 14px", borderTop: "0.5px solid #f3f4f6", fontSize: 11, color: "#9ca3af" }}>
+
+        {/* GEO TOOLS section */}
+        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "#475569", textTransform: "uppercase" as const, padding: "16px 20px 6px" }}>GEO Tools</div>
+        <nav style={{ padding: "0 8px" }}>
+          {NAV_ITEMS.filter(n => !["Overview", "Last Audit", "Visibility"].includes(n.label)).map(({ label, icon: Icon }) => {
+            const isActive = activeTab === label;
+            return (
+              <button
+                key={label}
+                onClick={() => setActiveTab(label)}
+                style={{
+                  width: "100%", height: 36, padding: "0 12px", display: "flex", alignItems: "center", gap: 10,
+                  fontSize: 13, fontWeight: 500, cursor: "pointer",
+                  background: isActive ? "#4F46E5" : "transparent",
+                  color: isActive ? "white" : "#94A3B8",
+                  borderRadius: 6, border: "none", textAlign: "left",
+                  transition: "background 0.1s, color 0.1s",
+                  marginBottom: 2,
+                }}
+                onMouseEnter={e => { if (!isActive) { (e.currentTarget as HTMLButtonElement).style.background = "#1E293B"; (e.currentTarget as HTMLButtonElement).style.color = "#E2E8F0"; } }}
+                onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "#94A3B8"; } }}
+              >
+                <Icon size={16} color={isActive ? "white" : "#94A3B8"} />
+                {label}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div style={{ flex: 1 }} />
+
+        {/* Bottom user area */}
+        <div style={{ padding: "12px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
           {user?.plan === "free" ? (
-            <button style={{ width: "100%", background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "7px 0", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
+            <button style={{ width: "100%", background: "#4F46E5", color: "white", border: "none", borderRadius: 8, padding: "9px 0", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
               Upgrade plan
             </button>
           ) : (
-            <span style={{ textTransform: "capitalize" }}>{user?.plan ?? ""} plan</span>
+            <div style={{ fontSize: 12, color: "#475569", textTransform: "capitalize" as const }}>{user?.plan ?? ""} plan</div>
           )}
+          <div style={{ fontSize: 11, color: "#475569", marginTop: 8, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email ?? ""}</div>
         </div>
       </div>
 
@@ -826,8 +876,8 @@ export default function Dashboard() {
         )}
 
         {/* Top bar */}
-        <div style={{ background: "white", padding: isMobile ? "10px 14px" : "10px 20px", borderBottom: "0.5px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ background: "white", height: 56, padding: isMobile ? "0 14px" : "0 24px", borderBottom: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {isMobile && (
               <button
                 onClick={() => setMobileDrawerOpen(true)}
@@ -836,18 +886,25 @@ export default function Dashboard() {
                 <Menu size={20} />
               </button>
             )}
-            <div style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>{scoresDomain || "No brand selected"}</div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: "#0F172A" }}>{activeTab}</div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {selectedBrand && !isScanning && (
-              <button
-                onClick={() => selectedBrandId && handleScanBrand(selectedBrandId)}
-                style={{ display: "flex", alignItems: "center", gap: 5, background: "transparent", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "5px 12px", fontSize: 12, color: "#6b7280", cursor: "pointer" }}
-              >
-                <RefreshCw size={12} /> Rescan
-              </button>
+              <>
+                <span style={{ fontSize: 12, color: "#94A3B8" }}>
+                  {scoresDomain ? scoresDomain : ""}
+                </span>
+                <button
+                  onClick={() => selectedBrandId && handleScanBrand(selectedBrandId)}
+                  style={{ display: "flex", alignItems: "center", gap: 6, background: "white", border: "1px solid #E2E8F0", borderRadius: 8, padding: "6px 14px", fontSize: 13, color: "#374151", cursor: "pointer", transition: "border-color 150ms" }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = "#4F46E5")}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = "#E2E8F0")}
+                >
+                  <RefreshCw size={13} /> Rescan
+                </button>
+              </>
             )}
-            <Bell size={17} color="#9ca3af" style={{ cursor: "pointer" }} />
+            <Bell size={17} color="#94A3B8" style={{ cursor: "pointer" }} />
           </div>
         </div>
 
@@ -917,17 +974,73 @@ export default function Dashboard() {
               {/* ===================== OVERVIEW TAB ===================== */}
               {activeTab === "Overview" && (
                 <>
-                  {/* 4 metric cards */}
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 12 }}>
+                  {/* Main GEO IQ Score Card */}
+                  <div style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 16, padding: 28, marginBottom: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.06)" }}>
+                    <div style={{ display: "flex", gap: 32, alignItems: "flex-start", flexWrap: "wrap" }}>
+                      {/* Left: big score */}
+                      <div style={{ minWidth: 140 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", letterSpacing: "0.08em", textTransform: "uppercase" as const, marginBottom: 4 }}>GEO IQ Score</div>
+                        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 72, fontWeight: 800, lineHeight: 1, color: activeScore >= 67 ? "#059669" : activeScore >= 34 ? "#D97706" : activeScore > 0 ? "#DC2626" : "#94A3B8" }}>
+                          {activeScore}<span style={{ fontSize: 24, color: "#CBD5E1", fontWeight: 400 }}>/100</span>
+                        </div>
+                        {weekChange !== null && (
+                          <div style={{ fontSize: 13, color: weekChange >= 0 ? "#059669" : "#DC2626", marginTop: 6, fontWeight: 500 }}>
+                            {weekChange >= 0 ? `+${weekChange}` : weekChange} this week
+                          </div>
+                        )}
+                        <div style={{ marginTop: 12, display: "flex", gap: 16, flexWrap: "wrap" }}>
+                          <div>
+                            <div style={{ fontSize: 11, color: "#94A3B8" }}>AI systems visible</div>
+                            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 700, color: "#0F172A" }}>{visibleCount}<span style={{ fontSize: 13, color: "#94A3B8", fontWeight: 400 }}>/5</span></div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 11, color: "#94A3B8" }}>Prompts tracked</div>
+                            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 700, color: "#0F172A" }}>{promptList.length}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: system rows with progress bars */}
+                      <div style={{ flex: 1, minWidth: 200 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", letterSpacing: "0.08em", textTransform: "uppercase" as const, marginBottom: 12 }}>Breakdown by AI system</div>
+                        {systemStatuses.map((sys, i) => {
+                          const pct = Math.min(100, (sys.score / 33) * 100);
+                          const barColor = sys.score >= 16 ? "#059669" : sys.score >= 1 ? "#D97706" : "#E5E7EB";
+                          const barBg = sys.score >= 16 ? "#DCFCE7" : sys.score >= 1 ? "#FEF3C7" : "#F1F5F9";
+                          return (
+                            <div key={sys.name} style={{ marginBottom: i < systemStatuses.length - 1 ? 14 : 0 }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: sys.color, display: "inline-block", flexShrink: 0 }} />
+                                  <span style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>{sys.name}</span>
+                                </div>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                  <span style={{ fontSize: 12, color: "#64748B" }}>{sys.score}/33</span>
+                                  <span style={{ background: sys.found ? "#DCFCE7" : "#FEE2E2", color: sys.found ? "#065F46" : "#991B1B", borderRadius: 9999, padding: "2px 8px", fontSize: 11, fontWeight: 500 }}>
+                                    {sys.found ? "Visible" : "Invisible"}
+                                  </span>
+                                </div>
+                              </div>
+                              <div style={{ height: 6, background: barBg, borderRadius: 3, overflow: "hidden" }}>
+                                <div style={{ height: "100%", width: `${pct}%`, background: barColor, borderRadius: 3, transition: "width 0.8s ease" }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3 stat cards */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 12 }}>
                     {[
-                      { label: "Visibility score", value: <span style={{ fontSize: 24, fontWeight: 600, color: "#111827" }}>{activeScore}<span style={{ fontSize: 14, color: "#9ca3af", fontWeight: 400 }}>/100</span></span> },
-                      { label: "vs last scan", value: weekChange === null ? <span style={{ fontSize: 20, color: "#9ca3af" }}>-</span> : <span style={{ fontSize: 22, fontWeight: 600, color: weekChange >= 0 ? "#10b981" : "#ef4444" }}>{weekChange >= 0 ? `+${weekChange}` : weekChange}</span> },
-                      { label: "AI systems visible", value: <span style={{ fontSize: 22, fontWeight: 600, color: "#111827" }}>{visibleCount}<span style={{ fontSize: 13, color: "#9ca3af", fontWeight: 400 }}>/5</span></span> },
-                      { label: "Prompts tracked", value: <span style={{ fontSize: 22, fontWeight: 600, color: "#111827" }}>{promptList.length}</span> },
+                      { label: "vs last scan", value: weekChange === null ? "-" : weekChange >= 0 ? `+${weekChange}` : `${weekChange}`, color: weekChange === null ? "#94A3B8" : weekChange >= 0 ? "#059669" : "#DC2626" },
+                      { label: "AI systems visible", value: `${visibleCount}/5`, color: "#0F172A" },
+                      { label: "Prompts tracked", value: `${promptList.length}`, color: "#0F172A" },
                     ].map((card, i) => (
-                      <div key={i} style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "12px 16px" }}>
-                        <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 4 }}>{card.label}</div>
-                        {card.value}
+                      <div key={i} style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 12, padding: "14px 18px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+                        <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 6, fontWeight: 500 }}>{card.label}</div>
+                        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 26, fontWeight: 800, color: card.color }}>{card.value}</div>
                       </div>
                     ))}
                   </div>

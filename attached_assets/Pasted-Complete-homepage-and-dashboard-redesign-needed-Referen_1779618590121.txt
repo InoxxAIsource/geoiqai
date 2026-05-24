@@ -1,0 +1,456 @@
+Complete homepage and dashboard 
+redesign needed. 
+
+Reference: rankscale.ai for 
+design quality and professionalism.
+
+Our product is better than theirs.
+Our design must reflect that.
+
+=== HOMEPAGE REDESIGN ===
+
+FONTS:
+Headlines: Syne 800 (already discussed)
+Body: Inter 400/500
+Import from Google Fonts
+
+COLOR SYSTEM:
+Primary: #0A0A0A (near black)
+Accent: #4F46E5 (indigo — keep our brand)
+Accent 2: #10B981 (emerald green for positive)
+Background: #FFFFFF
+Surface: #F9FAFB
+Border: #E5E7EB
+Text primary: #0A0A0A
+Text secondary: #6B7280
+
+NAVBAR:
+bg: white
+border-bottom: 1px solid #E5E7EB
+height: 64px
+padding: 0 32px
+
+Left: GeoIQ logo (text + icon)
+Center: Features · Pricing · Blog · 
+        What is GEO
+Right: Sign in (ghost) · 
+       Start free → (filled indigo)
+
+HERO SECTION:
+padding: 80px 24px 60px
+
+Small label above headline:
+bg: #EEF2FF
+color: #4338CA
+border-radius: 20px
+padding: 4px 14px
+font-size: 12px
+font-weight: 600
+letter-spacing: 0.05em
+text: "FREE AI VISIBILITY AUDIT"
+display: inline-block
+margin-bottom: 20px
+
+Main headline:
+font-family: Syne
+font-size: 64px desktop / 36px mobile
+font-weight: 800
+color: #0A0A0A
+line-height: 1.05
+text-align: center
+max-width: 800px
+margin: 0 auto 20px
+
+Line 1: "Does AI recommend"
+Line 2: "your brand?" 
+← this line in #4F46E5 indigo
+
+Subheadline:
+font-size: 20px
+color: #6B7280
+max-width: 560px
+margin: 0 auto 40px
+text-align: center
+line-height: 1.6
+font-weight: 400
+
+"Find out how ChatGPT, Gemini & 
+Perplexity see your brand.
+Free audit in 60 seconds. 
+No signup needed."
+
+AUDIT INPUT:
+Max-width: 560px
+margin: 0 auto
+display: flex
+gap: 8px
+padding: 6px 6px 6px 20px
+bg: white
+border: 1.5px solid #E5E7EB
+border-radius: 50px
+box-shadow: 0 4px 24px rgba(0,0,0,0.06)
+
+Input:
+flex: 1
+border: none
+outline: none
+font-size: 15px
+placeholder: "Enter your website URL..."
+bg: transparent
+
+Button:
+"Check my GEO IQ →"
+bg: #4F46E5
+color: white
+border-radius: 50px
+padding: 12px 24px
+font-size: 14px
+font-weight: 600
+white-space: nowrap
+
+Below input:
+"No signup · Free · 60 seconds"
+font-size: 12px, color: #9CA3AF
+text-align: center
+margin-top: 12px
+
+STATS BAR:
+margin-top: 60px
+padding: 24px 0
+border-top: 1px solid #F3F4F6
+border-bottom: 1px solid #F3F4F6
+
+4 stats in a row:
+[500+ Audits Run] · [5 AI Systems] · 
+[Free Forever] · [60 Second Results]
+
+Each stat:
+Number: font-family Syne, 
+        font-size 24px, font-weight 700
+Label: font-size 12px, color #6B7280
+
+Dividers between stats:
+1px solid #E5E7EB
+
+DASHBOARD SCREENSHOT:
+Add a real screenshot of the GeoIQ 
+dashboard below the hero.
+
+Take screenshot of the dashboard 
+showing mealcoreai.com data.
+
+Display as:
+max-width: 900px
+margin: 60px auto 0
+border-radius: 16px
+border: 1px solid #E5E7EB
+box-shadow: 0 24px 64px rgba(0,0,0,0.12)
+overflow: hidden
+
+Add subtle gradient at bottom:
+linear-gradient(transparent, white)
+height: 120px
+position: absolute bottom of screenshot
+This creates a "peek" effect
+
+PAIN SECTION:
+(Already designed — keep but upgrade fonts)
+
+Title: "Your customers ask AI."
+Second line: "AI recommends your competitor."
+Third line: "You have no idea."
+← Third line in #DC2626 red
+
+Use Syne 800 for all three lines.
+
+3 pain cards:
+Remove generic icons
+Use mini terminal/data visualizations
+As designed previously
+
+BRAND EXAMPLES TICKER:
+(Keep existing ticker)
+Make sure it looks clean:
+bg: #F9FAFB
+padding: 16px 0
+Font: Inter 500, 13px
+Color: #374151
+
+FEATURES SECTION:
+Add horizontal scrollable tab navigation
+like Rankscale:
+
+[AI Visibility Score] 
+[GEO Agent] 
+[Fix Actions] 
+[Citation Tracking] 
+[Competition Analysis]
+[Content Generator]
+
+Each tab: clicking shows feature 
+description + screenshot below
+
+Active tab:
+bg: #4F46E5
+color: white
+border-radius: 8px
+
+Inactive:
+bg: transparent
+color: #6B7280
+
+SOCIAL PROOF SECTION:
+Dark background: #0A0A0A
+padding: 80px 24px
+
+Title:
+"Trusted by founders who 
+take AI search seriously"
+font-family: Syne
+font-size: 36px
+color: white
+text-align: center
+
+4 stat boxes:
+Each: bg #1A1A1A, border: 1px solid #2A2A2A
+border-radius: 16px, padding: 32px
+
+Stats:
+"500+" — Audits run
+"5" — AI systems tracked
+"0" — Signups needed
+"60s" — Average audit time
+
+FOUNDER STORY:
+(Keep existing but upgrade design)
+Dark section as designed before
+
+PRICING:
+3 tier cards
+Clean, modern, match Rankscale quality
+
+CTA SECTION:
+Dark bg
+"Start monitoring your AI visibility"
+Big indigo button
+
+FOOTER:
+Dark bg: #0A0A0A
+Clean links
+Copyright
+
+=== DASHBOARD REDESIGN ===
+
+The dashboard must look like a 
+professional analytics tool —
+not a basic web app.
+
+Reference: Rankscale's dark sidebar 
++ light content area
+
+SIDEBAR:
+Width: 240px
+Background: #0F172A (dark navy)
+Color: #94A3B8 (muted text)
+padding: 0
+
+Top: Logo area
+height: 64px
+padding: 0 20px
+display: flex, align-items: center
+"GeoIQ" in white, Syne font
+
+Brand selector below logo:
+bg: #1E293B
+border-radius: 8px
+margin: 0 12px 16px
+padding: 10px 12px
+display: flex
+align-items: center
+gap: 8px
+
+Brand favicon (16px)
+Domain text (13px, white)
+Chevron right (gray)
+
+Navigation sections:
+
+OVERVIEW label:
+font-size: 10px
+font-weight: 600
+letter-spacing: 0.08em
+color: #475569
+text-transform: uppercase
+padding: 16px 20px 6px
+
+Nav items:
+height: 36px
+padding: 0 12px 0 20px
+display: flex
+align-items: center
+gap: 10px
+border-radius: 6px
+margin: 2px 8px
+cursor: pointer
+font-size: 13px
+font-weight: 500
+
+Default: color #94A3B8
+Hover: bg #1E293B, color #E2E8F0
+Active: bg #4F46E5, color white
+
+Icons: 16px, matching color
+
+GEO TOOLS label:
+(same as OVERVIEW label style)
+
+BOTTOM of sidebar:
+User info
+Plan badge
+Support link
+
+MAIN CONTENT:
+Background: #F8FAFC
+
+TOP BAR:
+bg: white
+height: 56px
+border-bottom: 1px solid #E2E8F0
+padding: 0 24px
+display: flex
+align-items: center
+justify-content: space-between
+
+Left: Page title (Inter 600, 16px, #0F172A)
+
+Right:
+"Last checked: X hours ago"
+font-size: 12px, color: #94A3B8
+
+Rescan button:
+bg: white
+border: 1px solid #E2E8F0
+border-radius: 8px
+padding: 6px 14px
+font-size: 13px
+color: #374151
+hover: border-color #4F46E5
+
+Bell icon
+Settings icon
+
+OVERVIEW TAB:
+
+Score card (large, prominent):
+bg: white
+border-radius: 16px
+padding: 28px
+border: 1px solid #E2E8F0
+box-shadow: 0 1px 3px rgba(0,0,0,0.05)
+
+Left side:
+"GEO IQ Score"
+font-size: 11px, font-weight: 600
+color: #94A3B8
+letter-spacing: 0.08em
+text-transform: uppercase
+
+Large number:
+font-family: Syne
+font-size: 72px
+font-weight: 800
+color based on score:
+0-33: #DC2626
+34-66: #D97706
+67-100: #059669
+line-height: 1
+
+"/100" in #CBD5E1
+
+Trend: "+X this week" below
+Green arrow up or red arrow down
+
+Right side:
+3 system rows:
+ChatGPT | progress bar | X/33 | badge
+Gemini | progress bar | X/33 | badge
+Perplexity | progress bar | X/33 | badge
+
+Progress bar colors:
+0: #FEE2E2 bg, #DC2626 fill
+1-15: #FEF3C7 bg, #D97706 fill
+16-33: #DCFCE7 bg, #059669 fill
+
+4 metric cards below:
+White bg, border, shadow
+AI Memory Score
+Live Web Score
+Technical Score
+Tasks Completed
+
+Charts:
+Use recharts or chart.js
+Clean, minimal, no grid lines
+Smooth curves not jagged
+
+GEO AGENT TAB:
+Dark background: #0F172A
+Full height
+Clean chat interface
+Indigo accent for user messages
+Dark gray for agent messages
+This creates a premium terminal feel
+
+=== TYPOGRAPHY RULES ===
+
+All page titles: Syne 700-800
+All section headlines: Syne 600-700
+All body text: Inter 400
+All labels/captions: Inter 500
+All numbers/scores: Syne 800
+All buttons: Inter 600
+
+=== SPACING SYSTEM ===
+
+Use 8px base unit:
+4px, 8px, 12px, 16px, 24px, 
+32px, 48px, 64px, 80px, 96px
+
+=== SHADOW SYSTEM ===
+
+Card shadow: 
+0 1px 3px rgba(0,0,0,0.05),
+0 1px 2px rgba(0,0,0,0.06)
+
+Elevated card:
+0 4px 6px rgba(0,0,0,0.07),
+0 2px 4px rgba(0,0,0,0.06)
+
+Modal:
+0 20px 25px rgba(0,0,0,0.1),
+0 10px 10px rgba(0,0,0,0.04)
+
+=== TEST AFTER REDESIGN ===
+
+Check these pages look premium:
+
+□ Homepage hero section
+□ Pain section with cards
+□ Features tabs section
+□ Social proof dark section
+□ Pricing cards
+□ Dashboard sidebar (dark navy)
+□ Dashboard overview tab
+□ GEO Agent dark interface
+□ Mobile at 375px
+
+Compare to rankscale.ai:
+GeoIQ must look equally professional
+or better.
+
+Show screenshots of:
+1. Homepage hero
+2. Homepage features section
+3. Dashboard overview
+4. GEO Agent interface
+5. Mobile homepage
