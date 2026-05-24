@@ -80,3 +80,22 @@ An AI Visibility Platform that helps startups and founders track how their brand
 ## Pointers
 
 - See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+
+## Google Index Submissions
+
+Sitemap URL: https://geoiqai.com/sitemap.xml
+
+| Page URL | Submitted for indexing |
+|----------|----------------------|
+| https://geoiqai.com/ | 24 May 2026 |
+| https://geoiqai.com/audit | 24 May 2026 |
+| https://geoiqai.com/pricing | 24 May 2026 |
+| https://geoiqai.com/what-is-geo | 24 May 2026 |
+| https://geoiqai.com/how-to-rank-in-chatgpt | 24 May 2026 |
+| https://geoiqai.com/geo-tools | 24 May 2026 |
+| https://geoiqai.com/blog | 24 May 2026 |
+| https://geoiqai.com/blog/why-startup-not-showing-chatgpt | 24 May 2026 |
+| https://geoiqai.com/roadmap | 24 May 2026 |
+| https://geoiqai.com/contact | 24 May 2026 |
+| https://geoiqai.com/privacy | 24 May 2026 |
+| https://geoiqai.com/terms | pending |
