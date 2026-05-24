@@ -138,6 +138,47 @@ export async function sendPasswordResetEmail(email: string, resetUrl: string): P
   await sendEmail(email, "Reset your GeoIQ password", html);
 }
 
+const CONTACT_RECIPIENT = "inoxxprotocol@gmail.com";
+
+export async function sendContactEmail(
+  name: string,
+  fromEmail: string,
+  subject: string,
+  message: string,
+): Promise<void> {
+  const html = `
+<div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
+  <h2 style="color:#4F46E5;font-size:20px;font-weight:600;margin-bottom:4px">New contact form submission</h2>
+  <p style="font-size:12px;color:#9ca3af;margin-bottom:24px">Sent via GeoIQ contact form</p>
+  <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
+    <tr>
+      <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;font-size:13px;color:#6b7280;width:90px;vertical-align:top">Name</td>
+      <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;font-size:13px;color:#111827;font-weight:500">${name}</td>
+    </tr>
+    <tr>
+      <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;font-size:13px;color:#6b7280;vertical-align:top">Email</td>
+      <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;font-size:13px;color:#111827">
+        <a href="mailto:${fromEmail}" style="color:#4F46E5">${fromEmail}</a>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;font-size:13px;color:#6b7280;vertical-align:top">Subject</td>
+      <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;font-size:13px;color:#111827">${subject}</td>
+    </tr>
+  </table>
+  <div style="background:#f9fafb;border-radius:10px;padding:16px;margin-bottom:24px">
+    <p style="font-size:13px;color:#6b7280;margin:0 0 8px;font-weight:500">Message</p>
+    <p style="font-size:14px;color:#374151;margin:0;line-height:1.7;white-space:pre-wrap">${message}</p>
+  </div>
+  <a href="mailto:${fromEmail}" style="display:inline-block;background:#4F46E5;color:white;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:500">
+    Reply to ${name}
+  </a>
+  <p style="font-size:12px;color:#9ca3af;margin-top:24px">GeoIQ · geoiqai.com</p>
+</div>`;
+
+  await sendEmail(CONTACT_RECIPIENT, `[GeoIQ Contact] ${subject}`, html);
+}
+
 export async function sendSubscribeConfirmation(email: string, domain?: string): Promise<void> {
   const html = `
 <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">

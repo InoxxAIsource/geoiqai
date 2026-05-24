@@ -102,7 +102,7 @@ export function Footer() {
             <div style={headingStyle}>Legal</div>
             <FooterLink href="/privacy">Privacy Policy</FooterLink>
             <FooterLink href="/terms">Terms of Service</FooterLink>
-            <FooterLink href="mailto:hello@geoiqai.com" external>Contact</FooterLink>
+            <FooterLink href="/contact">Contact</FooterLink>
           </div>
         </div>
 
