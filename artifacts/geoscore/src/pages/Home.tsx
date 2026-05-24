@@ -630,23 +630,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── FOUNDER QUOTE ── */}
-      <section style={{ background: "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)", padding: "80px 24px", textAlign: "center" }}>
-        <div style={{ maxWidth: 680, margin: "0 auto" }}>
-          <div style={{ fontSize: 120, color: "rgba(255,255,255,0.15)", lineHeight: 0.8, marginBottom: -8, fontFamily: "Georgia, serif" }}>&ldquo;</div>
-          <blockquote style={{ fontSize: "clamp(18px, 2.5vw, 24px)", color: "white", fontWeight: 400, lineHeight: 1.6, marginBottom: 32, fontStyle: "normal" }}>
-            I built MealCoreAI to 12,000 users, but our growth stalled. Turns out, Perplexity was telling our exact target audience to use our competitor. I had zero warning. I built GeoIQ to fix my own problem.
-          </blockquote>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }}>
-            <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,255,255,0.2)", border: "2px solid rgba(255,255,255,0.4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "white", fontWeight: 600, flexShrink: 0 }}>T</div>
-            <div style={{ textAlign: "left" }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: "white" }}>Tauheed</div>
-              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>Founder, GeoIQ and MealCoreAI</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ── HOW IT WORKS ── */}
       <section id="how-it-works" style={{ background: "#F9FAFB", padding: "96px 24px" }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
