@@ -1,0 +1,292 @@
+Update all metadata and SEO tags on 
+geoiqai.com to clearly differentiate 
+from geoiq.ai (location intelligence company).
+
+We are GeoIQ AI Visibility Platform
+at geoiqai.com — completely different
+from GeoIQ location intelligence at geoiq.ai
+
+=== HOMEPAGE META TAGS ===
+
+Update index.html or root layout:
+
+<title>GeoIQ — AI Visibility Platform | 
+Check Your Brand in ChatGPT & Gemini</title>
+
+<meta name="description" 
+content="GeoIQ (geoiqai.com) is an AI 
+visibility platform that tracks how your 
+brand appears in ChatGPT, Gemini and 
+Perplexity. Free audit in 60 seconds. 
+No signup needed.">
+
+<meta name="keywords" 
+content="AI visibility, GEO optimization, 
+ChatGPT brand visibility, Gemini brand 
+tracking, Perplexity monitoring, 
+AI search console, brand AI visibility, 
+GEO IQ score">
+
+<meta name="author" content="GeoIQ">
+
+<meta name="robots" 
+content="index, follow">
+
+<link rel="canonical" 
+href="https://geoiqai.com">
+
+=== OPEN GRAPH TAGS ===
+
+<meta property="og:title" 
+content="GeoIQ — AI Visibility Platform">
+
+<meta property="og:description" 
+content="Check how ChatGPT, Gemini & 
+Perplexity see your brand. Free AI 
+visibility audit in 60 seconds.">
+
+<meta property="og:url" 
+content="https://geoiqai.com">
+
+<meta property="og:site_name" 
+content="GeoIQ — geoiqai.com">
+
+<meta property="og:type" 
+content="website">
+
+<meta property="og:image" 
+content="https://geoiqai.com/og-image.png">
+
+=== TWITTER CARD TAGS ===
+
+<meta name="twitter:card" 
+content="summary_large_image">
+
+<meta name="twitter:title" 
+content="GeoIQ — AI Visibility Platform">
+
+<meta name="twitter:description" 
+content="Check how ChatGPT, Gemini & 
+Perplexity see your brand. Free in 
+60 seconds. No signup needed.">
+
+<meta name="twitter:site" 
+content="@BeingtauheedTk">
+
+<meta name="twitter:image" 
+content="https://geoiqai.com/og-image.png">
+
+=== SCHEMA.ORG STRUCTURED DATA ===
+
+Add in <head> inside 
+<script type="application/ld+json">:
+
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "GeoIQ",
+  "alternateName": "GeoIQ AI Visibility",
+  "url": "https://geoiqai.com",
+  "description": "GeoIQ is an AI 
+    visibility platform that tracks 
+    how your brand appears in ChatGPT, 
+    Gemini and Perplexity. Get your 
+    free AI visibility audit in 
+    60 seconds.",
+  "applicationCategory": 
+    "BusinessApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD",
+    "description": "Free AI visibility audit"
+  },
+  "creator": {
+    "@type": "Person",
+    "name": "Tauheed",
+    "url": "https://twitter.com/BeingtauheedTk"
+  },
+  "sameAs": [
+    "https://twitter.com/BeingtauheedTk"
+  ]
+}
+
+Also add Organization schema:
+
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "GeoIQ",
+  "alternateName": "GeoIQ AI Visibility Platform",
+  "url": "https://geoiqai.com",
+  "logo": "https://geoiqai.com/logo.png",
+  "description": "AI visibility platform 
+    for tracking brand presence in 
+    ChatGPT, Gemini and Perplexity",
+  "foundingDate": "2026",
+  "founder": {
+    "@type": "Person",
+    "name": "Tauheed"
+  },
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "contactType": "customer support",
+    "email": "hello@geoiqai.com"
+  },
+  "sameAs": [
+    "https://twitter.com/BeingtauheedTk"
+  ]
+}
+
+=== SEO PAGES META TAGS ===
+
+Update each SEO page with unique
+title and description:
+
+/what-is-geo:
+title: "What is GEO? Generative Engine 
+Optimization Explained | GeoIQ"
+description: "GEO (Generative Engine 
+Optimization) is the practice of 
+optimizing your brand to appear in 
+ChatGPT, Gemini and Perplexity results. 
+Learn how it works and how to improve 
+your score."
+
+/how-to-rank-in-chatgpt:
+title: "How to Rank in ChatGPT: 
+Complete Guide 2026 | GeoIQ"
+description: "Learn exactly how to get 
+your brand recommended by ChatGPT. 
+Step by step guide with real examples 
+and actionable fixes."
+
+/geo-tools:
+title: "Best GEO Optimization Tools 
+2026 — Compared | GeoIQ"
+description: "Compare the best tools 
+for tracking and improving your AI 
+visibility across ChatGPT, Gemini 
+and Perplexity."
+
+/blog/why-startup-not-showing-chatgpt:
+title: "Why Your Startup Doesn't Show 
+Up in ChatGPT | GeoIQ Blog"
+description: "Most startups are 
+invisible in ChatGPT even with great 
+SEO. Here is exactly why and how to 
+fix it in one afternoon."
+
+=== ROBOTS.TXT ===
+
+Verify robots.txt allows indexing:
+
+User-agent: *
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: GoogleBot
+Allow: /
+
+Sitemap: https://geoiqai.com/sitemap.xml
+
+=== SITEMAP ===
+
+Generate/update sitemap.xml with
+all pages:
+
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/
+schemas/sitemap/0.9">
+  <url>
+    <loc>https://geoiqai.com/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://geoiqai.com/what-is-geo</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://geoiqai.com/
+how-to-rank-in-chatgpt</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://geoiqai.com/geo-tools</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://geoiqai.com/pricing</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://geoiqai.com/blog/
+why-startup-not-showing-chatgpt</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+</urlset>
+
+=== GOOGLE SEARCH CONSOLE ===
+
+After deploying these changes:
+
+1. Go to search.google.com/search-console
+2. Add property: geoiqai.com
+3. Verify ownership via HTML tag or
+   DNS record
+4. Submit sitemap:
+   geoiqai.com/sitemap.xml
+5. Request indexing for homepage
+
+This tells Google exactly what 
+geoiqai.com is — completely separate
+from geoiq.ai
+
+=== VERIFY AFTER DEPLOYMENT ===
+
+□ View page source on homepage
+  Verify all meta tags present
+
+□ Test OG tags at:
+  developers.facebook.com/tools/debug
+  Enter: geoiqai.com
+
+□ Test Twitter card at:
+  cards-dev.twitter.com/validator
+  Enter: geoiqai.com
+
+□ Test Schema at:
+  schema.org/SchemaValidator
+  Enter: geoiqai.com
+
+□ Check robots.txt loads:
+  geoiqai.com/robots.txt
+
+□ Check sitemap loads:
+  geoiqai.com/sitemap.xml
+
+□ Submit to Google Search Console
+
+Show me confirmation when all
+□ checks pass.

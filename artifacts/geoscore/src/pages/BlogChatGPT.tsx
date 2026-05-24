@@ -5,7 +5,7 @@ import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 
 export default function BlogChatGPT() {
-  useEffect(() => { document.title = "Why Your Startup Doesn't Show Up in ChatGPT (And How to Fix It) | GeoIQ"; }, []);
+  useEffect(() => { document.title = "Why Your Startup Doesn't Show Up in ChatGPT | GeoIQ Blog"; }, []);
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Navbar />

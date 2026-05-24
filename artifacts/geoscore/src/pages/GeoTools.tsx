@@ -105,7 +105,7 @@ function Check({ value }: { value: boolean }) {
 }
 
 export default function GeoTools() {
-  useEffect(() => { document.title = "Best GEO Tools 2026 | AI Visibility Platforms Compared | GeoIQ"; }, []);
+  useEffect(() => { document.title = "Best GEO Optimization Tools 2026 - Compared | GeoIQ"; }, []);
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Navbar />

@@ -5,7 +5,7 @@ import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 
 export default function HowToRankInChatGPT() {
-  useEffect(() => { document.title = "How to Appear in ChatGPT Results | Complete Guide | GeoIQ"; }, []);
+  useEffect(() => { document.title = "How to Rank in ChatGPT: Complete Guide 2026 | GeoIQ"; }, []);
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Navbar />
