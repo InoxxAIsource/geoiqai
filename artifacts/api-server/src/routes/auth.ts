@@ -25,6 +25,11 @@ router.post("/auth/magic-link", async (req, res): Promise<void> => {
     return;
   }
 
+  if (user.blocked) {
+    res.status(403).json({ error: "Your account has been blocked. Contact support.", blocked: true });
+    return;
+  }
+
   const token = generateMagicToken();
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 

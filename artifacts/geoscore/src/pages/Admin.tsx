@@ -193,16 +193,14 @@ export default function Admin() {
                         )}
                       </td>
                       <td style={{ padding: "12px 16px" }}><PlanBadge plan={user.plan} /></td>
+                      <td style={{ padding: "12px 16px" }}>
+                        <span style={{ fontSize: 11, color: user.subscriptionStatus === "active" ? "#059669" : "#94A3B8", fontWeight: 500, textTransform: "capitalize" as const }}>
+                          {user.subscriptionStatus ?? "inactive"}
+                        </span>
+                      </td>
                       <td style={{ padding: "12px 16px", color: "#94A3B8", whiteSpace: "nowrap" }}>{fmt(user.createdAt)}</td>
                       <td style={{ padding: "12px 16px", color: "#94A3B8", whiteSpace: "nowrap" }}>{fmt(user.lastLogin)}</td>
                       <td style={{ padding: "12px 16px", color: "#94A3B8", textAlign: "center" }}>{user.auditCount}</td>
-                      <td style={{ padding: "12px 16px" }}>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                          <span style={{ fontSize: 11, color: user.subscriptionStatus === "active" ? "#059669" : "#94A3B8", fontWeight: 500, textTransform: "capitalize" as const }}>
-                            {user.subscriptionStatus ?? "inactive"}
-                          </span>
-                        </div>
-                      </td>
                       <td style={{ padding: "12px 16px" }}>
                         {user.blocked ? (
                           <span style={{ fontSize: 11, color: "#DC2626", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
