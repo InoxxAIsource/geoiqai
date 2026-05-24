@@ -14,6 +14,51 @@ import {
   type CompetitorEntry,
 } from "./agent-visual-utils";
 
+// ─── StreamingText component ─────────────────────────────────────────────────
+
+function StreamingText({ text, onDone }: { text: string; onDone: () => void }) {
+  const [displayed, setDisplayed] = useState("");
+  const doneRef = useRef(false);
+
+  useEffect(() => {
+    setDisplayed("");
+    doneRef.current = false;
+    let i = 0;
+    const CHUNK = 4;
+    const INTERVAL = 14;
+    const timer = setInterval(() => {
+      i += CHUNK;
+      if (i >= text.length) {
+        setDisplayed(text);
+        doneRef.current = true;
+        clearInterval(timer);
+        onDone();
+      } else {
+        setDisplayed(text.slice(0, i));
+      }
+    }, INTERVAL);
+    return () => clearInterval(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text]);
+
+  return (
+    <>
+      <style>{`
+        @keyframes geo-cursor-blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+      `}</style>
+      <span style={{ whiteSpace: "pre-wrap" }}>
+        {displayed}
+        {!doneRef.current && (
+          <span style={{ display: "inline-block", width: 2, height: "1em", background: "#4F46E5", marginLeft: 1, verticalAlign: "text-bottom", animation: "geo-cursor-blink 0.7s infinite" }} />
+        )}
+      </span>
+    </>
+  );
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Brand {
@@ -37,6 +82,7 @@ interface Message {
   role: "user" | "agent";
   content: string;
   isLoading?: boolean;
+  isStreaming?: boolean;
   visualType?: VisualType | null;
   triggerUserMsg?: string;
   followUpChips?: string[];
@@ -366,6 +412,7 @@ export function GeoAgentTab({
         setMessages([{
           role: "agent",
           content: data.briefing,
+          isStreaming: true,
           followUpChips: CHIP_SETS.default,
         }]);
         setBriefingDone(true);
@@ -373,6 +420,7 @@ export function GeoAgentTab({
         setMessages([{
           role: "agent",
           content: `Hey - I'm your GEO Agent for ${brandName}. Your current score is ${brand.latestScore ?? 0}/100 across ChatGPT, Gemini, and Perplexity. Ask me anything about your AI visibility, or use the chips below to get started.`,
+          isStreaming: true,
           followUpChips: CHIP_SETS.default,
         }]);
         setBriefingDone(true);
@@ -445,6 +493,7 @@ export function GeoAgentTab({
       setMessages(prev => [...prev.slice(0, -1), {
         role: "agent",
         content: data.reply,
+        isStreaming: true,
         visualType,
         triggerUserMsg: msg,
         followUpChips,
@@ -586,7 +635,14 @@ export function GeoAgentTab({
                     border: msg.role === "agent" ? "1px solid #E5E7EB" : "none",
                     whiteSpace: "pre-wrap",
                   }}>
-                    {msg.content}
+                    {msg.role === "agent" && msg.isStreaming ? (
+                      <StreamingText
+                        text={msg.content}
+                        onDone={() => setMessages(prev => prev.map((m, mi) => mi === i ? { ...m, isStreaming: false } : m))}
+                      />
+                    ) : (
+                      msg.content
+                    )}
                   </div>
                   {msg.role === "agent" && msg.content && (
                     <button
@@ -601,15 +657,15 @@ export function GeoAgentTab({
               )}
             </div>
 
-            {/* Visual component below agent message */}
-            {msg.role === "agent" && !msg.isLoading && msg.visualType && msg.content && (
+            {/* Visual component below agent message — only after streaming is done */}
+            {msg.role === "agent" && !msg.isLoading && !msg.isStreaming && msg.visualType && msg.content && (
               <div style={{ marginLeft: 36, marginTop: 2 }}>
                 <AgentVisual visualType={msg.visualType} data={buildVisualData(msg)} />
               </div>
             )}
 
-            {/* Follow-up chips — only below the last agent message */}
-            {msg.role === "agent" && !msg.isLoading && msg.content && i === lastAgentIdx && msg.followUpChips && !loading && (
+            {/* Follow-up chips — only below the last agent message and after streaming */}
+            {msg.role === "agent" && !msg.isLoading && !msg.isStreaming && msg.content && i === lastAgentIdx && msg.followUpChips && !loading && (
               <FollowUpChips chips={msg.followUpChips} onChipClick={sendMessage} />
             )}
           </div>

@@ -815,6 +815,8 @@ export default function Dashboard() {
             <nav style={{ flex: 1, overflowY: "auto", padding: "6px 0" }}>
               {NAV_ITEMS.map(({ label, icon: Icon }) => {
                 const isActive = activeTab === label;
+                const isGeoAgent = label === "GEO Agent";
+                const isContentImprovements = label === "Content Improvements";
                 return (
                   <button
                     key={label}
@@ -830,7 +832,20 @@ export default function Dashboard() {
                     }}
                   >
                     <Icon size={15} color={isActive ? "#4F46E5" : "#9ca3af"} />
-                    {label}
+                    <span style={{ flex: 1 }}>{label}</span>
+                    {isGeoAgent && (
+                      <span style={{
+                        fontSize: 9, fontWeight: 700, letterSpacing: "0.04em",
+                        background: "linear-gradient(135deg, #6366F1, #8B5CF6)",
+                        color: "white", borderRadius: 4, padding: "2px 5px", flexShrink: 0,
+                      }}>AI</span>
+                    )}
+                    {isContentImprovements && (
+                      <span style={{
+                        fontSize: 9, fontWeight: 700, letterSpacing: "0.04em",
+                        background: "#D97706", color: "white", borderRadius: 4, padding: "2px 5px", flexShrink: 0,
+                      }}>NEW</span>
+                    )}
                   </button>
                 );
               })}
@@ -900,6 +915,8 @@ export default function Dashboard() {
         <nav style={{ padding: "0 8px" }}>
           {NAV_ITEMS.filter(n => !["Overview", "Last Audit", "Visibility"].includes(n.label)).map(({ label, icon: Icon }) => {
             const isActive = activeTab === label;
+            const isGeoAgent = label === "GEO Agent";
+            const isContentImprovements = label === "Content Improvements";
             return (
               <button
                 key={label}
@@ -917,7 +934,25 @@ export default function Dashboard() {
                 onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "#94A3B8"; } }}
               >
                 <Icon size={16} color={isActive ? "white" : "#94A3B8"} />
-                {label}
+                <span style={{ flex: 1 }}>{label}</span>
+                {isGeoAgent && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, letterSpacing: "0.04em",
+                    background: isActive ? "rgba(255,255,255,0.2)" : "linear-gradient(135deg, #6366F1, #8B5CF6)",
+                    color: isActive ? "white" : "white",
+                    borderRadius: 4, padding: "2px 5px",
+                    flexShrink: 0,
+                  }}>AI</span>
+                )}
+                {isContentImprovements && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, letterSpacing: "0.04em",
+                    background: isActive ? "rgba(255,255,255,0.2)" : "#D97706",
+                    color: "white",
+                    borderRadius: 4, padding: "2px 5px",
+                    flexShrink: 0,
+                  }}>NEW</span>
+                )}
               </button>
             );
           })}
