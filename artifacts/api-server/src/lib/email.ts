@@ -124,3 +124,31 @@ export async function sendPasswordResetEmail(email: string, resetUrl: string): P
     </a>
   `));
 }
+
+const ADMIN_EMAIL = "inoxxprotocol@gmail.com";
+
+export async function sendNewSignupAlert(userEmail: string, plan: string): Promise<void> {
+  const timestamp = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" });
+  await send(
+    ADMIN_EMAIL,
+    `New signup: ${userEmail}`,
+    `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#111827;">
+      <h2 style="font-size:18px;font-weight:600;margin:0 0 16px;">New user signed up</h2>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr>
+          <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;font-size:13px;color:#6b7280;width:80px;">Email</td>
+          <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;font-size:13px;color:#111827;font-weight:500;">${userEmail}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;font-size:13px;color:#6b7280;">Plan</td>
+          <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;font-size:13px;color:#111827;">${plan}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;font-size:13px;color:#6b7280;">Time</td>
+          <td style="padding:8px 0;font-size:13px;color:#111827;">${timestamp} IST</td>
+        </tr>
+      </table>
+      <p style="font-size:12px;color:#9ca3af;margin-top:24px;">GeoIQ admin alert</p>
+    </div>`,
+  );
+}

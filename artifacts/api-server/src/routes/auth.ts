@@ -4,7 +4,7 @@ import { db, usersTable, magicTokensTable, passwordResetTokensTable, emailVerifi
 import { eq, and, gt } from "drizzle-orm";
 import { RegisterBody, LoginBody } from "@workspace/api-zod";
 import { hashPassword, verifyPassword, createToken, generateMagicToken, requireAuth, type AuthRequest } from "../lib/auth";
-import { sendMagicLinkEmail, sendEmailVerification, sendPasswordResetEmail } from "../lib/email";
+import { sendMagicLinkEmail, sendEmailVerification, sendPasswordResetEmail, sendNewSignupAlert } from "../lib/email";
 
 const APP_URL = process.env.APP_URL ?? "https://geoscore.app";
 
@@ -122,6 +122,7 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
 
   const verifyUrl = `${APP_URL}/auth/verify-email?token=${verifyToken}`;
   void sendEmailVerification(cleanEmail, verifyUrl);
+  void sendNewSignupAlert(cleanEmail, "free");
 
   res.status(201).json({ sent: true, message: "Account created. Check your email to verify your account." });
 });
@@ -299,6 +300,8 @@ router.post("/auth/register", async (req, res): Promise<void> => {
 
   const passwordHash = hashPassword(password);
   const [user] = await db.insert(usersTable).values({ email, passwordHash, emailVerified: true }).returning();
+
+  void sendNewSignupAlert(user!.email, user!.plan ?? "free");
 
   const token = createToken(user!.id);
   res.status(201).json({
