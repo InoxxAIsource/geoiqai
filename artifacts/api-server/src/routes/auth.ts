@@ -69,6 +69,11 @@ router.post("/auth/verify-magic", async (req, res): Promise<void> => {
     return;
   }
 
+  if (user.blocked) {
+    res.status(403).json({ error: "Your account has been blocked. Contact support.", blocked: true });
+    return;
+  }
+
   await db.update(usersTable).set({ lastLogin: now }).where(eq(usersTable.id, user.id));
 
   const bearerToken = createToken(user.id);
@@ -129,6 +134,11 @@ router.post("/auth/login-password", async (req, res): Promise<void> => {
 
   if (!user || !user.passwordHash || !verifyPassword(password, user.passwordHash)) {
     res.status(401).json({ error: "Incorrect email or password." });
+    return;
+  }
+
+  if (user.blocked) {
+    res.status(403).json({ error: "Your account has been blocked. Contact support.", blocked: true });
     return;
   }
 

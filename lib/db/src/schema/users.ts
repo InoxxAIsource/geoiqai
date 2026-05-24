@@ -17,6 +17,7 @@ export const usersTable = pgTable("users", {
   lastLogin: timestamp("last_login", { withTimezone: true }),
   agentMessagesUsed: integer("agent_messages_used").notNull().default(0),
   agentMessagesReset: date("agent_messages_reset"),
+  blocked: boolean("blocked").notNull().default(false),
 });
 
 export const insertUserSchema = createInsertSchema(usersTable).omit({ id: true, createdAt: true });

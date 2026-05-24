@@ -62,6 +62,10 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     res.status(401).json({ error: "User not found" });
     return;
   }
+  if (user.blocked) {
+    res.status(403).json({ error: "Your account has been blocked. Contact support.", blocked: true });
+    return;
+  }
   (req as Request & { user: typeof user }).user = user;
   next();
 }
@@ -84,6 +88,10 @@ export async function requirePaidAuth(req: Request, res: Response, next: NextFun
     res.status(401).json({ error: "User not found", requiresPaid: true });
     return;
   }
+  if (user.blocked) {
+    res.status(403).json({ error: "Your account has been blocked. Contact support.", blocked: true });
+    return;
+  }
   if (user.plan === "free") {
     res.status(403).json({ error: "Dashboard is for paid subscribers only. Start for $69/month.", requiresPaid: true });
     return;
@@ -92,4 +100,4 @@ export async function requirePaidAuth(req: Request, res: Response, next: NextFun
   next();
 }
 
-export type AuthRequest = Request & { user: { id: string; email: string; plan: string; auditCount: number; razorpaySubscriptionId: string | null; createdAt: Date; lastLogin: Date | null; passwordHash: string | null; emailVerified: boolean; agentMessagesUsed: number; agentMessagesReset: string | null } };
+export type AuthRequest = Request & { user: { id: string; email: string; plan: string; auditCount: number; razorpaySubscriptionId: string | null; createdAt: Date; lastLogin: Date | null; passwordHash: string | null; emailVerified: boolean; agentMessagesUsed: number; agentMessagesReset: string | null; blocked: boolean } };
