@@ -19,7 +19,7 @@ const plans: PricingPlan[] = [
   {
     id: "free",
     name: "Free Audit",
-    price: "$0",
+    price: "Free",
     period: "",
     description: "Check any brand right now, no card needed.",
     isOutline: true,
@@ -36,9 +36,8 @@ const plans: PricingPlan[] = [
   {
     id: "starter",
     name: "Starter",
-    price: "$49",
-    period: "/month",
-    inrNote: "Billed as ₹4,743/mo in INR",
+    price: "Rs 3,999",
+    period: "/mo",
     description: "For founders who want to stay ahead of AI search.",
     isPopular: true,
     features: [
@@ -57,9 +56,8 @@ const plans: PricingPlan[] = [
   {
     id: "agency",
     name: "Agency",
-    price: "$99",
-    period: "/month",
-    inrNote: "Billed as ₹9,583/mo in INR",
+    price: "Rs 11,999",
+    period: "/mo",
     description: "For agencies managing multiple brands.",
     isOutline: true,
     features: [
@@ -71,8 +69,7 @@ const plans: PricingPlan[] = [
       "Priority support",
       "API access",
     ],
-    cta: "Contact us",
-    ctaHref: "mailto:hello@geoiqai.com",
+    cta: "Start monitoring",
   },
 ];
 
@@ -182,7 +179,7 @@ export function PricingCards({ onSelectPlan }: { onSelectPlan?: (planId: string)
           All plans include the free audit. No card for the free tier. Cancel anytime on paid plans.
         </p>
         <p style={{ fontSize: 12, color: "#9ca3af", margin: 0, lineHeight: 1.6 }}>
-          Prices in USD. Charged in INR at current exchange rate. Powered by Razorpay.
+          All prices in INR. Secured by Razorpay. Supports UPI, cards, Net Banking, and wallets.
         </p>
       </div>
     </div>

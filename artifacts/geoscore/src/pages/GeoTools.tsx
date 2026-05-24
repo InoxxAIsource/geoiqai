@@ -27,7 +27,7 @@ const tools = [
   {
     name: "Profound.com",
     tagline: "Best for enterprise brands",
-    price: "$99+/mo USD",
+    price: "$99+/mo",
     features: [
       "Brand monitoring dashboard",
       "Share of voice tracking",
@@ -44,7 +44,7 @@ const tools = [
   {
     name: "Otterly.ai",
     tagline: "Best for agencies",
-    price: "$49+/mo USD",
+    price: "$49+/mo",
     features: [
       "Multi-brand tracking",
       "White label reports",
@@ -60,7 +60,7 @@ const tools = [
   {
     name: "Peec.ai",
     tagline: "Best for B2B SaaS",
-    price: "$79+/mo USD",
+    price: "$79+/mo",
     features: [
       "Competitor comparison",
       "Prompt testing suite",
@@ -77,7 +77,7 @@ const tools = [
 
 const comparisonRows = [
   { feature: "Free audit (no signup)", geoscore: true, profound: false, otterly: false, peec: false },
-  { feature: "USD pricing", geoscore: true, profound: true, otterly: true, peec: true },
+  { feature: "INR pricing (India)", geoscore: true, profound: false, otterly: false, peec: false },
   { feature: "ChatGPT monitoring", geoscore: true, profound: true, otterly: true, peec: true },
   { feature: "Gemini monitoring", geoscore: true, profound: true, otterly: true, peec: false },
   { feature: "Perplexity monitoring", geoscore: true, profound: true, otterly: false, peec: true },
@@ -257,7 +257,7 @@ export default function GeoTools() {
           </h2>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 16 }}>
-            For most early-stage founders and startups, GeoIQ is the obvious starting point: the free audit requires no signup and gives you immediate data on where you stand. The USD pricing, India-specific monitoring (Gemini focus, Indian publication citations), and Razorpay checkout make it the most directly useful tool for founders in India and globally.
+            For most early-stage founders and startups, GeoIQ is the obvious starting point: the free audit requires no signup and gives you immediate data on where you stand. INR pricing, India-specific monitoring (Gemini focus, Indian publication citations), and Razorpay checkout make it the most directly useful tool for founders in India.
           </p>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 40 }}>

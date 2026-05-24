@@ -239,12 +239,12 @@ export default function Pricing() {
                       Opening payment...
                     </span>
                   ) : (
-                    `Pay ${pendingPlan === "starter" ? "$49" : "$99"}/month`
+                    `Pay ${pendingPlan === "starter" ? "Rs 3,999" : "Rs 11,999"}/mo`
                   )}
                 </Button>
                 <p style={{ fontSize: 11, color: "#9ca3af", textAlign: "center", marginTop: 12 }}>
                   Monthly subscription, cancel anytime. Secured by Razorpay.<br />
-                  Razorpay processes payments in INR - the amount shown in the checkout reflects the USD equivalent.
+                  Supports UPI, Net Banking, cards, and wallets.
                 </p>
               </div>
             )}

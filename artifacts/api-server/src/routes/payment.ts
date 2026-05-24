@@ -16,8 +16,8 @@ const AGENCY_PLAN_ID      = (process.env.RAZORPAY_AGENCY_PLAN_ID  ?? "").trim();
 const APP_URL             = process.env.APP_URL ?? "https://geoiqai.com";
 
 const PLAN_PRICES: Record<string, number> = {
-  starter: 474300,
-  agency:  958300,
+  starter: 399900,
+  agency:  1199900,
 };
 const PLAN_NAMES: Record<string, string> = {
   starter: "GeoIQ Starter",
