@@ -1224,6 +1224,79 @@ export default function Dashboard() {
                     </div>
                   </div>
 
+                  {/* Google AI Overview detail card */}
+                  {googleAiDashResult && (
+                    <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 20, marginBottom: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#1a73e8", display: "inline-block" }} />
+                          <span style={{ fontSize: 14, fontWeight: 600, color: "#111827" }}>Google AI Overview</span>
+                          <span style={{ fontSize: 12, color: "#6b7280" }}>{selectedBrand?.domain}</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span style={{
+                            background: googleAiDashResult.status === "featured" ? "#DCFCE7" : googleAiDashResult.status === "partial" ? "#FEF3C7" : "#FEE2E2",
+                            color: googleAiDashResult.status === "featured" ? "#065F46" : googleAiDashResult.status === "partial" ? "#92400E" : "#991B1B",
+                            borderRadius: 9999,
+                            padding: "3px 10px",
+                            fontSize: 12,
+                            fontWeight: 600,
+                          }}>
+                            {googleAiDashResult.status === "featured" ? "Frequently featured" : googleAiDashResult.status === "partial" ? "Partially featured" : "Not found"}
+                          </span>
+                          <span style={{ fontSize: 13, color: "#6b7280" }}>
+                            {googleAiDashResult.mentionCount} of {googleAiDashResult.keywords.length} keywords mention your brand
+                          </span>
+                          <button
+                            onClick={handleFetchGoogleAiDash}
+                            disabled={googleAiDashLoading}
+                            style={{ background: "none", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "4px 10px", fontSize: 11, color: "#6b7280", cursor: "pointer" }}
+                          >
+                            {googleAiDashLoading ? "Refreshing..." : "Refresh"}
+                          </button>
+                        </div>
+                      </div>
+                      <div style={{ overflowX: "auto" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                          <thead>
+                            <tr style={{ borderBottom: "1px solid #f3f4f6" }}>
+                              <th style={{ textAlign: "left", padding: "7px 10px", fontWeight: 600, fontSize: 11, color: "#6b7280", whiteSpace: "nowrap" }}>Keyword</th>
+                              <th style={{ textAlign: "center", padding: "7px 10px", fontWeight: 600, fontSize: 11, color: "#6b7280", whiteSpace: "nowrap" }}>AI Overview</th>
+                              <th style={{ textAlign: "left", padding: "7px 10px", fontWeight: 600, fontSize: 11, color: "#6b7280" }}>Snippet</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {googleAiDashResult.keywords.map((kw, i) => (
+                              <tr key={i} style={{ borderBottom: "0.5px solid #f9fafb", background: kw.mentioned ? "#f0fdf4" : "transparent" }}>
+                                <td style={{ padding: "9px 10px", color: "#374151", fontWeight: 500, whiteSpace: "nowrap" }}>{kw.keyword}</td>
+                                <td style={{ padding: "9px 10px", textAlign: "center" }}>
+                                  <span style={{
+                                    background: kw.mentioned ? "#DCFCE7" : "#F3F4F6",
+                                    color: kw.mentioned ? "#065F46" : "#6B7280",
+                                    borderRadius: 9999,
+                                    padding: "2px 10px",
+                                    fontSize: 11,
+                                    fontWeight: 500,
+                                  }}>
+                                    {kw.mentioned ? "Mentioned" : "Not found"}
+                                  </span>
+                                </td>
+                                <td style={{ padding: "9px 10px", color: "#6b7280", fontSize: 12, maxWidth: 400 }}>
+                                  {kw.snippet ? kw.snippet : <span style={{ color: "#d1d5db", fontStyle: "italic" }}>No snippet</span>}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {googleAiDashResult.status === "not_found" && (
+                        <div style={{ background: "#FEF3C7", borderRadius: 8, padding: "10px 14px", marginTop: 14, fontSize: 12, color: "#92400E" }}>
+                          Your brand was not found in Google AI Overviews for any of these keywords. Add more structured data, improve E-E-A-T signals, and get cited by authoritative sources to appear here.
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Citation Landscape */}
                   <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 12 }}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 14 }}>Citation landscape</div>
