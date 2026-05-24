@@ -3,7 +3,7 @@ import { db, monitoredBrandsTable, dailyScoresTable, auditsTable, keywordCacheTa
 import { eq, desc, and, count } from "drizzle-orm";
 import { AddMonitoredBrandBody, RemoveMonitoredBrandParams } from "@workspace/api-zod";
 import { requirePaidAuth, type AuthRequest } from "../lib/auth";
-import { runAuditEngine } from "../lib/audit-engine";
+import { runAuditEngine, generateRecommendations } from "../lib/audit-engine";
 
 const router: IRouter = Router();
 
@@ -95,17 +95,61 @@ router.post("/dashboard/brands/:id/scan", requirePaidAuth, async (req, res): Pro
   try {
     req.log.info({ domain: brand.domain }, "Starting brand scan");
 
-    const engineResult = await runAuditEngine(
-      `https://${brand.domain}`,
-      brand.brandName,
-      brand.category,
-      brand.market,
+    const url = `https://${brand.domain}`;
+    const engineResult = await runAuditEngine(url, brand.brandName, brand.category, brand.market);
+
+    if (engineResult.unreachable) {
+      res.status(422).json({ error: "We could not reach this domain. Check the URL and try again.", reachable: false });
+      return;
+    }
+
+    const {
+      brandName, category, market,
+      chatgpt, gemini, perplexity, claude, grok,
+      keywordsUsed, keywordsFromDataforseo, keywordsFilteredOut,
+      rawChatgptResponse, rawGeminiResponse, rawPerplexityResponse, rawClaudeResponse, rawGrokResponse,
+      technicalAudit,
+    } = engineResult;
+
+    // Same scoring formula as the homepage audit
+    const rawAiTotal = chatgpt.score + gemini.score + perplexity.score + claude.score + grok.score;
+    const aiVisibilityScore = Math.min(Math.round(rawAiTotal * 100 / (5 * 33)), 100);
+    const scoreTechnical = technicalAudit.overallScore;
+    const scoreTotal = Math.round(aiVisibilityScore * 0.6 + scoreTechnical * 0.4);
+
+    const allCompetitors = [...new Set([
+      ...chatgpt.competitors, ...gemini.competitors, ...perplexity.competitors,
+      ...claude.competitors, ...grok.competitors,
+    ])];
+
+    const { recommendations, eeatScore } = await generateRecommendations(
+      brandName, brand.domain, category, market, chatgpt, gemini, perplexity, technicalAudit,
     );
 
-    const { chatgpt, gemini, perplexity } = engineResult;
-    const scoreTotal = Math.min(chatgpt.score + gemini.score + perplexity.score, 100);
-    const today = new Date().toISOString().slice(0, 10);
+    // Save to audits table (so GEO Agent can access the latest data)
+    const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ?? req.ip ?? "unknown";
+    await db.insert(auditsTable).values({
+      url, domain: brand.domain, brandName, category, market, scoreTotal,
+      scoreChatgpt: chatgpt.score, scoreGemini: gemini.score, scorePerplexity: perplexity.score,
+      chatgptFound: chatgpt.found, geminiFound: gemini.found, perplexityFound: perplexity.found,
+      chatgptDetail: chatgpt.detail, geminiDetail: gemini.detail, perplexityDetail: perplexity.detail,
+      competitorsFound: allCompetitors, keywordsUsed,
+      rawResults: {
+        keywordsFromDataforseo, keywordsFilteredOut,
+        scoreAiVisibility: aiVisibilityScore, scoreTechnical,
+        scoreClaude: claude.score, scoreGrok: grok.score,
+        claudeFound: claude.found, grokFound: grok.found,
+        claudeDetail: claude.detail, grokDetail: grok.detail,
+        chatgptRawResponse: rawChatgptResponse, geminiRawResponse: rawGeminiResponse,
+        perplexityRawResponse: rawPerplexityResponse, claudeRawResponse: rawClaudeResponse,
+        grokRawResponse: rawGrokResponse, technicalAudit, eeatScore,
+      },
+      recommendations: recommendations as unknown as Record<string, unknown>[],
+      ipAddress: ip,
+    });
 
+    // Update daily score
+    const today = new Date().toISOString().slice(0, 10);
     const [existing] = await db
       .select({ id: dailyScoresTable.id })
       .from(dailyScoresTable)
@@ -113,38 +157,21 @@ router.post("/dashboard/brands/:id/scan", requirePaidAuth, async (req, res): Pro
       .limit(1);
 
     if (existing) {
-      await db
-        .update(dailyScoresTable)
-        .set({
-          scoreTotal,
-          scoreChatgpt: chatgpt.score,
-          scoreGemini: gemini.score,
-          scorePerplexity: perplexity.score,
-        })
+      await db.update(dailyScoresTable)
+        .set({ scoreTotal, scoreChatgpt: chatgpt.score, scoreGemini: gemini.score, scorePerplexity: perplexity.score })
         .where(eq(dailyScoresTable.id, existing.id));
     } else {
       await db.insert(dailyScoresTable).values({
-        brandId: brand.id,
-        date: today,
-        scoreTotal,
-        scoreChatgpt: chatgpt.score,
-        scoreGemini: gemini.score,
-        scorePerplexity: perplexity.score,
+        brandId: brand.id, date: today, scoreTotal,
+        scoreChatgpt: chatgpt.score, scoreGemini: gemini.score, scorePerplexity: perplexity.score,
       });
     }
 
-    await db
-      .update(monitoredBrandsTable)
+    await db.update(monitoredBrandsTable)
       .set({ lastChecked: new Date() })
       .where(eq(monitoredBrandsTable.id, brand.id));
 
-    const allCompetitors = [...new Set([
-      ...chatgpt.competitors,
-      ...gemini.competitors,
-      ...perplexity.competitors,
-    ])];
-
-    req.log.info({ domain: brand.domain, scoreTotal }, "Brand scan complete");
+    req.log.info({ domain: brand.domain, scoreTotal, aiVisibilityScore, scoreTechnical }, "Brand scan complete");
 
     res.json({
       scoreTotal,
@@ -154,10 +181,10 @@ router.post("/dashboard/brands/:id/scan", requirePaidAuth, async (req, res): Pro
       chatgptFound: chatgpt.found,
       geminiFound: gemini.found,
       perplexityFound: perplexity.found,
-      rawChatgptResponse: engineResult.rawChatgptResponse,
-      rawGeminiResponse: engineResult.rawGeminiResponse,
-      rawPerplexityResponse: engineResult.rawPerplexityResponse,
-      keywordsUsed: engineResult.keywordsUsed,
+      rawChatgptResponse,
+      rawGeminiResponse,
+      rawPerplexityResponse,
+      keywordsUsed,
       competitors: allCompetitors,
     });
   } catch (err) {
