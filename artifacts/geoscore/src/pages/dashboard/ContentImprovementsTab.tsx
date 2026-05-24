@@ -74,17 +74,34 @@ function SectionCard({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const isMissing = section.currentContent.startsWith("[Missing");
+
   return (
     <div style={{
       background: "white",
-      border: "1px solid #E5E7EB",
+      border: isMissing ? "1px solid #E0E7FF" : "1px solid #E5E7EB",
       borderRadius: 12,
       padding: 24,
       marginBottom: 16,
     }}>
       {/* Card header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <div style={{ fontSize: 15, fontWeight: 600, color: "#111827" }}>{section.name}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: "#111827" }}>{section.name}</div>
+          {isMissing && (
+            <span style={{
+              background: "#EEF2FF",
+              color: "#4F46E5",
+              fontSize: 11,
+              fontWeight: 600,
+              padding: "2px 8px",
+              borderRadius: 4,
+              letterSpacing: "0.02em",
+            }}>
+              RECOMMENDED ADDITION
+            </span>
+          )}
+        </div>
         <div style={{ fontSize: 12, color: "#9CA3AF" }}>{domain}</div>
       </div>
 
@@ -93,20 +110,23 @@ function SectionCard({
         {/* Left: Current */}
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#9CA3AF" }} />
-            <span style={{ fontSize: 13, fontWeight: 500, color: "#6B7280" }}>Current Content</span>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: isMissing ? "#C7D2FE" : "#9CA3AF" }} />
+            <span style={{ fontSize: 13, fontWeight: 500, color: isMissing ? "#818CF8" : "#6B7280" }}>
+              {isMissing ? "Currently missing" : "Current Content"}
+            </span>
           </div>
           <div style={{
-            background: "#F9FAFB",
-            border: "1px solid #E5E7EB",
+            background: isMissing ? "#F5F3FF" : "#F9FAFB",
+            border: isMissing ? "1.5px dashed #C7D2FE" : "1px solid #E5E7EB",
             borderRadius: 8,
             padding: 16,
             fontSize: 14,
-            color: "#374151",
+            color: isMissing ? "#818CF8" : "#374151",
             lineHeight: 1.7,
             minHeight: 80,
+            fontStyle: isMissing ? "italic" : "normal",
           }}>
-            {section.currentContent}
+            {isMissing ? "This section does not exist on the site yet. Adding it will significantly improve AI citability." : section.currentContent}
           </div>
         </div>
 
