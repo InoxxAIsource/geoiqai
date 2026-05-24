@@ -1,0 +1,187 @@
+Integrate 3 new DataForSEO endpoints
+into GeoIQ. These are high priority.
+
+=== INTEGRATION 1: GOOGLE AI MODE ===
+
+Add Google AI Overviews as 6th 
+AI system in paid dashboard.
+
+Endpoint:
+POST https://api.dataforseo.com/v3/
+serp/google/ai_mode/live/advanced
+
+Request:
+[{
+  "keyword": "{top_keyword}",
+  "location_code": 2356,
+  "language_code": "en"
+}]
+
+For each of user's top 5 DataForSEO
+keywords, check if brand appears
+in Google AI Overview results.
+
+Parse response for:
+- ai_overview text content
+- Whether brand name mentioned
+- Position if mentioned
+
+Add to dashboard:
+New row in AI systems:
+🔵 Google AI Overview | score | status
+
+Score calculation:
+Brand mentioned in AI Overview 
+for 3+ keywords = 33/33
+2 keywords = 22/33
+1 keyword = 11/33
+0 keywords = 0/33
+
+Status labels:
+"Featured in AI Overview" — green
+"Partial coverage" — amber
+"Not in AI Overviews" — red
+
+Show in free audit too:
+Add as 4th system (after ChatGPT,
+Gemini, Perplexity)
+Label: "Google AI"
+
+=== INTEGRATION 2: BACKLINKS DATA ===
+
+Add backlink intelligence to 
+competition tab.
+
+Endpoint:
+POST https://api.dataforseo.com/v3/
+backlinks/summary/live
+
+Request:
+[{
+  "target": "mealcoreai.com",
+  "include_subdomains": true
+}]
+
+Returns:
+- referring_domains count
+- backlinks total count
+- domain_rank score
+- referring_main_domains
+
+Use for:
+1. Competition tab — add backlink column:
+   Domain | AI Score | Backlinks | DR
+
+2. Fix Actions — citation gap:
+   "Competitor has 450 referring domains.
+   You have 12.
+   Here are sites that link to them
+   but not you: [list]"
+
+Also use competitor backlinks:
+POST /backlinks/competitors/live
+{
+  "targets": [
+    "mealcoreai.com",
+    "healthifyme.com",
+    "sugarfit.com"
+  ]
+}
+
+Returns domains that link to 
+competitors but not to user.
+These are priority citation targets.
+
+Add to Fix Actions Week 4:
+"Sites linking to your competitors
+but not you:"
+[List with DR scores and Submit links]
+
+=== INTEGRATION 3: ONPAGE API ===
+
+Upgrade technical audit from 
+5 manual checks to full OnPage analysis.
+
+Endpoint:
+POST https://api.dataforseo.com/v3/
+on_page/task_post
+
+Then poll:
+POST /on_page/pages/live
+POST /on_page/summary/live
+
+This gives 20+ technical checks:
+- Meta title and description
+- H1, H2, H3 structure  
+- Image alt text
+- Page speed score
+- Broken links
+- Canonical tags
+- Schema markup
+- robots.txt
+- Duplicate content
+- Content length
+- Internal linking
+- Mobile friendliness
+
+Replace current 5-check technical audit
+with OnPage API results.
+
+Show in audit result page:
+"Technical GEO Audit — 
+Powered by DataForSEO OnPage"
+
+Group into 4 categories like Rankscale:
+Content Quality: X%
+Technical Structure: X%
+Authority Signals: X%
+Engagement: X%
+
+Each with sub-checks and score bars.
+
+Also add to GEO Agent context:
+Pass OnPage summary to agent
+so it can give specific technical advice.
+
+=== COST ESTIMATES ===
+
+Check and log cost per call:
+
+Google AI Mode live: ~$0.003/call
+Backlinks summary live: ~$0.01/call  
+OnPage task: ~$0.01-0.02/task
+
+For paid user monthly:
+Google AI Mode: 5 keywords × 30 days 
+= 150 calls × $0.003 = $0.45/mo
+
+Backlinks: 5 competitors × 4 checks/mo
+= 20 calls × $0.01 = $0.20/mo
+
+OnPage: 1 full audit/week
+= 4 calls × $0.02 = $0.08/mo
+
+Total additional cost per user: ~$0.73/mo
+Well within $49/mo pricing.
+
+=== TEST ===
+
+Test 1 — Google AI Mode:
+Query "breakfast for diabetic India"
+Check if mealcoreai.com appears
+in Google AI Overview
+Show score in dashboard
+
+Test 2 — Backlinks:
+Get backlink summary for mealcoreai.com
+Show: referring domains count
+Compare to healthifyme.com
+Show gap in competition tab
+
+Test 3 — OnPage:
+Run OnPage audit on mealcoreai.com
+Show technical categories
+with sub-scores
+Compare to current 5-check system
+
+Show costs logged for each call.

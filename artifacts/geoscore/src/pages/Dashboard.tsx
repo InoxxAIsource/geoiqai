@@ -361,6 +361,17 @@ export default function Dashboard() {
   );
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" && window.innerWidth < 768);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [backlinkData, setBacklinkData] = useState<{ referringDomains: number; backlinks: number; domainRank: number; spamScore: number } | null>(null);
+  const [backlinkLoading, setBacklinkLoading] = useState(false);
+  const [backlinkBrandId, setBacklinkBrandId] = useState<string | null>(null);
+  const [citationGaps, setCitationGaps] = useState<Array<{ url: string; domain: string; domainRank: number; refDomainsCount: number }> | null>(null);
+  const [citationGapsLoading, setCitationGapsLoading] = useState(false);
+  const [googleAiDashResult, setGoogleAiDashResult] = useState<{ score: number; mentionCount: number; status: string; keywords: Array<{ keyword: string; mentioned: boolean; snippet: string | null }> } | null>(null);
+  const [googleAiDashLoading, setGoogleAiDashLoading] = useState(false);
+  const [googleAiDashBrandId, setGoogleAiDashBrandId] = useState<string | null>(null);
+  const [onPageResult, setOnPageResult] = useState<{ overallScore: number; categories: Array<{ name: string; score: number; checks: Array<{ name: string; status: string; detail: string; score: number }> }> } | null>(null);
+  const [onPageLoading, setOnPageLoading] = useState(false);
+  const [onPageBrandId, setOnPageBrandId] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768);
@@ -498,6 +509,88 @@ export default function Dashboard() {
 
   const handleRemoveCompetitor = (c: string) => setTrackedCompetitors(prev => prev.filter(x => x !== c));
 
+  const handleFetchBacklinks = async () => {
+    if (!selectedBrand?.domain) return;
+    setBacklinkLoading(true);
+    setBacklinkData(null);
+    setCitationGaps(null);
+    setBacklinkBrandId(selectedBrand.id);
+    const token = localStorage.getItem("auth_token");
+    try {
+      const resp = await fetch("/api/backlinks/summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token ?? ""}` },
+        body: JSON.stringify({ domain: selectedBrand.domain }),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        setBacklinkData(data);
+      }
+    } catch { /* ignore */ } finally {
+      setBacklinkLoading(false);
+    }
+  };
+
+  const handleFetchGoogleAiDash = async () => {
+    if (!selectedBrand?.domain) return;
+    setGoogleAiDashLoading(true);
+    setGoogleAiDashResult(null);
+    setGoogleAiDashBrandId(selectedBrand.id);
+    const token = localStorage.getItem("auth_token");
+    try {
+      const resp = await fetch("/api/dataforseo/google-ai-overview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token ?? ""}` },
+        body: JSON.stringify({ domain: selectedBrand.domain }),
+      });
+      if (resp.ok) setGoogleAiDashResult(await resp.json());
+    } catch { /* ignore */ } finally {
+      setGoogleAiDashLoading(false);
+    }
+  };
+
+  const handleRunOnPageAudit = async () => {
+    if (!selectedBrand?.domain) return;
+    setOnPageLoading(true);
+    setOnPageResult(null);
+    setOnPageBrandId(selectedBrand.id);
+    const token = localStorage.getItem("auth_token");
+    try {
+      const resp = await fetch("/api/onpage/audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token ?? ""}` },
+        body: JSON.stringify({ domain: selectedBrand.domain }),
+      });
+      if (resp.ok) setOnPageResult(await resp.json());
+    } catch { /* ignore */ } finally {
+      setOnPageLoading(false);
+    }
+  };
+
+  const handleFetchCitationGaps = async () => {
+    if (!selectedBrand?.domain) return;
+    setCitationGapsLoading(true);
+    const token = localStorage.getItem("auth_token");
+    const compList = getCategoryCompetitors(selectedBrand.category, selectedBrand.latestScore ?? 0);
+    const competitorDomains = compList
+      .filter(c => !c.isYours)
+      .map(c => c.name.toLowerCase().replace(/\s+/g, "") + ".com")
+      .slice(0, 5);
+    try {
+      const resp = await fetch("/api/backlinks/competitors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token ?? ""}` },
+        body: JSON.stringify({ myDomain: selectedBrand.domain, competitorDomains }),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        setCitationGaps(data.gaps ?? []);
+      }
+    } catch { /* ignore */ } finally {
+      setCitationGapsLoading(false);
+    }
+  };
+
   const handleCopyText = (text: string, idx: number) => {
     navigator.clipboard.writeText(text).then(() => {
       setCopiedIdx(idx);
@@ -528,11 +621,12 @@ export default function Dashboard() {
   })();
 
   const systemStatuses = [
-    { name: "ChatGPT", score: selectedBrand?.latestScoreChatgpt ?? 0, found: (selectedBrand?.latestScoreChatgpt ?? 0) > 0, color: "#10a37f" },
-    { name: "Gemini", score: selectedBrand?.latestScoreGemini ?? 0, found: (selectedBrand?.latestScoreGemini ?? 0) > 0, color: "#4285f4" },
-    { name: "Perplexity", score: selectedBrand?.latestScorePerplexity ?? 0, found: (selectedBrand?.latestScorePerplexity ?? 0) > 0, color: "#22d3ee" },
-    { name: "Claude", score: lastScanResult?.scoreClaude ?? 0, found: lastScanResult?.claudeFound ?? false, color: "#D97706" },
-    { name: "Grok", score: lastScanResult?.scoreGrok ?? 0, found: lastScanResult?.grokFound ?? false, color: "#7C3AED" },
+    { name: "ChatGPT", score: selectedBrand?.latestScoreChatgpt ?? 0, found: (selectedBrand?.latestScoreChatgpt ?? 0) > 0, color: "#10a37f", notChecked: false },
+    { name: "Gemini", score: selectedBrand?.latestScoreGemini ?? 0, found: (selectedBrand?.latestScoreGemini ?? 0) > 0, color: "#4285f4", notChecked: false },
+    { name: "Perplexity", score: selectedBrand?.latestScorePerplexity ?? 0, found: (selectedBrand?.latestScorePerplexity ?? 0) > 0, color: "#22d3ee", notChecked: false },
+    { name: "Claude", score: lastScanResult?.scoreClaude ?? 0, found: lastScanResult?.claudeFound ?? false, color: "#D97706", notChecked: false },
+    { name: "Grok", score: lastScanResult?.scoreGrok ?? 0, found: lastScanResult?.grokFound ?? false, color: "#7C3AED", notChecked: false },
+    { name: "Google AI", score: googleAiDashResult?.score ?? 0, found: googleAiDashResult ? googleAiDashResult.mentionCount > 0 : false, color: "#1a73e8", notChecked: !googleAiDashResult && !googleAiDashLoading },
   ];
 
   const weekChange = (() => {
@@ -1038,7 +1132,7 @@ export default function Dashboard() {
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 12 }}>
                     {[
                       { label: "vs last scan", value: weekChange === null ? "-" : weekChange >= 0 ? `+${weekChange}` : `${weekChange}`, color: weekChange === null ? "#94A3B8" : weekChange >= 0 ? "#059669" : "#DC2626" },
-                      { label: "AI systems visible", value: `${visibleCount}/5`, color: "#0F172A" },
+                      { label: "AI systems visible", value: `${visibleCount}/6`, color: "#0F172A" },
                       { label: "Prompts tracked", value: `${promptList.length}`, color: "#0F172A" },
                     ].map((card, i) => (
                       <div key={i} style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 12, padding: "14px 18px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
@@ -1072,15 +1166,26 @@ export default function Dashboard() {
                     <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16 }}>
                       <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 10 }}>AI system status</div>
                       {systemStatuses.map((sys, i) => (
-                        <div key={sys.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: i < 4 ? "0.5px solid #f3f4f6" : "none" }}>
+                        <div key={sys.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: i < 5 ? "0.5px solid #f3f4f6" : "none" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                             <span style={{ width: 8, height: 8, borderRadius: "50%", background: sys.color, display: "inline-block" }} />
                             <span style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>{sys.name}</span>
-                            <span style={{ fontSize: 11, color: "#9ca3af" }}>{sys.score}/33 pts</span>
+                            {!sys.notChecked && <span style={{ fontSize: 11, color: "#9ca3af" }}>{sys.score}/33 pts</span>}
                           </div>
-                          <span style={{ background: sys.found ? "#E1F5EE" : "#FCEBEB", color: sys.found ? "#085041" : "#791F1F", borderRadius: 9999, padding: "2px 8px", fontSize: 11, fontWeight: 500 }}>
-                            {sys.found ? "Visible" : "Invisible"}
-                          </span>
+                          {sys.notChecked ? (
+                            <button
+                              onClick={handleFetchGoogleAiDash}
+                              style={{ background: "transparent", border: "0.5px solid #1a73e8", borderRadius: 9999, padding: "2px 10px", fontSize: 11, color: "#1a73e8", cursor: "pointer", fontWeight: 500 }}
+                            >
+                              Check AI Overviews
+                            </button>
+                          ) : googleAiDashLoading && sys.name === "Google AI" ? (
+                            <span style={{ fontSize: 11, color: "#9ca3af" }}>Checking...</span>
+                          ) : (
+                            <span style={{ background: sys.found ? "#E1F5EE" : "#FCEBEB", color: sys.found ? "#085041" : "#791F1F", borderRadius: 9999, padding: "2px 8px", fontSize: 11, fontWeight: 500 }}>
+                              {sys.found ? "Visible" : "Invisible"}
+                            </span>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1772,6 +1877,91 @@ export default function Dashboard() {
                       </button>
                     </div>
 
+                    {/* Backlink Intelligence */}
+                    <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 12 }}>
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12, gap: 12 }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 2 }}>Backlink intelligence</div>
+                          <div style={{ fontSize: 11, color: "#6b7280" }}>Domain authority signals that AI systems use to rank citations</div>
+                        </div>
+                        {(!backlinkData || backlinkBrandId !== selectedBrand?.id) && (
+                          <button
+                            onClick={handleFetchBacklinks}
+                            disabled={backlinkLoading}
+                            style={{ flexShrink: 0, background: backlinkLoading ? "#f3f4f6" : "#4F46E5", color: backlinkLoading ? "#9ca3af" : "white", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 500, cursor: backlinkLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}
+                          >
+                            {backlinkLoading ? "Fetching..." : "Fetch backlink data"}
+                          </button>
+                        )}
+                      </div>
+
+                      {backlinkData && backlinkBrandId === selectedBrand?.id ? (
+                        <div>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
+                            {[
+                              { label: "Domain rank", value: backlinkData.domainRank, hint: "Higher = more authority" },
+                              { label: "Referring domains", value: backlinkData.referringDomains.toLocaleString(), hint: "Unique sites linking to you" },
+                              { label: "Total backlinks", value: backlinkData.backlinks.toLocaleString(), hint: "All inbound links" },
+                            ].map(stat => (
+                              <div key={stat.label} style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "10px 12px", textAlign: "center" }}>
+                                <div style={{ fontSize: 18, fontWeight: 700, color: "#111827" }}>{stat.value}</div>
+                                <div style={{ fontSize: 11, color: "#374151", fontWeight: 500, marginTop: 2 }}>{stat.label}</div>
+                                <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 1 }}>{stat.hint}</div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {backlinkData.domainRank < 30 && (
+                            <div style={{ background: "#fef3c7", border: "0.5px solid #fde68a", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#92400e", marginBottom: 12 }}>
+                              Your domain rank is low. AI systems tend to cite higher-authority domains. Focus on getting cited by DR 50+ sites to improve.
+                            </div>
+                          )}
+
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                            <div style={{ fontSize: 12, fontWeight: 500, color: "#374151" }}>Citation gap analysis</div>
+                            {!citationGaps && (
+                              <button
+                                onClick={handleFetchCitationGaps}
+                                disabled={citationGapsLoading}
+                                style={{ background: "transparent", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "4px 12px", fontSize: 11, color: "#4F46E5", cursor: citationGapsLoading ? "not-allowed" : "pointer", fontWeight: 500 }}
+                              >
+                                {citationGapsLoading ? "Scanning..." : "Find sites linking to competitors"}
+                              </button>
+                            )}
+                          </div>
+
+                          {citationGaps && citationGaps.length > 0 ? (
+                            <div>
+                              <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 8 }}>Sites that link to your competitors but not you. These are your highest-value outreach targets.</div>
+                              <div style={{ display: "grid", gridTemplateColumns: "2fr 80px 80px", gap: 6, padding: "6px 10px", background: "#f9fafb", borderRadius: "6px 6px 0 0", border: "0.5px solid #e5e7eb", borderBottom: "none" }}>
+                                {["Domain", "DR", "Ref. domains"].map(h => <div key={h} style={{ fontSize: 10, color: "#9ca3af", fontWeight: 500 }}>{h}</div>)}
+                              </div>
+                              {citationGaps.slice(0, 10).map((gap, i) => (
+                                <div key={gap.domain || i} style={{ display: "grid", gridTemplateColumns: "2fr 80px 80px", gap: 6, padding: "7px 10px", background: "white", border: "0.5px solid #e5e7eb", borderTop: "none", borderRadius: i === Math.min(9, citationGaps.length - 1) ? "0 0 6px 6px" : 0, alignItems: "center" }}>
+                                  <div style={{ fontSize: 12, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{gap.domain || gap.url}</div>
+                                  <div style={{ fontSize: 12, fontWeight: 600, color: gap.domainRank >= 50 ? "#059669" : gap.domainRank >= 30 ? "#D97706" : "#9ca3af" }}>{gap.domainRank}</div>
+                                  <div style={{ fontSize: 12, color: "#374151" }}>{gap.refDomainsCount.toLocaleString()}</div>
+                                </div>
+                              ))}
+                              <div style={{ marginTop: 8 }}>
+                                <button onClick={() => setActiveTab("Fix Actions")} style={{ display: "flex", alignItems: "center", gap: 5, background: "transparent", border: "0.5px solid #4F46E5", borderRadius: 6, padding: "5px 12px", fontSize: 11, color: "#4F46E5", cursor: "pointer", fontWeight: 500 }}>
+                                  View outreach plan in Fix Actions <ChevronRight size={10} />
+                                </button>
+                              </div>
+                            </div>
+                          ) : citationGaps && citationGaps.length === 0 ? (
+                            <div style={{ fontSize: 12, color: "#9ca3af", padding: "8px 0" }}>No citation gaps found - your backlink profile already covers your competitor domains.</div>
+                          ) : null}
+                        </div>
+                      ) : !backlinkLoading ? (
+                        <div style={{ fontSize: 12, color: "#9ca3af", textAlign: "center", padding: "16px 0" }}>
+                          Fetch backlink data to see your domain authority and find citation gaps.
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 12, color: "#9ca3af", textAlign: "center", padding: "16px 0" }}>Fetching backlink data from DataForSEO...</div>
+                      )}
+                    </div>
+
                     {/* Competitor tracking */}
                     <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16 }}>
                       <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 12 }}>Manually track competitors</div>
@@ -1817,6 +2007,78 @@ export default function Dashboard() {
                         </button>
                       </div>
                       <AuditReportView auditResult={lastScanResult} />
+
+                      {/* OnPage Audit Section */}
+                      <div style={{ marginTop: 20, background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+                        <div style={{ padding: "14px 16px", borderBottom: "0.5px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div>
+                            <div style={{ fontSize: 14, fontWeight: 600, color: "#111827" }}>OnPage audit</div>
+                            <div style={{ fontSize: 11, color: "#6b7280", marginTop: 1 }}>Full crawl of your site's technical, content, and authority signals</div>
+                          </div>
+                          {(!onPageResult || onPageBrandId !== selectedBrand?.id) && (
+                            <button
+                              onClick={handleRunOnPageAudit}
+                              disabled={onPageLoading}
+                              style={{ background: onPageLoading ? "#f3f4f6" : "#4F46E5", color: onPageLoading ? "#9ca3af" : "white", border: "none", borderRadius: 7, padding: "7px 16px", fontSize: 12, fontWeight: 500, cursor: onPageLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}
+                            >
+                              {onPageLoading ? "Crawling (30-45s)..." : "Run OnPage audit"}
+                            </button>
+                          )}
+                        </div>
+
+                        {onPageResult && onPageBrandId === selectedBrand?.id ? (
+                          <div style={{ padding: 16 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                              <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 32, fontWeight: 800, color: onPageResult.overallScore >= 70 ? "#059669" : onPageResult.overallScore >= 40 ? "#D97706" : "#DC2626" }}>
+                                {onPageResult.overallScore}
+                              </div>
+                              <div>
+                                <div style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>Overall OnPage score</div>
+                                <div style={{ fontSize: 11, color: "#6b7280" }}>{onPageResult.overallScore >= 70 ? "Good health - focus on authority building" : onPageResult.overallScore >= 40 ? "Some issues need attention" : "Critical issues found - fix these first"}</div>
+                              </div>
+                              <button onClick={handleRunOnPageAudit} disabled={onPageLoading} style={{ marginLeft: "auto", background: "transparent", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "5px 12px", fontSize: 11, color: "#6b7280", cursor: "pointer" }}>
+                                Re-run
+                              </button>
+                            </div>
+                            {onPageResult.categories.map(cat => (
+                              <div key={cat.name} style={{ marginBottom: 14 }}>
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                                  <div style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{cat.name}</div>
+                                  <div style={{ fontSize: 12, fontWeight: 600, color: cat.score >= 70 ? "#059669" : cat.score >= 40 ? "#D97706" : "#DC2626" }}>{cat.score}/100</div>
+                                </div>
+                                {cat.checks.map(check => (
+                                  <div key={check.name} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "7px 0", borderBottom: "0.5px solid #f9fafb" }}>
+                                    <span style={{
+                                      flexShrink: 0, marginTop: 1, width: 7, height: 7, borderRadius: "50%",
+                                      background: check.status === "pass" ? "#10b981" : check.status === "warn" ? "#f59e0b" : "#ef4444",
+                                    }} />
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ fontSize: 12, color: "#111827", fontWeight: 500 }}>{check.name}</div>
+                                      <div style={{ fontSize: 11, color: "#6b7280", marginTop: 1 }}>{check.detail}</div>
+                                    </div>
+                                    <span style={{
+                                      flexShrink: 0, fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 4,
+                                      background: check.status === "pass" ? "#ecfdf5" : check.status === "warn" ? "#fffbeb" : "#fef2f2",
+                                      color: check.status === "pass" ? "#059669" : check.status === "warn" ? "#D97706" : "#DC2626",
+                                    }}>
+                                      {check.status.toUpperCase()}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            ))}
+                          </div>
+                        ) : onPageLoading ? (
+                          <div style={{ padding: "32px 16px", textAlign: "center" }}>
+                            <div style={{ fontSize: 13, color: "#374151", fontWeight: 500, marginBottom: 4 }}>Crawling your site...</div>
+                            <div style={{ fontSize: 12, color: "#9ca3af" }}>DataForSEO is auditing up to 10 pages. This takes 30-45 seconds.</div>
+                          </div>
+                        ) : (
+                          <div style={{ padding: "24px 16px", textAlign: "center" }}>
+                            <div style={{ fontSize: 12, color: "#9ca3af" }}>Run the OnPage audit to get a full technical breakdown across {onPageResult?.categories.length ?? 4} categories and 14+ checks.</div>
+                          </div>
+                        )}
+                      </div>
                     </>
                   ) : (
                     <div style={{ textAlign: "center", padding: "64px 24px", color: "#6b7280" }}>

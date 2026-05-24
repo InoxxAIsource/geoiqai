@@ -10,6 +10,7 @@ import roadmapRouter from "./roadmap";
 import agentRouter from "./agent";
 import integrationsRouter from "./integrations";
 import contentImprovementsRouter from "./content-improvements";
+import dataforseoExtendedRouter from "./dataforseo-extended";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(roadmapRouter);
 router.use(agentRouter);
 router.use(integrationsRouter);
 router.use(contentImprovementsRouter);
+router.use(dataforseoExtendedRouter);
 
 export default router;

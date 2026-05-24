@@ -279,6 +279,13 @@ https://${domain}/sitemap.xml`;
           instructions: "Publishing consistently signals to AI systems that your brand is active and authoritative. Here's a 4-week content plan using the content angles that perform best for GEO.",
           generated: `Week 1 (Struggle): "Why ChatGPT Has Never Heard of Your Startup (And How to Fix It)"\nWeek 2 (How): "How to Check if Your Brand Shows Up in ChatGPT, Gemini, and Perplexity"\nWeek 3 (Best): "The Best GEO Strategies for Early-Stage Startups in 2026"\nWeek 4 (What): "What is Generative Engine Optimization and Why Every Founder Needs It"`,
         },
+        {
+          id: "w3-5", cite: "C", priority: "HIGH",
+          title: "Close your citation gap",
+          time: "2 hours", impact: 22,
+          instructions: `Your competitors are getting cited by sites you haven't targeted yet. These are your highest-value outreach targets because the site has already shown it covers your space. Use the Competition tab to run a backlink gap analysis and get a live list of sites linking to your competitors. Prioritise DR 50+ domains. For each one: find the relevant article, send a personalised email explaining how your product adds value, and offer to contribute a quote or data point.`,
+          generated: `Outreach template:\n\nSubject: Quick addition for your [topic] article\n\nHi [Name],\n\nSaw your piece on [topic] - really useful breakdown. You mentioned [Competitor]. We built ${bn} to solve a similar problem, but focused on [your differentiator].\n\nWould it make sense to add us to the roundup? Happy to provide a demo, a data point, or a quote from our founder.\n\n[Your name]\n${bn}\n\nKeep it under 100 words. Specificity beats length every time.`,
+        },
       ],
     },
     {

@@ -91,6 +91,7 @@ const ENGINE_CONFIG: Record<string, { color: string; barColor: string; label: st
   Perplexity: { color: "#9333ea", barColor: "linear-gradient(90deg,#7c22d4,#9333ea)", label: "Perplexity says:" },
   Claude:     { color: "#d97706", barColor: "linear-gradient(90deg,#b45309,#d97706)", label: "Claude says:" },
   Grok:       { color: "#374151", barColor: "linear-gradient(90deg,#1f2937,#374151)", label: "Grok says:" },
+  "Google AI": { color: "#1a73e8", barColor: "linear-gradient(90deg,#0d62c9,#1a73e8)", label: "Google AI Overview:" },
 };
 
 function AiExplainerBox({ aiMemoryScore, liveWebScore }: { aiMemoryScore: number; liveWebScore: number }) {
@@ -131,6 +132,101 @@ function AiExplainerBox({ aiMemoryScore, liveWebScore }: { aiMemoryScore: number
             Two different problems, two different timelines. Your roadmap below covers both.
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function GoogleAiCard({ result, loading }: { result: any; loading: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const cfg = ENGINE_CONFIG["Google AI"]!;
+
+  if (loading) {
+    return (
+      <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderLeft: `3px solid ${cfg.color}`, borderRadius: 10, marginBottom: 8, padding: "12px 14px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ width: 8, height: 8, borderRadius: "50%", background: cfg.color, display: "inline-block", flexShrink: 0 }} />
+          <span style={{ fontWeight: 600, fontSize: 13, color: "#111827" }}>Google AI</span>
+          <span style={{ fontSize: 11, color: "#9ca3af" }}>Checking AI Overviews...</span>
+          <Loader2 style={{ width: 13, height: 13, color: cfg.color, flexShrink: 0 }} className="animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!result) return null;
+
+  const statusLabels = {
+    featured: { label: "Featured in AI Overviews", color: "#059669", bg: "#ecfdf5" },
+    partial: { label: "Partial coverage", color: "#D97706", bg: "#fffbeb" },
+    not_found: { label: "Not in AI Overviews", color: "#DC2626", bg: "#fef2f2" },
+  };
+  const statusInfo = statusLabels[result.status as keyof typeof statusLabels] ?? statusLabels.not_found;
+  const scaledScore = Math.round((result.score / 33) * 100);
+  const hasSnippets = Array.isArray(result.keywords) && result.keywords.some((k: any) => k.snippet);
+
+  return (
+    <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderLeft: `3px solid ${cfg.color}`, borderRadius: 10, marginBottom: 8, overflow: "hidden" }}>
+      <div style={{ padding: "12px 14px 10px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: cfg.color, display: "inline-block", flexShrink: 0 }} />
+            <span style={{ fontWeight: 600, fontSize: 13, color: "#111827" }}>Google AI</span>
+            <span style={{ fontSize: 10, color: "#9ca3af", background: "#f3f4f6", border: "0.5px solid #e5e7eb", borderRadius: 4, padding: "1px 5px", letterSpacing: "0.02em" }}>AI Overviews</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ background: statusInfo.bg, color: statusInfo.color, borderRadius: 9999, padding: "2px 9px", fontSize: 11, fontWeight: 500 }}>
+              {statusInfo.label}
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: scaledScore > 0 ? cfg.color : "#d1d5db", minWidth: 38, textAlign: "right" }}>
+              {scaledScore}<span style={{ fontSize: 11, fontWeight: 400, color: "#9ca3af" }}>/100</span>
+            </span>
+          </div>
+        </div>
+        <div style={{ height: 5, background: "#f3f4f6", borderRadius: 3, overflow: "hidden", marginBottom: 9 }}>
+          <div style={{ height: "100%", width: `${scaledScore}%`, background: scaledScore === 0 ? "#e5e7eb" : cfg.barColor, borderRadius: 3, transition: "width 1.1s cubic-bezier(0.4,0,0.2,1)" }} />
+        </div>
+        <div style={{ fontSize: 12, color: result.mentionCount > 0 ? "#4b5563" : "#9ca3af", lineHeight: 1.5, marginBottom: 8 }}>
+          {result.mentionCount > 0
+            ? `Found in ${result.mentionCount} of ${result.keywords?.length ?? 0} Google AI Overview results for your top keywords.`
+            : "Your brand does not appear in Google AI Overviews for any of your top tracked keywords."}
+        </div>
+        {Array.isArray(result.keywords) && result.keywords.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+            {result.keywords.map((kw: any) => (
+              <span key={kw.keyword} style={{
+                fontSize: 10, padding: "2px 8px", borderRadius: 9999, fontWeight: 500,
+                background: kw.mentioned ? "#ecfdf5" : "#f3f4f6",
+                color: kw.mentioned ? "#059669" : "#9ca3af",
+                border: `0.5px solid ${kw.mentioned ? "#6ee7b7" : "#e5e7eb"}`,
+              }}>
+                {kw.mentioned ? "+" : ""}{kw.keyword}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      {hasSnippets && (
+        <>
+          <div
+            onClick={() => setExpanded(!expanded)}
+            style={{ padding: "7px 14px", borderTop: "0.5px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", background: expanded ? "#f9fafb" : "white", fontSize: 11, color: "#6b7280", userSelect: "none" }}
+          >
+            <span>What Google AI Overview says about you</span>
+            {expanded ? <ChevronUp style={{ width: 13, height: 13 }} /> : <ChevronDown style={{ width: 13, height: 13 }} />}
+          </div>
+          {expanded && (
+            <div style={{ background: "#0d1117", padding: "16px" }}>
+              <div style={{ fontSize: 11, color: cfg.color, fontWeight: 600, marginBottom: 10 }}>{cfg.label}</div>
+              {result.keywords.filter((k: any) => k.snippet).map((kw: any) => (
+                <div key={kw.keyword} style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 10, color: "#6b7280", marginBottom: 3, fontFamily: "monospace" }}>{kw.keyword}</div>
+                  <pre style={{ fontSize: 12, color: "#e6edf3", fontFamily: "monospace", lineHeight: 1.65, whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0 }}>{kw.snippet}</pre>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -519,6 +615,8 @@ export default function Audit() {
   const firedForUrlRef = useRef<string | null>(null);
 
   const [auditResult, setAuditResult] = useState<any>(null);
+  const [googleAiResult, setGoogleAiResult] = useState<any>(null);
+  const [googleAiLoading, setGoogleAiLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [doneSteps, setDoneSteps] = useState<boolean[]>(LOADING_STEPS.map(() => false));
   const [auditError, setAuditError] = useState<{
@@ -594,6 +692,26 @@ export default function Audit() {
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlParam]);
+
+  // Fetch Google AI Overview separately after main audit completes
+  useEffect(() => {
+    if (!auditResult?.domain) return;
+    setGoogleAiResult(null);
+    setGoogleAiLoading(true);
+    fetch("/api/audit/google-ai-check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        domain: auditResult.domain,
+        keywords: auditResult.keywordsUsed ?? [],
+      }),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => setGoogleAiResult(data))
+      .catch(() => {})
+      .finally(() => setGoogleAiLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auditResult?.domain]);
 
   useEffect(() => {
     const isActive = runAuditMutation.isPending || retrying || refreshing;
@@ -1016,6 +1134,7 @@ export default function Audit() {
               <SystemCard system="Perplexity" found={auditResult.perplexityFound} score={auditResult.scorePerplexity} detail={auditResult.perplexityDetail} rawResponse={auditResult.perplexityRawResponse} checkedAt={auditResult.createdAt} isLiveWeb />
               <SystemCard system="Claude" found={auditResult.claudeFound ?? false} score={auditResult.scoreClaude ?? 0} detail={auditResult.claudeDetail} rawResponse={auditResult.claudeRawResponse} checkedAt={auditResult.createdAt} simulated />
               <SystemCard system="Grok" found={auditResult.grokFound ?? false} score={auditResult.scoreGrok ?? 0} detail={auditResult.grokDetail} rawResponse={auditResult.grokRawResponse} checkedAt={auditResult.createdAt} />
+              <GoogleAiCard result={googleAiResult} loading={googleAiLoading} />
             </div>
 
             {/* Section 02: Technical GEO Audit */}
