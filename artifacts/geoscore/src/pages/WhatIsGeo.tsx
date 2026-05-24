@@ -36,9 +36,25 @@ export default function WhatIsGeo() {
             What is Generative Engine Optimization (GEO)?
           </h1>
 
-          <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 40 }}>
+          <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 24 }}>
             By GeoIQ Team · Updated May 2026 · 8 min read
           </p>
+
+          <div style={{ background: "#EEF2FF", border: "1px solid #C7D2FE", borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#4F46E5", textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 8 }}>Direct answer</div>
+            <p style={{ fontSize: 15, color: "#1E1B4B", lineHeight: 1.7, margin: 0 }}>
+              GEO (Generative Engine Optimization) is the practice of optimizing your brand to appear in AI-generated answers from ChatGPT, Gemini, Perplexity, and Google AI Overviews. Unlike SEO, which targets search rankings, GEO targets the synthesized answers AI systems deliver to users. Google AI Overviews now appear on over 40% of all searches. ChatGPT has 200 million weekly active users.
+            </p>
+          </div>
+
+          <div style={{ background: "#f9fafb", border: "1px solid #f3f4f6", borderRadius: 8, padding: "14px 18px", marginBottom: 40 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 10 }}>Key stats</div>
+            <ul style={{ margin: 0, padding: "0 0 0 16px", display: "flex", flexDirection: "column" as const, gap: 6 }}>
+              <li style={{ fontSize: 14, color: "#374151" }}>Adding statistics to content improves AI visibility by 33.9%, expert quotes by 32% (Princeton/IIT Delhi, KDD 2024)</li>
+              <li style={{ fontSize: 14, color: "#374151" }}>74% of AI citations come from structured lists and comparison formats</li>
+              <li style={{ fontSize: 14, color: "#374151" }}>Perplexity serves over 15 million daily queries; ChatGPT has over 200 million weekly active users as of 2026</li>
+            </ul>
+          </div>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 24 }}>
             GEO, Generative Engine Optimization, is the practice of optimizing your brand and content to appear in AI-generated answers from systems like ChatGPT, Gemini, Perplexity, and Bing Copilot. Just as SEO helped brands rank in Google's blue links through the 2000s and 2010s, GEO helps brands get recommended by AI systems that now answer millions of questions every day.
@@ -222,7 +238,42 @@ export default function WhatIsGeo() {
             GEO is not a replacement for SEO, it is an additional layer that becomes more important as AI search captures a larger share of information-seeking behavior. The brands that invest in GEO now will have a compounding advantage: early citations lead to more AI mentions, which lead to more brand searches, which lead to more backlinks, which improves both SEO and GEO simultaneously. Start with a free audit, understand your baseline, and begin building the citations that will put you in the AI answer.
           </p>
 
-          <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 24, display: "flex", gap: 24, flexWrap: "wrap" }}>
+          <h2 style={{ fontSize: 22, fontWeight: 600, color: "#111827", marginBottom: 20 }}>
+            Frequently asked questions about GEO
+          </h2>
+          {[
+            { q: "What does GEO stand for?", a: "GEO stands for Generative Engine Optimization. It is the practice of optimizing your brand and content so that AI systems like ChatGPT, Gemini, Perplexity, and Google AI Overviews recommend or cite your brand when users ask relevant questions." },
+            { q: "Is GEO different from SEO?", a: "Yes. SEO targets Google's search rankings through backlinks and keyword optimization. GEO targets AI-generated answers through citation frequency and factual content structure. The signals are different, but they compound: good SEO often improves GEO because well-ranked pages are more likely to appear in AI training data." },
+            { q: "How long does GEO take to work?", a: "Most brands see measurable improvement in 4-8 weeks after building citations on G2, ProductHunt, and Crunchbase. Perplexity responds fastest because it crawls the web in real time. ChatGPT and Gemini depend on training cycles, which take longer to reflect new coverage." },
+            { q: "What is the most important GEO signal?", a: "Third-party citations. A brand mentioned by 20-30 independent sources, review sites, tech publications, and community platforms, will consistently appear in AI answers before a brand with a better product but no external mentions. First-party content (your own website) carries far less weight." },
+            { q: "Does my website content help with GEO?", a: "Somewhat. Perplexity crawls the web in real time, so a well-structured, factual homepage with clear headings and a direct brand description helps. For ChatGPT and Gemini, independent third-party mentions matter far more than anything you publish on your own site." },
+            { q: "How do I measure my GEO score?", a: "Use GeoIQ's free tool at geoiqai.com. Enter your domain and it runs prompts across ChatGPT, Gemini, and Perplexity to calculate a 0-100 visibility score. No signup or email required. The audit takes 60 seconds." },
+            { q: "What AI systems should I optimize for first?", a: "Start with ChatGPT (200 million weekly users, largest AI recommendation surface) and Gemini (critical for India due to deep Android integration). Perplexity matters for real-time citation traffic. All three can be tracked simultaneously with GeoIQ." },
+            { q: "Does GEO replace SEO?", a: "No. GEO and SEO compound each other. Pages that rank well on Google are more likely to appear in AI training data. Content that gets cited by AI systems often generates more backlinks, improving SEO. Treat them as parallel investment tracks, not alternatives." },
+          ].map((item, i) => (
+            <div key={i} style={{ borderBottom: "1px solid #f3f4f6", padding: "16px 0" }}>
+              <div style={{ fontWeight: 600, color: "#111827", fontSize: 15, marginBottom: 8 }}>{item.q}</div>
+              <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, margin: 0 }}>{item.a}</p>
+            </div>
+          ))}
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": [
+                  { "@type": "Question", "name": "What does GEO stand for?", "acceptedAnswer": { "@type": "Answer", "text": "GEO stands for Generative Engine Optimization. It is the practice of optimizing your brand and content so that AI systems like ChatGPT, Gemini, Perplexity, and Google AI Overviews recommend or cite your brand when users ask relevant questions." } },
+                  { "@type": "Question", "name": "Is GEO different from SEO?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. SEO targets Google's search rankings through backlinks and keyword optimization. GEO targets AI-generated answers through citation frequency and factual content structure. Good SEO often improves GEO because well-ranked pages appear in AI training data." } },
+                  { "@type": "Question", "name": "How long does GEO take to work?", "acceptedAnswer": { "@type": "Answer", "text": "Most brands see measurable improvement in 4-8 weeks after building citations on G2, ProductHunt, and Crunchbase. Perplexity responds fastest because it crawls the web in real time." } },
+                  { "@type": "Question", "name": "What is the most important GEO signal?", "acceptedAnswer": { "@type": "Answer", "text": "Third-party citations. A brand mentioned by 20-30 independent sources will consistently appear in AI answers before a brand with a better product but no external mentions." } },
+                  { "@type": "Question", "name": "How do I measure my GEO score?", "acceptedAnswer": { "@type": "Answer", "text": "Use GeoIQ's free tool at geoiqai.com. Enter your domain and it runs prompts across ChatGPT, Gemini, and Perplexity to calculate a 0-100 visibility score. No signup required. The audit takes 60 seconds." } },
+                ],
+              }),
+            }}
+          />
+
+          <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 24, marginTop: 32, display: "flex", gap: 24, flexWrap: "wrap" }}>
             <Link href="/how-to-rank-in-chatgpt" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
               How to rank in ChatGPT →
             </Link>

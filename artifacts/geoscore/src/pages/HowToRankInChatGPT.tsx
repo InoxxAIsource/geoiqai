@@ -21,9 +21,25 @@ export default function HowToRankInChatGPT() {
             How to Appear in ChatGPT Results: A Complete Founder's Guide
           </h1>
 
-          <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 40 }}>
+          <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 24 }}>
             By GeoIQ Team · Updated May 2026 · 10 min read
           </p>
+
+          <div style={{ background: "#EEF2FF", border: "1px solid #C7D2FE", borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#4F46E5", textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 8 }}>Direct answer</div>
+            <p style={{ fontSize: 15, color: "#1E1B4B", lineHeight: 1.7, margin: 0 }}>
+              To appear in ChatGPT results, build third-party citations across independent, authoritative sources: G2, Capterra, ProductHunt, Hacker News, Crunchbase, and relevant tech publications. ChatGPT weights frequency of independent mentions above all other signals. Brands with 30 or more third-party citations consistently outperform brands with stronger products but fewer mentions.
+            </p>
+          </div>
+
+          <div style={{ background: "#f9fafb", border: "1px solid #f3f4f6", borderRadius: 8, padding: "14px 18px", marginBottom: 40 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 10 }}>Key stats</div>
+            <ul style={{ margin: 0, padding: "0 0 0 16px", display: "flex", flexDirection: "column" as const, gap: 6 }}>
+              <li style={{ fontSize: 14, color: "#374151" }}>ChatGPT has over 200 million weekly active users as of 2026, making it the single largest AI recommendation surface</li>
+              <li style={{ fontSize: 14, color: "#374151" }}>A SaaS tool with 40 G2 reviews consistently beats a tool with 50,000 users but no third-party citations in AI recommendations</li>
+              <li style={{ fontSize: 14, color: "#374151" }}>ChatGPT's browsing mode (GPT-4o) uses the same authority signals as Google for source selection</li>
+            </ul>
+          </div>
 
           <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.8, marginBottom: 24 }}>
             Getting your startup mentioned by ChatGPT is one of the highest-leverage distribution moves available to founders in 2026. When someone asks ChatGPT for a recommendation in your category, they get one synthesized answer, not a list of ten blue links. If your brand is in that answer, you have a direct line to an engaged, high-intent user. If you are not, you are effectively invisible to that query forever.
@@ -183,7 +199,57 @@ export default function HowToRankInChatGPT() {
             </Link>
           </div>
 
-          <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 24, display: "flex", gap: 24, flexWrap: "wrap" }}>
+          <h2 style={{ fontSize: 22, fontWeight: 600, color: "#111827", marginBottom: 20 }}>
+            Frequently asked questions
+          </h2>
+          {[
+            { q: "How does ChatGPT decide what to recommend?", a: "ChatGPT recommends brands it has seen mentioned frequently across independent, authoritative sources in its training data. It is not a search engine - it draws on patterns learned during training. Brands with many consistent mentions across tech publications, review platforms, and communities appear in recommendations." },
+            { q: "How many citations do I need to appear in ChatGPT?", a: "Brands with approximately 20-30 independent citations on authoritative platforms consistently appear in category recommendations. There is no hard minimum, but brands with fewer than 5-10 external mentions rarely appear reliably." },
+            { q: "Does ChatGPT use real-time web data?", a: "GPT-4o and newer models have a browsing mode that can search the web in real time. Most ChatGPT answers still draw on training data. Both matter: build citations for training data coverage and for real-time browsing retrieval." },
+            { q: "Can I pay to appear in ChatGPT results?", a: "No. ChatGPT does not accept paid placements. Visibility comes entirely from organic mentions across third-party sources. This is what makes GEO different from paid search - the only way in is earning genuine citations." },
+            { q: "What publications carry the most weight for ChatGPT visibility?", a: "TechCrunch, The Verge, Wired, Hacker News, ProductHunt, and Reddit's startup communities carry the most weight for US-focused queries. For India-specific visibility on Gemini, YourStory, Inc42, Economic Times Tech, and Entrackr are particularly valuable." },
+            { q: "How do I know if ChatGPT mentions my brand?", a: "Use GeoIQ to run automated prompts across ChatGPT, Gemini, and Perplexity and track your visibility score over time. Manually, open ChatGPT and type prompts like 'best [your category] tools for [your use case]' and check if your brand appears." },
+            { q: "Does a Wikipedia page help with ChatGPT visibility?", a: "Yes, significantly. Wikipedia pages feed directly into AI training data and are treated as high-authority sources. If you cannot get a Wikipedia page, Crunchbase and AngelList profiles are the next best alternatives." },
+          ].map((item, i) => (
+            <div key={i} style={{ borderBottom: "1px solid #f3f4f6", padding: "16px 0" }}>
+              <div style={{ fontWeight: 600, color: "#111827", fontSize: 15, marginBottom: 8 }}>{item.q}</div>
+              <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, margin: 0 }}>{item.a}</p>
+            </div>
+          ))}
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "Article",
+                "headline": "How to Appear in ChatGPT Results: A Complete Founder's Guide",
+                "author": { "@type": "Organization", "name": "GeoIQ", "url": "https://geoiqai.com" },
+                "publisher": { "@type": "Organization", "name": "GeoIQ", "logo": { "@type": "ImageObject", "url": "https://geoiqai.com/favicon.svg" } },
+                "datePublished": "2026-02-01",
+                "dateModified": "2026-05-24",
+                "description": "A complete guide to getting your startup mentioned in ChatGPT results. Learn how ChatGPT selects recommendations and which citation signals matter most.",
+                "url": "https://geoiqai.com/how-to-rank-in-chatgpt",
+                "mainEntityOfPage": { "@type": "WebPage", "@id": "https://geoiqai.com/how-to-rank-in-chatgpt" },
+              }),
+            }}
+          />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": [
+                  { "@type": "Question", "name": "How does ChatGPT decide what to recommend?", "acceptedAnswer": { "@type": "Answer", "text": "ChatGPT recommends brands it has seen mentioned frequently across independent, authoritative sources in its training data. Brands with consistent mentions across tech publications, review platforms, and communities appear in recommendations." } },
+                  { "@type": "Question", "name": "How many citations do I need to appear in ChatGPT?", "acceptedAnswer": { "@type": "Answer", "text": "Brands with approximately 20-30 independent citations on authoritative platforms consistently appear in category recommendations. Brands with fewer than 5-10 external mentions rarely appear reliably." } },
+                  { "@type": "Question", "name": "Can I pay to appear in ChatGPT results?", "acceptedAnswer": { "@type": "Answer", "text": "No. ChatGPT does not accept paid placements. Visibility comes entirely from organic mentions across third-party sources." } },
+                  { "@type": "Question", "name": "How do I know if ChatGPT mentions my brand?", "acceptedAnswer": { "@type": "Answer", "text": "Use GeoIQ at geoiqai.com to run automated prompts across ChatGPT, Gemini, and Perplexity and track your visibility score over time." } },
+                ],
+              }),
+            }}
+          />
+
+          <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 24, marginTop: 32, display: "flex", gap: 24, flexWrap: "wrap" }}>
             <Link href="/what-is-geo" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
               ← What is GEO?
             </Link>

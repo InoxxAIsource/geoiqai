@@ -23,9 +23,16 @@ export default function BlogChatGPT() {
             Why Your Startup Doesn't Show Up in ChatGPT (And How to Fix It)
           </h1>
 
-          <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 40 }}>
+          <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 24 }}>
             By GeoIQ Team · May 2026 · 9 min read
           </p>
+
+          <div style={{ background: "#EEF2FF", border: "1px solid #C7D2FE", borderRadius: 10, padding: "16px 20px", marginBottom: 40 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#4F46E5", textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 8 }}>Direct answer</div>
+            <p style={{ fontSize: 15, color: "#1E1B4B", lineHeight: 1.7, margin: 0 }}>
+              Your startup doesn't show up in ChatGPT because AI systems recommend brands based on third-party citation frequency, not product quality or website traffic. A startup with 30 G2 reviews and a Hacker News post beats a better product that only has its own website. The fix: build citations on G2, ProductHunt, Crunchbase, and relevant publications in your category.
+            </p>
+          </div>
 
           {/* Opening hook */}
           <blockquote style={{ borderLeft: "3px solid #4F46E5", paddingLeft: 20, marginBottom: 32 }}>
@@ -189,7 +196,57 @@ export default function BlogChatGPT() {
             </Link>
           </div>
 
-          <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 24, display: "flex", gap: 24, flexWrap: "wrap" }}>
+          <h2 style={{ fontSize: 22, fontWeight: 600, color: "#111827", marginBottom: 20 }}>
+            Frequently asked questions
+          </h2>
+          {[
+            { q: "Why doesn't my startup show up in ChatGPT?", a: "Your startup doesn't show up because ChatGPT recommends brands based on citation frequency across independent sources, not product quality. If your brand only has its own website and social media, AI systems have no third-party validation to work with. Build citations on G2, ProductHunt, Hacker News, and relevant publications." },
+            { q: "What is the fastest way to get into ChatGPT answers?", a: "Submit to G2, Capterra, and ProductHunt (2-4 hours total) and post a Show HN on Hacker News. Perplexity, which uses real-time web search, can respond to new coverage within days of indexing. ChatGPT's browsing mode also picks up newly indexed pages quickly." },
+            { q: "Does good SEO help with ChatGPT visibility?", a: "Indirectly yes. Pages that rank well on Google are more likely to have been included in AI training data crawls. However, SEO rankings alone are not sufficient - you need independent citations from authoritative sources, not just your own pages ranking." },
+            { q: "How many citations does a startup need to appear in ChatGPT?", a: "Brands with approximately 20-30 independent citations on authoritative platforms appear consistently in AI recommendations. There is no hard minimum, but 5 or fewer citations rarely produces reliable visibility across ChatGPT, Gemini, and Perplexity." },
+            { q: "Do Indian startups face specific challenges with AI visibility?", a: "Yes. Most AI training data is US-centric. Indian startups need citations on globally indexed platforms with India focus: YourStory, Inc42, Economic Times Tech, Entrackr, and The Ken. These carry strong authority signals for Gemini's India knowledge graph." },
+            { q: "How long does it take to get into ChatGPT after building citations?", a: "For Perplexity (real-time crawl), 1-4 weeks after content is indexed. For ChatGPT's browsing mode, days to weeks after a page is indexed by Bing. For ChatGPT's base model, improvements align with training cycle updates." },
+            { q: "Can an early-stage startup appear in ChatGPT?", a: "Yes. AI systems do not consider company size or age. A pre-revenue startup with 30 independent citations on authoritative platforms will appear in AI answers before a funded company with no external mentions." },
+          ].map((item, i) => (
+            <div key={i} style={{ borderBottom: "1px solid #f3f4f6", padding: "16px 0" }}>
+              <div style={{ fontWeight: 600, color: "#111827", fontSize: 15, marginBottom: 8 }}>{item.q}</div>
+              <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, margin: 0 }}>{item.a}</p>
+            </div>
+          ))}
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "Article",
+                "headline": "Why Your Startup Doesn't Show Up in ChatGPT (And How to Fix It)",
+                "author": { "@type": "Organization", "name": "GeoIQ", "url": "https://geoiqai.com" },
+                "publisher": { "@type": "Organization", "name": "GeoIQ", "logo": { "@type": "ImageObject", "url": "https://geoiqai.com/favicon.svg" } },
+                "datePublished": "2026-05-01",
+                "dateModified": "2026-05-24",
+                "description": "Most startups are invisible in ChatGPT because they lack third-party citations. This explains the three root causes and five free fixes you can apply today.",
+                "url": "https://geoiqai.com/blog/why-startup-not-showing-chatgpt",
+                "mainEntityOfPage": { "@type": "WebPage", "@id": "https://geoiqai.com/blog/why-startup-not-showing-chatgpt" },
+              }),
+            }}
+          />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": [
+                  { "@type": "Question", "name": "Why doesn't my startup show up in ChatGPT?", "acceptedAnswer": { "@type": "Answer", "text": "Your startup doesn't show up because ChatGPT recommends brands based on citation frequency across independent sources, not product quality. Build citations on G2, ProductHunt, Hacker News, and relevant publications." } },
+                  { "@type": "Question", "name": "What is the fastest way to get into ChatGPT answers?", "acceptedAnswer": { "@type": "Answer", "text": "Submit to G2, Capterra, and ProductHunt and post a Show HN on Hacker News. Perplexity, which uses real-time web search, can respond to new coverage within days of indexing." } },
+                  { "@type": "Question", "name": "How many citations does a startup need to appear in ChatGPT?", "acceptedAnswer": { "@type": "Answer", "text": "Brands with approximately 20-30 independent citations on authoritative platforms appear consistently in AI recommendations." } },
+                  { "@type": "Question", "name": "Do Indian startups face specific challenges with AI visibility?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Most AI training data is US-centric. Indian startups need citations on YourStory, Inc42, Economic Times Tech, and Entrackr for Gemini's India knowledge graph." } },
+                ],
+              }),
+            }}
+          />
+
+          <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 24, marginTop: 32, display: "flex", gap: 24, flexWrap: "wrap" }}>
             <Link href="/what-is-geo" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
               What is GEO? →
             </Link>
