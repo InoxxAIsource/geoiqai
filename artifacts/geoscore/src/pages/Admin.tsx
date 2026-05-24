@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Shield, Users, Ban, CheckCircle, LogOut, UserPlus, KeyRound, X } from "lucide-react";
+import { Shield, Users, Ban, CheckCircle, LogOut, UserPlus, KeyRound, X, TrendingUp } from "lucide-react";
 
 const ADMIN_EMAILS = ["inoxxprotocol@gmail.com"];
 
@@ -189,6 +189,9 @@ export default function Admin() {
   const totalUsers = users.length;
   const paidUsers = users.filter(u => u.plan !== "free").length;
   const blockedUsers = users.filter(u => u.blocked).length;
+  const starterCount = users.filter(u => u.plan === "starter").length;
+  const agencyCount = users.filter(u => u.plan === "agency").length;
+  const estimatedMRR = starterCount * 3999 + agencyCount * 11999;
 
   const modalOverlay: React.CSSProperties = {
     position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 50,
@@ -231,7 +234,7 @@ export default function Admin() {
         </div>
 
         {/* Stat cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 28 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
           {[
             { label: "Total users", value: totalUsers, icon: <Users size={16} color="#4F46E5" />, accent: "#4F46E5" },
             { label: "Paid users", value: paidUsers, icon: <CheckCircle size={16} color="#059669" />, accent: "#059669" },
@@ -245,6 +248,22 @@ export default function Admin() {
               <div style={{ fontSize: 28, fontWeight: 700, color: card.accent }}>{loading ? "-" : card.value}</div>
             </div>
           ))}
+          <div style={{ background: "#1E293B", borderRadius: 10, padding: "18px 20px", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <TrendingUp size={16} color="#D97706" />
+              <span style={{ fontSize: 12, color: "#64748B" }}>Est. MRR</span>
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: "#D97706" }}>
+              {loading ? "-" : `Rs ${estimatedMRR.toLocaleString("en-IN")}`}
+            </div>
+            {!loading && (
+              <div style={{ marginTop: 8, fontSize: 11, color: "#475569", lineHeight: 1.6 }}>
+                {starterCount} Starter x Rs 3,999
+                <br />
+                {agencyCount} Agency x Rs 11,999
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Users table */}
