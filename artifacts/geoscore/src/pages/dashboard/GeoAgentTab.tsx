@@ -88,7 +88,7 @@ const THINKING_SETS: Record<string, string[]> = {
     "Calculating technical score...",
   ],
   keyword: [
-    "Loading DataForSEO data...",
+    "Loading keyword data...",
     "Finding AI-specific opportunities...",
     "Filtering by search intent...",
     "Prioritizing by GEO impact...",

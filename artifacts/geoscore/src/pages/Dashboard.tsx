@@ -1958,7 +1958,7 @@ export default function Dashboard() {
                           Fetch backlink data to see your domain authority and find citation gaps.
                         </div>
                       ) : (
-                        <div style={{ fontSize: 12, color: "#9ca3af", textAlign: "center", padding: "16px 0" }}>Fetching backlink data from DataForSEO...</div>
+                        <div style={{ fontSize: 12, color: "#9ca3af", textAlign: "center", padding: "16px 0" }}>Fetching backlink data...</div>
                       )}
                     </div>
 
@@ -2071,7 +2071,7 @@ export default function Dashboard() {
                         ) : onPageLoading ? (
                           <div style={{ padding: "32px 16px", textAlign: "center" }}>
                             <div style={{ fontSize: 13, color: "#374151", fontWeight: 500, marginBottom: 4 }}>Crawling your site...</div>
-                            <div style={{ fontSize: 12, color: "#9ca3af" }}>DataForSEO is auditing up to 10 pages. This takes 30-45 seconds.</div>
+                            <div style={{ fontSize: 12, color: "#9ca3af" }}>Auditing up to 10 pages. This takes 30-45 seconds.</div>
                           </div>
                         ) : (
                           <div style={{ padding: "24px 16px", textAlign: "center" }}>
@@ -2142,7 +2142,7 @@ export default function Dashboard() {
                     <div style={{ textAlign: "center", padding: "32px 0", color: "#9ca3af", fontSize: 13 }}>
                       <Target size={28} style={{ margin: "0 auto 10px", opacity: 0.3, display: "block" }} />
                       <div style={{ fontWeight: 500, color: "#374151", marginBottom: 4 }}>No keyword data yet</div>
-                      <div style={{ fontSize: 12 }}>Keyword data is fetched automatically when your next audit runs. Requires DataForSEO credentials.</div>
+                      <div style={{ fontSize: 12 }}>Keyword data is fetched automatically when your next audit runs.</div>
                     </div>
                   ) : (
                     <table style={{ width: "100%", borderCollapse: "collapse" }}>

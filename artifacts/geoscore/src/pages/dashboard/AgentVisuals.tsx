@@ -578,7 +578,7 @@ function KeywordTable({ keywords, brand }: { keywords: KeywordEntry[]; brand: Br
       <VisualCard>
         <VisualTitle>Keyword Opportunities</VisualTitle>
         <div style={{ fontSize: 12, color: "#6b7280", textAlign: "center", padding: "16px 0" }}>
-          Keyword data will appear after your next audit with DataForSEO credentials configured.
+          Keyword data will appear after your next audit runs.
         </div>
       </VisualCard>
     );
