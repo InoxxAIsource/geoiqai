@@ -52,8 +52,13 @@ export function AddBrandModal({ onBrandAdded }: AddBrandModalProps) {
           onBrandAdded(data.id, values.domain);
         }
       },
-      onError: () => {
-        toast({ title: "Error", description: "Failed to add brand. Please check your plan limits.", variant: "destructive" });
+      onError: (err) => {
+        const serverMsg = (err as { data?: { error?: string } })?.data?.error;
+        toast({
+          title: serverMsg ? "Plan limit reached" : "Could not add brand",
+          description: serverMsg ?? "Something went wrong. Please try again.",
+          variant: "destructive",
+        });
       }
     });
   };
