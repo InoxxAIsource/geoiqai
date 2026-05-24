@@ -123,6 +123,7 @@ router.post("/payment/create-subscription", async (req: Request, res: Response):
       customer_notify: 1,
       quantity: 1,
       total_count: 12,
+      ...(plan === "starter" ? { trial_period: 7 } : {}),
       notes: {
         email: email.toLowerCase().trim(),
         domain: domain ?? "",

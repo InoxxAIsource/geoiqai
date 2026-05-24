@@ -47,6 +47,9 @@ export async function sendPaymentWelcomeEmail(email: string, magicUrl: string, p
       Your GeoIQ ${planLabel} subscription is active. Click below to access your dashboard.
       This link expires in 24 hours.
     </p>
+    <p style="color:#6b7280;font-size:13px;margin:0 0 16px;">
+      ${planLabel === "Starter" ? "$69/month (₹6,679/mo via Razorpay)" : "$129/month (₹12,487/mo via Razorpay)"}
+    </p>
     ${domainLine}
     <a href="${magicUrl}" style="display:inline-block;background:#4F46E5;color:white;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;margin-bottom:20px;">
       Open my dashboard

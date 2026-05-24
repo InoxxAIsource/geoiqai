@@ -828,8 +828,8 @@ export default function Dashboard() {
             </nav>
             <div style={{ padding: "10px 14px", borderTop: "0.5px solid #f3f4f6", fontSize: 11, color: "#9ca3af" }}>
               {user?.plan === "free" ? (
-                <button style={{ width: "100%", background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "7px 0", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
-                  Upgrade plan
+                <button onClick={() => window.location.href = "/pricing"} style={{ width: "100%", background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "7px 0", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
+                  Upgrade - $69/mo
                 </button>
               ) : (
                 <span style={{ textTransform: "capitalize" }}>{user?.plan ?? ""} plan</span>
@@ -919,8 +919,8 @@ export default function Dashboard() {
         {/* Bottom user area */}
         <div style={{ padding: "12px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
           {user?.plan === "free" ? (
-            <button style={{ width: "100%", background: "#4F46E5", color: "white", border: "none", borderRadius: 8, padding: "9px 0", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-              Upgrade plan
+            <button onClick={() => window.location.href = "/pricing"} style={{ width: "100%", background: "#4F46E5", color: "white", border: "none", borderRadius: 8, padding: "9px 0", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+              Upgrade - $69/mo
             </button>
           ) : (
             <div style={{ fontSize: 12, color: "#475569", textTransform: "capitalize" as const }}>{user?.plan ?? ""} plan</div>
@@ -2245,7 +2245,7 @@ export default function Dashboard() {
                         onClick={() => window.location.href = "/pricing"}
                         style={{ background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "8px 18px", fontSize: 13, fontWeight: 500, cursor: "pointer", marginBottom: 12 }}
                       >
-                        Upgrade to Starter
+                        Upgrade to Starter - $69/mo
                       </button>
                     )}
                     <div style={{ marginTop: 4, paddingTop: 16, borderTop: "0.5px solid #f3f4f6" }}>

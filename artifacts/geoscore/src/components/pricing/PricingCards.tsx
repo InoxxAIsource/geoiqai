@@ -10,6 +10,7 @@ interface PricingPlan {
   description: string;
   features: string[];
   cta: string;
+  ctaNote?: string;
   ctaHref?: string;
   isPopular?: boolean;
   isOutline?: boolean;
@@ -19,13 +20,13 @@ const plans: PricingPlan[] = [
   {
     id: "free",
     name: "Free Audit",
-    price: "Free",
-    period: "",
+    price: "$0",
+    period: "/month",
     description: "Check any brand right now, no card needed.",
     isOutline: true,
     features: [
       "GEO IQ score (0-100)",
-      "AI engine breakdown (3 engines)",
+      "AI engine breakdown (5 engines)",
       "Technical GEO audit",
       "Download llms.txt + Schema files",
       "2 audits per day",
@@ -36,9 +37,9 @@ const plans: PricingPlan[] = [
   {
     id: "starter",
     name: "Starter",
-    price: "Rs 6,679",
-    period: "/mo",
-    inrNote: "$69/mo",
+    price: "$69",
+    period: "/month",
+    inrNote: "Billed as ₹6,679/mo via Razorpay",
     description: "For founders who want to stay ahead of AI search.",
     isPopular: true,
     features: [
@@ -56,16 +57,17 @@ const plans: PricingPlan[] = [
       "3 competitors tracked",
       "90 days score history",
       "Unlimited audits",
-      "50 GEO Agent messages/month",
+      "100 GEO Agent messages/month",
     ],
-    cta: "Start monitoring →",
+    cta: "Start free - then $69/mo →",
+    ctaNote: "7-day free trial · Cancel anytime",
   },
   {
     id: "agency",
     name: "Agency",
-    price: "Rs 12,487",
-    period: "/mo",
-    inrNote: "$129/mo",
+    price: "$129",
+    period: "/month",
+    inrNote: "Billed as ₹12,487/mo via Razorpay",
     description: "For agencies managing multiple brands.",
     isOutline: true,
     features: [
@@ -100,7 +102,7 @@ const compareRows: CompareRow[] = [
   { label: "GEO files download", free: true, starter: true, agency: true },
   { label: "Daily monitoring", free: false, starter: true, agency: true },
   { label: "GEO Agent (Claude AI)", free: false, starter: true, agency: true },
-  { label: "GEO Agent messages", free: false, starter: "50/mo", agency: "Unlimited" },
+  { label: "GEO Agent messages", free: false, starter: "100/mo", agency: "Unlimited" },
   { label: "Live audit from chat", free: false, starter: true, agency: true },
   { label: "Content generator", free: false, starter: true, agency: true },
   { label: "Content improvements", free: false, starter: true, agency: true },
@@ -218,7 +220,7 @@ export function PricingCards({ onSelectPlan }: { onSelectPlan?: (planId: string)
                 {plan.period && <span style={{ fontSize: 14, color: "#9ca3af" }}>{plan.period}</span>}
               </div>
               {plan.inrNote && (
-                <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 8 }}>{plan.inrNote} at current exchange rate</div>
+                <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 8 }}>{plan.inrNote}</div>
               )}
               <p style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.5, margin: 0 }}>{plan.description}</p>
             </div>
@@ -251,14 +253,19 @@ export function PricingCards({ onSelectPlan }: { onSelectPlan?: (planId: string)
             >
               {plan.cta}
             </button>
+            {plan.ctaNote && (
+              <div style={{ fontSize: 11, color: "#9CA3AF", textAlign: "center", marginTop: 8 }}>
+                {plan.ctaNote}
+              </div>
+            )}
           </div>
         ))}
         <div style={{ gridColumn: "1 / -1", textAlign: "center", margin: "8px 0 0" }}>
-          <p style={{ fontSize: 13, color: "#9ca3af", margin: "0 0 6px" }}>
-            All plans include the free audit. No card for the free tier. Cancel anytime on paid plans.
+          <p style={{ fontSize: 13, color: "#6B7280", margin: "0 0 4px" }}>
+            Comparable tools charge $797+/month for manual GEO services. GeoIQ automates everything for $69/month.
           </p>
           <p style={{ fontSize: 12, color: "#9ca3af", margin: 0, lineHeight: 1.6 }}>
-            All prices in INR. Secured by Razorpay. Supports UPI, cards, Net Banking, and wallets.
+            Prices in USD. Charged in INR via Razorpay. Supports UPI, cards, Net Banking, and wallets.
           </p>
         </div>
       </div>

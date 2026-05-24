@@ -8,7 +8,7 @@ const tools = [
   {
     name: "GeoIQ",
     tagline: "Best for founders and startups in India",
-    price: "Free audit + Rs 6,679/mo",
+    price: "Free audit + $69/mo",
     features: [
       "Free unlimited public audits",
       "ChatGPT, Gemini, Perplexity monitoring",
@@ -270,7 +270,7 @@ export default function GeoTools() {
           {[
             { q: "What is a GEO tool?", a: "A GEO tool tracks how often your brand appears in AI-generated answers from ChatGPT, Gemini, Perplexity, and other AI systems. It works like Google Search Console but for AI search, calculating a visibility score and showing which AI systems mention your brand and which do not." },
             { q: "How is a GEO tool different from an SEO tool?", a: "SEO tools track Google search rankings, backlinks, and keyword positions. GEO tools track brand mentions in AI-generated answers. SEO measures page rank; GEO measures brand citation frequency across AI responses. The two complement each other but target different discovery channels." },
-            { q: "Which GEO tool is best for Indian startups?", a: "GeoIQ is the best GEO tool for Indian startups. It is the only tool with INR pricing (Rs 6,679/mo for Starter), Razorpay checkout, a free public audit with no signup required, and optimization guidance targeting Indian publications and Gemini's India knowledge graph." },
+            { q: "Which GEO tool is best for Indian startups?", a: "GeoIQ is the best GEO tool for Indian startups. It starts at $69/mo (billed as ₹6,679/mo via Razorpay), includes a free public audit with no signup, and has optimization guidance targeting Indian publications and Gemini's India knowledge graph." },
             { q: "Can I track GEO visibility for free?", a: "Yes. GeoIQ offers unlimited free public audits at geoiqai.com. Enter any domain and get a GEO score across ChatGPT, Gemini, and Perplexity in 60 seconds. No account, email, or credit card required." },
             { q: "How often should I check my GEO score?", a: "At minimum, monthly. AI models update their responses as new content enters their training data and search indexes. GeoIQ's paid plans run daily monitoring and deliver weekly email digests so score changes are caught automatically without manual checks." },
             { q: "What AI systems do GEO tools monitor?", a: "The leading GEO tools monitor ChatGPT, Gemini, and Perplexity. GeoIQ also monitors Claude and Grok, providing coverage across 5 major AI systems in a single dashboard." },
@@ -306,7 +306,7 @@ export default function GeoTools() {
                 "@type": "FAQPage",
                 "mainEntity": [
                   { "@type": "Question", "name": "What is a GEO tool?", "acceptedAnswer": { "@type": "Answer", "text": "A GEO tool tracks how often your brand appears in AI-generated answers from ChatGPT, Gemini, Perplexity, and other AI systems. It works like Google Search Console but for AI search." } },
-                  { "@type": "Question", "name": "Which GEO tool is best for Indian startups?", "acceptedAnswer": { "@type": "Answer", "text": "GeoIQ is the best GEO tool for Indian startups. It is the only tool with INR pricing (Rs 6,679/mo), Razorpay checkout, a free public audit with no signup, and optimization guidance targeting Indian publications and Gemini's India knowledge graph." } },
+                  { "@type": "Question", "name": "Which GEO tool is best for Indian startups?", "acceptedAnswer": { "@type": "Answer", "text": "GeoIQ is the best GEO tool for Indian startups. It starts at $69/mo (billed as ₹6,679/mo via Razorpay), includes a free public audit with no signup, and has optimization guidance targeting Indian publications and Gemini's India knowledge graph." } },
                   { "@type": "Question", "name": "Can I track GEO visibility for free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. GeoIQ offers unlimited free public audits at geoiqai.com. Enter any domain and get a GEO score across ChatGPT, Gemini, and Perplexity in 60 seconds. No account required." } },
                   { "@type": "Question", "name": "What AI systems do GEO tools monitor?", "acceptedAnswer": { "@type": "Answer", "text": "The leading GEO tools monitor ChatGPT, Gemini, and Perplexity. GeoIQ also monitors Claude and Grok, providing coverage across 5 major AI systems." } },
                 ],

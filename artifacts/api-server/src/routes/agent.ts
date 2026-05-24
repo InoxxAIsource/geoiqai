@@ -8,7 +8,7 @@ import { getDomainKeywords } from "../lib/dataforseo";
 
 const router: IRouter = Router();
 
-const STARTER_LIMIT = 50;
+const STARTER_LIMIT = 100;
 
 // ─── Claude helper (no tools — for briefing + generate) ───────────────────────
 
@@ -630,7 +630,7 @@ router.post("/agent/chat", requireAuth, async (req, res): Promise<void> => {
     const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     res.status(429).json({
       error: "limit_reached",
-      message: `You have used your ${STARTER_LIMIT} GeoIQ Agent messages this month. Resets on ${nextMonth.toLocaleDateString("en-IN", { day: "numeric", month: "long" })}. Upgrade to Agency (Rs 12,487/mo) for unlimited messages.`,
+      message: `You have used your ${STARTER_LIMIT} GeoIQ Agent messages this month. Resets on ${nextMonth.toLocaleDateString("en-IN", { day: "numeric", month: "long" })}. Upgrade to Agency ($129/mo) for unlimited messages.`,
       resetsOn: nextMonth.toISOString().slice(0, 10),
     });
     return;
