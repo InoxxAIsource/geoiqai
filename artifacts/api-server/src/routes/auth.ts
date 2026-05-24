@@ -317,6 +317,11 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
+  if (user.blocked) {
+    res.status(403).json({ error: "Your account has been blocked. Contact support.", blocked: true });
+    return;
+  }
+
   await db.update(usersTable).set({ lastLogin: new Date() }).where(eq(usersTable.id, user.id));
   const token = createToken(user.id);
   res.json({

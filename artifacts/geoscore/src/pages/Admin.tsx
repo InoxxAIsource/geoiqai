@@ -175,7 +175,7 @@ export default function Admin() {
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                    {["Email", "Plan", "Signed up", "Last login", "Audits", "Agent msgs", "Verified", "Status", "Action"].map(h => (
+                    {["Email", "Plan", "Subscription", "Signed up", "Last login", "Audits", "Status", "Action"].map(h => (
                       <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "#475569", textTransform: "uppercase" as const, letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h}</th>
                     ))}
                   </tr>
@@ -196,11 +196,12 @@ export default function Admin() {
                       <td style={{ padding: "12px 16px", color: "#94A3B8", whiteSpace: "nowrap" }}>{fmt(user.createdAt)}</td>
                       <td style={{ padding: "12px 16px", color: "#94A3B8", whiteSpace: "nowrap" }}>{fmt(user.lastLogin)}</td>
                       <td style={{ padding: "12px 16px", color: "#94A3B8", textAlign: "center" }}>{user.auditCount}</td>
-                      <td style={{ padding: "12px 16px", color: "#94A3B8", textAlign: "center" }}>{user.agentMessagesUsed}</td>
-                      <td style={{ padding: "12px 16px", textAlign: "center" }}>
-                        <span style={{ fontSize: 11, color: user.emailVerified ? "#059669" : "#D97706", fontWeight: 500 }}>
-                          {user.emailVerified ? "Yes" : "No"}
-                        </span>
+                      <td style={{ padding: "12px 16px" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                          <span style={{ fontSize: 11, color: user.subscriptionStatus === "active" ? "#059669" : "#94A3B8", fontWeight: 500, textTransform: "capitalize" as const }}>
+                            {user.subscriptionStatus ?? "inactive"}
+                          </span>
+                        </div>
                       </td>
                       <td style={{ padding: "12px 16px" }}>
                         {user.blocked ? (
