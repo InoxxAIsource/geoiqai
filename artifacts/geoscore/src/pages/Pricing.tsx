@@ -239,7 +239,7 @@ export default function Pricing() {
                       Opening payment...
                     </span>
                   ) : (
-                    `Pay ${pendingPlan === "starter" ? "Rs 3,999" : "Rs 11,999"}/mo`
+                    `Pay ${pendingPlan === "starter" ? "Rs 6,679" : "Rs 12,487"}/mo`
                   )}
                 </Button>
                 <p style={{ fontSize: 11, color: "#9ca3af", textAlign: "center", marginTop: 12 }}>

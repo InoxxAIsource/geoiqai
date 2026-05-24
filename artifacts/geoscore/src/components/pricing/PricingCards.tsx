@@ -6,6 +6,7 @@ interface PricingPlan {
   name: string;
   price: string;
   period: string;
+  inrNote?: string;
   description: string;
   features: string[];
   cta: string;
@@ -35,8 +36,9 @@ const plans: PricingPlan[] = [
   {
     id: "starter",
     name: "Starter",
-    price: "Rs 3,999",
+    price: "Rs 6,679",
     period: "/mo",
+    inrNote: "$69/mo",
     description: "For founders who want to stay ahead of AI search.",
     isPopular: true,
     features: [
@@ -61,8 +63,9 @@ const plans: PricingPlan[] = [
   {
     id: "agency",
     name: "Agency",
-    price: "Rs 11,999",
+    price: "Rs 12,487",
     period: "/mo",
+    inrNote: "$129/mo",
     description: "For agencies managing multiple brands.",
     isOutline: true,
     features: [
@@ -210,10 +213,13 @@ export function PricingCards({ onSelectPlan }: { onSelectPlan?: (planId: string)
 
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: "#6b7280", marginBottom: 6 }}>{plan.name}</div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 8 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: plan.inrNote ? 2 : 8 }}>
                 <span style={{ fontSize: 30, fontWeight: 800, color: "#111827", letterSpacing: "-0.03em" }}>{plan.price}</span>
                 {plan.period && <span style={{ fontSize: 14, color: "#9ca3af" }}>{plan.period}</span>}
               </div>
+              {plan.inrNote && (
+                <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 8 }}>{plan.inrNote} at current exchange rate</div>
+              )}
               <p style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.5, margin: 0 }}>{plan.description}</p>
             </div>
 

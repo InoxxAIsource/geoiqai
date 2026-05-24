@@ -430,7 +430,7 @@ function UpgradeBox({ domain }: { domain: string }) {
         Get exact tasks, direct URLs, generated content and keyword suggestions for all 4 weeks.
         Most brands reach 50+ GEO IQ in 30 days.
       </div>
-      <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 20 }}>Rs 3,999/mo - cancel anytime</div>
+      <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 20 }}>Rs 6,679/mo - cancel anytime</div>
       {!showForm ? (
         <button
           onClick={() => setShowForm(true)}
@@ -457,7 +457,7 @@ function UpgradeBox({ domain }: { domain: string }) {
           >
             {loading
               ? <><Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} /> Opening payment...</>
-              : "Pay Rs 3,999/mo"}
+              : "Pay Rs 6,679/mo"}
           </button>
           <p style={{ fontSize: 11, color: "#4b5563", marginTop: 8 }}>Secured by Razorpay. Cancel anytime.</p>
         </div>
@@ -993,7 +993,7 @@ export default function Audit() {
                 )}
                 <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
                   <Button onClick={() => setLocation("/pricing")} style={{ background: "#4F46E5", color: "white" }}>
-                    Upgrade for Rs 3,999/mo
+                    Upgrade for Rs 6,679/mo
                   </Button>
                   <Button variant="outline" onClick={() => setLocation("/")}>
                     Back to home

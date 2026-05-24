@@ -39,3 +39,5 @@ channel = "stable-25_05"
 
 [userenv.shared]
 APP_URL = "https://geoiqai.com"
+RAZORPAY_STARTER_PLAN_ID = "plan_StDcHIGOho6Rat"
+RAZORPAY_AGENCY_PLAN_ID = "plan_StDcRkVqvoxSLe"
