@@ -365,6 +365,7 @@ export default function Dashboard() {
   const [backlinkData, setBacklinkData] = useState<{ referringDomains: number; backlinks: number; domainRank: number; spamScore: number } | null>(null);
   const [backlinkLoading, setBacklinkLoading] = useState(false);
   const [backlinkBrandId, setBacklinkBrandId] = useState<string | null>(null);
+  const [backlinkError, setBacklinkError] = useState<string | null>(null);
   const [citationGaps, setCitationGaps] = useState<Array<{ url: string; domain: string; domainRank: number; refDomainsCount: number }> | null>(null);
   const [citationGapsLoading, setCitationGapsLoading] = useState(false);
   const [googleAiDashResult, setGoogleAiDashResult] = useState<{ score: number; mentionCount: number; status: string; keywords: Array<{ keyword: string; mentioned: boolean; snippet: string | null }> } | null>(null);
@@ -514,6 +515,7 @@ export default function Dashboard() {
     if (!selectedBrand?.domain) return;
     setBacklinkLoading(true);
     setBacklinkData(null);
+    setBacklinkError(null);
     setCitationGaps(null);
     setBacklinkBrandId(selectedBrand.id);
     const token = localStorage.getItem("auth_token");
@@ -523,11 +525,17 @@ export default function Dashboard() {
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token ?? ""}` },
         body: JSON.stringify({ domain: selectedBrand.domain }),
       });
+      const data = await resp.json();
       if (resp.ok) {
-        const data = await resp.json();
         setBacklinkData(data);
+      } else if (resp.status === 403) {
+        setBacklinkError("Backlink intelligence requires a paid plan. Upgrade to Starter or Agency to access this.");
+      } else {
+        setBacklinkError((data as { error?: string }).error ?? "Could not fetch backlink data. Please try again.");
       }
-    } catch { /* ignore */ } finally {
+    } catch {
+      setBacklinkError("Request failed. Check your connection and try again.");
+    } finally {
       setBacklinkLoading(false);
     }
   };
@@ -2058,6 +2066,13 @@ export default function Dashboard() {
                           ) : citationGaps && citationGaps.length === 0 ? (
                             <div style={{ fontSize: 12, color: "#9ca3af", padding: "8px 0" }}>No citation gaps found - your backlink profile already covers your competitor domains.</div>
                           ) : null}
+                        </div>
+                      ) : backlinkError ? (
+                        <div style={{ background: "#FEF2F2", border: "0.5px solid #FECACA", borderRadius: 8, padding: "10px 14px" }}>
+                          <div style={{ fontSize: 13, color: "#991B1B", marginBottom: backlinkError.includes("paid plan") ? 8 : 0 }}>{backlinkError}</div>
+                          {backlinkError.includes("paid plan") && (
+                            <a href="/pricing" style={{ fontSize: 12, color: "#4F46E5", fontWeight: 500, textDecoration: "none" }}>View plans →</a>
+                          )}
                         </div>
                       ) : !backlinkLoading ? (
                         <div style={{ fontSize: 12, color: "#9ca3af", textAlign: "center", padding: "16px 0" }}>
