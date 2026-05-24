@@ -514,6 +514,10 @@ export default function Audit() {
   const meQuery = useGetMe();
   const isPaidUser = (meQuery.data as any)?.plan && (meQuery.data as any).plan !== "free";
 
+  // Guard against the effect firing multiple times for the same URL
+  // (can happen due to React re-renders or route remounts)
+  const firedForUrlRef = useRef<string | null>(null);
+
   const [auditResult, setAuditResult] = useState<any>(null);
   const [loadingStep, setLoadingStep] = useState(0);
   const [doneSteps, setDoneSteps] = useState<boolean[]>(LOADING_STEPS.map(() => false));
@@ -574,6 +578,13 @@ export default function Audit() {
 
   useEffect(() => {
     if (!urlParam) { setLocation("/"); return; }
+    // Prevent firing twice for the same URL during re-renders or strict-mode double-invoke
+    if (firedForUrlRef.current === urlParam) return;
+    firedForUrlRef.current = urlParam;
+    setAuditResult(null);
+    setAuditError(null);
+    setLoadingStep(0);
+    setDoneSteps(LOADING_STEPS.map(() => false));
     runAuditMutation.mutate(
       { data: { url: urlParam } },
       {
