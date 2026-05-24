@@ -11,6 +11,8 @@ export const dailyScoresTable = pgTable("daily_scores", {
   scoreChatgpt: integer("score_chatgpt").notNull().default(0),
   scoreGemini: integer("score_gemini").notNull().default(0),
   scorePerplexity: integer("score_perplexity").notNull().default(0),
+  scoreClaude: integer("score_claude").notNull().default(0),
+  scoreGrok: integer("score_grok").notNull().default(0),
   recommendations: jsonb("recommendations").$type<Record<string, unknown>[]>().notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

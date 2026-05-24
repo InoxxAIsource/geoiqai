@@ -359,6 +359,9 @@ export const GetBrandScoresParams = zod.object({
   "brandId": zod.coerce.string()
 })
 
+export const getBrandScoresResponseScoreClaudeDefault = 0;
+export const getBrandScoresResponseScoreGrokDefault = 0;
+
 export const GetBrandScoresResponseItem = zod.object({
   "id": zod.string(),
   "brandId": zod.string(),
@@ -367,6 +370,8 @@ export const GetBrandScoresResponseItem = zod.object({
   "scoreChatgpt": zod.number(),
   "scoreGemini": zod.number(),
   "scorePerplexity": zod.number(),
+  "scoreClaude": zod.number().default(getBrandScoresResponseScoreClaudeDefault),
+  "scoreGrok": zod.number().default(getBrandScoresResponseScoreGrokDefault),
   "recommendations": zod.array(zod.object({
   "action": zod.string(),
   "priority": zod.enum(['high', 'medium', 'low']),

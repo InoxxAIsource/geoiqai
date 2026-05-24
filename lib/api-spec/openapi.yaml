@@ -738,6 +738,12 @@ components:
           type: integer
         scorePerplexity:
           type: integer
+        scoreClaude:
+          type: integer
+          default: 0
+        scoreGrok:
+          type: integer
+          default: 0
         recommendations:
           type: array
           items:

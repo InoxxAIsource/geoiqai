@@ -250,6 +250,8 @@ export interface DailyScore {
   scoreChatgpt: number;
   scoreGemini: number;
   scorePerplexity: number;
+  scoreClaude?: number;
+  scoreGrok?: number;
   recommendations?: Recommendation[];
 }
 

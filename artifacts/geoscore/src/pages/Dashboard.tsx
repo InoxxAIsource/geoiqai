@@ -27,8 +27,9 @@ import {
   Loader2, Bell, Settings, BarChart2, Bot, Lightbulb, Users, Plug,
   ChevronRight, Target, TrendingUp, Link2, MessageSquare, Zap, Key,
   Eye, RefreshCw, Copy, ChevronDown, ChevronUp, Search, ExternalLink,
-  AlertCircle, CheckCircle2, Menu, X,
+  AlertCircle, CheckCircle2, Menu, X, Download,
 } from "lucide-react";
+import { generatePdfReport } from "@/lib/generatePdf";
 
 type NavTab =
   | "Overview"
@@ -1071,6 +1072,38 @@ export default function Dashboard() {
               {/* ===================== OVERVIEW TAB ===================== */}
               {activeTab === "Overview" && (
                 <>
+                  {/* Export PDF button */}
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+                    <button
+                      onClick={() => generatePdfReport({
+                        domain: selectedBrand?.domain ?? "",
+                        brandName: brandName,
+                        score: activeScore,
+                        weekChange,
+                        systems: systemStatuses,
+                        fixActions,
+                      })}
+                      style={{
+                        background: "white",
+                        border: "1px solid #E5E7EB",
+                        borderRadius: 8,
+                        padding: "6px 14px",
+                        fontSize: 13,
+                        color: "#374151",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        cursor: "pointer",
+                        fontWeight: 500,
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "#F9FAFB")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "white")}
+                    >
+                      <Download size={14} />
+                      Export PDF
+                    </button>
+                  </div>
+
                   {/* Main GEO IQ Score Card */}
                   <div style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 16, padding: 28, marginBottom: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.06)" }}>
                     <div style={{ display: "flex", gap: 32, alignItems: "flex-start", flexWrap: "wrap" }}>

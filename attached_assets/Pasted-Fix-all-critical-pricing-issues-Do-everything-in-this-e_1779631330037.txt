@@ -1,0 +1,343 @@
+Fix all critical pricing issues.
+Do everything in this exact order.
+
+=== FIX 1: UPDATE AGENCY PRICING CARD ===
+
+Keep Google AI Overview tracking
+on Agency card — it IS built.
+
+Updated Agency features list:
+✓ Everything in Starter
+✓ Unlimited GEO Agent messages
+✓ 10 brands monitored
+✓ 10 competitors tracked
+✓ Google AI Overview tracking
+✓ White label PDF reports
+  [Building now]
+✓ Priority support
+✓ Team seats (3 users)
+  [Coming July 2026]
+✓ API access
+  [Coming July 2026]
+
+Style for Coming Soon badge:
+bg: #F3F4F6
+color: #6B7280
+border-radius: 4px
+padding: 2px 6px
+font-size: 10px
+font-weight: 500
+margin-left: 6px
+
+=== FIX 2: BUILD PDF EXPORT ===
+
+Build a real PDF export for paid users.
+This is a genuine Agency feature.
+
+Add "Export PDF" button to dashboard:
+- Top right of Overview tab
+- Top right of each AI system tab
+
+Button style:
+bg: white
+border: 1px solid #E5E7EB
+border-radius: 8px
+padding: 6px 14px
+font-size: 13px
+color: #374151
+icon: download icon left
+text: "Export PDF"
+
+On click generate PDF with:
+
+PAGE 1 — Cover:
+GeoIQ logo
+Brand domain: mealcoreai.com
+Report date: May 24, 2026
+Report type: AI Visibility Report
+Prepared by: GeoIQ (geoiqai.com)
+
+PAGE 2 — Executive Summary:
+Overall GEO IQ Score: X/100
+Score interpretation
+AI Memory Score: X/50
+Live Web Score: X/50
+Technical GEO Score: X/100
+Week over week change: +X or -X
+
+AI System Breakdown table:
+System | Score | Status
+ChatGPT | X/33 | Not in training data
+Gemini | X/33 | Not in training data
+Perplexity | X/33 | Not found on web
+Claude | X/33 | Status
+Grok | X/33 | Status
+Google AI | X/33 | Status
+
+PAGE 3 — Technical Audit:
+5 technical checks with scores
+Pass/Warn/Fail badges
+Specific recommendations per check
+
+PAGE 4 — Top Fix Actions:
+Top 5 priority tasks from Fix Actions
+Each with:
+CITE tag
+Priority level
+Time estimate
+Score impact
+One line instruction
+
+PAGE 5 — Competitor Analysis:
+Bar chart showing mention rates
+Your brand vs competitors
+Gap to leader
+
+PAGE 6 — Citation Sources:
+Top cited domains in your category
+Your citations vs competitor citations
+Citation gap
+
+Use jsPDF library to generate:
+
+Install: npm install jspdf jspdf-autotable
+
+Implementation:
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
+
+async function generatePDFReport(
+  brandData, auditData, competitorData) {
+  
+  const doc = new jsPDF()
+  
+  // Cover page
+  doc.setFontSize(24)
+  doc.setFont('helvetica', 'bold')
+  doc.text('AI Visibility Report', 20, 40)
+  
+  doc.setFontSize(14)
+  doc.setFont('helvetica', 'normal')
+  doc.text(brandData.domain, 20, 55)
+  doc.text(
+    `Generated: ${new Date()
+      .toLocaleDateString()}`, 
+    20, 65)
+  
+  // Score section
+  doc.addPage()
+  doc.setFontSize(18)
+  doc.text('Executive Summary', 20, 20)
+  
+  doc.setFontSize(36)
+  doc.setTextColor(
+    auditData.scoreTotal > 66 ? 
+      [5, 150, 105] : // green
+    auditData.scoreTotal > 33 ? 
+      [217, 119, 6] : // amber
+      [220, 38, 38]  // red
+  )
+  doc.text(
+    `${auditData.scoreTotal}/100`, 
+    20, 50)
+  
+  // AI systems table
+  autoTable(doc, {
+    startY: 70,
+    head: [['AI System', 
+            'Score', 'Status']],
+    body: [
+      ['ChatGPT', 
+       `${auditData.scoreChatgpt}/33`,
+       auditData.chatgptStatus],
+      ['Gemini',
+       `${auditData.scoreGemini}/33`,
+       auditData.geminiStatus],
+      ['Perplexity',
+       `${auditData.scorePerplexity}/33`,
+       auditData.perplexityStatus],
+      ['Claude',
+       `${auditData.scoreClaude}/33`,
+       auditData.claudeStatus],
+      ['Grok',
+       `${auditData.scoreGrok}/33`,
+       auditData.grokStatus],
+    ]
+  })
+  
+  // Technical audit page
+  doc.addPage()
+  doc.setFontSize(18)
+  doc.setTextColor(0, 0, 0)
+  doc.text('Technical GEO Audit', 20, 20)
+  
+  autoTable(doc, {
+    startY: 30,
+    head: [['Check', 'Score', 'Status']],
+    body: [
+      ['robots.txt',
+       `${auditData.robotsScore}/100`,
+       auditData.robotsStatus],
+      ['llms.txt',
+       `${auditData.llmsScore}/100`,
+       auditData.llmsStatus],
+      ['Schema Markup',
+       `${auditData.schemaScore}/100`,
+       auditData.schemaStatus],
+      ['Content Structure',
+       `${auditData.contentScore}/100`,
+       auditData.contentStatus],
+      ['Entity Consistency',
+       `${auditData.entityScore}/100`,
+       auditData.entityStatus],
+    ]
+  })
+  
+  // Fix actions page
+  doc.addPage()
+  doc.setFontSize(18)
+  doc.text('Priority Fix Actions', 20, 20)
+  
+  const topActions = 
+    fixActions.slice(0, 5)
+  
+  autoTable(doc, {
+    startY: 30,
+    head: [['Priority', 'Task', 
+            'Impact', 'Time']],
+    body: topActions.map(action => [
+      action.priority,
+      action.title,
+      `+${action.impact} pts`,
+      action.timeEstimate
+    ])
+  })
+  
+  // Save
+  doc.save(
+    `geoiq-report-${brandData.domain}
+     -${Date.now()}.pdf`)
+}
+
+=== FIX 3: ENFORCE COMPETITOR LIMITS ===
+
+In POST /dashboard/competitors route:
+
+const limit = 
+  userPlan === 'agency' ? 10 :
+  userPlan === 'starter' ? 3 : 0
+
+if (currentCount.length >= limit) {
+  return res.status(403).json({
+    error: `Your ${userPlan} plan 
+      allows ${limit} competitors. 
+      ${userPlan === 'starter' ? 
+        'Upgrade to Agency for 10 →' : 
+        'Contact us for more.'}`
+  })
+}
+
+=== FIX 4: ENFORCE BRAND LIMITS ===
+
+In POST /dashboard/brands route:
+
+const limit = 
+  userPlan === 'agency' ? 10 :
+  userPlan === 'starter' ? 1 : 0
+
+if (currentCount.length >= limit) {
+  return res.status(403).json({
+    error: `Your ${userPlan} plan 
+      allows ${limit} brand. 
+      Upgrade to Agency to monitor 
+      up to 10 brands →`
+  })
+}
+
+=== FIX 5: ADD CLAUDE + GROK 
+TO SCORE HISTORY ===
+
+Update daily_scores table:
+ALTER TABLE daily_scores 
+ADD COLUMN IF NOT EXISTS 
+  score_claude INTEGER DEFAULT 0;
+ALTER TABLE daily_scores
+ADD COLUMN IF NOT EXISTS 
+  score_grok INTEGER DEFAULT 0;
+ALTER TABLE daily_scores
+ADD COLUMN IF NOT EXISTS 
+  score_google_ai INTEGER DEFAULT 0;
+
+Update scheduler to save all scores:
+When running daily audit save:
+score_chatgpt, score_gemini,
+score_perplexity, score_claude,
+score_grok, score_google_ai
+
+Update trend chart:
+Add toggle buttons above chart:
+[All] [ChatGPT] [Gemini] 
+[Perplexity] [Claude] [Grok]
+
+Default shows total score line.
+Toggle shows individual system lines.
+
+=== FIX 6: ADD FOOTNOTE ===
+
+Add below pricing cards:
+"Team seats and API access 
+coming July 2026. Agency subscribers 
+get priority early access."
+font-size: 11px
+color: #9CA3AF
+text-align: center
+
+=== TEST ALL FIXES ===
+
+TEST 1 — PDF export:
+Go to Overview tab as paid user
+Click Export PDF button
+Expected: PDF downloads with:
+- Brand name on cover
+- Score on page 2
+- AI systems table
+- Technical audit table
+- Top 5 fix actions
+Show: PDF file generated
+
+TEST 2 — Competitor limits:
+As Starter add 4th competitor
+Expected: 403 error with upgrade message
+
+TEST 3 — Brand limits:
+As Starter add 2nd brand
+Expected: 403 error with upgrade message
+
+TEST 4 — Score history:
+Check daily_scores table
+Verify claude + grok columns exist
+Check trend chart toggle works
+
+TEST 5 — Agency pricing card:
+Verify shows:
+Google AI Overview tracking ✅
+White label PDF reports ✅ (built)
+Team seats [Coming July 2026] badge
+API access [Coming July 2026] badge
+
+=== FINAL PRICING ACCURACY ===
+
+After all fixes:
+Starter: 100% features working
+Agency: 100% features working
+  (with honest Coming Soon badges
+   for Team and API)
+
+Ready to switch Razorpay to live mode.
+
+Show screenshots of:
+1. PDF downloaded and opened
+2. Agency pricing card updated
+3. Competitor limit error message
+4. Brand limit error message
+5. Score history with toggle

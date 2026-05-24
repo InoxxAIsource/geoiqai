@@ -1,6 +1,8 @@
 import { Check, X } from "lucide-react";
 import { useLocation } from "wouter";
 
+type FeatureItem = string | { text: string; badge: string };
+
 interface PricingPlan {
   id: string;
   name: string;
@@ -8,7 +10,7 @@ interface PricingPlan {
   period: string;
   inrNote?: string;
   description: string;
-  features: string[];
+  features: FeatureItem[];
   cta: string;
   ctaNote?: string;
   ctaHref?: string;
@@ -56,7 +58,6 @@ const plans: PricingPlan[] = [
       "Weekly digest email",
       "3 competitors tracked",
       "90 days score history",
-      "Unlimited audits",
       "100 GEO Agent messages/month",
     ],
     cta: "Start free - then $69/mo →",
@@ -76,10 +77,10 @@ const plans: PricingPlan[] = [
       "10 brands monitored",
       "10 competitors tracked",
       "Google AI Overview tracking",
-      "White label PDF reports",
-      "Team seats (3 users)",
+      { text: "White label PDF reports", badge: "Building now" },
       "Priority support",
-      "API access",
+      { text: "Team seats (3 users)", badge: "Coming July 2026" },
+      { text: "API access", badge: "Coming July 2026" },
     ],
     cta: "Contact us →",
     ctaHref: "mailto:hello@geoiqai.com",
@@ -127,6 +128,25 @@ function CellDisplay({ value }: { value: CellValue }) {
     return <X style={{ width: 14, height: 14, color: "#9CA3AF", margin: "0 auto" }} />;
   }
   return <span style={{ fontSize: 13, color: "#374151" }}>{value}</span>;
+}
+
+function ComingSoonBadge({ text }: { text: string }) {
+  const isBuilding = text === "Building now";
+  return (
+    <span style={{
+      background: isBuilding ? "#EEF2FF" : "#F3F4F6",
+      color: isBuilding ? "#4F46E5" : "#6B7280",
+      borderRadius: 4,
+      padding: "2px 6px",
+      fontSize: 10,
+      fontWeight: 500,
+      marginLeft: 6,
+      whiteSpace: "nowrap" as const,
+      flexShrink: 0,
+    }}>
+      {text}
+    </span>
+  );
 }
 
 export function PricingCards({ onSelectPlan }: { onSelectPlan?: (planId: string) => void }) {
@@ -226,12 +246,19 @@ export function PricingCards({ onSelectPlan }: { onSelectPlan?: (planId: string)
             </div>
 
             <ul style={{ flex: 1, listStyle: "none", margin: "0 0 24px", padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-              {plan.features.map((feature, i) => (
-                <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, color: "#374151" }}>
-                  <Check style={{ width: 15, height: 15, color: "#4F46E5", flexShrink: 0, marginTop: 1 }} />
-                  {feature}
-                </li>
-              ))}
+              {plan.features.map((feature, i) => {
+                const text = typeof feature === "string" ? feature : feature.text;
+                const badge = typeof feature === "string" ? null : feature.badge;
+                return (
+                  <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, color: "#374151" }}>
+                    <Check style={{ width: 15, height: 15, color: "#4F46E5", flexShrink: 0, marginTop: 1 }} />
+                    <span style={{ display: "flex", alignItems: "center", flexWrap: "wrap" as const, gap: 2 }}>
+                      {text}
+                      {badge && <ComingSoonBadge text={badge} />}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
 
             <button
@@ -264,8 +291,11 @@ export function PricingCards({ onSelectPlan }: { onSelectPlan?: (planId: string)
           <p style={{ fontSize: 13, color: "#6B7280", margin: "0 0 4px" }}>
             Comparable tools charge $797+/month for manual GEO services. GeoIQ automates everything for $69/month.
           </p>
-          <p style={{ fontSize: 12, color: "#9ca3af", margin: 0, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 12, color: "#9ca3af", margin: "0 0 4px", lineHeight: 1.6 }}>
             Prices in USD. Charged in INR via Razorpay. Supports UPI, cards, Net Banking, and wallets.
+          </p>
+          <p style={{ fontSize: 11, color: "#9CA3AF", margin: 0, lineHeight: 1.6 }}>
+            Team seats and API access coming July 2026. Agency subscribers get priority early access.
           </p>
         </div>
       </div>

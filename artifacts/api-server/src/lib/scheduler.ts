@@ -65,8 +65,8 @@ async function runDailyMonitoringJob(): Promise<void> {
           brand.market,
         );
 
-        const { chatgpt, gemini, perplexity, technicalAudit } = engineResult;
-        const scoreTotal = Math.min(chatgpt.score + gemini.score + perplexity.score, 100);
+        const { chatgpt, gemini, perplexity, claude, grok, technicalAudit } = engineResult;
+        const scoreTotal = Math.min(chatgpt.score + gemini.score + perplexity.score + claude.score + grok.score, 100);
 
         const yesterdayDate = new Date();
         yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1);
@@ -90,6 +90,8 @@ async function runDailyMonitoringJob(): Promise<void> {
           scoreChatgpt: chatgpt.score,
           scoreGemini: gemini.score,
           scorePerplexity: perplexity.score,
+          scoreClaude: claude.score,
+          scoreGrok: grok.score,
         }).onConflictDoNothing();
 
         await db
