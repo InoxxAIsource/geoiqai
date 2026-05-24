@@ -1,0 +1,339 @@
+Add a new "Content Improvements" tab 
+to the paid dashboard.
+
+This is inspired by Rankscale's 
+page audit content improvement feature.
+
+It is the most valuable feature 
+we can add right now.
+
+=== WHAT IT DOES ===
+
+1. Scrape user's homepage content
+2. Identify specific sections of text
+3. For each section show:
+   - Current content (what they have)
+   - Improved version (AI-rewritten)
+   - Why it improves AI visibility
+4. User copies improved version
+   and replaces it on their site
+
+=== ADD TO SIDEBAR ===
+
+Add to dashboard sidebar:
+✨ Content Improvements
+(place between Fix Actions and Keywords)
+
+=== PAGE LAYOUT ===
+
+Title: "Content Improvements"
+Subtitle: "AI-optimized rewrites of your 
+actual homepage content. Copy and replace 
+to immediately improve AI citability."
+
+Top bar:
+Last analyzed: [timestamp]
+[Analyze latest content →] button
+on click: re-scrapes homepage
+and regenerates improvements
+
+=== CONTENT SECTION CARDS ===
+
+For each section of homepage content
+show an improvement card:
+
+Card design:
+bg: white
+border: 1px solid #E5E7EB
+border-radius: 12px
+padding: 24px
+margin-bottom: 16px
+
+Card header:
+Section name (e.g. "Hero Headline")
+Domain URL right aligned
+font-size: 12px, color: #9CA3AF
+
+Two column layout:
+
+LEFT COLUMN:
+Header row:
+⚪ info icon + "Current Content"
+font-size: 13px, font-weight: 500
+color: #6B7280
+
+Content box:
+bg: #F9FAFB
+border: 1px solid #E5E7EB
+border-radius: 8px
+padding: 16px
+font-size: 14px
+color: #374151
+line-height: 1.7
+
+RIGHT COLUMN:
+Header row:
+🟢 checkmark + "Improved Version"
+font-size: 13px, font-weight: 500
+color: #059669
+
+Content box:
+bg: #F0FDF4
+border: 1px solid #BBF7D0
+border-radius: 8px
+padding: 16px
+font-size: 14px
+color: #065F46
+line-height: 1.7
+
+Below right column:
+[Copy improved version] button
+bg: #059669, text: white
+width: 100%
+height: 36px
+font-size: 13px
+border-radius: 6px
+
+BELOW BOTH COLUMNS:
+"Why this improves AI visibility:"
+bg: #EFF6FF
+border: 1px solid #BFDBFE
+border-radius: 8px
+padding: 12px 16px
+
+💡 icon + explanation text
+font-size: 13px
+color: #1E40AF
+line-height: 1.6
+
+=== SECTIONS TO IMPROVE ===
+
+Analyze and improve these sections:
+
+1. Hero Headline
+   Current: main H1 text
+   Improve: add question format,
+   include target keywords,
+   make AI-extractable
+
+2. Hero Subheadline  
+   Current: subtitle/description text
+   Improve: add specifics, numbers,
+   named conditions or use cases
+
+3. Main Value Proposition
+   Current: "what we do" paragraph
+   Improve: more descriptive,
+   conversational, citable
+
+4. Feature/Benefit sections
+   (one card per major benefit)
+   Current: each benefit text
+   Improve: expand with specifics,
+   add "why it works" reasoning
+
+5. Social Proof section
+   Current: testimonials or stats
+   Improve: make more specific,
+   add data points AI can cite
+
+6. CTA Section
+   Current: call to action text
+   Improve: add urgency + specifics
+
+For health apps specifically:
+Add improvements for:
+- Condition-specific sections
+  (diabetes, PCOS, thyroid etc)
+- Comparison section
+  (before/after using product)
+- How it works section
+
+=== AI GENERATION ===
+
+For each section call Claude API:
+
+Prompt:
+"You are a GEO optimization expert.
+Improve this website content section 
+to be more visible in ChatGPT, 
+Gemini and Perplexity.
+
+Brand: {brand_name}
+Category: {category}
+Market: {market}
+Target audience: {audience}
+Top keywords: {keywords}
+
+Current content:
+{scraped_section_text}
+
+Rules for improved version:
+1. Start with a question format 
+   when possible
+2. Include specific numbers, 
+   ingredients, data points
+3. Use conversational natural language
+4. Include regional specifics 
+   (for India: mention Indian food names)
+5. Make it AI-quotable in 1-2 sentences
+6. Keep roughly same length as original
+7. Do not change the meaning
+
+Also explain in one sentence 
+why this specific change improves 
+AI search visibility.
+
+Return JSON:
+{
+  'improved': 'improved text here',
+  'reason': 'one sentence explanation'
+}"
+
+=== CITABILITY SCORE ===
+
+For each section show a 
+citability score:
+
+Before: "Citability: 34/100"
+After: "Citability: 78/100"
+
+Show as mini progress bars:
+red bar for before
+green bar for after
+
+This visualizes the improvement
+impact immediately.
+
+=== EEAT INDICATORS ===
+
+Below each improved version 
+show which EEAT signal it improves:
+
+Tags: [Experience] [Expertise] 
+      [Authority] [Trust]
+
+Highlight in green whichever 
+EEAT dimension the improvement
+specifically addresses.
+
+=== SECTION DETECTION ===
+
+Parse homepage HTML to detect sections:
+
+Look for:
+- h1, h2, h3 tags
+- p tags with 50+ words
+- sections with class/id containing:
+  hero, feature, benefit, about,
+  testimonial, cta, comparison
+
+Group nearby elements into sections.
+Name each section by its H2/H3 heading
+or by content type if no heading.
+
+=== FULL PAGE ANALYSIS SUMMARY ===
+
+At top of page before individual cards:
+
+"AI Search Readiness Score: X%"
+Large % number in green
+Subtitle: "Based on content analysis 
+           of {domain}"
+
+4 category scores like Rankscale:
+Content Quality: X%
+Authority signals: X%
+Technical structure: X%
+Engagement signals: X%
+
+Each with mini bar and description.
+
+=== GENERATE ALL BUTTON ===
+
+At top of page:
+[Generate content improvements →]
+
+On click:
+1. Show loading state per section
+   "Analyzing hero section..."
+   "Improving value proposition..."
+   etc.
+
+2. Generate all improvements
+   via Claude API in parallel
+
+3. Render cards one by one 
+   as they complete (streaming feel)
+
+=== COPY ALL BUTTON ===
+
+At top right:
+[Copy all improvements]
+
+On click:
+Copies a formatted document:
+"GeoIQ Content Improvements for {domain}
+Generated: {date}
+
+SECTION: Hero Headline
+Current: ...
+Improved: ...
+
+SECTION: Value Proposition  
+Current: ...
+Improved: ...
+..."
+
+This lets users paste to a doc
+and work through improvements offline.
+
+=== EXPORT AS PDF ===
+
+[Export PDF] button at top right
+
+Generates PDF with:
+- Brand name and domain
+- Analysis date
+- Overall score
+- All sections with improvements
+- EEAT tags per section
+
+This is a deliverable founders 
+can share with their dev team.
+
+=== TEST ===
+
+Test with mealcoreai.com:
+
+1. Click "Analyze latest content"
+2. Verify sections detected:
+   - Hero headline
+   - PCOS benefits section
+   - Diabetes benefits section
+   - Thyroid benefits section
+   - Comparison section
+   - CTA section
+
+3. Verify each card shows:
+   - Current content (real scraped text)
+   - Improved version (Claude generated)
+   - Reason for improvement
+   - Citability before/after scores
+   - EEAT tags
+
+4. Click "Copy improved version"
+   Verify clipboard has correct text
+
+5. Click "Copy all improvements"
+   Verify formatted document copied
+
+6. Click "Export PDF"
+   Verify PDF downloads
+
+Show screenshots of:
+1. Full page with multiple cards
+2. One card expanded showing 
+   before/after comparison
+3. EEAT tags on improved version
+4. Overall analysis score at top

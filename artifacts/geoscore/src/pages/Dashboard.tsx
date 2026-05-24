@@ -18,6 +18,7 @@ import { FixActionsTab } from "./dashboard/FixActionsTab";
 import { GeoAgentTab } from "./dashboard/GeoAgentTab";
 import { ContentGenerators } from "./dashboard/ContentGenerators";
 import { IntegrationsTab } from "./dashboard/IntegrationsTab";
+import { ContentImprovementsTab } from "./dashboard/ContentImprovementsTab";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   PieChart, Pie, LineChart, Line, Legend,
@@ -41,6 +42,7 @@ type NavTab =
   | "Perplexity"
   | "Competition"
   | "Fix Actions"
+  | "Content Improvements"
   | "Keywords"
   | "Integrations"
   | "Settings";
@@ -72,6 +74,7 @@ const NAV_ITEMS: { label: NavTab; icon: React.FC<{ size?: number; color?: string
   { label: "Perplexity", icon: ({ size = 14, color }) => <Search size={size} color={color} /> },
   { label: "Competition", icon: ({ size = 14, color }) => <Users size={size} color={color} /> },
   { label: "Fix Actions", icon: ({ size = 14, color }) => <Zap size={size} color={color} /> },
+  { label: "Content Improvements", icon: ({ size = 14, color }) => <Lightbulb size={size} color={color} /> },
   { label: "Keywords", icon: ({ size = 14, color }) => <Key size={size} color={color} /> },
   { label: "Integrations", icon: ({ size = 14, color }) => <Plug size={size} color={color} /> },
   { label: "Settings", icon: ({ size = 14, color }) => <Settings size={size} color={color} /> },
@@ -1853,6 +1856,17 @@ export default function Dashboard() {
                     }}
                   />
                 </>
+              )}
+
+              {/* ===================== CONTENT IMPROVEMENTS TAB ===================== */}
+              {activeTab === "Content Improvements" && (
+                <ContentImprovementsTab
+                  brand={selectedBrand ? {
+                    id: selectedBrand.id,
+                    domain: selectedBrand.domain,
+                    brandName: selectedBrand.brandName ?? null,
+                  } : null}
+                />
               )}
 
               {/* ===================== KEYWORDS TAB ===================== */}

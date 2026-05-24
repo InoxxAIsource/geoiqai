@@ -9,6 +9,7 @@ import emailRouter from "./email";
 import roadmapRouter from "./roadmap";
 import agentRouter from "./agent";
 import integrationsRouter from "./integrations";
+import contentImprovementsRouter from "./content-improvements";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(emailRouter);
 router.use(roadmapRouter);
 router.use(agentRouter);
 router.use(integrationsRouter);
+router.use(contentImprovementsRouter);
 
 export default router;
