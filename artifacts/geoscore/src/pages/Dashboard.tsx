@@ -47,12 +47,18 @@ interface ScanResult {
   scoreChatgpt: number;
   scoreGemini: number;
   scorePerplexity: number;
+  scoreClaude: number;
+  scoreGrok: number;
   chatgptFound: boolean;
   geminiFound: boolean;
   perplexityFound: boolean;
+  claudeFound: boolean;
+  grokFound: boolean;
   rawChatgptResponse: string;
   rawGeminiResponse: string;
   rawPerplexityResponse: string;
+  rawClaudeResponse: string;
+  rawGrokResponse: string;
   keywordsUsed: string[];
   competitors: string[];
 }
@@ -533,6 +539,8 @@ export default function Dashboard() {
     { name: "ChatGPT", score: selectedBrand?.latestScoreChatgpt ?? 0, found: (selectedBrand?.latestScoreChatgpt ?? 0) > 0, color: "#10a37f" },
     { name: "Gemini", score: selectedBrand?.latestScoreGemini ?? 0, found: (selectedBrand?.latestScoreGemini ?? 0) > 0, color: "#4285f4" },
     { name: "Perplexity", score: selectedBrand?.latestScorePerplexity ?? 0, found: (selectedBrand?.latestScorePerplexity ?? 0) > 0, color: "#22d3ee" },
+    { name: "Claude", score: lastScanResult?.scoreClaude ?? 0, found: lastScanResult?.claudeFound ?? false, color: "#D97706" },
+    { name: "Grok", score: lastScanResult?.scoreGrok ?? 0, found: lastScanResult?.grokFound ?? false, color: "#7C3AED" },
   ];
 
   const weekChange = (() => {
@@ -904,7 +912,7 @@ export default function Dashboard() {
                   <CheckCircle2 size={15} color="#059669" />
                   <span style={{ fontSize: 13, color: "#065F46" }}>
                     Audit complete. GEO IQ score: <strong>{lastScanResult.scoreTotal}/100</strong>.
-                    {lastScanResult.keywordsUsed?.length > 0 && ` We tracked ${lastScanResult.keywordsUsed.length} prompts across 3 AI systems.`}
+                    {lastScanResult.keywordsUsed?.length > 0 && ` We tracked ${lastScanResult.keywordsUsed.length} prompts across 5 AI systems.`}
                   </span>
                 </div>
               )}
@@ -917,7 +925,7 @@ export default function Dashboard() {
                     {[
                       { label: "Visibility score", value: <span style={{ fontSize: 24, fontWeight: 600, color: "#111827" }}>{activeScore}<span style={{ fontSize: 14, color: "#9ca3af", fontWeight: 400 }}>/100</span></span> },
                       { label: "vs last scan", value: weekChange === null ? <span style={{ fontSize: 20, color: "#9ca3af" }}>-</span> : <span style={{ fontSize: 22, fontWeight: 600, color: weekChange >= 0 ? "#10b981" : "#ef4444" }}>{weekChange >= 0 ? `+${weekChange}` : weekChange}</span> },
-                      { label: "AI systems visible", value: <span style={{ fontSize: 22, fontWeight: 600, color: "#111827" }}>{visibleCount}<span style={{ fontSize: 13, color: "#9ca3af", fontWeight: 400 }}>/3</span></span> },
+                      { label: "AI systems visible", value: <span style={{ fontSize: 22, fontWeight: 600, color: "#111827" }}>{visibleCount}<span style={{ fontSize: 13, color: "#9ca3af", fontWeight: 400 }}>/5</span></span> },
                       { label: "Prompts tracked", value: <span style={{ fontSize: 22, fontWeight: 600, color: "#111827" }}>{promptList.length}</span> },
                     ].map((card, i) => (
                       <div key={i} style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "12px 16px" }}>
@@ -951,7 +959,7 @@ export default function Dashboard() {
                     <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16 }}>
                       <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 10 }}>AI system status</div>
                       {systemStatuses.map((sys, i) => (
-                        <div key={sys.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: i < 2 ? "0.5px solid #f3f4f6" : "none" }}>
+                        <div key={sys.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: i < 4 ? "0.5px solid #f3f4f6" : "none" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                             <span style={{ width: 8, height: 8, borderRadius: "50%", background: sys.color, display: "inline-block" }} />
                             <span style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>{sys.name}</span>
