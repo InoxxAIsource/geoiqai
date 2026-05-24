@@ -65,14 +65,23 @@ export function Navbar() {
         <Link
           href="/"
           style={{
-            fontSize: 20,
-            fontWeight: 700,
-            color: "#4F46E5",
-            letterSpacing: "-0.03em",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
             textDecoration: "none",
           }}
         >
-          GeoIQ
+          <svg width="28" height="28" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="180" height="180" rx="36" fill="#4F46E5"/>
+            <rect x="26" y="118" width="34" height="42" rx="8" fill="white" opacity="0.65"/>
+            <rect x="73" y="82" width="34" height="78" rx="8" fill="white" opacity="0.82"/>
+            <rect x="120" y="46" width="34" height="114" rx="8" fill="white"/>
+            <circle cx="137" cy="28" r="16" fill="#A5B4FC"/>
+            <circle cx="137" cy="28" r="9" fill="#4F46E5"/>
+          </svg>
+          <span style={{ fontSize: 20, fontWeight: 700, color: "#4F46E5", letterSpacing: "-0.03em" }}>
+            GeoIQ
+          </span>
         </Link>
 
         <div className="hidden md:flex" style={{ alignItems: "center", gap: 32 }}>
