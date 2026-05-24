@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FixActionsTab } from "./dashboard/FixActionsTab";
 import { GeoAgentTab } from "./dashboard/GeoAgentTab";
 import { ContentGenerators } from "./dashboard/ContentGenerators";
+import { IntegrationsTab } from "./dashboard/IntegrationsTab";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   PieChart, Pie, LineChart, Line, Legend,
@@ -1783,28 +1784,7 @@ export default function Dashboard() {
 
               {/* ===================== INTEGRATIONS TAB ===================== */}
               {activeTab === "Integrations" && (
-                <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 12 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 3 }}>Connect data sources</div>
-                  <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>Use your real keywords for more accurate AI visibility checks</div>
-                  {[
-                    { name: "Google Search Console", desc: "Use real Google keywords", icon: "G", iconBg: "#4285f4" },
-                    { name: "Bing Webmaster Tools", desc: "Track Copilot AI visibility", icon: "B", iconBg: "#0078d4" },
-                  ].map((integration, i) => (
-                    <div key={integration.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderTop: i > 0 ? "0.5px solid #f3f4f6" : "none" }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 8, background: integration.iconBg, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 600, flexShrink: 0 }}>{integration.icon}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>{integration.name}</div>
-                        <div style={{ fontSize: 12, color: "#9ca3af" }}>{integration.desc}</div>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 11, color: "#9ca3af" }}>Not connected</span>
-                        <button style={{ background: "transparent", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "6px 12px", fontSize: 12, color: "#374151", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-                          Connect <ChevronRight size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <IntegrationsTab userEmail={(user as any)?.email ?? null} authToken={localStorage.getItem("geoscore_token")} />
               )}
 
               {/* ===================== SETTINGS TAB ===================== */}

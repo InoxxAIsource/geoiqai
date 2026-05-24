@@ -11,3 +11,4 @@ export * from "./citations";
 export * from "./custom_prompts";
 export * from "./password_reset_tokens";
 export * from "./email_verification_tokens";
+export * from "./integrations_waitlist";

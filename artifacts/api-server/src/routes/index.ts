@@ -8,6 +8,7 @@ import paymentRouter from "./payment";
 import emailRouter from "./email";
 import roadmapRouter from "./roadmap";
 import agentRouter from "./agent";
+import integrationsRouter from "./integrations";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(paymentRouter);
 router.use(emailRouter);
 router.use(roadmapRouter);
 router.use(agentRouter);
+router.use(integrationsRouter);
 
 export default router;
