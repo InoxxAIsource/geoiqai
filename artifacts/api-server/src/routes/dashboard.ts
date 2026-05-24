@@ -174,7 +174,13 @@ router.post("/dashboard/brands/:id/scan", requirePaidAuth, async (req, res): Pro
     req.log.info({ domain: brand.domain, scoreTotal, aiVisibilityScore, scoreTechnical }, "Brand scan complete");
 
     res.json({
+      domain: brand.domain,
+      brandName,
+      category,
+      market,
       scoreTotal,
+      scoreAiVisibility: aiVisibilityScore,
+      scoreTechnical,
       scoreChatgpt: chatgpt.score,
       scoreGemini: gemini.score,
       scorePerplexity: perplexity.score,
@@ -185,13 +191,22 @@ router.post("/dashboard/brands/:id/scan", requirePaidAuth, async (req, res): Pro
       perplexityFound: perplexity.found,
       claudeFound: claude.found,
       grokFound: grok.found,
+      chatgptDetail: chatgpt.detail,
+      geminiDetail: gemini.detail,
+      perplexityDetail: perplexity.detail,
+      claudeDetail: claude.detail,
+      grokDetail: grok.detail,
       rawChatgptResponse,
       rawGeminiResponse,
       rawPerplexityResponse,
       rawClaudeResponse,
       rawGrokResponse,
+      technicalAudit,
+      eeatScore,
+      recommendations,
       keywordsUsed,
       competitors: allCompetitors,
+      createdAt: new Date().toISOString(),
     });
   } catch (err) {
     req.log.error({ err, domain: brand.domain }, "Brand scan failed");

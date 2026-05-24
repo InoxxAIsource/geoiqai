@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
+import { AuditReportView, type AuditResult as AuditResultType } from "./dashboard/AuditReportView";
 import {
   useGetDashboardSummary,
   useGetMonitoredBrands,
@@ -29,6 +30,7 @@ import {
 
 type NavTab =
   | "Overview"
+  | "Last Audit"
   | "GEO Agent"
   | "Visibility"
   | "Citations"
@@ -42,23 +44,7 @@ type NavTab =
   | "Integrations"
   | "Settings";
 
-interface ScanResult {
-  scoreTotal: number;
-  scoreChatgpt: number;
-  scoreGemini: number;
-  scorePerplexity: number;
-  scoreClaude: number;
-  scoreGrok: number;
-  chatgptFound: boolean;
-  geminiFound: boolean;
-  perplexityFound: boolean;
-  claudeFound: boolean;
-  grokFound: boolean;
-  rawChatgptResponse: string;
-  rawGeminiResponse: string;
-  rawPerplexityResponse: string;
-  rawClaudeResponse: string;
-  rawGrokResponse: string;
+interface ScanResult extends AuditResultType {
   keywordsUsed: string[];
   competitors: string[];
 }
@@ -73,8 +59,9 @@ interface FixAction {
   cite?: string;
 }
 
-const NAV_ITEMS: { label: NavTab; icon: React.FC<{ size?: number; color?: string }> }[] = [
+const NAV_ITEMS: { label: NavTab; icon: React.FC<{ size?: number; color?: string }>; highlightWhenActive?: boolean }[] = [
   { label: "Overview", icon: ({ size = 14, color }) => <BarChart2 size={size} color={color} /> },
+  { label: "Last Audit", icon: ({ size = 14, color }) => <TrendingUp size={size} color={color} />, highlightWhenActive: true },
   { label: "GEO Agent", icon: ({ size = 14, color }) => <Bot size={size} color={color} /> },
   { label: "Visibility", icon: ({ size = 14, color }) => <Eye size={size} color={color} /> },
   { label: "Citations", icon: ({ size = 14, color }) => <Link2 size={size} color={color} /> },
@@ -431,6 +418,7 @@ export default function Dashboard() {
       if (!res.ok) throw new Error("Scan failed");
       const data: ScanResult = await res.json();
       setLastScanResult(data);
+      setActiveTab("Last Audit");
       queryClient.invalidateQueries({ queryKey: getGetMonitoredBrandsQueryKey() });
       queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
       toast({
@@ -907,13 +895,21 @@ export default function Dashboard() {
               )}
 
               {/* Scan success message */}
-              {lastScanResult && !isScanning && selectedBrand?.id === isScanningBrandId === false && lastScanResult.scoreTotal !== undefined && (
-                <div style={{ background: "#ECFDF5", border: "0.5px solid #6EE7B7", borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
-                  <CheckCircle2 size={15} color="#059669" />
-                  <span style={{ fontSize: 13, color: "#065F46" }}>
-                    Audit complete. GEO IQ score: <strong>{lastScanResult.scoreTotal}/100</strong>.
-                    {lastScanResult.keywordsUsed?.length > 0 && ` We tracked ${lastScanResult.keywordsUsed.length} prompts across 5 AI systems.`}
-                  </span>
+              {lastScanResult && !isScanning && lastScanResult.scoreTotal !== undefined && activeTab !== "Last Audit" && (
+                <div style={{ background: "#ECFDF5", border: "0.5px solid #6EE7B7", borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <CheckCircle2 size={15} color="#059669" />
+                    <span style={{ fontSize: 13, color: "#065F46" }}>
+                      Audit complete. GEO IQ score: <strong>{lastScanResult.scoreTotal}/100</strong>.
+                      {lastScanResult.keywordsUsed?.length > 0 && ` Tracked ${lastScanResult.keywordsUsed.length} prompts across 5 AI systems.`}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab("Last Audit")}
+                    style={{ background: "#059669", color: "white", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap" }}
+                  >
+                    View full report
+                  </button>
                 </div>
               )}
 
@@ -1684,6 +1680,43 @@ export default function Dashboard() {
                   </div>
                 );
               })()}
+
+              {/* ===================== LAST AUDIT TAB ===================== */}
+              {activeTab === "Last Audit" && (
+                <div>
+                  {lastScanResult ? (
+                    <>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+                        <div>
+                          <div style={{ fontSize: 15, fontWeight: 600, color: "#111827" }}>Full Audit Report</div>
+                          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>All 5 AI systems, technical GEO audit, EEAT score, and fix actions</div>
+                        </div>
+                        <button
+                          onClick={() => selectedBrandId && handleScanBrand(selectedBrandId)}
+                          disabled={isScanning}
+                          style={{ display: "flex", alignItems: "center", gap: 6, background: "#4F46E5", color: "white", border: "none", borderRadius: 7, padding: "7px 14px", fontSize: 12, fontWeight: 500, cursor: isScanning ? "not-allowed" : "pointer", opacity: isScanning ? 0.7 : 1 }}
+                        >
+                          <RefreshCw size={12} /> Rescan
+                        </button>
+                      </div>
+                      <AuditReportView auditResult={lastScanResult} />
+                    </>
+                  ) : (
+                    <div style={{ textAlign: "center", padding: "64px 24px", color: "#6b7280" }}>
+                      <TrendingUp size={36} style={{ margin: "0 auto 14px", opacity: 0.25, display: "block" }} />
+                      <div style={{ fontSize: 15, fontWeight: 500, color: "#374151", marginBottom: 6 }}>No audit yet</div>
+                      <div style={{ fontSize: 13, marginBottom: 20 }}>Run a scan to see the full AI visibility breakdown across all 5 systems.</div>
+                      <button
+                        onClick={() => selectedBrandId && handleScanBrand(selectedBrandId)}
+                        disabled={isScanning}
+                        style={{ background: "#4F46E5", color: "white", border: "none", borderRadius: 7, padding: "10px 24px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}
+                      >
+                        Run first scan
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* ===================== FIX ACTIONS TAB ===================== */}
               {activeTab === "Fix Actions" && selectedBrand && (
