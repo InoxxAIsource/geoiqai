@@ -1,0 +1,308 @@
+Run a complete audit of every feature
+listed on the pricing page.
+Test each one and report honestly
+whether it actually works.
+
+=== PRICING PAGE FEATURES TO AUDIT ===
+
+Test every feature listed for each plan.
+
+--- FREE TIER FEATURES ---
+
+TEST 1: GEO IQ score (0-100)
+Action: Run free audit on notion.so
+Expected: Score shows as number 0-100
+Pass/Fail: ___
+
+TEST 2: AI engine breakdown (5 engines)
+Action: Check audit result page
+Expected: Shows 5 AI systems:
+ChatGPT, Gemini, Perplexity, 
+Claude, Grok
+Each with individual score
+Pass/Fail: ___
+Note: Currently showing 3 or 5?
+
+TEST 3: Technical GEO audit
+Action: Check audit result page
+Expected: Shows 5 technical checks:
+robots.txt, llms.txt, Schema,
+Content structure, Entity consistency
+Each with score and Pass/Warn/Fail
+Pass/Fail: ___
+
+TEST 4: Download llms.txt + Schema files
+Action: Run audit, check files section
+Expected: 
+llms.txt generated with brand content
+robots.txt additions generated
+Schema JSON generated
+All 3 have Copy to clipboard button
+Pass/Fail: ___
+
+TEST 5: 2 audits per day (anonymous)
+Action: Run 3 audits from same IP
+Expected: 3rd blocked with message
+"You have used your 2 free audits today"
+Pass/Fail: ___
+
+TEST 6: 5 audits/month with email
+Action: Submit email after audit
+Run 6th audit with same email
+Expected: 6th blocked with message
+"You have used your 5 free audits
+this month"
+Pass/Fail: ___
+
+--- STARTER PLAN FEATURES ---
+
+TEST 7: GEO Agent — Claude AI strategist
+Action: Open GEO Agent tab as paid user
+Expected:
+Auto briefing generates on open
+Briefing mentions correct brand
+No **bold** markdown
+Ends with one question
+Pass/Fail: ___
+
+TEST 8: Run live audits from conversation
+Action: Ask agent "Run a fresh audit"
+Expected:
+run_audit tool called
+Real audit runs 10-15 seconds
+Score breakdown chart renders
+Technical scorecard renders
+Dashboard refreshes after
+Pass/Fail: ___
+
+TEST 9: Generate tweets blogs pitches
+Action: Ask agent "Write me 3 tweets"
+Expected:
+3 tweet cards render
+Actual tweet text (not intro)
+Copy button per tweet
+Character count shown
+Pass/Fail: ___
+
+Action: Ask agent "Write a blog post"
+Expected:
+Blog card renders
+Title, word count, EEAT score shown
+Copy article button works
+Copy for Medium button works
+Pass/Fail: ___
+
+TEST 10: Content improvements
+Action: Go to Content Improvements tab
+Expected:
+Current content vs improved shown
+Side by side comparison
+Copy improved version button
+Citability score shown
+EEAT tags shown
+Why it improves AI visibility shown
+Pass/Fail: ___
+Note: Is this tab built yet?
+
+TEST 11: 4-week fix roadmap with CITE tags
+Action: Go to Fix Actions tab
+Expected:
+4 week tabs show:
+Week 1-2 Foundation
+Week 2-3 Content
+Week 3-4 Authority
+Week 4-5 PR
+CITE tags on each task: [C][I][T][E]
+Priority badges: CRITICAL/HIGH/MEDIUM/LOW
+Expand task shows instructions
+Copy buttons work
+Mark complete updates progress
+Pass/Fail: ___
+
+TEST 12: Full recommendations 
+with step by step instructions
+Action: Expand any task in Fix Actions
+Expected:
+Step by step instructions show
+Direct URLs to submit/register
+Pre-written copy for submissions
+Generated content where applicable
+Pass/Fail: ___
+
+TEST 13: Citation tracking
+Action: Go to Citations tab
+Expected:
+Citation source table shows
+Domain, DR, Type, AI System columns
+Type badges colored correctly
+Your brand citations shown
+Competitor citations shown
+Citation gap chart renders
+New/dropped citations this week
+Pass/Fail: ___
+
+TEST 14: Competition analysis
+Action: Go to Competition tab
+Expected:
+Horizontal bar chart renders
+Your brand in indigo
+Competitors in gray
+Per-prompt breakdown table
+AI mention rate percentages
+Pass/Fail: ___
+
+TEST 15: Daily automated monitoring
+Action: Check if scheduler is running
+Expected:
+Daily audit job configured
+Runs automatically each day
+Scores saved to daily_scores table
+Pass/Fail: ___
+
+TEST 16: Weekly digest email
+Action: Manually trigger weekly digest
+Expected:
+Email sends via Resend
+Subject includes domain name
+Score shown in email
+Top 3 recommendations shown
+Unsubscribe link works
+Pass/Fail: ___
+
+TEST 17: 3 competitors tracked
+Action: Go to Settings tab
+Expected:
+Can add competitor domain
+Up to 3 competitors on Starter
+4th competitor blocked with
+"Upgrade to Agency for more"
+Pass/Fail: ___
+
+TEST 18: 90 days score history
+Action: Go to Overview tab
+Expected:
+Trend chart shows
+Score history available
+Date range selector works
+Pass/Fail: ___
+
+TEST 19: Unlimited audits
+Action: As paid user run 10 audits
+Expected:
+No rate limiting applied
+All 10 complete successfully
+Pass/Fail: ___
+
+TEST 20: 100 GEO Agent messages/month
+Action: Check message counter
+Expected:
+Shows "X of 100 messages left"
+Decrements after each message
+At 0 shows upgrade prompt
+Pass/Fail: ___
+
+--- AGENCY PLAN FEATURES ---
+
+TEST 21: Unlimited GEO Agent messages
+Action: Check Agency user message counter
+Expected:
+No limit shown
+No upgrade prompt
+Pass/Fail: ___
+
+TEST 22: 10 brands monitored
+Action: Try to add 11th brand
+Expected:
+10 brands allowed
+11th blocked with upgrade message
+Pass/Fail: ___
+
+TEST 23: White label PDF reports
+Action: Look for PDF export button
+Expected:
+Export PDF button visible
+PDF generates with brand data
+GeoIQ branding removable
+Pass/Fail: ___
+Note: Is this built?
+
+TEST 24: 10 competitors tracked
+Action: Try to add 11th competitor
+Expected:
+10 competitors allowed
+11th blocked
+Pass/Fail: ___
+
+TEST 25: Team seats (3 users)
+Action: Look for team/user management
+Expected:
+Can invite team members
+Up to 3 users per account
+Pass/Fail: ___
+Note: Is this built?
+
+TEST 26: Priority support
+Action: Check for support button/chat
+Expected:
+Support accessible from dashboard
+Pass/Fail: ___
+
+TEST 27: API access
+Action: Look for API section in settings
+Expected:
+API key visible or generatable
+Basic API documentation
+Pass/Fail: ___
+Note: Is this built?
+
+TEST 28: Google AI Overview tracking
+Action: Check if Google AI Overview
+appears as 6th AI system
+Expected:
+Shows in audit result page
+Shows in dashboard visibility tab
+Shows score for brand keywords
+Pass/Fail: ___
+Note: This was flagged as not working
+
+=== FINAL REPORT ===
+
+Report in this exact format:
+
+WORKING CORRECTLY ✅
+List every feature confirmed working
+with test number
+
+PARTIALLY WORKING ⚠️
+List features that work but
+have issues — describe the issue
+
+NOT WORKING ❌
+List every broken feature
+with exact error or description
+
+NOT BUILT YET ⏳
+List features on pricing page
+that do not exist in the product
+
+CRITICAL — REMOVE FROM PRICING 🚨
+List any feature that is on the
+pricing page but completely missing
+Must be removed from pricing page
+immediately or it is false advertising
+
+PRIORITY FIX ORDER:
+1. Fix this first
+2. Fix this second
+3. Fix this third
+4. Fix this fourth
+5. Fix this fifth
+
+PRICING PAGE ACCURACY:
+X out of 28 features working correctly
+Percentage: X%
+
+READY TO CHARGE REAL MONEY?
+Honest yes or no.
+If no: list exactly what needs to
+be working before first real payment.
