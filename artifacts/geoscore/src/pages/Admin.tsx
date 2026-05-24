@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
-import { Shield, Users, Ban, CheckCircle, LogOut, UserPlus, KeyRound, X, TrendingUp } from "lucide-react";
+import { Shield, Users, Ban, CheckCircle, LogOut, UserPlus, KeyRound, X, TrendingUp, Lock } from "lucide-react";
 
 const ADMIN_EMAILS = ["inoxxprotocol@gmail.com"];
 
@@ -60,6 +60,15 @@ const labelStyle: React.CSSProperties = {
 
 export default function Admin() {
   const [, setLocation] = useLocation();
+
+  // Gate state - all hooks must be declared before any conditional return
+  const [gateVerified, setGateVerified] = useState(() => sessionStorage.getItem("admin_gate") === "1");
+  const [gatePassword, setGatePassword] = useState("");
+  const [gateLoading, setGateLoading] = useState(false);
+  const [gateError, setGateError] = useState<string | null>(null);
+  const gatePwRef = useRef<HTMLInputElement>(null);
+
+  // Main state
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +92,7 @@ export default function Admin() {
   const token = localStorage.getItem("auth_token") || localStorage.getItem("geoscore_token");
 
   useEffect(() => {
+    if (!gateVerified) return;
     const loadMe = async () => {
       if (!token) { setLocation("/login"); return; }
       try {
@@ -100,10 +110,10 @@ export default function Admin() {
       }
     };
     loadMe();
-  }, [token, setLocation]);
+  }, [token, setLocation, gateVerified]);
 
   useEffect(() => {
-    if (!currentUserEmail || !ADMIN_EMAILS.includes(currentUserEmail)) return;
+    if (!gateVerified || !currentUserEmail || !ADMIN_EMAILS.includes(currentUserEmail)) return;
     const loadUsers = async () => {
       setLoading(true);
       try {
@@ -118,7 +128,33 @@ export default function Admin() {
       }
     };
     loadUsers();
-  }, [currentUserEmail, token]);
+  }, [currentUserEmail, token, gateVerified]);
+
+  const handleGateVerify = async () => {
+    setGateError(null);
+    if (!gatePassword) { setGateError("Enter the admin password."); return; }
+    setGateLoading(true);
+    try {
+      const res = await fetch("/api/admin/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: gatePassword }),
+      });
+      if (!res.ok) {
+        const d = (await res.json()) as { error?: string };
+        setGateError(d.error ?? "Wrong password.");
+        setGatePassword("");
+        gatePwRef.current?.focus();
+        return;
+      }
+      sessionStorage.setItem("admin_gate", "1");
+      setGateVerified(true);
+    } catch {
+      setGateError("Network error. Try again.");
+    } finally {
+      setGateLoading(false);
+    }
+  };
 
   const toggleBlock = async (user: AdminUser) => {
     setActionLoading(user.id);
@@ -186,6 +222,43 @@ export default function Admin() {
     }
   };
 
+  // Password gate screen
+  if (!gateVerified) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#0F172A", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui, sans-serif" }}>
+        <div style={{ background: "#1E293B", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "36px 32px", width: "100%", maxWidth: 360 }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 28 }}>
+            <div style={{ background: "rgba(79,70,229,0.12)", borderRadius: 12, padding: 14, marginBottom: 14 }}>
+              <Lock size={24} color="#818CF8" />
+            </div>
+            <h1 style={{ fontSize: 18, fontWeight: 700, color: "#E2E8F0", margin: "0 0 4px" }}>Admin access</h1>
+            <p style={{ fontSize: 13, color: "#64748B", margin: 0 }}>Enter your admin password to continue.</p>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <input
+              ref={gatePwRef}
+              type="password"
+              value={gatePassword}
+              onChange={e => setGatePassword(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") handleGateVerify(); }}
+              placeholder="Password"
+              autoFocus
+              style={{ background: "#0F172A", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "11px 14px", fontSize: 14, color: "#E2E8F0", outline: "none", width: "100%", boxSizing: "border-box" as const }}
+            />
+            {gateError && <p style={{ fontSize: 12, color: "#F87171", margin: 0 }}>{gateError}</p>}
+            <button
+              onClick={handleGateVerify}
+              disabled={gateLoading}
+              style={{ background: "#4F46E5", color: "white", border: "none", borderRadius: 8, padding: "11px 0", fontSize: 14, fontWeight: 600, cursor: gateLoading ? "not-allowed" : "pointer", opacity: gateLoading ? 0.7 : 1 }}
+            >
+              {gateLoading ? "Checking..." : "Enter"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const totalUsers = users.length;
   const paidUsers = users.filter(u => u.plan !== "free").length;
   const blockedUsers = users.filter(u => u.blocked).length;
@@ -214,7 +287,7 @@ export default function Admin() {
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <span style={{ fontSize: 12, color: "#64748B" }}>{currentUserEmail}</span>
             <button
-              onClick={() => setLocation("/dashboard")}
+              onClick={() => { sessionStorage.removeItem("admin_gate"); setLocation("/dashboard"); }}
               style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "6px 12px", fontSize: 12, color: "#94A3B8", cursor: "pointer" }}
             >
               <LogOut size={13} /> Dashboard
@@ -258,8 +331,7 @@ export default function Admin() {
             </div>
             {!loading && (
               <div style={{ marginTop: 8, fontSize: 11, color: "#475569", lineHeight: 1.6 }}>
-                {starterCount} Starter x Rs 3,999
-                <br />
+                {starterCount} Starter x Rs 3,999<br />
                 {agencyCount} Agency x Rs 11,999
               </div>
             )}
@@ -385,22 +457,11 @@ export default function Admin() {
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
                 <label style={labelStyle}>Email</label>
-                <input
-                  type="email"
-                  value={addEmail}
-                  onChange={e => setAddEmail(e.target.value)}
-                  placeholder="user@example.com"
-                  style={inputStyle}
-                  autoFocus
-                />
+                <input type="email" value={addEmail} onChange={e => setAddEmail(e.target.value)} placeholder="user@example.com" style={inputStyle} autoFocus />
               </div>
               <div>
                 <label style={labelStyle}>Plan</label>
-                <select
-                  value={addPlan}
-                  onChange={e => setAddPlan(e.target.value as "free" | "starter" | "agency")}
-                  style={{ ...inputStyle, appearance: "none" as const }}
-                >
+                <select value={addPlan} onChange={e => setAddPlan(e.target.value as "free" | "starter" | "agency")} style={{ ...inputStyle, appearance: "none" as const }}>
                   <option value="free">Free</option>
                   <option value="starter">Starter</option>
                   <option value="agency">Agency</option>
@@ -408,13 +469,7 @@ export default function Admin() {
               </div>
               <div>
                 <label style={labelStyle}>Password <span style={{ color: "#475569", fontWeight: 400 }}>(optional - min 8 chars)</span></label>
-                <input
-                  type="password"
-                  value={addPassword}
-                  onChange={e => setAddPassword(e.target.value)}
-                  placeholder="Leave blank to skip"
-                  style={inputStyle}
-                />
+                <input type="password" value={addPassword} onChange={e => setAddPassword(e.target.value)} placeholder="Leave blank to skip" style={inputStyle} />
               </div>
               {addError && <p style={{ fontSize: 12, color: "#F87171", margin: 0 }}>{addError}</p>}
               <button

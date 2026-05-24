@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, usersTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
-import { requireAuth, hashPassword, type AuthRequest } from "../lib/auth";
+import { requireAuth, hashPassword, verifyPassword, type AuthRequest } from "../lib/auth";
 
 const router: IRouter = Router();
 
@@ -15,6 +15,27 @@ function requireAdmin(req: Parameters<typeof requireAuth>[0], res: Parameters<ty
   }
   next();
 }
+
+router.post("/admin/verify", async (req, res): Promise<void> => {
+  const { password } = req.body as { password?: string };
+  if (!password || typeof password !== "string") {
+    res.status(400).json({ error: "Password is required." });
+    return;
+  }
+
+  const [admin] = await db
+    .select({ passwordHash: usersTable.passwordHash })
+    .from(usersTable)
+    .where(eq(usersTable.email, ADMIN_EMAILS[0]!))
+    .limit(1);
+
+  if (!admin || !admin.passwordHash || !verifyPassword(password, admin.passwordHash)) {
+    res.status(401).json({ error: "Wrong password." });
+    return;
+  }
+
+  res.json({ ok: true });
+});
 
 router.get("/admin/users", requireAuth, requireAdmin, async (req, res): Promise<void> => {
   const users = await db
