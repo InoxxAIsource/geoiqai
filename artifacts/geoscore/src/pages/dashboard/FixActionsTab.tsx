@@ -100,6 +100,26 @@ Allow: /
 User-agent: ClaudeBot
 Allow: /`;
 
+  const indexNowCode = `# Step 1: Generate a key (random string, e.g. mybrand2026key)
+# Step 2: Create a file at https://${domain}/mybrand2026key.txt
+#         Content of that file: just the key string
+# Step 3: Submit all your URLs:
+
+curl -X POST "https://api.indexnow.org/indexnow" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "host": "${domain}",
+    "key": "mybrand2026key",
+    "keyLocation": "https://${domain}/mybrand2026key.txt",
+    "urlList": [
+      "https://${domain}/",
+      "https://${domain}/about",
+      "https://${domain}/blog/your-latest-post"
+    ]
+  }'
+
+# HTTP 202 = accepted. Run this whenever you publish a new page.`;
+
   const llmsTxtCode = `# ${bn}
 > ${bn} helps founders and startups track and improve AI visibility.
 
