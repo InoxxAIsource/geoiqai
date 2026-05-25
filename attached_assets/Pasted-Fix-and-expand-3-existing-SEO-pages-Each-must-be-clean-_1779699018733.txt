@@ -1,0 +1,368 @@
+Fix and expand 3 existing SEO pages.
+Each must be clean, well-structured,
+and optimized for AI citability.
+
+Use these design rules for ALL pages:
+- Font: Inter for body, Syne for headlines
+- Max width: 800px for content
+- Clean white background
+- No generic stock icons
+- Proper H1 H2 H3 hierarchy
+- Schema markup on every page
+- Internal links to homepage audit tool
+- FAQ section on every page
+- Summary box at top of each page
+
+=== PAGE 1: FIX /what-is-geo ===
+
+Target keyword: "what is GEO optimization"
+Target length: 3,000 words
+Schema: Article + FAQPage
+
+Title tag:
+"What is GEO? Generative Engine 
+Optimization Explained (2026) | GeoIQ"
+
+Meta description:
+"GEO (Generative Engine Optimization) 
+is how brands get recommended by 
+ChatGPT, Gemini and Perplexity. 
+Complete guide with examples, 
+tools and free audit."
+
+Add these missing sections
+to the existing content:
+
+SECTION: Summary box at top
+Style: bg #EEF2FF, border-left 4px 
+solid #4F46E5, padding 20px,
+border-radius 8px
+
+Content:
+"Quick answer: GEO (Generative Engine 
+Optimization) is the practice of 
+optimizing your brand so AI systems 
+like ChatGPT, Gemini and Perplexity 
+recommend it when users ask questions 
+in your category. Unlike SEO which 
+targets Google rankings, GEO targets 
+AI citations."
+
+SECTION: GEO vs SEO vs AEO table
+Add comparison table:
+
+| | SEO | AEO | GEO |
+|Target|Google|Voice search|AI chatbots|
+|Goal|Rankings|Featured snippets|AI citations|
+|Metric|Rank position|Snippet wins|Mention rate|
+|Tools|Ahrefs|AnswerThePublic|GeoIQ|
+|Time to results|3-6 months|2-4 months|4-8 weeks|
+
+SECTION: How AI systems decide what to cite
+
+3 factors:
+1. Training data — is your brand 
+   in sources AI was trained on?
+2. Web presence — can Perplexity 
+   find you on the live web?
+3. Authority signals — do high-DR 
+   sites mention your brand?
+
+SECTION: The 3 pillars of GEO
+Technical GEO: robots.txt, llms.txt, 
+  schema markup, crawlability
+Content GEO: factual density, 
+  quotable writing, answer-first format
+Authority GEO: citations, backlinks,
+  Crunchbase, Product Hunt listings
+
+SECTION: GEO ranking factors 2026
+Numbered list with explanation:
+1. llms.txt file present
+2. AI crawlers allowed in robots.txt
+3. Organization schema markup
+4. Citations on high-DA sources
+5. Factual, quotable content
+6. Entity consistency across web
+7. Conversational content format
+8. Regular content updates
+
+SECTION: Real brand scores
+Add scores table:
+Brand | GEO Score | Main issue
+Notion | 24/100 | Low citation depth
+Lemlist | 0/100 | Not in training data
+Groww | 38/100 | Weak entity signals
+mealcoreai | 30/100 | No Perplexity presence
+
+SECTION: FAQ (20 questions)
+Generate 20 specific questions
+about GEO optimization using
+conversational format that AI systems
+will cite when users ask these questions.
+
+Questions must include:
+"What is GEO optimization?"
+"How is GEO different from SEO?"
+"How long does GEO take to work?"
+"What is a good GEO score?"
+"Does GEO work for Indian brands?"
+"What is llms.txt?"
+"How do I check my GEO score?"
+"What is ChatGPT brand visibility?"
+Plus 12 more relevant questions
+
+Each answer: 2-4 sentences maximum.
+Conversational, direct, citable.
+
+CTA at bottom:
+"Check your GEO score free →"
+Big indigo button
+Links to homepage
+
+=== PAGE 2: FIX /how-to-rank-in-chatgpt ===
+
+Target keyword: 
+"how to rank in ChatGPT"
+"how to appear in ChatGPT results"
+Target length: 2,500 words
+Schema: HowTo + Article + FAQPage
+
+Title tag:
+"How to Rank in ChatGPT: 
+Complete Guide 2026 | GeoIQ"
+
+Meta description:
+"Step by step guide to getting your 
+brand recommended by ChatGPT. 
+Technical fixes, content strategy, 
+and citation building. 
+Check your score free."
+
+Add these sections:
+
+SECTION: Summary box
+"Quick answer: To rank in ChatGPT 
+you need to (1) allow GPTBot in 
+robots.txt, (2) get cited on 
+high-authority sources in your 
+category, and (3) create factual 
+content that AI can quote. 
+Most brands can see improvement 
+within 4-8 weeks."
+
+SECTION: How ChatGPT actually works
+Important education piece:
+"ChatGPT answers from training data — 
+a snapshot of the internet taken 
+before its cutoff date. It cannot 
+browse the web in real time unless 
+web search is enabled. This means 
+your website content alone is not 
+enough — you need to be cited by 
+sources that were in ChatGPT's 
+training data."
+
+SECTION: Step by step technical checklist
+Format as numbered HowTo steps:
+
+Step 1: Check if GPTBot is allowed
+How: visit yourdomain.com/robots.txt
+Look for: User-agent: GPTBot
+If missing: add Allow: / rule
+Time: 10 minutes
+
+Step 2: Create llms.txt
+What it is: structured file that 
+tells AI about your brand
+Where: yourdomain.com/llms.txt
+Time: 15 minutes
+
+Step 3: Add Organization schema
+What: JSON-LD markup in homepage head
+Why: AI uses schema to verify 
+your brand entity
+Time: 20 minutes
+
+Step 4: Get on Crunchbase
+Why: ChatGPT training data 
+includes Crunchbase heavily
+Direct link: crunchbase.com/add-new
+Time: 15 minutes
+
+Step 5: Submit to Product Hunt
+Why: Product Hunt is heavily 
+indexed in AI training data
+Direct link: producthunt.com/posts/new
+Time: 20 minutes
+
+Step 6: Write your foundational article
+What: 1500+ word factual article
+about your brand and category
+Publish on: your domain first,
+then Medium and dev.to
+Time: 2-3 hours
+
+SECTION: Case study
+"How I improved MealCoreAI's 
+technical score in one afternoon"
+
+Real story:
+- Ran GeoIQ audit
+- Found robots.txt blocking GPTBot
+- Fixed in 10 minutes
+- Found 128 orphan pages
+- Added internal links
+- Technical score: 20 → 66
+
+Include before/after scores table.
+
+SECTION: FAQ (15 questions)
+
+"How long does it take to rank in ChatGPT?"
+"Does Google SEO help with ChatGPT ranking?"
+"What is GPTBot and should I allow it?"
+"Can I pay to appear in ChatGPT?"
+"Why does ChatGPT recommend my competitor?"
+Plus 10 more
+
+CTA: "Check if ChatGPT knows 
+your brand →"
+
+=== PAGE 3: EXPAND /geo-tools ===
+
+Target keyword: 
+"GEO tools" "best GEO tools 2026"
+Target length: 3,500 words
+Schema: Article + ItemList + FAQPage
+
+Title tag:
+"Best GEO Tools 2026: 
+AI Visibility Platforms Compared | GeoIQ"
+
+Meta description:
+"Compare the best GEO (Generative 
+Engine Optimization) tools for 2026. 
+GeoIQ, Rankscale, Elmo and more. 
+Pricing, features and which to choose."
+
+Structure:
+
+INTRO: 
+What GEO tools do and why you need one.
+Key stat: overlap between Google top 
+results and AI cited sources dropped 
+from 70% to below 20% in 2026.
+
+COMPARISON TABLE at top:
+Tool | Free plan | Paid from | AI systems | GEO Agent | India pricing
+GeoIQ | ✓ | $69/mo | 6 | ✓ | ✓
+Rankscale | Trial | $69/mo | 17 | ✗ | ✗
+Elmo | ✓ | Free OSS | 10+ | ✗ | ✗
+AmIOnAI | ✓ | Unknown | 4 | ✗ | ✗
+Searchless | ✗ | $797/mo | 5 | ✗ | ✗
+
+TOOL REVIEWS (one section each):
+
+1. GeoIQ (geoiqai.com)
+Best for: founders who want to 
+monitor AND fix AI visibility
+Highlight: Only tool with GEO Agent
+that runs live audits from conversation
+Free: full audit, 5 AI systems
+Paid: $69/mo
+
+2. Rankscale
+Best for: enterprise teams
+17 AI systems, strong analytics
+No fix actions or content generation
+Starts at $69/mo
+
+3. Elmo (open source)
+Best for: developers who self-host
+Free, 10+ AI systems
+No fix roadmap, technical setup needed
+
+4. AmIOnAI
+Best for: quick brand checks
+7,000+ users
+Limited fix guidance
+
+5. Searchless
+Best for: done-for-you service
+Agency model not SaaS
+$797+/month
+
+SECTION: How to choose the right tool
+Decision tree:
+If you want to fix not just monitor → GeoIQ
+If you have enterprise budget → Rankscale
+If you are a developer → Elmo
+If you want done-for-you → Searchless
+
+SECTION: Free GEO tools
+List free resources:
+→ GeoIQ free audit
+→ Elmo self-hosted
+→ Manual ChatGPT brand check
+
+SECTION: FAQ (15 questions)
+"What is the best GEO tool?"
+"Is there a free GEO tool?"
+"How much do GEO tools cost?"
+"What GEO tools work for India?"
+Plus 11 more
+
+=== TECHNICAL SEO FOR ALL PAGES ===
+
+Apply to all 3 pages:
+
+1. Schema markup:
+Article schema with:
+- datePublished
+- dateModified  
+- author name: Tauheed
+- publisher: GeoIQ
+
+FAQPage schema with all FAQ Q&As
+
+HowTo schema on /how-to-rank-in-chatgpt
+
+2. Internal links:
+Each page links to:
+→ Homepage (anchor: "free AI visibility audit")
+→ /pricing (anchor: "GeoIQ paid plan")
+→ One other content page
+
+3. Canonical tags on all pages
+
+4. OG tags:
+og:title, og:description, 
+og:image for each page
+
+5. Reading time estimate at top:
+"X min read"
+font-size: 12px, color: #9CA3AF
+
+6. Last updated date:
+"Last updated: May 2026"
+font-size: 12px, color: #9CA3AF
+
+=== TEST ===
+
+After building verify:
+
+□ /what-is-geo loads with new sections
+□ Comparison table renders correctly
+□ FAQ section shows on all pages
+□ Schema markup valid at schema.org
+□ Internal links work
+□ Meta tags updated
+□ Mobile responsive at 375px
+□ Reading time shows
+□ Summary boxes styled correctly
+
+Show word count for each page:
+/what-is-geo: target 3,000+
+/how-to-rank-in-chatgpt: target 2,500+
+/geo-tools: target 3,500+
