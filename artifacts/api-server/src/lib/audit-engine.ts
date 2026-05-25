@@ -257,10 +257,13 @@ function checkLlmsTxt(llmsTxt: string | null): TechnicalCheck {
     return { id: "llms", name: "llms.txt File", score: 0, status: "fail", detail: "No llms.txt found. This file tells AI systems about your brand directly." };
   }
   const lines = llmsTxt.split("\n").filter((l) => l.trim().length > 0);
-  if (lines.length >= 20) {
+  if (lines.length >= 30) {
+    return { id: "llms", name: "llms.txt File", score: 100, status: "pass", detail: "llms.txt found with comprehensive content. AI systems have full brand context." };
+  }
+  if (lines.length >= 15) {
     return { id: "llms", name: "llms.txt File", score: 80, status: "pass", detail: "llms.txt found. Good AI accessibility." };
   }
-  return { id: "llms", name: "llms.txt File", score: 40, status: "warn", detail: "llms.txt exists but has limited content. Expand it with more brand context." };
+  return { id: "llms", name: "llms.txt File", score: 40, status: "warn", detail: "llms.txt exists but has limited content. Expand it with product details, key pages, and contact info." };
 }
 
 function checkSchemaMarkup(rawHtml: string): TechnicalCheck {

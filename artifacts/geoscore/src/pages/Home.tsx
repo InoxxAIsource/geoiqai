@@ -205,6 +205,36 @@ export default function Home() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "white" }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "GeoIQ",
+            "url": "https://geoiqai.com",
+            "logo": "https://geoiqai.com/favicon.svg",
+            "description": "GeoIQ is an AI visibility platform that tracks how your brand appears in ChatGPT, Gemini, Perplexity, Claude, Grok and Google AI Overview. Free AI visibility audit in 60 seconds.",
+            "foundingDate": "2026",
+            "founder": {
+              "@type": "Person",
+              "name": "Tauheed",
+              "sameAs": "https://twitter.com/BeingtauheedTk"
+            },
+            "contactPoint": {
+              "@type": "ContactPoint",
+              "email": "hello@geoiqai.com",
+              "contactType": "customer support"
+            },
+            "sameAs": [
+              "https://twitter.com/BeingtauheedTk",
+              "https://www.instagram.com/geoiqai",
+              "https://www.linkedin.com/company/geoiqai",
+              "https://x.com/BeingtauheedTk"
+            ]
+          }),
+        }}
+      />
       <style>{`
         @keyframes ticker {
           0% { transform: translateX(0); }
