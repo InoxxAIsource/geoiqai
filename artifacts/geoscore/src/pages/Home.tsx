@@ -320,17 +320,13 @@ export default function Home() {
             Free audit · No signup · 60 seconds
           </div>
 
-          {/* 3 proof points */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, maxWidth: 640, margin: "24px auto 0", textAlign: "center" }}>
-            {[
-              { icon: "🔍", text: "Audit your AI visibility across 5 AI systems" },
-              { icon: "⚡", text: "Get a 4-week fix roadmap with exact steps" },
-              { icon: "🤖", text: "GEO Agent fixes it with you, powered by Claude AI" },
-            ].map((pt, i) => (
-              <div key={i} style={{ fontSize: 13, color: "#6B7280", lineHeight: 1.5 }}>
-                <div style={{ fontSize: 20, marginBottom: 6 }}>{pt.icon}</div>
-                {pt.text}
-              </div>
+          {/* Proof points — clean single line */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, marginTop: 24 }}>
+            {["5 AI systems", "4-week roadmap", "GEO Agent included"].map((label, i) => (
+              <span key={label} style={{ display: "flex", alignItems: "center" }}>
+                {i > 0 && <span style={{ color: "#D1D5DB", margin: "0 16px", fontSize: 16 }}>·</span>}
+                <span style={{ fontSize: 13, color: "#6B7280" }}>{label}</span>
+              </span>
             ))}
           </div>
         </div>
@@ -410,17 +406,17 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               {
-                terminal: ["$ ask chatgpt --query 'best CRM for startups'", "> Recommending: HubSpot, Salesforce, Pipedrive...", "> Your brand: not found"],
+                num: "01",
                 title: "ChatGPT recommends competitors",
                 body: "When users ask for tools in your category, ChatGPT suggests your funded competitors because they optimized for AI context.",
               },
               {
-                terminal: ["$ check gemini --brand yourstartup.com", "> Scanning knowledge graph...", "> Status: no training signal found"],
+                num: "02",
                 title: "Gemini hasn't heard of you",
                 body: "Despite having great SEO traffic, Gemini's knowledge graph doesn't connect your brand to the problems you solve.",
               },
               {
-                terminal: ["$ check analytics --source ai_referrals", "> Google Analytics: no AI traffic column", "> Search Console: AI queries not tracked"],
+                num: "03",
                 title: "No way to track any of this",
                 body: "Search Console is useless for AI systems. You have no dashboard to know if your PR and content are actually working.",
               },
@@ -431,7 +427,7 @@ export default function Home() {
                   background: "white",
                   border: "1px solid #E5E7EB",
                   borderRadius: 16,
-                  overflow: "hidden",
+                  padding: 28,
                   boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
                   transition: "box-shadow 200ms, transform 200ms",
                 }}
@@ -444,20 +440,9 @@ export default function Home() {
                   e.currentTarget.style.transform = "translateY(0)";
                 }}
               >
-                <div style={{ background: "#0F172A", padding: "16px 20px", fontFamily: "monospace", fontSize: 12 }}>
-                  {card.terminal.map((line, j) => (
-                    <div key={j} style={{
-                      color: j === 0 ? "#94A3B8" : j === card.terminal.length - 1 ? "#F87171" : "#64748B",
-                      marginBottom: j < card.terminal.length - 1 ? 4 : 0,
-                    }}>
-                      {line}
-                    </div>
-                  ))}
-                </div>
-                <div style={{ padding: 24 }}>
-                  <h3 style={{ fontSize: 17, fontWeight: 600, color: "#111827", marginBottom: 8 }}>{card.title}</h3>
-                  <p style={{ fontSize: 14, color: "#6B7280", lineHeight: 1.6, margin: 0 }}>{card.body}</p>
-                </div>
+                <div style={{ ...SYNE, fontSize: 40, fontWeight: 800, color: "#F3F4F6", lineHeight: 1, marginBottom: 20 }}>{card.num}</div>
+                <h3 style={{ fontSize: 17, fontWeight: 600, color: "#111827", marginBottom: 8 }}>{card.title}</h3>
+                <p style={{ fontSize: 14, color: "#6B7280", lineHeight: 1.6, margin: 0 }}>{card.body}</p>
               </div>
             ))}
           </div>
@@ -654,12 +639,12 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { step: "1", title: "Audit", desc: "See exactly how ChatGPT, Gemini and Perplexity describe your brand right now." },
-              { step: "2", title: "Fix", desc: "Get your personalized 4-week roadmap with exact tasks, generated content, and direct submission URLs." },
-              { step: "3", title: "Get found", desc: "Watch your AI visibility score climb as your brand gets recommended in AI search results." },
+              { step: "01", title: "Audit", desc: "See exactly how ChatGPT, Gemini and Perplexity describe your brand right now." },
+              { step: "02", title: "Fix", desc: "Get your personalized 4-week roadmap with exact tasks, generated content, and direct submission URLs." },
+              { step: "03", title: "Get found", desc: "Watch your AI visibility score climb as your brand gets recommended in AI search results." },
             ].map((item, i) => (
-              <div key={i} style={{ textAlign: "center" }}>
-                <div style={{ width: 40, height: 40, background: PRIMARY, color: "white", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, margin: "0 auto 16px" }}>
+              <div key={i}>
+                <div style={{ ...SYNE, fontSize: 48, fontWeight: 800, color: "#E5E7EB", lineHeight: 1, marginBottom: 12 }}>
                   {item.step}
                 </div>
                 <h3 style={{ fontSize: 18, fontWeight: 600, color: "#111827", marginBottom: 8 }}>{item.title}</h3>

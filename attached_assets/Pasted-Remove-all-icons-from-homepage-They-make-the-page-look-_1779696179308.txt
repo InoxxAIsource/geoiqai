@@ -1,0 +1,127 @@
+Remove all icons from homepage.
+They make the page look generic 
+and AI-generated.
+
+=== REMOVE ICONS EVERYWHERE ===
+
+Remove from hero section:
+Any emoji or icon next to 
+proof points below the input
+
+Remove from pain cards:
+The icon/emoji in top left 
+of each pain card
+Replace with just the number
+"01" "02" "03" in large light
+gray text — typographic not iconic
+
+Remove from how it works section:
+Step number icons/circles
+Replace with plain numbers:
+"1" "2" "3"
+font-family: Syne
+font-size: 48px
+font-weight: 800
+color: #E5E7EB (very light)
+
+Remove from features section:
+Any icons next to feature tabs
+Keep just the text labels
+
+Remove from social proof section:
+Any decorative icons or emojis
+
+Remove from pricing cards:
+Any plan icons at top
+Keep just the plan name text
+
+Remove from footer:
+Any decorative icons
+Keep only functional icons
+(social media logos are fine)
+
+=== REPLACE WITH TYPOGRAPHY ===
+
+Instead of icons use:
+- Large numbers
+- Bold typography
+- Color contrast
+- Spacing and whitespace
+- Divider lines
+
+Example — proof points below input:
+Instead of:
+🔍 Audit your AI visibility
+⚡ Get a 4-week fix roadmap
+🤖 GEO Agent fixes it with you
+
+Use:
+Three columns separated by 
+thin vertical dividers:
+
+"Audit" · "Fix" · "Get found"
+
+Or just:
+"5 AI systems · 4-week roadmap · 
+GEO Agent included"
+
+Single line, no icons, clean.
+
+Example — how it works steps:
+Instead of numbered circle icons:
+
+01
+Audit
+"See exactly how ChatGPT and 
+Gemini describe your brand"
+
+02
+Fix
+"Get your personalized roadmap 
+with exact tasks and content"
+
+03
+Get found
+"Watch your score climb as AI 
+starts recommending you"
+
+Large "01" "02" "03" in Syne 800
+acts as visual anchor without
+needing icons
+
+=== WHAT TO KEEP ===
+
+Only keep these functional elements:
+- AI system logos (ChatGPT, Gemini, 
+  Perplexity) — these are brand marks
+  not decorative icons
+- Social media logos in footer
+- Checkmarks ✓ on pricing cards
+  (functional, not decorative)
+
+Remove everything else that is
+purely decorative iconography.
+
+=== RESULT ===
+
+The page should feel like:
+Linear.app — typography driven
+Vercel.com — clean and minimal
+Stripe.com — words do the work
+
+NOT like:
+Generic AI tool with emoji icons
+Canva template with icon packs
+Typical SaaS with feature icons
+
+=== VERIFY ===
+
+□ Hero section — no icons
+□ Pain cards — numbers only
+□ How it works — large numerals
+□ Features section — text only tabs
+□ Pricing — no plan icons
+□ Footer — no decorative icons
+
+Show screenshot of homepage 
+after icon removal.
