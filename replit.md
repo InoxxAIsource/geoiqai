@@ -98,4 +98,11 @@ Sitemap URL: https://geoiqai.com/sitemap.xml
 | https://geoiqai.com/roadmap | 24 May 2026 |
 | https://geoiqai.com/contact | 24 May 2026 |
 | https://geoiqai.com/privacy | 24 May 2026 |
-| https://geoiqai.com/terms | pending |
+| https://geoiqai.com/terms | 25 May 2026 |
+| https://geoiqai.com/llms-txt-guide | 25 May 2026 |
+| https://geoiqai.com/ai-visibility-score | 25 May 2026 |
+| https://geoiqai.com/ai-visibility-for-indian-startups | 25 May 2026 |
+| https://geoiqai.com/blog/indian-startups-chatgpt-scores | 25 May 2026 |
+| https://geoiqai.com/blog/robots-txt-blocking-ai | 25 May 2026 |
+| https://geoiqai.com/blog/what-is-geo-score | 25 May 2026 |
+| https://geoiqai.com/blog/geo-vs-seo-2026 | 25 May 2026 |
