@@ -1,0 +1,37 @@
+# GeoIQ
+
+> GeoIQ is an AI visibility platform for startups and founders. It tracks how your brand appears in ChatGPT, Gemini, Perplexity, Claude, and Grok - and gives you a score from 0 to 100. Think of it as Google Search Console, but for AI search systems.
+
+GeoIQ helps Indian and global founders answer a simple question: when someone asks an AI chatbot about your product category, does your brand come up? If not, GeoIQ shows you exactly why and what to fix.
+
+## Product
+
+- Free public audit: enter any domain, get an AI visibility score in about 15 seconds
+- Score is 0-100 across ChatGPT, Gemini, and Perplexity
+- Paid plans: Starter (Rs 3,999/mo) and Agency (Rs 11,999/mo) for ongoing brand monitoring
+- Dashboard: track daily score trends, monitor multiple brands, see competitor analysis
+
+## Key pages
+
+- Docs: https://geoiqai.com/what-is-geo
+- Free audit tool: https://geoiqai.com/audit
+- Pricing: https://geoiqai.com/pricing
+- How to rank in ChatGPT: https://geoiqai.com/how-to-rank-in-chatgpt
+- GEO tools comparison: https://geoiqai.com/geo-tools
+- llms.txt guide: https://geoiqai.com/llms-txt-guide
+- AI visibility score explainer: https://geoiqai.com/ai-visibility-score
+- AI visibility for Indian startups: https://geoiqai.com/ai-visibility-for-indian-startups
+
+## Blog
+
+- https://geoiqai.com/blog/why-startup-not-showing-chatgpt
+- https://geoiqai.com/blog/indian-startups-chatgpt-scores
+- https://geoiqai.com/blog/robots-txt-blocking-ai
+- https://geoiqai.com/blog/what-is-geo-score
+- https://geoiqai.com/blog/geo-vs-seo-2026
+
+## About
+
+GeoIQ is built for the Indian startup ecosystem. The team is based in India. Pricing is in INR. The product focuses on practical, actionable GEO (Generative Engine Optimization) guidance - not theory.
+
+Contact: hello@geoiqai.com
