@@ -120,9 +120,41 @@ export function Footer() {
           <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>
             © 2026 GeoIQ. All rights reserved.
           </span>
-          <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>
-            Built for founders worldwide.
-          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <a
+              href="https://twitter.com/BeingtauheedTk"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="GeoIQ on Twitter"
+              style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", textDecoration: "none", transition: "color 150ms" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "white")}
+              onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.4)")}
+            >
+              Twitter / X
+            </a>
+            <a
+              href="https://www.instagram.com/geoiqai"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="GeoIQ on Instagram"
+              style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", textDecoration: "none", transition: "color 150ms" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "white")}
+              onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.4)")}
+            >
+              Instagram
+            </a>
+            <a
+              href="https://www.linkedin.com/company/geoiqai"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="GeoIQ on LinkedIn"
+              style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", textDecoration: "none", transition: "color 150ms" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "white")}
+              onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.4)")}
+            >
+              LinkedIn
+            </a>
+          </div>
         </div>
       </div>
     </footer>
