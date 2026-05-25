@@ -176,6 +176,14 @@ https://${domain}/sitemap.xml`;
           url: `https://${domain}/llms.txt`, urlLabel: "Test your llms.txt URL",
         },
         {
+          id: "w1-indexnow", cite: "I", priority: "HIGH",
+          title: "Submit to IndexNow for instant search engine notification",
+          time: "10 mins", impact: 7,
+          instructions: `IndexNow notifies Bing, Yandex, Seznam, and Naver simultaneously with one API call. Bing shares indexed data with Microsoft Copilot - so this directly improves your AI visibility. Generate a random key, create a verification file at your domain root, then POST all your URLs. Run this every time you publish a new page.`,
+          code: indexNowCode, codeLabel: "Copy IndexNow submission script",
+          url: "https://www.bing.com/webmasters/indexnow", urlLabel: "IndexNow on Bing Webmaster Tools",
+        },
+        {
           id: "w1-3", cite: "T", priority: "HIGH",
           title: "Add Organization Schema markup",
           time: "20 mins", impact: 8,
