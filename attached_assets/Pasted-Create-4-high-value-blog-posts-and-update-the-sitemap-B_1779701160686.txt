@@ -1,0 +1,298 @@
+Create 4 high-value blog posts
+and update the sitemap.
+
+Blog post design rules:
+- Clean article layout
+- Max width 720px for reading
+- Author: Tauheed
+- Date published
+- Reading time
+- Share buttons (Twitter, LinkedIn)
+- Related posts at bottom
+- CTA after every 3rd section
+
+=== BLOG 1: 
+/blog/indian-startups-chatgpt-scores ===
+
+Title: "I Checked 10 Indian Startups 
+on ChatGPT — The Scores Shocked Me"
+
+Meta:
+"We ran every major Indian startup 
+through GeoIQ. The average score 
+was 31/100. Here are the results 
+and what they mean for your brand."
+
+Target keyword: "Indian startups ChatGPT"
+
+Content structure:
+Intro: Personal hook — running 
+MealCoreAI, discovering the problem
+
+The test: methodology explained
+(used GeoIQ, checked ChatGPT/Gemini/Perplexity)
+
+The results: real scores table
+(run actual audits before publishing)
+
+Analysis: why each brand scored 
+what they scored
+
+The fix: 5 specific actions
+
+CTA: "Check your brand free →"
+
+Length: 1,500 words
+Tone: conversational, data-driven
+
+=== BLOG 2:
+/blog/robots-txt-blocking-ai ===
+
+Title: "Your robots.txt is Probably 
+Blocking ChatGPT Right Now"
+
+Meta:
+"Most websites accidentally block 
+AI crawlers in robots.txt. 
+Check yours in 30 seconds. 
+Here is how to fix it."
+
+Target keyword: 
+"robots.txt AI crawlers"
+"GPTBot robots.txt"
+
+Content structure:
+Hook: common mistake most founders 
+don't know they're making
+
+What AI crawlers are:
+GPTBot, PerplexityBot, ClaudeBot etc
+
+How to check your robots.txt:
+Go to yourdomain.com/robots.txt
+Look for Disallow: / or missing rules
+
+The fix: exact code to add
+
+Why this matters: impact on scores
+
+Case study: mealcoreai fix
+
+CTA: "Check your full AI audit free →"
+
+Length: 1,200 words
+Include code blocks with copy buttons
+
+=== BLOG 3:
+/blog/what-is-geo-score ===
+
+Title: "What's a Good GEO Score? 
+We Analyzed 500 Brands to Find Out"
+
+Meta:
+"The average GEO score across 
+500+ brands is 24/100. 
+Find out what a good score looks like 
+and how yours compares."
+
+Target keyword:
+"GEO score" "what is a good GEO score"
+
+Content structure:
+The data: distribution of scores
+across brands GeoIQ has audited
+
+Score ranges explained:
+0-20, 21-40, 41-60, 61-80, 81-100
+
+By category:
+SaaS average: X/100
+Health apps average: X/100
+Fintech average: X/100
+E-commerce average: X/100
+
+By age:
+Under 1 year old: X/100
+1-3 years: X/100
+3+ years: X/100
+
+What affects score most:
+Top 5 factors by impact
+
+CTA: "See how your score compares →"
+
+Length: 1,500 words
+
+=== BLOG 4:
+/blog/geo-vs-seo-2026 ===
+
+Title: "GEO vs SEO in 2026: 
+Where Should You Focus?"
+
+Meta:
+"AI search is eating traditional search. 
+But should you abandon SEO for GEO? 
+The honest answer — and what 
+to prioritize first."
+
+Target keyword:
+"GEO vs SEO" "GEO optimization 2026"
+
+Content structure:
+The state of search in 2026:
+Key stats on AI search growth
+
+What SEO still does well:
+Local, commercial, transactional
+
+What GEO does that SEO cannot:
+AI recommendations, chatbot citations
+
+The overlap:
+Technical SEO helps GEO
+Good content helps both
+Backlinks help both
+
+The difference:
+SEO = rankings
+GEO = citations
+
+Recommendation for founders:
+Do both, start with GEO if new brand
+
+CTA: "Check your GEO score →"
+
+Length: 1,800 words
+
+=== UPDATE SITEMAP ===
+
+Update sitemap.xml with all pages:
+
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns=
+"http://www.sitemaps.org/schemas/sitemap/0.9">
+
+<url>
+  <loc>https://geoiqai.com/</loc>
+  <changefreq>weekly</changefreq>
+  <priority>1.0</priority>
+  <lastmod>2026-05-25</lastmod>
+</url>
+
+<url>
+  <loc>https://geoiqai.com/what-is-geo</loc>
+  <changefreq>monthly</changefreq>
+  <priority>0.9</priority>
+  <lastmod>2026-05-25</lastmod>
+</url>
+
+<url>
+  <loc>https://geoiqai.com/
+how-to-rank-in-chatgpt</loc>
+  <changefreq>monthly</changefreq>
+  <priority>0.9</priority>
+  <lastmod>2026-05-25</lastmod>
+</url>
+
+<url>
+  <loc>https://geoiqai.com/geo-tools</loc>
+  <changefreq>monthly</changefreq>
+  <priority>0.8</priority>
+  <lastmod>2026-05-25</lastmod>
+</url>
+
+<url>
+  <loc>https://geoiqai.com/
+llms-txt-guide</loc>
+  <changefreq>monthly</changefreq>
+  <priority>0.8</priority>
+  <lastmod>2026-05-25</lastmod>
+</url>
+
+<url>
+  <loc>https://geoiqai.com/
+ai-visibility-score</loc>
+  <changefreq>monthly</changefreq>
+  <priority>0.8</priority>
+  <lastmod>2026-05-25</lastmod>
+</url>
+
+<url>
+  <loc>https://geoiqai.com/
+ai-visibility-for-indian-startups</loc>
+  <changefreq>monthly</changefreq>
+  <priority>0.8</priority>
+  <lastmod>2026-05-25</lastmod>
+</url>
+
+<url>
+  <loc>https://geoiqai.com/pricing</loc>
+  <changefreq>monthly</changefreq>
+  <priority>0.8</priority>
+  <lastmod>2026-05-25</lastmod>
+</url>
+
+<url>
+  <loc>https://geoiqai.com/blog/
+indian-startups-chatgpt-scores</loc>
+  <changefreq>monthly</changefreq>
+  <priority>0.7</priority>
+  <lastmod>2026-05-25</lastmod>
+</url>
+
+<url>
+  <loc>https://geoiqai.com/blog/
+robots-txt-blocking-ai</loc>
+  <changefreq>monthly</changefreq>
+  <priority>0.7</priority>
+  <lastmod>2026-05-25</lastmod>
+</url>
+
+<url>
+  <loc>https://geoiqai.com/blog/
+what-is-geo-score</loc>
+  <changefreq>monthly</changefreq>
+  <priority>0.7</priority>
+  <lastmod>2026-05-25</lastmod>
+</url>
+
+<url>
+  <loc>https://geoiqai.com/blog/
+geo-vs-seo-2026</loc>
+  <changefreq>monthly</changefreq>
+  <priority>0.7</priority>
+  <lastmod>2026-05-25</lastmod>
+</url>
+
+</urlset>
+
+=== SUBMIT TO GOOGLE ===
+
+After all pages are live:
+1. Go to search.google.com/search-console
+2. Add geoiqai.com property
+3. Submit sitemap:
+   geoiqai.com/sitemap.xml
+4. Request indexing for each new URL
+
+=== FINAL TEST PART 3 ===
+
+□ All 4 blog posts load
+□ Author name shows: Tauheed
+□ Date published shows
+□ Reading time shows
+□ Code blocks have copy buttons
+□ CTAs appear after every 3rd section
+□ Related posts at bottom
+□ Sitemap updated with all URLs
+□ Sitemap accessible at 
+  geoiqai.com/sitemap.xml
+□ All pages mobile responsive
+
+Show word count for each blog:
+Blog 1 target: 1,500 words
+Blog 2 target: 1,200 words  
+Blog 3 target: 1,500 words
+Blog 4 target: 1,800 words
+
+Show sitemap URL after update.

@@ -29,6 +29,10 @@ import Admin from "@/pages/Admin";
 import LlmsTxtGuide from "@/pages/LlmsTxtGuide";
 import AiVisibilityScore from "@/pages/AiVisibilityScore";
 import AiVisibilityIndia from "@/pages/AiVisibilityIndia";
+import BlogIndianStartupScores from "@/pages/BlogIndianStartupScores";
+import BlogRobotsTxt from "@/pages/BlogRobotsTxt";
+import BlogWhatIsGeoScore from "@/pages/BlogWhatIsGeoScore";
+import BlogGeoVsSeo from "@/pages/BlogGeoVsSeo";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -76,6 +80,10 @@ function Router() {
         <Route path="/llms-txt-guide" component={LlmsTxtGuide} />
         <Route path="/ai-visibility-score" component={AiVisibilityScore} />
         <Route path="/ai-visibility-for-indian-startups" component={AiVisibilityIndia} />
+        <Route path="/blog/indian-startups-chatgpt-scores" component={BlogIndianStartupScores} />
+        <Route path="/blog/robots-txt-blocking-ai" component={BlogRobotsTxt} />
+        <Route path="/blog/what-is-geo-score" component={BlogWhatIsGeoScore} />
+        <Route path="/blog/geo-vs-seo-2026" component={BlogGeoVsSeo} />
         <Route component={NotFound} />
       </Switch>
     </>
