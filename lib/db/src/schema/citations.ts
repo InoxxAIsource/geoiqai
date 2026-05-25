@@ -8,6 +8,7 @@ export const citationsTable = pgTable("citations", {
   prompt: text("prompt"),
   citedUrl: text("cited_url"),
   citedDomain: text("cited_domain"),
+  brandName: text("brand_name"),
   citationType: text("citation_type").default("authority"),
   timesCited: integer("times_cited").default(1),
   firstSeen: timestamp("first_seen", { withTimezone: true }).defaultNow(),

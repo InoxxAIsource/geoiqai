@@ -8,10 +8,12 @@ import {
   getDomainKeywords,
   getLocationCode,
 } from "../lib/dataforseo";
+import { db, citationsTable } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
 
 const router = Router();
 
-// ─── Public Google AI check (used by free audit — rate-limited by IP) ──────────
+// ─── Public Google AI check (used by free audit - rate-limited by IP) ──────────
 
 const publicAiCheckCount = new Map<string, { count: number; resetAt: number }>();
 
@@ -55,7 +57,7 @@ function requirePaid(req: AuthRequest, res: Parameters<Parameters<typeof router.
   next();
 }
 
-// Google AI Overview — paid dashboard
+// Google AI Overview - paid dashboard
 router.post("/dataforseo/google-ai-overview", requireAuth, async (req, res): Promise<void> => {
   const user = (req as AuthRequest).user;
   if (user.plan === "free") {
@@ -63,7 +65,11 @@ router.post("/dataforseo/google-ai-overview", requireAuth, async (req, res): Pro
     return;
   }
 
-  const { domain, keywords } = req.body as { domain?: string; keywords?: string[] };
+  const { domain, keywords, brandId } = req.body as {
+    domain?: string;
+    keywords?: string[];
+    brandId?: string;
+  };
   if (!domain) {
     res.status(400).json({ error: "domain is required" });
     return;
@@ -77,7 +83,76 @@ router.post("/dataforseo/google-ai-overview", requireAuth, async (req, res): Pro
   req.log.info({ domain, kws: kws.length }, "google-ai-overview request");
 
   const result = await getGoogleAiOverview(kws, domain, locationCode);
+
+  // Persist brand_entities to citations table if we have a brandId and entities
+  if (brandId && result.brandEntities.length > 0) {
+    const bareDomain = domain.replace(/^www\./, "").toLowerCase();
+
+    try {
+      // Clear old brand-entity citations for this brand so we get a fresh snapshot
+      await db
+        .delete(citationsTable)
+        .where(
+          and(
+            eq(citationsTable.brandId, brandId),
+            eq(citationsTable.aiSystem, "google_ai_overview"),
+          ),
+        );
+
+      // Insert fresh entities
+      const rows = result.brandEntities.map(ent => {
+        const entUrl = ent.url.toLowerCase().replace(/^www\./, "").replace(/^https?:\/\//, "").replace(/^www\./, "");
+        const isOwnBrand =
+          entUrl.includes(bareDomain) ||
+          bareDomain.includes(entUrl.split("/")[0] ?? "") ||
+          ent.name.toLowerCase().replace(/\s+/g, "").includes(bareDomain.split(".")[0] ?? "");
+
+        return {
+          brandId,
+          aiSystem: "google_ai_overview",
+          prompt: kws.join(", "),
+          citedUrl: ent.url,
+          citedDomain: ent.url,
+          brandName: ent.name,
+          citationType: isOwnBrand ? "brand" : "competitor",
+          timesCited: ent.mentionCount,
+        };
+      });
+
+      await db.insert(citationsTable).values(rows);
+      req.log.info({ brandId, count: rows.length }, "brand_entities saved to citations");
+    } catch (err) {
+      req.log.warn({ err }, "Failed to save brand_entities to citations - non-fatal");
+    }
+  }
+
   res.json(result);
+});
+
+// Brand entity citations - returns saved brand_entities for a brand
+router.get("/citations/brand-entities", requireAuth, async (req, res): Promise<void> => {
+  const brandId = String(req.query["brandId"] ?? "");
+  if (!brandId) {
+    res.status(400).json({ error: "brandId is required" });
+    return;
+  }
+
+  try {
+    const rows = await db
+      .select()
+      .from(citationsTable)
+      .where(
+        and(
+          eq(citationsTable.brandId, brandId),
+          eq(citationsTable.aiSystem, "google_ai_overview"),
+        ),
+      );
+
+    res.json({ citations: rows });
+  } catch (err) {
+    req.log.error({ err }, "Failed to fetch brand entity citations");
+    res.status(500).json({ error: "Failed to fetch citations" });
+  }
 });
 
 // Backlinks summary
@@ -146,5 +221,7 @@ router.post("/onpage/audit", requireAuth, async (req, res): Promise<void> => {
 
   res.json(result);
 });
+
+void requirePaid;
 
 export default router;

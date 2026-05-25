@@ -374,6 +374,9 @@ export default function Dashboard() {
   const [onPageResult, setOnPageResult] = useState<{ overallScore: number; categories: Array<{ name: string; score: number; checks: Array<{ name: string; status: string; detail: string; score: number }> }> } | null>(null);
   const [onPageLoading, setOnPageLoading] = useState(false);
   const [onPageBrandId, setOnPageBrandId] = useState<string | null>(null);
+  const [brandEntityCitations, setBrandEntityCitations] = useState<Array<{ id: string; brandName: string | null; citedDomain: string | null; citationType: string | null; timesCited: number | null }>>([]);
+  const [brandEntityLoading, setBrandEntityLoading] = useState(false);
+  const [brandEntityBrandId, setBrandEntityBrandId] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768);
@@ -421,6 +424,24 @@ export default function Dashboard() {
     const timers = delays.map((d, i) => setTimeout(() => setScanStep(i + 1), d));
     return () => timers.forEach(clearTimeout);
   }, [isScanningBrandId]);
+
+  // Fetch brand entity citations when Citations tab opens or brand changes
+  useEffect(() => {
+    if (activeTab !== "Citations" || !selectedBrand?.id) return;
+    if (brandEntityBrandId === selectedBrand.id) return; // already fetched for this brand
+    const token = localStorage.getItem("auth_token");
+    setBrandEntityLoading(true);
+    fetch(`/api/citations/brand-entities?brandId=${encodeURIComponent(selectedBrand.id)}`, {
+      headers: { "Authorization": `Bearer ${token ?? ""}` },
+    })
+      .then(r => r.ok ? r.json() : { citations: [] })
+      .then((data: { citations: Array<{ id: string; brandName: string | null; citedDomain: string | null; citationType: string | null; timesCited: number | null }> }) => {
+        setBrandEntityCitations(data.citations ?? []);
+        setBrandEntityBrandId(selectedBrand.id);
+      })
+      .catch(() => setBrandEntityCitations([]))
+      .finally(() => setBrandEntityLoading(false));
+  }, [activeTab, selectedBrand?.id, brandEntityBrandId]);
 
   const handleScanBrand = useCallback(async (brandId: string) => {
     setIsScanningBrandId(brandId);
@@ -550,9 +571,13 @@ export default function Dashboard() {
       const resp = await fetch("/api/dataforseo/google-ai-overview", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token ?? ""}` },
-        body: JSON.stringify({ domain: selectedBrand.domain }),
+        body: JSON.stringify({ domain: selectedBrand.domain, brandId: selectedBrand.id }),
       });
-      if (resp.ok) setGoogleAiDashResult(await resp.json());
+      if (resp.ok) {
+        setGoogleAiDashResult(await resp.json());
+        // Refresh brand entity citations after a successful overview fetch
+        setBrandEntityBrandId(null);
+      }
     } catch { /* ignore */ } finally {
       setGoogleAiDashLoading(false);
     }
@@ -1600,6 +1625,76 @@ export default function Dashboard() {
                           <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>{c.value}</div>
                         </div>
                       ))}
+                    </div>
+
+                    {/* Brand entities section */}
+                    <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+                      <div style={{ padding: "12px 16px", borderBottom: "0.5px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>Brands AI mentioned for your keywords</div>
+                          <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>Extracted from Google AI Overview responses via DataForSEO</div>
+                        </div>
+                        <button
+                          onClick={handleFetchGoogleAiDash}
+                          disabled={googleAiDashLoading}
+                          style={{ background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 11, fontWeight: 500, cursor: googleAiDashLoading ? "not-allowed" : "pointer", opacity: googleAiDashLoading ? 0.7 : 1, flexShrink: 0 }}
+                        >
+                          {googleAiDashLoading ? "Fetching..." : "Refresh from Google AI"}
+                        </button>
+                      </div>
+
+                      {brandEntityLoading ? (
+                        <div style={{ padding: "24px 16px", textAlign: "center", fontSize: 12, color: "#6b7280" }}>Loading...</div>
+                      ) : brandEntityCitations.length === 0 ? (
+                        <div style={{ padding: "24px 16px", textAlign: "center" }}>
+                          <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 10 }}>No brand entity data yet. Click "Refresh from Google AI" to fetch which brands Google AI mentions for your keywords.</div>
+                        </div>
+                      ) : (
+                        <>
+                          {/* Table header */}
+                          <div style={{ display: "grid", gridTemplateColumns: "2fr 2fr 80px 120px 130px", gap: 8, padding: "8px 16px", background: "#fafafa", borderBottom: "0.5px solid #f3f4f6" }}>
+                            {["Brand", "Domain", "Mentions", "Type", "Action"].map(h => (
+                              <div key={h} style={{ fontSize: 11, color: "#9ca3af", fontWeight: 500 }}>{h}</div>
+                            ))}
+                          </div>
+                          {brandEntityCitations.map((c, i) => {
+                            const isBrand = c.citationType === "brand";
+                            const typeCfg = isBrand
+                              ? { bg: "#ECFDF5", text: "#065F46", label: "Your brand" }
+                              : { bg: "#FEF2F2", text: "#991B1B", label: "Competitor" };
+                            return (
+                              <div key={c.id} style={{ display: "grid", gridTemplateColumns: "2fr 2fr 80px 120px 130px", gap: 8, padding: "10px 16px", borderBottom: i < brandEntityCitations.length - 1 ? "0.5px solid #f9fafb" : "none", alignItems: "center" }}>
+                                <div style={{ fontSize: 12, fontWeight: isBrand ? 600 : 400, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  {c.brandName ?? "-"}
+                                </div>
+                                <div style={{ fontSize: 11, color: "#6b7280", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  {c.citedDomain ?? "-"}
+                                </div>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>
+                                  {c.timesCited ?? 0}
+                                </div>
+                                <div>
+                                  <span style={{ background: typeCfg.bg, color: typeCfg.text, borderRadius: 4, padding: "2px 8px", fontSize: 11, fontWeight: 500 }}>
+                                    {typeCfg.label}
+                                  </span>
+                                </div>
+                                <div>
+                                  {isBrand ? (
+                                    <span style={{ fontSize: 11, color: "#065F46", fontWeight: 500 }}>You are cited</span>
+                                  ) : (
+                                    <button
+                                      onClick={() => setCitationModal({ domain: c.citedDomain ?? c.brandName ?? "", type: "competitor" })}
+                                      style={{ background: "transparent", border: "0.5px solid #DC2626", borderRadius: 5, padding: "3px 9px", fontSize: 11, color: "#DC2626", cursor: "pointer", fontWeight: 500 }}
+                                    >
+                                      Outrank them
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </>
+                      )}
                     </div>
 
                     {/* Citation source table */}

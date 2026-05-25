@@ -173,11 +173,19 @@ export interface GoogleAiKwResult {
   snippet: string | null;
 }
 
+export interface BrandEntity {
+  name: string;
+  url: string;
+  mentionCount: number;
+  sentiment: string;
+}
+
 export interface GoogleAiOverviewResult {
   score: number;
   mentionCount: number;
   status: "featured" | "partial" | "not_found";
   keywords: GoogleAiKwResult[];
+  brandEntities: BrandEntity[];
   estimatedCostUsd: number;
 }
 
@@ -193,7 +201,7 @@ export async function getGoogleAiOverview(
   locationCode = 2356,
 ): Promise<GoogleAiOverviewResult> {
   const empty: GoogleAiOverviewResult = {
-    score: 0, mentionCount: 0, status: "not_found", keywords: [], estimatedCostUsd: 0,
+    score: 0, mentionCount: 0, status: "not_found", keywords: [], brandEntities: [], estimatedCostUsd: 0,
   };
 
   const login = process.env.DATAFORSEO_LOGIN ?? "";
@@ -225,10 +233,35 @@ export async function getGoogleAiOverview(
     const kwResults: GoogleAiKwResult[] = [];
     let mentionCount = 0;
 
+    // Accumulate brand entities across all keyword tasks, deduped by name
+    const entityMap = new Map<string, BrandEntity>();
+
     for (let i = 0; i < tasks.length; i++) {
       const kw = top5[i] ?? "";
       const result = (tasks[i]?.result as Array<Record<string, unknown>>)?.[0];
       const items = (result?.items as Array<Record<string, unknown>>) ?? [];
+
+      // Extract brand_entities - DataForSEO may place them at result level or inside items[0]
+      const resultEntities = (result?.brand_entities as Array<Record<string, unknown>>) ?? [];
+      const item0Entities = ((items[0]?.brand_entities) as Array<Record<string, unknown>>) ?? [];
+      const rawEntities = resultEntities.length > 0 ? resultEntities : item0Entities;
+
+      for (const ent of rawEntities) {
+        const name = String(ent.name ?? "").trim();
+        if (!name) continue;
+        const existing = entityMap.get(name);
+        const mc = Number(ent.mention_count ?? ent.mentions ?? 1);
+        if (existing) {
+          existing.mentionCount += mc;
+        } else {
+          entityMap.set(name, {
+            name,
+            url: String(ent.url ?? ent.domain ?? ""),
+            mentionCount: mc,
+            sentiment: String(ent.sentiment ?? "neutral"),
+          });
+        }
+      }
 
       const aiItem = items.find(it => it.type === "ai_overview");
       if (!aiItem) {
@@ -257,6 +290,9 @@ export async function getGoogleAiOverview(
       kwResults.push({ keyword: kw, mentioned, position: mentioned ? 1 : null, snippet });
     }
 
+    const brandEntities = Array.from(entityMap.values())
+      .sort((a, b) => b.mentionCount - a.mentionCount);
+
     const score = mentionCount >= 3 ? 33 : mentionCount === 2 ? 22 : mentionCount === 1 ? 11 : 0;
     const status: GoogleAiOverviewResult["status"] =
       mentionCount >= 3 ? "featured" : mentionCount >= 1 ? "partial" : "not_found";
@@ -266,6 +302,7 @@ export async function getGoogleAiOverview(
       mentionCount,
       status,
       keywords: kwResults,
+      brandEntities,
       estimatedCostUsd: top5.length * 0.003,
     };
   } catch {
