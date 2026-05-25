@@ -1,0 +1,179 @@
+Update homepage copy to shift from
+audit-focused to visibility-focused.
+
+The product promise is not just
+"check your score" — it is
+"get your brand recommended by AI"
+
+=== UPDATE HERO SECTION ===
+
+Main headline:
+"Get your brand recommended by AI"
+font-family: Syne
+font-size: 64px desktop / 36px mobile
+font-weight: 800
+
+Line 1: "Get your brand"
+color: #0A0A0A
+
+Line 2: "recommended by AI"
+color: #4F46E5
+
+Sub headline:
+"Most brands are invisible to 
+ChatGPT, Gemini and Perplexity.
+GeoIQ finds the gaps and gives you 
+the exact steps to fix them.
+Free in 60 seconds."
+
+CTA button:
+"Check my AI visibility →"
+
+Trust line below input:
+"Free audit · No signup · 60 seconds"
+
+=== UPDATE 3 PROOF POINTS ===
+
+Add 3 short proof points 
+below the audit input:
+
+Point 1:
+Icon: 🔍
+"Audit your AI visibility 
+across 5 AI systems"
+
+Point 2:
+Icon: ⚡
+"Get a 4-week fix roadmap 
+with exact steps"
+
+Point 3:
+Icon: 🤖
+"GEO Agent fixes it with you
+powered by Claude AI"
+
+Style:
+3 column layout
+font-size: 13px
+color: #6B7280
+text-align: center
+margin-top: 24px
+
+=== UPDATE PAIN SECTION ===
+
+Change headline from:
+"Your customers ask AI.
+AI recommends your competitor.
+You have no idea."
+
+To:
+"Your customers ask AI.
+AI recommends your competitor.
+GeoIQ makes sure that changes."
+
+Last line color: #059669 green
+(previously was red — now solution)
+
+=== UPDATE HOW IT WORKS SECTION ===
+
+Change from 3 monitoring steps to
+3 action steps:
+
+Step 1:
+"Audit"
+"See exactly how ChatGPT, Gemini 
+and Perplexity describe your brand 
+right now"
+
+Step 2:
+"Fix"
+"Get your personalized 4-week roadmap 
+with exact tasks, generated content, 
+and direct submission URLs"
+
+Step 3:
+"Get found"
+"Watch your AI visibility score climb 
+as your brand gets recommended in 
+AI search results"
+
+=== UPDATE FEATURES SECTION ===
+
+Change section title from:
+"Everything you need to monitor 
+AI visibility"
+
+To:
+"Everything you need to get 
+recommended by AI"
+
+Feature tab labels:
+Old: "AI Visibility Score"
+New: "Measure your visibility"
+
+Old: "GEO Agent"
+New: "Fix it with AI"
+
+Old: "Fix Actions"
+New: "Your step-by-step roadmap"
+
+Old: "Citation Tracking"
+New: "Build your AI authority"
+
+Old: "Competition Analysis"
+New: "Beat your competitors"
+
+Old: "Content Generator"
+New: "Create AI-cited content"
+
+=== UPDATE PRICING HEADLINE ===
+
+Change from:
+"Simple, honest pricing"
+
+To:
+"Start getting found by AI today"
+
+Subtitle:
+"Free audit to see where you stand.
+Paid plan to fix it."
+
+=== UPDATE CTA SECTION ===
+
+Change final CTA from:
+"Start monitoring your AI visibility"
+
+To:
+"Start getting recommended by AI"
+
+Sub text:
+"Join founders who stopped being 
+invisible to ChatGPT and Gemini"
+
+=== UPDATE META DESCRIPTION ===
+
+Change from:
+"Check how ChatGPT, Gemini & 
+Perplexity see your brand."
+
+To:
+"Get your brand recommended by 
+ChatGPT, Gemini & Perplexity. 
+Free AI visibility audit in 
+60 seconds. Find the gaps and 
+fix them with your personal 
+GEO Agent."
+
+=== VERIFY ===
+
+□ Hero headline updated
+□ Sub headline updated
+□ 3 proof points show below input
+□ Pain section last line is green
+□ How it works shows 3 action steps
+□ Features section title updated
+□ Pricing headline updated
+□ Final CTA updated
+□ Meta description updated
+
+Show screenshot of updated hero section.

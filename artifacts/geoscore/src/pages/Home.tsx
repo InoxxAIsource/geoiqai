@@ -12,7 +12,7 @@ const SYNE: React.CSSProperties = { fontFamily: "'Syne', sans-serif" };
 const FEATURES = [
   {
     id: "score",
-    label: "AI Visibility Score",
+    label: "Measure your visibility",
     headline: "Know exactly where AI ranks you",
     body: "GeoIQ queries ChatGPT, Gemini, Perplexity, Claude, and Grok with real buyer-intent prompts. You get a score from 0-100 for each system, a combined GEO IQ, and a breakdown of what each AI actually said about you.",
     visual: (
@@ -44,7 +44,7 @@ const FEATURES = [
   },
   {
     id: "agent",
-    label: "GEO Agent",
+    label: "Fix it with AI",
     headline: "An AI that knows GEO so you don't have to",
     body: "Ask your GEO Agent anything - why your score is low, what your competitor is doing differently, or what you should publish next. It has full context of your audit and tailors every answer to your specific brand.",
     visual: (
@@ -70,7 +70,7 @@ const FEATURES = [
   },
   {
     id: "fixes",
-    label: "Fix Actions",
+    label: "Your step-by-step roadmap",
     headline: "A prioritized roadmap, not a generic checklist",
     body: "GeoIQ generates a ranked list of specific fixes based on your audit results - from technical issues (missing schema, no HTTPS) to authority signals (directory submissions, press coverage) to content gaps (FAQ pages, comparison posts).",
     visual: (
@@ -92,7 +92,7 @@ const FEATURES = [
   },
   {
     id: "citations",
-    label: "Citation Tracking",
+    label: "Build your AI authority",
     headline: "See which sources AI trusts for your category",
     body: "GeoIQ tracks where the AI systems are pulling information about your industry from. You see exactly which publications, directories, and sites are being cited - so you know where to get coverage to improve your score.",
     visual: (
@@ -115,7 +115,7 @@ const FEATURES = [
   },
   {
     id: "content",
-    label: "Content Generator",
+    label: "Create AI-cited content",
     headline: "Content built to train AI on your brand",
     body: "GeoIQ generates ready-to-publish content specifically designed to improve AI visibility - FAQ pages, comparison articles, schema markup, and structured data that AI systems pick up during crawling.",
     visual: (
@@ -246,8 +246,8 @@ export default function Home() {
             color: "#0A0A0A",
             letterSpacing: "-0.02em",
           }}>
-            Does AI recommend<br />
-            <span style={{ color: PRIMARY }}>your brand?</span>
+            Get your brand<br />
+            <span style={{ color: PRIMARY }}>recommended by AI</span>
           </h1>
 
           <p style={{
@@ -258,8 +258,9 @@ export default function Home() {
             lineHeight: 1.6,
             fontWeight: 400,
           }}>
-            Find out how ChatGPT, Gemini and Perplexity see your brand.
-            Free audit in 60 seconds. No signup needed.
+            Most brands are invisible to ChatGPT, Gemini and Perplexity.
+            GeoIQ finds the gaps and gives you the exact steps to fix them.
+            Free in 60 seconds.
           </p>
 
           <form
@@ -311,12 +312,26 @@ export default function Home() {
                 transition: "background 150ms",
               }}
             >
-              Check my GEO IQ →
+              Check my AI visibility →
             </button>
           </form>
 
           <div style={{ fontSize: 12, color: "#9CA3AF", textAlign: "center", marginTop: 12 }}>
-            No signup · Free · 60 seconds
+            Free audit · No signup · 60 seconds
+          </div>
+
+          {/* 3 proof points */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, maxWidth: 640, margin: "24px auto 0", textAlign: "center" }}>
+            {[
+              { icon: "🔍", text: "Audit your AI visibility across 5 AI systems" },
+              { icon: "⚡", text: "Get a 4-week fix roadmap with exact steps" },
+              { icon: "🤖", text: "GEO Agent fixes it with you, powered by Claude AI" },
+            ].map((pt, i) => (
+              <div key={i} style={{ fontSize: 13, color: "#6B7280", lineHeight: 1.5 }}>
+                <div style={{ fontSize: 20, marginBottom: 6 }}>{pt.icon}</div>
+                {pt.text}
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -384,8 +399,8 @@ export default function Home() {
             <h2 style={{ ...SYNE, fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 800, lineHeight: 1.15, margin: "0 0 4px", color: "#0A0A0A" }}>
               AI recommends your competitor.
             </h2>
-            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 800, lineHeight: 1.15, margin: "0 0 24px", color: "#DC2626" }}>
-              You have no idea.
+            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 800, lineHeight: 1.15, margin: "0 0 24px", color: "#059669" }}>
+              GeoIQ makes sure that changes.
             </h2>
             <p style={{ fontSize: 18, color: "#6B7280", maxWidth: 520, margin: "0 auto", lineHeight: 1.6 }}>
               Your customers aren't Googling anymore. They're asking AI. And right now, AI is recommending your competitors.
@@ -457,7 +472,7 @@ export default function Home() {
               WHAT YOU GET
             </div>
             <h2 style={{ ...SYNE, fontSize: "clamp(28px, 3.5vw, 40px)", fontWeight: 800, color: "#0A0A0A", marginBottom: 12 }}>
-              Everything you need to win in AI search
+              Everything you need to get recommended by AI
             </h2>
           </div>
 
@@ -639,9 +654,9 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { step: "1", title: "Enter your URL", desc: "Type your website address. We handle the rest automatically." },
-              { step: "2", title: "We query 5 AI systems", desc: "We programmatically ask ChatGPT, Gemini, Perplexity, Claude, and Grok about your brand using real buyer-intent prompts." },
-              { step: "3", title: "Get your GEO IQ score", desc: "See exactly where you are visible, where you are invisible, and what to do about it today." },
+              { step: "1", title: "Audit", desc: "See exactly how ChatGPT, Gemini and Perplexity describe your brand right now." },
+              { step: "2", title: "Fix", desc: "Get your personalized 4-week roadmap with exact tasks, generated content, and direct submission URLs." },
+              { step: "3", title: "Get found", desc: "Watch your AI visibility score climb as your brand gets recommended in AI search results." },
             ].map((item, i) => (
               <div key={i} style={{ textAlign: "center" }}>
                 <div style={{ width: 40, height: 40, background: PRIMARY, color: "white", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, margin: "0 auto 16px" }}>
@@ -660,8 +675,8 @@ export default function Home() {
         <div style={{ maxWidth: 1000, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 48 }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: PRIMARY, letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 12 }}>PRICING</div>
-            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 3.5vw, 40px)", fontWeight: 800, color: "#0A0A0A", marginBottom: 8 }}>Simple, honest pricing</h2>
-            <p style={{ fontSize: 18, color: "#6B7280" }}>Start free. Upgrade when ready.</p>
+            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 3.5vw, 40px)", fontWeight: 800, color: "#0A0A0A", marginBottom: 8 }}>Start getting found by AI today</h2>
+            <p style={{ fontSize: 18, color: "#6B7280" }}>Free audit to see where you stand. Paid plan to fix it.</p>
           </div>
           <PricingCards />
         </div>
@@ -671,10 +686,10 @@ export default function Home() {
       <section style={{ background: "#0A0A0A", padding: "80px 24px", textAlign: "center" }}>
         <div style={{ maxWidth: 600, margin: "0 auto" }}>
           <h2 style={{ ...SYNE, fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 800, color: "white", marginBottom: 16 }}>
-            Start monitoring your AI visibility
+            Start getting recommended by AI
           </h2>
           <p style={{ fontSize: 18, color: "#6B7280", marginBottom: 32, lineHeight: 1.6 }}>
-            Free audit in 60 seconds. No credit card, no signup.
+            Join founders who stopped being invisible to ChatGPT and Gemini.
           </p>
           <button
             onClick={() => scrollToInput()}
