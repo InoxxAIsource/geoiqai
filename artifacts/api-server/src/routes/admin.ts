@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, usersTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
-import { requireAuth, hashPassword, verifyPassword, type AuthRequest } from "../lib/auth";
+import { requireAuth, hashPassword, type AuthRequest } from "../lib/auth";
 
 const router: IRouter = Router();
 
@@ -23,13 +23,13 @@ router.post("/admin/verify", async (req, res): Promise<void> => {
     return;
   }
 
-  const [admin] = await db
-    .select({ passwordHash: usersTable.passwordHash })
-    .from(usersTable)
-    .where(eq(usersTable.email, ADMIN_EMAILS[0]!))
-    .limit(1);
+  const gatePassword = process.env["ADMIN_GATE_PASSWORD"];
+  if (!gatePassword) {
+    res.status(503).json({ error: "Admin gate not configured." });
+    return;
+  }
 
-  if (!admin || !admin.passwordHash || !verifyPassword(password, admin.passwordHash)) {
+  if (password !== gatePassword) {
     res.status(401).json({ error: "Wrong password." });
     return;
   }
