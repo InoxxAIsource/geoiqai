@@ -155,13 +155,16 @@ router.post("/audit", async (req, res): Promise<void> => {
       }
     }
 
-    // Run fresh audit
-    const engineResult = await runAuditEngine(
-      url,
-      brandNameOverride ?? null,
-      categoryOverride ?? null,
-      marketOverride ?? null,
-    );
+    // Run fresh audit with a hard 90s ceiling - prevents hung AI calls from
+    // tying up a server slot indefinitely (individual calls have 25s timeouts,
+    // but in rare cases several can stack up sequentially)
+    const AUDIT_TIMEOUT_MS = 90_000;
+    const engineResult = await Promise.race([
+      runAuditEngine(url, brandNameOverride ?? null, categoryOverride ?? null, marketOverride ?? null),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Audit timed out after 90 seconds")), AUDIT_TIMEOUT_MS)
+      ),
+    ]);
 
     // Domain was unreachable - return error without saving to DB or counting rate limit
     if (engineResult.unreachable) {

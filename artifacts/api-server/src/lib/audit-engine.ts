@@ -6,12 +6,14 @@ import { getDomainKeywords } from "./dataforseo";
 const openaiClient = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY ?? "placeholder",
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? process.env.OPENAI_BASE_URL,
+  timeout: 25000,   // 25s per call - prevents any single stalled request blocking the audit
+  maxRetries: 0,    // fail fast, don't retry - we already have fallback logic
 });
 
 // --- xAI client (real Grok) ---
 const XAI_API_KEY = process.env.XAI_API_KEY ?? "";
 const xaiClient = XAI_API_KEY
-  ? new OpenAI({ apiKey: XAI_API_KEY, baseURL: "https://api.x.ai/v1" })
+  ? new OpenAI({ apiKey: XAI_API_KEY, baseURL: "https://api.x.ai/v1", timeout: 25000, maxRetries: 0 })
   : null;
 
 // --- Perplexity via RapidAPI ---
