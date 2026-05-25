@@ -187,9 +187,9 @@ export function PricingCards({ onSelectPlan }: { onSelectPlan?: (planId: string)
         maxWidth: 1000,
         margin: "0 auto 32px",
       }}>
-        <div style={{ fontSize: 28, marginBottom: 8 }}>🤖</div>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#6366F1", marginBottom: 10 }}>Included in every paid plan</div>
         <div style={{ fontSize: 16, fontWeight: 600, color: "#1E1B4B", marginBottom: 8 }}>
-          Every paid plan includes GeoIQ Agent
+          GeoIQ Agent
         </div>
         <p style={{ fontSize: 14, color: "#4338CA", margin: 0, lineHeight: 1.6 }}>
           A Claude-powered AI strategist that knows your brand, scores, and competitors.
