@@ -26,6 +26,9 @@ import Privacy from "@/pages/Privacy";
 import Terms from "@/pages/Terms";
 import Contact from "@/pages/Contact";
 import Admin from "@/pages/Admin";
+import LlmsTxtGuide from "@/pages/LlmsTxtGuide";
+import AiVisibilityScore from "@/pages/AiVisibilityScore";
+import AiVisibilityIndia from "@/pages/AiVisibilityIndia";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -70,6 +73,9 @@ function Router() {
         <Route path="/terms" component={Terms} />
         <Route path="/contact" component={Contact} />
         <Route path="/admin" component={Admin} />
+        <Route path="/llms-txt-guide" component={LlmsTxtGuide} />
+        <Route path="/ai-visibility-score" component={AiVisibilityScore} />
+        <Route path="/ai-visibility-for-indian-startups" component={AiVisibilityIndia} />
         <Route component={NotFound} />
       </Switch>
     </>

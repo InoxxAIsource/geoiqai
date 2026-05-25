@@ -1,0 +1,392 @@
+Create 3 brand new SEO pages.
+These target high-value keywords
+nobody else owns clearly.
+
+Same design rules as Part 1.
+
+=== NEW PAGE 1: /llms-txt-guide ===
+
+Target keywords:
+"llms.txt" 
+"how to create llms.txt"
+"llms.txt file"
+Target length: 2,000 words
+Schema: HowTo + FAQPage + Article
+
+Title tag:
+"llms.txt: What It Is and How to 
+Create It (2026 Guide) | GeoIQ"
+
+Meta description:
+"llms.txt is a file that tells AI 
+systems about your brand. Learn how 
+to create it in 15 minutes. 
+Free generator included."
+
+URL: /llms-txt-guide
+
+Full page content:
+
+H1: llms.txt: The Complete Guide 
+for AI Visibility (2026)
+
+Summary box:
+"llms.txt is a plain text file 
+placed at yourdomain.com/llms.txt 
+that tells AI systems what your 
+brand does, who it serves, and 
+where to find more information. 
+Think of it as a business card 
+for AI crawlers."
+
+H2: What is llms.txt?
+Explain the concept clearly.
+Who created the standard.
+Why it matters for AI visibility.
+
+H2: How AI systems use llms.txt
+ChatGPT: reads during crawling
+Perplexity: uses for real-time context
+Gemini: part of entity recognition
+
+H2: llms.txt vs robots.txt
+Comparison:
+robots.txt: tells crawlers what NOT to do
+llms.txt: tells AI what your brand IS
+
+H2: How to create your llms.txt
+Format as HowTo steps:
+
+Step 1: Create the file
+Use any text editor
+Save as llms.txt (no extension)
+
+Step 2: Add the basic structure:
+Show exact format with code block:
+
+# [Your Brand Name]
+
+> [One sentence description]
+
+## About
+[2-3 paragraphs about your brand]
+
+## Key Pages
+- [Homepage](url): description
+- [About](url): description
+- [Blog](url): description
+
+## Social Profiles
+- Twitter/X: url
+- LinkedIn: url
+
+## Contact
+email@yourdomain.com
+
+## Sitemap
+yourdomain.com/sitemap.xml
+
+Step 3: Upload to your domain root
+Must be accessible at:
+yourdomain.com/llms.txt
+Test by visiting in browser.
+
+Step 4: Test it
+Visit your URL
+Check it loads as plain text
+Verify formatting is correct
+
+H2: llms.txt examples by type
+
+SaaS tool example:
+Show complete example for a 
+fictional SaaS brand
+
+Health app example:
+Show complete example 
+(use mealcoreai structure)
+
+E-commerce example:
+Show complete example
+
+H2: Common llms.txt mistakes
+1. Wrong file format (HTML not plain text)
+2. Placing in wrong directory
+3. Blocking with robots.txt
+4. Too short — AI needs more context
+5. Not updating when brand changes
+
+H2: Generate your llms.txt free
+CTA box:
+"GeoIQ generates a custom llms.txt 
+for your brand based on your 
+homepage content and DataForSEO keywords."
+
+Button: "Generate my llms.txt free →"
+Links to homepage audit
+
+H2: FAQ (15 questions)
+"What is llms.txt?"
+"Is llms.txt required?"
+"Does llms.txt improve ChatGPT visibility?"
+"How long should llms.txt be?"
+"Who created the llms.txt standard?"
+Plus 10 more
+
+=== NEW PAGE 2: /ai-visibility-score ===
+
+Target keywords:
+"AI visibility score"
+"check AI visibility"
+"brand AI visibility"
+Target length: 1,800 words
+Schema: Article + FAQPage + 
+SoftwareApplication
+
+Title tag:
+"AI Visibility Score: What It Is 
+and How to Check Yours Free | GeoIQ"
+
+Meta description:
+"Your AI visibility score measures 
+how often ChatGPT, Gemini and Perplexity 
+recommend your brand. Check your 
+score free in 60 seconds."
+
+URL: /ai-visibility-score
+
+Full content:
+
+H1: What is an AI Visibility Score?
+(And How to Improve Yours)
+
+Summary box:
+"An AI visibility score measures 
+how frequently and accurately AI 
+systems like ChatGPT, Gemini and 
+Perplexity recommend your brand when 
+users ask questions in your category. 
+GeoIQ scores brands from 0-100."
+
+H2: Why AI visibility matters more 
+than Google ranking in 2026
+Key stat: 
+Gartner predicts traditional search 
+volume will drop 25% by 2026 due 
+to AI assistants.
+Overlap between Google top results 
+and AI cited sources dropped from 
+70% to below 20%.
+
+H2: How AI visibility score is calculated
+Two components:
+AI Memory Score (0-50):
+ChatGPT + Gemini — training data awareness
+
+Live Web Score (0-50):
+Perplexity — real-time web visibility
+
+Total: both combined out of 100
+
+H2: What the scores mean
+0-20: Invisible — not in AI responses
+21-40: Emerging — occasional mentions
+41-60: Visible — regular mentions
+61-80: Strong — consistent top mentions
+81-100: Dominant — category leader in AI
+
+H2: Average AI visibility scores
+by company size:
+Startups under 1 year: avg 8/100
+Startups 1-3 years: avg 24/100
+Scale-ups: avg 45/100
+Enterprise: avg 67/100
+
+H2: How to check your AI visibility score
+CTA embedded in page:
+[Input field: enter your domain]
+[Check my score →] button
+
+H2: How to improve your score
+Summary of 6 key actions:
+robots.txt, llms.txt, citations, 
+content, schema, entity consistency
+
+H2: FAQ (15 questions)
+
+=== NEW PAGE 3: 
+/ai-visibility-for-indian-startups ===
+
+Target keywords:
+"AI visibility India"
+"GEO optimization India"
+"ChatGPT Indian brands"
+Target length: 2,500 words
+Schema: Article + FAQPage
+
+Title tag:
+"AI Visibility for Indian Startups: 
+Why ChatGPT is Ignoring Your Brand | GeoIQ"
+
+Meta description:
+"Most Indian startups are invisible 
+to ChatGPT and Gemini. We tested 
+10 major Indian brands and found 
+shocking scores. Free audit included."
+
+URL: /ai-visibility-for-indian-startups
+
+Full content:
+
+H1: Why Indian Startups Are Invisible 
+to ChatGPT (And How to Fix It)
+
+Summary box:
+"We tested 10 major Indian startups 
+on ChatGPT, Gemini and Perplexity. 
+The average score was 31/100. 
+Even brands with millions of users 
+are invisible in AI search. 
+Here is exactly why — and how to fix it."
+
+H2: We tested 10 Indian brands 
+on AI — here are the scores
+
+Table with real scores:
+Brand | GEO Score | ChatGPT | Gemini | Issue
+Groww | 38/100 | 16 | 8 | Weak entity
+Zepto | 22/100 | 8 | 6 | New brand
+MealCoreAI | 30/100 | 0 | 0 | No citations
+[add more brands]
+
+Note: Run actual GeoIQ audits on 
+these brands and use real scores.
+
+H2: Why Indian brands score lower
+3 specific reasons:
+
+1. Training data bias
+AI systems were mostly trained 
+on English/Western web content.
+Indian brands are underrepresented
+in authoritative sources.
+
+2. Citation source problem
+ChatGPT learns from Wikipedia, 
+Crunchbase, TechCrunch.
+Indian brands appear less on 
+these Western platforms.
+Solution: focus on Indian platforms
+(YourStory, Inc42, NDTV Tech)
+AND Western platforms.
+
+3. Regional language signals
+If your homepage has Hindi content
+mixed with English, AI systems
+may struggle with entity recognition.
+
+H2: India-specific citation sources
+High-value Indian platforms for AI:
+□ YourStory — DR 71
+  Why: AI systems index startup stories
+  Submit: yourstory.com/submit-startup
+  
+□ Inc42 — DR 71
+  Why: Indexed in AI training data
+  Submit: inc42.com/submit-startup
+  
+□ NDTV Gadgets — DR 86
+  Why: High authority Indian tech news
+  How: media outreach
+  
+□ Economic Times Startup — DR 91
+  Why: Extremely high authority
+  How: PR outreach
+  
+□ Entrackr — DR 55
+  Why: Indian startup focused
+  Submit: entrackr.com/contact
+
+H2: The fastest fixes for Indian brands
+
+Technical (do this week):
+→ robots.txt: add AI crawler rules
+→ llms.txt: create the file
+→ Schema: add Organization markup
+→ English meta tags: ensure clear 
+  English descriptions even for 
+  Hindi-language apps
+
+Citations (do this month):
+→ YourStory profile
+→ Inc42 listing
+→ Crunchbase (global coverage)
+→ Product Hunt launch
+
+Content (ongoing):
+→ Write one detailed English article
+  about your product category
+→ Include Indian food/market/context
+→ Mention specific Indian regions,
+  cities, and cultural references
+→ Publish on Medium and dev.to
+
+H2: Free AI visibility audit for 
+Indian founders
+
+CTA box:
+"Check where your Indian startup 
+stands in ChatGPT and Gemini. 
+Free audit in 60 seconds. 
+No credit card needed."
+
+[Enter your domain] input
+[Check my AI visibility →] button
+
+H2: FAQ (15 questions)
+India-specific questions:
+"Why is my Indian app not in ChatGPT?"
+"Does GEO work for Hindi websites?"
+"Which Indian sites help with AI visibility?"
+"Is Gemini better for Indian brands?"
+Plus 11 more
+
+=== TECHNICAL SEO ALL NEW PAGES ===
+
+Apply to all 3 new pages:
+
+Schema markup:
+Article, FAQPage, BreadcrumbList
+
+Internal linking:
+Each page links to:
+→ / (homepage audit)
+→ /what-is-geo
+→ /pricing
+
+Canonical, OG tags, meta tags
+all unique per page.
+
+Reading time and last updated date.
+
+Breadcrumb nav:
+Home > [Page name]
+
+=== TEST PART 2 ===
+
+□ /llms-txt-guide loads
+□ Code block renders correctly
+□ llms.txt examples formatted properly
+□ /ai-visibility-score loads
+□ Score range table renders
+□ /ai-visibility-for-indian-startups loads
+□ Brand scores table renders
+□ India citation sources table correct
+□ All CTAs link to homepage
+□ Schema valid on all 3 pages
+□ Mobile responsive
+
+Show word count for each:
+/llms-txt-guide: target 2,000+
+/ai-visibility-score: target 1,800+
+/ai-visibility-for-indian-startups: 2,500+
