@@ -1802,7 +1802,7 @@ export default function Dashboard() {
                       <div style={{ padding: "12px 16px", borderBottom: "0.5px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>Brands AI mentioned for your keywords</div>
-                          <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>Extracted from Google AI Overview responses via DataForSEO</div>
+                          <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>Extracted from live Google AI Overview responses</div>
                         </div>
                         <button
                           onClick={handleFetchGoogleAiDash}
