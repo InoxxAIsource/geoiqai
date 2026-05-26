@@ -33,6 +33,7 @@ import BlogIndianStartupScores from "@/pages/BlogIndianStartupScores";
 import BlogRobotsTxt from "@/pages/BlogRobotsTxt";
 import BlogWhatIsGeoScore from "@/pages/BlogWhatIsGeoScore";
 import BlogGeoVsSeo from "@/pages/BlogGeoVsSeo";
+import DevLogin from "@/pages/DevLogin";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -62,6 +63,7 @@ function Router() {
         <Route path="/roadmap" component={Roadmap} />
         <Route path="/pricing" component={Pricing} />
         <Route path="/login" component={Login} />
+        <Route path="/dev-login" component={DevLogin} />
         <Route path="/signup" component={Signup} />
         <Route path="/register" component={Register} />
         <Route path="/forgot-password" component={ForgotPassword} />
