@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useSearch, useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { setToken, setPlan } from "@/lib/auth";
 
 type LoginMode = "password" | "magic";
 
@@ -19,6 +20,9 @@ export default function Login() {
   const [magicSent, setMagicSent] = useState(false);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [resendingVerification, setResendingVerification] = useState(false);
+  const [devOpen, setDevOpen] = useState(false);
+  const [devPassword, setDevPassword] = useState("");
+  const [devLoading, setDevLoading] = useState(false);
 
   const verified = params.get("verified") === "true";
   const reset = params.get("reset") === "true";
@@ -80,6 +84,31 @@ export default function Login() {
       toast({ title: "Something went wrong", description: "Please try again.", variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDevLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!devPassword) return;
+    setDevLoading(true);
+    try {
+      const res = await fetch("/api/auth/test-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: devPassword }),
+      });
+      const data = await res.json() as { token?: string; user?: { plan: string }; error?: string };
+      if (!res.ok || !data.token) {
+        toast({ title: data.error ?? "Wrong password", variant: "destructive" });
+        return;
+      }
+      setToken(data.token);
+      setPlan(data.user?.plan ?? "agency");
+      setLocation("/dashboard");
+    } catch {
+      toast({ title: "Something went wrong", variant: "destructive" });
+    } finally {
+      setDevLoading(false);
     }
   };
 
@@ -258,6 +287,35 @@ export default function Login() {
           Don't have an account?{" "}
           <Link href="/signup" style={{ color: "#4F46E5", fontWeight: 600, textDecoration: "none" }}>Sign up free</Link>
         </p>
+
+        {/* Dev access */}
+        <div style={{ marginTop: 28, borderTop: "1px solid #f3f4f6", paddingTop: 20 }}>
+          <button
+            type="button"
+            onClick={() => setDevOpen(v => !v)}
+            style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "#d1d5db", padding: 0, width: "100%", textAlign: "center" }}
+          >
+            {devOpen ? "Hide" : "Developer access"}
+          </button>
+          {devOpen && (
+            <form onSubmit={handleDevLogin} style={{ marginTop: 12, display: "flex", gap: 8 }}>
+              <input
+                type="password"
+                placeholder="Admin password"
+                value={devPassword}
+                onChange={e => setDevPassword(e.target.value)}
+                style={{ flex: 1, border: "1px solid #e5e7eb", borderRadius: 6, padding: "8px 12px", fontSize: 13, color: "#374151", outline: "none" }}
+              />
+              <button
+                type="submit"
+                disabled={devLoading}
+                style={{ background: "#111827", color: "white", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 500, cursor: devLoading ? "not-allowed" : "pointer", opacity: devLoading ? 0.6 : 1, whiteSpace: "nowrap" }}
+              >
+                {devLoading ? "..." : "Enter"}
+              </button>
+            </form>
+          )}
+        </div>
       </div>
 
       {/* Right - Hero panel */}

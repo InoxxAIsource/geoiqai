@@ -338,6 +338,48 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   });
 });
 
+// Test login - creates/finds a fixed agency-plan test account, gated by ADMIN_GATE_PASSWORD
+router.post("/auth/test-login", async (req, res): Promise<void> => {
+  const GATE = process.env.ADMIN_GATE_PASSWORD;
+  if (!GATE) {
+    res.status(503).json({ error: "Test login not configured." });
+    return;
+  }
+  const { password } = req.body as { password?: string };
+  if (!password || password !== GATE) {
+    res.status(401).json({ error: "Wrong password." });
+    return;
+  }
+
+  const TEST_EMAIL = "test@geoiqai.com";
+  let [user] = await db.select().from(usersTable).where(eq(usersTable.email, TEST_EMAIL)).limit(1);
+
+  if (!user) {
+    const passwordHash = hashPassword(GATE);
+    [user] = await db.insert(usersTable).values({
+      email: TEST_EMAIL,
+      passwordHash,
+      emailVerified: true,
+      plan: "agency",
+    }).returning();
+  } else if (user.plan !== "agency") {
+    await db.update(usersTable).set({ plan: "agency" }).where(eq(usersTable.id, user.id));
+    user = { ...user, plan: "agency" };
+  }
+
+  if (!user) {
+    res.status(500).json({ error: "Could not create test user." });
+    return;
+  }
+
+  await db.update(usersTable).set({ lastLogin: new Date() }).where(eq(usersTable.id, user.id));
+  const token = createToken(user.id);
+  res.json({
+    token,
+    user: { id: user.id, email: user.email, plan: user.plan, createdAt: user.createdAt.toISOString() },
+  });
+});
+
 router.get("/auth/me", requireAuth, async (req, res): Promise<void> => {
   const user = (req as AuthRequest).user;
   res.json({
