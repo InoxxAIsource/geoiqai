@@ -1,0 +1,158 @@
+ChatGPT LLM Scraper API provides results from ChatGPT searches. The results are specific to the selected location (see the List of Locations) and language (see the List of Languages) parameters.
+
+There are two different priorities that stand for the relative speed of task execution: normal and high.
+
+checkedPOSThttps://api.dataforseo.com/v3/ai_optimization/chat_gpt/llm_scraper/task_post
+Pricing
+Your account will be charged only for setting a task.
+The cost can be calculated on the Pricing page.
+
+All POST data should be sent in the JSON format (UTF-8 encoding). The task setting is done using the POST method. When setting a task, you should send all task parameters in the task array of the generic POST array. You can send up to 2000 API calls per minute, with each POST call containing no more than 100 tasks. If your POST call contains over 100 tasks, the tasks over this limit will return the 40006 error.
+
+You can retrieve the results of completed tasks using the unique task identifier id. Alternatively, we can send them to you as soon as they are ready if you specify the postback_url or pingback_url when setting a task. Note that if your server doesn’t respond within 10 seconds, the connection will be aborted by timeout, and the task will be transferred to the ‘Tasks Ready’ list. The error code and message depend on your server’s configuration. See Help Center to learn more about using pingbacks and postbacks with DataForSEO APIs.
+
+Below you will find a detailed description of the fields you can use for setting a task.
+
+Description of the fields for setting a task:
+
+Field name	Type	Description
+keyword	string	
+keyword
+required field
+you can specify up to 2000 characters in the keyword field
+all %## will be decoded (plus character ‘+’ will be decoded to a space character)
+if you need to use the “%” character for your keyword, please specify it as “%25”;
+if you need to use the “+” character for your keyword, please specify it as “%2B”
+
+learn more about rules and limitations of keyword and keywords fields in DataForSEO APIs in this Help Center article
+
+priority	integer	
+task priority
+optional field
+can take the following values:
+1 – normal execution priority (set by default)
+2 – high execution priorityYou will be additionally charged for the tasks with high execution priority.
+The cost can be calculated on the Pricing page.
+
+location_name	string	
+full name of search engine location
+required field if you don't specify location_code
+if you use this field, you don't need to specify location_code
+you can receive the list of available locations of the search engine with their location_name by making a separate request to the 
+https://api.dataforseo.com/v3/ai_optimization/chat_gpt/llm_scraper/locations
+
+example:
+United States
+
+location_code	integer	
+search engine location code
+required field if you don't specify location_name
+if you use this field, you don't need to specify location_name
+you can receive the list of available locations of the search engines with their location_code by making a separate request to the 
+https://api.dataforseo.com/v3/ai_optimization/chat_gpt/llm_scraper/locations
+
+example:
+2840
+
+language_name	string	
+full name of search engine language
+required field if you don't specify language_code;
+if you use this field, you don't need to specify language_code;
+you can receive the list of available languages of the search engine with their language_name by making a separate request to the 
+https://api.dataforseo.com/v3/ai_optimization/chat_gpt/llm_scraper/languages
+
+language_code	string	
+search engine language code
+required field if you don't specify language_name;
+if you use this field, you don't need to specify language_name;
+you can receive the list of available languages of the search engine with their language_code_by making a separate request to the 
+https://api.dataforseo.com/v3/ai_optimization/chat_gpt/llm_scraper/languages
+n
+
+force_web_search	boolean	
+force AI agent to use web search
+optional field
+when enabled, the AI model is forced to access and cite current web information;
+default value: false;
+Note: even if the parameter is set to true, there is no guarantee web sources will be cited in the response
+
+expand_citations	boolean	
+return expanded citation bar in HTML results
+optional field
+to enable this parameter, force_web_search must also be enabled;
+when enabled, the HTML endpoint will return data from the expanded citation bar;
+default value: false
+
+tag	string	
+user-defined task identifier
+optional field
+the character limit is 255
+you can use this parameter to identify the task and match it with the result
+you will find the specified tag value in the data object of the response
+
+postback_url	string	
+URL for sending task results
+optional field
+once the task is completed, we will send a POST request with its results compressed in the gzip format to the postback_url you specified
+you can use the ‘$id’ string as a $id variable and ‘$tag’ as urlencoded $tag variable. We will set the necessary values before sending the request.
+example:
+http://your-server.com/postbackscript?id=$id
+
+http://your-server.com/postbackscript?id=$id&tag=$tag
+
+Note: special characters in postback_url will be urlencoded;
+i.a., the # character will be encoded into %23
+
+learn more on our Help Center
+
+postback_data	string	
+postback_url datatype
+required field if you specify postback_url
+corresponds to the function you used for setting a task
+possible values:
+advanced, html
+
+pingback_url	string	
+notification URL of a completed task
+optional field
+when a task is completed we will notify you by GET request sent to the URL you have specified
+you can use the ‘$id’ string as a $id variable and ‘$tag’ as urlencoded $tag variable. We will set the necessary values before sending the request.
+example:
+http://your-server.com/pingscript?id=$id
+
+http://your-server.com/pingscript?id=$id&tag=$tag
+
+Note: special characters in pingback_url will be urlencoded;
+i.a., the # character will be encoded into %23
+
+learn more on our Help Center
+
+
+‌‌
+As a response of the API server, you will receive JSON-encoded data containing a tasks array with the information specific to the set tasks.
+Description of the fields in the results array:
+
+Field name	Type	Description
+version	string	the current version of the API
+status_code	integer	general status code
+you can find the full list of the response codes here
+Note: we strongly recommend designing a necessary system for handling related exceptional or error conditions
+status_message	string	general informational message
+you can find the full list of general informational messages here
+time	string	execution time, seconds
+cost	float	total tasks cost, USD
+tasks_count	integer	the number of tasks in the tasksarray
+tasks_error	integer	the number of tasks in the tasks array returned with an error
+−tasks	array	array of tasks
+id	string	unique task identifier in our system
+in the Universally unique identifier (UUID) format
+status_code	integer	status code of the task
+generated by DataForSEO; can be within the following range: 10000-60000
+status_message	string	informational message of the task
+time	string	execution time, seconds
+cost	float	cost of the task, USD
+result_count	integer	number of elements in the result array
+path	array	URL path
+data	object	contains the same parameters that you specified in the POST request
+result	array	array of results
+in this case, the value will be null

@@ -1,0 +1,45 @@
+This API provides structured results from ChatGPT searches
+ChatGPT LLM Scraper API allows you to retrieve results from ChatGPT Search mode, based on the keyword and other input paramaters. You can use this API to understand how ChatGPT responds to specific search queries, explore which sources and brands it quotes in its responses.
+
+ChatGPT LLM Scraper functions
+ 
+• ChatGPT LLM Scraper endpoint provides results responses from ChatGPT searches, based on specified keyword and other input parameters.
+
+• ChatGPT LLM Scraper HTML endpoint provides a raw HTML page of ChatGPT search mode results for the specified keyword, search engine, and location.
+
+To find answers on common questions about AI Optimization API and find guidance on most efficient use, visit our Help Center.
+
+Methods
+ 
+The cost of using ChatGPT LLM Scraper API depends on the selected method and priority of task execution. Available methods and priorities are described below.
+
+DataForSEO has two main methods to deliver the results: Standard and Live.
+
+If your system requires delivering instant results, the Live method is the best solution for you. Unlike the Standard method, this method doesn’t require making separate POST and GET requests to the corresponding endpoints.
+
+If you don’t need to receive data in real-time, you can use the Standard method of data retrieval. This method requires making separate POST and GET requests, but it’s more affordable. Using this method, you can retrieve the results after our system collects them.
+
+‌Alternatively, you can specify pingback_url or postback_url when setting a task, and we will notify you on completion of tasks or send them to you respectively.
+
+If you need to set several tasks, you can receive the list of id for all completed tasks using ‘Tasks Ready’ endpoint, and then collect the results of each separate task using ‘Task GET’ endpoint.
+
+Learn more about task completion and obtaining a list of completed tasks in this Help Center article.
+
+You can send up to 2000 API calls per minute. Contact us if you would like to raise the limit.
+
+Execution time for tasks set with the Live ChatGPT LLM Scraper endpoint is currently up to 120 seconds.
+
+Priorities and Cost
+ 
+The Live method delivers results in real-time, and accordingly, the cost of requests made using this method will be the highest.
+
+The Standard method has two different priorities that stand for the relative speed of task execution and have different prices:
+
+1. Normal priority;
+2. High priority.
+
+The cost can be calculated on the Pricing page. You can check your spending in your account dashboard or by making a separate call to the User Data endpoint
+
+You can test ChatGPT LLM Scraper API for free using DataForSEO Sandbox.
+
+Instead of ‘login’ and ‘password’ use your credentials from https://app.dataforseo.com/api-access
