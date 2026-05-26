@@ -1751,21 +1751,9 @@ export default function Dashboard() {
               {activeTab === "Citations" && (() => {
                 const yourCitations = citationData.donut[0]?.value ?? 2;
                 const competitorCitations = citationData.donut[1]?.value ?? 24;
-                const topCompetitorCitations = 18;
+                const topCompetitorCitations = competitorCitations > 0 ? Math.round(competitorCitations * 0.75) : yourCitations + 10;
                 const citationGap = Math.max(0, topCompetitorCitations - yourCitations);
-                const allSources = [
-                  ...citationData.topDomains,
-                  { domain: "reddit.com", times: 7, type: "social" as const },
-                  { domain: "medium.com", times: 5, type: "authority" as const },
-                ];
-                const newCitations = [
-                  { text: `healthshots.com now citing ${competitorDisplayName} for "${promptList[0]?.keyword ?? "your category"}"`, sign: "+" },
-                  { text: `practo.com appeared in Perplexity results for "${promptList[1]?.keyword ?? "health queries"}"`, sign: "+" },
-                ];
-                const droppedCitations = [
-                  { text: `sugarfit.com dropped from ChatGPT results for "${promptList[0]?.keyword ?? "your keywords"}"`, sign: "-" },
-                  { text: `1mg.com no longer cited by Gemini for product queries`, sign: "-" },
-                ];
+                const allSources = citationData.topDomains;
                 return (
                   <div>
                     <div style={{ marginBottom: 14 }}>
@@ -2019,37 +2007,20 @@ export default function Dashboard() {
                         ) : (
                           <>You match or exceed {competitorDisplayName} on citations. </>
                         )}
-                        <button onClick={() => {}} style={{ background: "none", border: "none", padding: 0, fontSize: 12, color: "#4F46E5", cursor: "pointer", fontWeight: 500 }}>
+                        <button onClick={() => setActiveTab("Competition")} style={{ background: "none", border: "none", padding: 0, fontSize: 12, color: "#4F46E5", cursor: "pointer", fontWeight: 500 }}>
                           See which sites to target <ChevronRight size={11} style={{ display: "inline" }} />
                         </button>
                       </div>
                     </div>
 
-                    {/* New / dropped citations */}
+                    {/* Citation changes - coming soon */}
                     <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 12 }}>Citation changes this week</div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                        <div>
-                          <div style={{ fontSize: 11, fontWeight: 600, color: "#16A34A", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>New this week</div>
-                          {newCitations.map((item, i) => (
-                            <div key={i} style={{ display: "flex", gap: 7, marginBottom: 7, fontSize: 12, color: "#374151" }}>
-                              <span style={{ color: "#16A34A", fontWeight: 700, flexShrink: 0 }}>{item.sign}</span>
-                              <span>{item.text}</span>
-                            </div>
-                          ))}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 11, fontWeight: 600, color: "#DC2626", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>Dropped this week</div>
-                          {droppedCitations.map((item, i) => (
-                            <div key={i} style={{ display: "flex", gap: 7, marginBottom: 7, fontSize: 12, color: "#374151" }}>
-                              <span style={{ color: "#DC2626", fontWeight: 700, flexShrink: 0 }}>{item.sign}</span>
-                              <span>{item.text}</span>
-                            </div>
-                          ))}
-                        </div>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>Citation changes this week</div>
+                        <span style={{ background: "#F3F4F6", color: "#6b7280", fontSize: 10, fontWeight: 600, borderRadius: 4, padding: "2px 7px", letterSpacing: "0.03em" }}>COMING SOON</span>
                       </div>
-                      <div style={{ marginTop: 12, paddingTop: 10, borderTop: "0.5px solid #f3f4f6", fontSize: 11, color: "#9ca3af" }}>
-                        Citation change tracking uses live AI query analysis. Run a scan to refresh.
+                      <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.6 }}>
+                        Week-over-week tracking of which new sites started citing your brand in AI results, and which dropped off. This requires at least two audit snapshots to compare. Run your next audit tomorrow to start seeing changes.
                       </div>
                     </div>
                   </div>
