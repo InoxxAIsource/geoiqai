@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
+import { getToken } from "@/lib/auth";
 import { AuditReportView, type AuditResult as AuditResultType } from "./dashboard/AuditReportView";
 import {
   useGetDashboardSummary,
@@ -445,7 +446,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (activeTab !== "Citations" || !selectedBrand?.id) return;
     if (brandEntityBrandId === selectedBrand.id) return; // already fetched for this brand
-    const token = localStorage.getItem("auth_token");
+    const token = getToken();
     setBrandEntityLoading(true);
     fetch(`/api/citations/brand-entities?brandId=${encodeURIComponent(selectedBrand.id)}`, {
       headers: { "Authorization": `Bearer ${token ?? ""}` },
@@ -463,7 +464,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (activeTab !== "Citations" || !selectedBrand?.id || !selectedBrand.domain) return;
     if (llmTopDomainsBrandId === selectedBrand.id) return;
-    const token = localStorage.getItem("auth_token");
+    const token = getToken();
     setLlmTopDomainsLoading(true);
     const kws = brandKeywords && brandKeywords.length > 0
       ? brandKeywords.slice(0, 5).map(k => k.keyword)
@@ -580,7 +581,7 @@ export default function Dashboard() {
     setBacklinkError(null);
     setCitationGaps(null);
     setBacklinkBrandId(selectedBrand.id);
-    const token = localStorage.getItem("auth_token");
+    const token = getToken();
     try {
       const resp = await fetch("/api/backlinks/summary", {
         method: "POST",
@@ -607,7 +608,7 @@ export default function Dashboard() {
     setGoogleAiDashLoading(true);
     setGoogleAiDashResult(null);
     setGoogleAiDashBrandId(selectedBrand.id);
-    const token = localStorage.getItem("auth_token");
+    const token = getToken();
     const kws = brandKeywords && brandKeywords.length > 0
       ? brandKeywords.slice(0, 5).map(k => k.keyword)
       : undefined;
@@ -631,7 +632,7 @@ export default function Dashboard() {
     if (!selectedBrand?.domain) return;
     setLlmCrossAggLoading(true);
     setLlmCrossAggBrandId(selectedBrand.id);
-    const token = localStorage.getItem("auth_token");
+    const token = getToken();
     const kws = brandKeywords && brandKeywords.length > 0
       ? brandKeywords.slice(0, 5).map(k => k.keyword)
       : undefined;
@@ -658,7 +659,7 @@ export default function Dashboard() {
     setOnPageLoading(true);
     setOnPageResult(null);
     setOnPageBrandId(selectedBrand.id);
-    const token = localStorage.getItem("auth_token");
+    const token = getToken();
     try {
       const resp = await fetch("/api/onpage/audit", {
         method: "POST",
@@ -674,7 +675,7 @@ export default function Dashboard() {
   const handleFetchCitationGaps = async () => {
     if (!selectedBrand?.domain) return;
     setCitationGapsLoading(true);
-    const token = localStorage.getItem("auth_token");
+    const token = getToken();
     const compList = getCategoryCompetitors(selectedBrand.category, selectedBrand.latestScore ?? 0);
     const competitorDomains = compList
       .filter(c => !c.isYours)
@@ -699,7 +700,7 @@ export default function Dashboard() {
     if (!selectedBrand?.domain) return;
     setChatgptScraperLoading(true);
     setChatgptScraperBrandId(selectedBrand.id);
-    const token = localStorage.getItem("auth_token");
+    const token = getToken();
     const kws = brandKeywords && brandKeywords.length > 0
       ? brandKeywords.slice(0, 3).map(k => k.keyword)
       : undefined;
@@ -723,7 +724,7 @@ export default function Dashboard() {
     if (kws.length === 0) return;
     setAiVolumeLoading(true);
     setAiVolumeBrandId(selectedBrand.id);
-    const token = localStorage.getItem("auth_token");
+    const token = getToken();
     try {
       const resp = await fetch("/api/dataforseo/ai-keyword-volume", {
         method: "POST",
