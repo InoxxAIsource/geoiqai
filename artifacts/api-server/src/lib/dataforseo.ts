@@ -730,6 +730,241 @@ export async function getLlmTopDomains(
   }
 }
 
+// ─── ChatGPT LLM Scraper ───────────────────────────────────────────────────────
+
+export interface ChatGptScraperSource {
+  domain: string;
+  url: string;
+  title: string;
+  sourceName: string | null;
+  publicationDate: string | null;
+}
+
+export interface ChatGptScraperKwResult {
+  keyword: string;
+  mentioned: boolean;
+  sources: ChatGptScraperSource[];
+  snippet: string | null;
+}
+
+export interface ChatGptScraperResult {
+  keywords: ChatGptScraperKwResult[];
+  allSources: ChatGptScraperSource[];
+  domainCited: boolean;
+  mentionCount: number;
+  estimatedCostUsd: number;
+  cached: boolean;
+  model: string | null;
+}
+
+export async function getChatGptScraper(
+  keywords: string[],
+  domain: string,
+  locationCode = 2840,
+): Promise<ChatGptScraperResult> {
+  const bare = domain.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? domain;
+  const top3 = keywords.slice(0, 3);
+
+  const empty: ChatGptScraperResult = {
+    keywords: top3.map(kw => ({ keyword: kw, mentioned: false, sources: [], snippet: null })),
+    allSources: [],
+    domainCited: false,
+    mentionCount: 0,
+    estimatedCostUsd: 0,
+    cached: false,
+    model: null,
+  };
+
+  const login = process.env.DATAFORSEO_LOGIN ?? "";
+  const password = process.env.DATAFORSEO_PASSWORD ?? "";
+  if (!login || !password || top3.length === 0) return empty;
+
+  const cacheKey = `chatgpt_scraper:${locationCode}:${bare}:${top3.map(k => k.slice(0, 25).replace(/\s+/g, "_")).join("|")}`;
+  const cached = await getDfCache(cacheKey);
+  if (cached) {
+    return { ...(cached as unknown as ChatGptScraperResult), cached: true };
+  }
+
+  const payload = top3.map(kw => ({
+    keyword: kw,
+    location_code: locationCode,
+    language_code: "en",
+    force_web_search: true,
+    device: "desktop",
+    os: "windows",
+  }));
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 90000);
+    const resp = await fetch(`${DATAFORSEO_BASE}/v3/ai_optimization/chat_gpt/llm_scraper/live/advanced`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: getAuthHeader(),
+      body: JSON.stringify(payload),
+    });
+    clearTimeout(timeout);
+
+    if (!resp.ok) return empty;
+
+    const data = (await resp.json()) as Record<string, unknown>;
+    const tasks = (data.tasks as Array<Record<string, unknown>>) ?? [];
+
+    const totalCost = tasks.reduce((s, t) => s + Number((t as Record<string, unknown>).cost ?? 0), 0);
+
+    const kwResults: ChatGptScraperKwResult[] = [];
+    const sourceMap = new Map<string, ChatGptScraperSource>();
+    let mentionCount = 0;
+    let model: string | null = null;
+
+    for (let i = 0; i < tasks.length; i++) {
+      const kw = top3[i] ?? "";
+      const result = (tasks[i]?.result as Array<Record<string, unknown>>)?.[0];
+      if (!result) {
+        kwResults.push({ keyword: kw, mentioned: false, sources: [], snippet: null });
+        continue;
+      }
+
+      if (!model) model = String(result.model ?? "");
+
+      const rawSources = (result.sources as Array<Record<string, unknown>>) ?? [];
+      const kwSources: ChatGptScraperSource[] = rawSources.map(s => ({
+        domain: String(s.domain ?? "").replace(/^www\./, ""),
+        url: String(s.url ?? ""),
+        title: String(s.title ?? ""),
+        sourceName: s.source_name ? String(s.source_name) : null,
+        publicationDate: s.publication_date ? String(s.publication_date) : null,
+      })).filter(s => s.domain);
+
+      for (const src of kwSources) {
+        if (!sourceMap.has(src.domain)) sourceMap.set(src.domain, src);
+      }
+
+      const markdown = String(result.markdown ?? "");
+      const mentioned = kwSources.some(s => s.domain.includes(bare) || bare.includes(s.domain.split(".")[0] ?? ""))
+        || markdown.toLowerCase().includes(bare.toLowerCase());
+
+      if (mentioned) mentionCount++;
+      kwResults.push({
+        keyword: kw,
+        mentioned,
+        sources: kwSources,
+        snippet: markdown.slice(0, 300) || null,
+      });
+    }
+
+    const allSources = Array.from(sourceMap.values()).sort((a, b) => {
+      const aMatch = a.domain.includes(bare) ? -1 : 1;
+      const bMatch = b.domain.includes(bare) ? -1 : 1;
+      return aMatch - bMatch;
+    });
+
+    const domainCited = mentionCount > 0 || allSources.some(s => s.domain.includes(bare));
+
+    const result: ChatGptScraperResult = {
+      keywords: kwResults,
+      allSources,
+      domainCited,
+      mentionCount,
+      estimatedCostUsd: totalCost,
+      cached: false,
+      model,
+    };
+
+    await setDfCache(cacheKey, result as unknown as Record<string, unknown>, totalCost.toFixed(5));
+    return result;
+  } catch {
+    return empty;
+  }
+}
+
+// ─── AI Keyword Search Volume ──────────────────────────────────────────────────
+
+export interface AiKeywordVolumeItem {
+  keyword: string;
+  aiSearchVolume: number;
+  monthlyTrend: number | null;
+}
+
+export interface AiKeywordVolumeResult {
+  items: AiKeywordVolumeItem[];
+  estimatedCostUsd: number;
+  cached: boolean;
+}
+
+export async function getAiKeywordVolume(
+  keywords: string[],
+  locationCode = 2840,
+): Promise<AiKeywordVolumeResult> {
+  const empty: AiKeywordVolumeResult = {
+    items: keywords.map(kw => ({ keyword: kw, aiSearchVolume: 0, monthlyTrend: null })),
+    estimatedCostUsd: 0,
+    cached: false,
+  };
+
+  const login = process.env.DATAFORSEO_LOGIN ?? "";
+  const password = process.env.DATAFORSEO_PASSWORD ?? "";
+  if (!login || !password || keywords.length === 0) return empty;
+
+  const top10 = keywords.slice(0, 10);
+  const cacheKey = `ai_kw_volume:${locationCode}:${top10.slice(0, 5).map(k => k.slice(0, 20).replace(/\s+/g, "_")).join("|")}`;
+
+  const cached = await getDfCache(cacheKey);
+  if (cached) {
+    return { ...(cached as unknown as AiKeywordVolumeResult), cached: true };
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+    const resp = await fetch(`${DATAFORSEO_BASE}/v3/ai_optimization/ai_keyword_data/keywords_search_volume/live`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: getAuthHeader(),
+      body: JSON.stringify([{ keywords: top10, location_code: locationCode, language_code: "en" }]),
+    });
+    clearTimeout(timeout);
+
+    if (!resp.ok) return empty;
+
+    const data = (await resp.json()) as Record<string, unknown>;
+    const tasks = (data.tasks as Array<Record<string, unknown>>) ?? [];
+    const totalCost = tasks.reduce((s, t) => s + Number((t as Record<string, unknown>).cost ?? 0), 0);
+
+    const rawItems = (((tasks[0]?.result as Array<Record<string, unknown>>)?.[0])?.items as Array<Record<string, unknown>>) ?? [];
+
+    const itemMap = new Map<string, number>();
+    const trendMap = new Map<string, number | null>();
+
+    for (const item of rawItems) {
+      const kw = String(item.keyword ?? "");
+      const vol = Number(item.ai_search_volume ?? 0);
+      itemMap.set(kw, vol);
+
+      const monthly = (item.ai_monthly_searches as Array<Record<string, unknown>>) ?? [];
+      if (monthly.length >= 3) {
+        const latest = Number(monthly[0]?.ai_search_volume ?? 0);
+        const older = Number(monthly[2]?.ai_search_volume ?? 0);
+        trendMap.set(kw, older > 0 ? Math.round(((latest - older) / older) * 100) : null);
+      } else {
+        trendMap.set(kw, null);
+      }
+    }
+
+    const items: AiKeywordVolumeItem[] = top10.map(kw => ({
+      keyword: kw,
+      aiSearchVolume: itemMap.get(kw) ?? 0,
+      monthlyTrend: trendMap.get(kw) ?? null,
+    }));
+
+    const result: AiKeywordVolumeResult = { items, estimatedCostUsd: totalCost, cached: false };
+    await setDfCache(cacheKey, result as unknown as Record<string, unknown>, totalCost.toFixed(5));
+    return result;
+  } catch {
+    return empty;
+  }
+}
+
 // ─── LLM Mentions - Cross Aggregated ──────────────────────────────────────────
 
 export interface LlmCrossAggTarget {

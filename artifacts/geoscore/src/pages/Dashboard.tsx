@@ -383,6 +383,16 @@ export default function Dashboard() {
   const [llmCrossAgg, setLlmCrossAgg] = useState<Array<{ domain: string; mentionCount: number; mentionRate: number }> | null>(null);
   const [llmCrossAggLoading, setLlmCrossAggLoading] = useState(false);
   const [llmCrossAggBrandId, setLlmCrossAggBrandId] = useState<string | null>(null);
+  const [chatgptScraper, setChatgptScraper] = useState<{
+    keywords: Array<{ keyword: string; mentioned: boolean; sources: Array<{ domain: string; url: string; title: string; sourceName: string | null }>; snippet: string | null }>;
+    allSources: Array<{ domain: string; url: string; title: string; sourceName: string | null }>;
+    domainCited: boolean; mentionCount: number; estimatedCostUsd: number; cached: boolean; model: string | null;
+  } | null>(null);
+  const [chatgptScraperLoading, setChatgptScraperLoading] = useState(false);
+  const [chatgptScraperBrandId, setChatgptScraperBrandId] = useState<string | null>(null);
+  const [aiVolume, setAiVolume] = useState<Record<string, number>>({});
+  const [aiVolumeLoading, setAiVolumeLoading] = useState(false);
+  const [aiVolumeBrandId, setAiVolumeBrandId] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768);
@@ -682,6 +692,54 @@ export default function Dashboard() {
       }
     } catch { /* ignore */ } finally {
       setCitationGapsLoading(false);
+    }
+  };
+
+  const handleFetchChatGptScraper = async () => {
+    if (!selectedBrand?.domain) return;
+    setChatgptScraperLoading(true);
+    setChatgptScraperBrandId(selectedBrand.id);
+    const token = localStorage.getItem("auth_token");
+    const kws = brandKeywords && brandKeywords.length > 0
+      ? brandKeywords.slice(0, 3).map(k => k.keyword)
+      : undefined;
+    try {
+      const resp = await fetch("/api/dataforseo/chatgpt-scraper", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token ?? ""}` },
+        body: JSON.stringify({ domain: selectedBrand.domain, keywords: kws }),
+      });
+      if (resp.ok) setChatgptScraper(await resp.json());
+    } catch { /* ignore */ } finally {
+      setChatgptScraperLoading(false);
+    }
+  };
+
+  const handleFetchAiVolume = async () => {
+    if (!selectedBrand?.id) return;
+    const kws = brandKeywords && brandKeywords.length > 0
+      ? brandKeywords.map(k => k.keyword)
+      : getDefaultPrompts(selectedBrand?.category).slice(0, 10);
+    if (kws.length === 0) return;
+    setAiVolumeLoading(true);
+    setAiVolumeBrandId(selectedBrand.id);
+    const token = localStorage.getItem("auth_token");
+    try {
+      const resp = await fetch("/api/dataforseo/ai-keyword-volume", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token ?? ""}` },
+        body: JSON.stringify({ keywords: kws, domain: selectedBrand.domain }),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const map: Record<string, number> = {};
+        for (const item of (data.items ?? [])) {
+          map[item.keyword] = item.aiSearchVolume ?? 0;
+        }
+        setAiVolume(map);
+      }
+    } catch { /* ignore */ } finally {
+      setAiVolumeLoading(false);
     }
   };
 
@@ -1799,6 +1857,81 @@ export default function Dashboard() {
                       )}
                     </div>
 
+                    {/* ChatGPT Live Sources card */}
+                    <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+                      <div style={{ padding: "12px 16px", borderBottom: "0.5px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", display: "flex", alignItems: "center", gap: 7 }}>
+                            ChatGPT live citations
+                            {chatgptScraper?.cached && <span style={{ background: "#F0FDF4", color: "#15803D", fontSize: 10, fontWeight: 500, borderRadius: 4, padding: "1px 6px" }}>Cached</span>}
+                            {chatgptScraper?.model && <span style={{ background: "#F5F3FF", color: "#6D28D9", fontSize: 10, fontWeight: 500, borderRadius: 4, padding: "1px 6px" }}>{chatgptScraper.model}</span>}
+                          </div>
+                          <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>Real sources ChatGPT cites when answering your tracked keywords</div>
+                        </div>
+                        <button
+                          onClick={handleFetchChatGptScraper}
+                          disabled={chatgptScraperLoading}
+                          style={{ background: chatgptScraperLoading ? "#f3f4f6" : "#10a37f", color: chatgptScraperLoading ? "#9ca3af" : "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 11, fontWeight: 500, cursor: chatgptScraperLoading ? "not-allowed" : "pointer", flexShrink: 0, minWidth: 120 }}
+                        >
+                          {chatgptScraperLoading ? "Scraping ChatGPT..." : chatgptScraper ? "Refresh" : "Fetch live sources"}
+                        </button>
+                      </div>
+
+                      {chatgptScraperLoading ? (
+                        <div style={{ padding: "24px 16px", textAlign: "center" }}>
+                          <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 4 }}>Scraping ChatGPT in real-time...</div>
+                          <div style={{ fontSize: 11, color: "#9ca3af" }}>This takes about 25-30 seconds</div>
+                        </div>
+                      ) : !chatgptScraper ? (
+                        <div style={{ padding: "24px 16px", textAlign: "center" }}>
+                          <div style={{ fontSize: 12, color: "#6b7280" }}>Click "Fetch live sources" to see exactly which URLs ChatGPT cites for your keywords.</div>
+                        </div>
+                      ) : (
+                        <div>
+                          {/* Summary row */}
+                          <div style={{ display: "flex", gap: 12, padding: "10px 16px", borderBottom: "0.5px solid #f3f4f6", background: chatgptScraper.domainCited ? "#F0FDF4" : "#FEF2F2" }}>
+                            <div style={{ fontSize: 12, fontWeight: 500, color: chatgptScraper.domainCited ? "#065F46" : "#991B1B" }}>
+                              {chatgptScraper.domainCited ? "Your domain was cited by ChatGPT" : "Your domain was not cited by ChatGPT for these keywords"}
+                            </div>
+                            <div style={{ fontSize: 12, color: "#6b7280", marginLeft: "auto" }}>{chatgptScraper.allSources.length} sources found</div>
+                          </div>
+                          {/* Sources list */}
+                          <div style={{ display: "grid", gridTemplateColumns: "2fr 3fr 100px", gap: 8, padding: "8px 16px", background: "#fafafa", borderBottom: "0.5px solid #f3f4f6" }}>
+                            {["Domain", "Title", "Publisher"].map(h => (
+                              <div key={h} style={{ fontSize: 11, color: "#9ca3af", fontWeight: 500 }}>{h}</div>
+                            ))}
+                          </div>
+                          {chatgptScraper.allSources.slice(0, 12).map((src, i) => {
+                            const isYours = selectedBrand?.domain && (src.domain.includes(selectedBrand.domain.replace(/^www\./, "")) || selectedBrand.domain.replace(/^www\./, "").includes(src.domain.split(".")[0] ?? ""));
+                            return (
+                              <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 3fr 100px", gap: 8, padding: "9px 16px", borderBottom: i < chatgptScraper.allSources.slice(0, 12).length - 1 ? "0.5px solid #f9fafb" : "none", alignItems: "center", background: isYours ? "#F0FDF4" : "white" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                                  {isYours && <span style={{ background: "#DCFCE7", color: "#15803D", borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 600 }}>YOU</span>}
+                                  <a href={`https://${src.domain}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "#4F46E5", textDecoration: "none", fontWeight: isYours ? 600 : 400 }}>{src.domain}</a>
+                                </div>
+                                <div style={{ fontSize: 11, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{src.title}</div>
+                                <div style={{ fontSize: 11, color: "#9ca3af", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{src.sourceName ?? "-"}</div>
+                              </div>
+                            );
+                          })}
+                          {/* Per-keyword breakdown */}
+                          {chatgptScraper.keywords.length > 0 && (
+                            <div style={{ padding: "10px 16px", borderTop: "0.5px solid #f3f4f6", background: "#fafafa" }}>
+                              <div style={{ fontSize: 11, color: "#9ca3af", fontWeight: 500, marginBottom: 6 }}>Per keyword</div>
+                              {chatgptScraper.keywords.map((kw, i) => (
+                                <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: kw.mentioned ? "#16A34A" : "#DC2626", flexShrink: 0 }} />
+                                  <span style={{ fontSize: 11, color: "#374151", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{kw.keyword}</span>
+                                  <span style={{ fontSize: 11, color: kw.mentioned ? "#16A34A" : "#9ca3af", fontWeight: 500 }}>{kw.mentioned ? "Cited" : "Not cited"}</span>
+                                  <span style={{ fontSize: 11, color: "#9ca3af" }}>{kw.sources.length} sources</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
                     {/* Citation source table */}
                     <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
                       <div style={{ padding: "12px 16px", borderBottom: "0.5px solid #f3f4f6" }}>
@@ -1968,9 +2101,18 @@ export default function Dashboard() {
                         <div style={{ fontSize: 15, fontWeight: 600, color: "#111827", marginBottom: 3 }}>Tracked prompts</div>
                         <div style={{ fontSize: 12, color: "#6b7280" }}>The queries we run across AI systems to measure your visibility</div>
                       </div>
-                      <button onClick={() => setAddPromptModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 500, cursor: "pointer", flexShrink: 0 }}>
-                        + Add custom prompt
-                      </button>
+                      <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                        <button
+                          onClick={handleFetchAiVolume}
+                          disabled={aiVolumeLoading}
+                          style={{ background: aiVolumeLoading ? "#f3f4f6" : "white", color: aiVolumeLoading ? "#9ca3af" : "#4F46E5", border: "0.5px solid", borderColor: aiVolumeLoading ? "#e5e7eb" : "#4F46E5", borderRadius: 6, padding: "7px 12px", fontSize: 12, fontWeight: 500, cursor: aiVolumeLoading ? "not-allowed" : "pointer" }}
+                        >
+                          {aiVolumeLoading ? "Fetching..." : Object.keys(aiVolume).length > 0 && aiVolumeBrandId === selectedBrand?.id ? "Refresh AI volume" : "Check AI search volume"}
+                        </button>
+                        <button onClick={() => setAddPromptModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
+                          + Add custom prompt
+                        </button>
+                      </div>
                     </div>
 
                     {promptAddedMsg && (
@@ -2018,6 +2160,11 @@ export default function Dashboard() {
                               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                                 <span style={{ background: tagStyle.bg, color: tagStyle.text, borderRadius: 4, padding: "1px 7px", fontSize: 10, fontWeight: 500 }}>{p.tag}</span>
                                 <span style={{ fontSize: 11, color: "#9ca3af" }}>Last checked: {p.lastChecked}</span>
+                                {aiVolumeBrandId === selectedBrand?.id && aiVolume[p.keyword] !== undefined && (
+                                  <span style={{ background: "#EEF2FF", color: "#4F46E5", borderRadius: 4, padding: "1px 7px", fontSize: 10, fontWeight: 500 }}>
+                                    {aiVolume[p.keyword] > 0 ? `${aiVolume[p.keyword].toLocaleString()} AI searches/mo` : "No AI volume"}
+                                  </span>
+                                )}
                               </div>
                             </div>
                             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5, flexShrink: 0, marginLeft: 12 }}>

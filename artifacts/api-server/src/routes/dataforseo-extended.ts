@@ -9,6 +9,8 @@ import {
   getLocationCode,
   getLlmTopDomains,
   getLlmCrossAggregated,
+  getChatGptScraper,
+  getAiKeywordVolume,
 } from "../lib/dataforseo";
 import { db, citationsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
@@ -279,6 +281,54 @@ router.post("/dataforseo/llm-cross-aggregated", requireAuth, async (req, res): P
 
   const result = await getLlmCrossAggregated(domain, competitors, kws, locationCode);
   req.log.info({ domain, targets: result.targets.length, cost: result.estimatedCostUsd, cached: result.cached }, "llm-cross-aggregated done");
+  res.json(result);
+});
+
+// ChatGPT LLM Scraper - real citation sources from chatgpt.com
+router.post("/dataforseo/chatgpt-scraper", requireAuth, async (req, res): Promise<void> => {
+  const user = (req as AuthRequest).user;
+  if (user.plan === "free") {
+    res.status(403).json({ error: "ChatGPT citation scraper requires a paid plan." });
+    return;
+  }
+
+  const { domain, keywords } = req.body as { domain?: string; keywords?: string[] };
+  if (!domain) {
+    res.status(400).json({ error: "domain is required" });
+    return;
+  }
+
+  const kws: string[] = Array.isArray(keywords) && keywords.length > 0
+    ? keywords.slice(0, 3)
+    : (await getDomainKeywords(domain)).slice(0, 3).map(k => k.keyword);
+
+  const locationCode = getLocationCode(domain);
+  req.log.info({ domain, kws: kws.length }, "chatgpt-scraper request");
+
+  const result = await getChatGptScraper(kws, domain, locationCode);
+  req.log.info({ domain, sources: result.allSources.length, cited: result.domainCited, cost: result.estimatedCostUsd, cached: result.cached }, "chatgpt-scraper done");
+  res.json(result);
+});
+
+// AI Keyword Search Volume - how many people search these keywords inside AI tools
+router.post("/dataforseo/ai-keyword-volume", requireAuth, async (req, res): Promise<void> => {
+  const user = (req as AuthRequest).user;
+  if (user.plan === "free") {
+    res.status(403).json({ error: "AI keyword volume requires a paid plan." });
+    return;
+  }
+
+  const { keywords, domain } = req.body as { keywords?: string[]; domain?: string };
+  if (!Array.isArray(keywords) || keywords.length === 0) {
+    res.status(400).json({ error: "keywords[] is required" });
+    return;
+  }
+
+  const locationCode = domain ? getLocationCode(domain) : 2840;
+  req.log.info({ keywords: keywords.length, locationCode }, "ai-keyword-volume request");
+
+  const result = await getAiKeywordVolume(keywords, locationCode);
+  req.log.info({ keywords: keywords.length, cost: result.estimatedCostUsd, cached: result.cached }, "ai-keyword-volume done");
   res.json(result);
 });
 
