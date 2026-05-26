@@ -361,6 +361,33 @@ router.get("/dashboard/brands/:id/technical-checks", requirePaidAuth, async (req
   });
 });
 
+router.patch("/dashboard/brands/:id/competitors", requirePaidAuth, async (req, res): Promise<void> => {
+  const user = (req as AuthRequest).user;
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const { competitors } = req.body as { competitors?: string[] };
+
+  if (!Array.isArray(competitors)) {
+    res.status(400).json({ error: "competitors must be an array" });
+    return;
+  }
+
+  const [brand] = await db
+    .select()
+    .from(monitoredBrandsTable)
+    .where(and(eq(monitoredBrandsTable.id, rawId!), eq(monitoredBrandsTable.userId, user.id)))
+    .limit(1);
+
+  if (!brand) {
+    res.status(404).json({ error: "Brand not found" });
+    return;
+  }
+
+  const clean = competitors.map(c => c.toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0]!.trim()).filter(Boolean);
+
+  await db.update(monitoredBrandsTable).set({ competitors: clean }).where(eq(monitoredBrandsTable.id, brand.id));
+  res.json({ competitors: clean });
+});
+
 router.get("/dashboard/brands/:id/keywords", requirePaidAuth, async (req, res): Promise<void> => {
   const user = (req as AuthRequest).user;
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

@@ -442,6 +442,11 @@ export default function Dashboard() {
     return () => timers.forEach(clearTimeout);
   }, [isScanningBrandId]);
 
+  // Sync tracked competitors when selected brand changes
+  useEffect(() => {
+    setTrackedCompetitors(selectedBrand?.competitors ?? []);
+  }, [selectedBrand?.id]);
+
   // Fetch brand entity citations when Citations tab opens or brand changes
   useEffect(() => {
     if (activeTab !== "Citations" || !selectedBrand?.id) return;
@@ -564,15 +569,31 @@ export default function Dashboard() {
     setFixActions(prev => prev.map(a => a.id === id ? { ...a, done: !a.done } : a));
   };
 
+  const saveCompetitors = async (list: string[]) => {
+    if (!selectedBrand?.id) return;
+    const token = getToken();
+    await fetch(`/api/dashboard/brands/${selectedBrand.id}/competitors`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token ?? ""}` },
+      body: JSON.stringify({ competitors: list }),
+    });
+  };
+
   const handleAddCompetitor = () => {
-    const c = competitorInput.trim();
+    const c = competitorInput.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? "";
     if (c && !trackedCompetitors.includes(c)) {
-      setTrackedCompetitors(prev => [...prev, c]);
+      const updated = [...trackedCompetitors, c];
+      setTrackedCompetitors(updated);
       setCompetitorInput("");
+      void saveCompetitors(updated);
     }
   };
 
-  const handleRemoveCompetitor = (c: string) => setTrackedCompetitors(prev => prev.filter(x => x !== c));
+  const handleRemoveCompetitor = (c: string) => {
+    const updated = trackedCompetitors.filter(x => x !== c);
+    setTrackedCompetitors(updated);
+    void saveCompetitors(updated);
+  };
 
   const handleFetchBacklinks = async () => {
     if (!selectedBrand?.domain) return;
