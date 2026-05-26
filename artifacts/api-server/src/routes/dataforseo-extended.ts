@@ -10,6 +10,7 @@ import {
   getLlmTopDomains,
   getLlmCrossAggregated,
   getChatGptScraper,
+  getGeminiScraper,
   getAiKeywordVolume,
 } from "../lib/dataforseo";
 import { db, citationsTable } from "@workspace/db";
@@ -307,6 +308,32 @@ router.post("/dataforseo/chatgpt-scraper", requireAuth, async (req, res): Promis
 
   const result = await getChatGptScraper(kws, domain, locationCode);
   req.log.info({ domain, sources: result.allSources.length, cited: result.domainCited, cost: result.estimatedCostUsd, cached: result.cached }, "chatgpt-scraper done");
+  res.json(result);
+});
+
+// Gemini LLM Scraper - real citation sources from gemini.google.com
+router.post("/dataforseo/gemini-scraper", requireAuth, async (req, res): Promise<void> => {
+  const user = (req as AuthRequest).user;
+  if (user.plan === "free") {
+    res.status(403).json({ error: "Gemini citation scraper requires a paid plan." });
+    return;
+  }
+
+  const { domain, keywords } = req.body as { domain?: string; keywords?: string[] };
+  if (!domain) {
+    res.status(400).json({ error: "domain is required" });
+    return;
+  }
+
+  const kws: string[] = Array.isArray(keywords) && keywords.length > 0
+    ? keywords.slice(0, 3)
+    : (await getDomainKeywords(domain)).slice(0, 3).map(k => k.keyword);
+
+  const locationCode = getLocationCode(domain);
+  req.log.info({ domain, kws: kws.length }, "gemini-scraper request");
+
+  const result = await getGeminiScraper(kws, domain, locationCode);
+  req.log.info({ domain, sources: result.allSources.length, cited: result.domainCited, cost: result.estimatedCostUsd, cached: result.cached }, "gemini-scraper done");
   res.json(result);
 });
 

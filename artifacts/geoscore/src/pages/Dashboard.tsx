@@ -391,6 +391,13 @@ export default function Dashboard() {
   } | null>(null);
   const [chatgptScraperLoading, setChatgptScraperLoading] = useState(false);
   const [chatgptScraperBrandId, setChatgptScraperBrandId] = useState<string | null>(null);
+  const [geminiScraper, setGeminiScraper] = useState<{
+    keywords: Array<{ keyword: string; mentioned: boolean; sources: Array<{ domain: string; url: string; title: string; sourceName: string | null }>; snippet: string | null }>;
+    allSources: Array<{ domain: string; url: string; title: string; sourceName: string | null }>;
+    domainCited: boolean; mentionCount: number; estimatedCostUsd: number; cached: boolean; model: string | null;
+  } | null>(null);
+  const [geminiScraperLoading, setGeminiScraperLoading] = useState(false);
+  const [geminiScraperBrandId, setGeminiScraperBrandId] = useState<string | null>(null);
   const [aiVolume, setAiVolume] = useState<Record<string, number>>({});
   const [aiVolumeLoading, setAiVolumeLoading] = useState(false);
   const [aiVolumeBrandId, setAiVolumeBrandId] = useState<string | null>(null);
@@ -734,6 +741,26 @@ export default function Dashboard() {
       if (resp.ok) setChatgptScraper(await resp.json());
     } catch { /* ignore */ } finally {
       setChatgptScraperLoading(false);
+    }
+  };
+
+  const handleFetchGeminiScraper = async () => {
+    if (!selectedBrand?.domain) return;
+    setGeminiScraperLoading(true);
+    setGeminiScraperBrandId(selectedBrand.id);
+    const token = getToken();
+    const kws = brandKeywords && brandKeywords.length > 0
+      ? brandKeywords.slice(0, 3).map(k => k.keyword)
+      : undefined;
+    try {
+      const resp = await fetch("/api/dataforseo/gemini-scraper", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token ?? ""}` },
+        body: JSON.stringify({ domain: selectedBrand.domain, keywords: kws }),
+      });
+      if (resp.ok) setGeminiScraper(await resp.json());
+    } catch { /* ignore */ } finally {
+      setGeminiScraperLoading(false);
     }
   };
 
@@ -1929,6 +1956,78 @@ export default function Dashboard() {
                             <div style={{ padding: "10px 16px", borderTop: "0.5px solid #f3f4f6", background: "#fafafa" }}>
                               <div style={{ fontSize: 11, color: "#9ca3af", fontWeight: 500, marginBottom: 6 }}>Per keyword</div>
                               {chatgptScraper.keywords.map((kw, i) => (
+                                <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: kw.mentioned ? "#16A34A" : "#DC2626", flexShrink: 0 }} />
+                                  <span style={{ fontSize: 11, color: "#374151", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{kw.keyword}</span>
+                                  <span style={{ fontSize: 11, color: kw.mentioned ? "#16A34A" : "#9ca3af", fontWeight: 500 }}>{kw.mentioned ? "Cited" : "Not cited"}</span>
+                                  <span style={{ fontSize: 11, color: "#9ca3af" }}>{kw.sources.length} sources</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Gemini Live Sources card */}
+                    <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+                      <div style={{ padding: "12px 16px", borderBottom: "0.5px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", display: "flex", alignItems: "center", gap: 7 }}>
+                            Gemini live citations
+                            {geminiScraper?.cached && <span style={{ background: "#F0FDF4", color: "#15803D", fontSize: 10, fontWeight: 500, borderRadius: 4, padding: "1px 6px" }}>Cached</span>}
+                            {geminiScraper?.model && <span style={{ background: "#EFF6FF", color: "#1D4ED8", fontSize: 10, fontWeight: 500, borderRadius: 4, padding: "1px 6px" }}>{geminiScraper.model}</span>}
+                          </div>
+                          <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>Real sources Gemini cites when answering your tracked keywords</div>
+                        </div>
+                        <button
+                          onClick={handleFetchGeminiScraper}
+                          disabled={geminiScraperLoading}
+                          style={{ background: geminiScraperLoading ? "#f3f4f6" : "#4285F4", color: geminiScraperLoading ? "#9ca3af" : "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 11, fontWeight: 500, cursor: geminiScraperLoading ? "not-allowed" : "pointer", flexShrink: 0, minWidth: 120 }}
+                        >
+                          {geminiScraperLoading ? "Scraping Gemini..." : geminiScraper ? "Refresh" : "Fetch live sources"}
+                        </button>
+                      </div>
+
+                      {geminiScraperLoading ? (
+                        <div style={{ padding: "24px 16px", textAlign: "center" }}>
+                          <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 4 }}>Scraping Gemini in real-time...</div>
+                          <div style={{ fontSize: 11, color: "#9ca3af" }}>This takes about 25-30 seconds</div>
+                        </div>
+                      ) : !geminiScraper ? (
+                        <div style={{ padding: "24px 16px", textAlign: "center" }}>
+                          <div style={{ fontSize: 12, color: "#6b7280" }}>Click "Fetch live sources" to see exactly which URLs Gemini cites for your keywords.</div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div style={{ display: "flex", gap: 12, padding: "10px 16px", borderBottom: "0.5px solid #f3f4f6", background: geminiScraper.domainCited ? "#F0FDF4" : "#FEF2F2" }}>
+                            <div style={{ fontSize: 12, fontWeight: 500, color: geminiScraper.domainCited ? "#065F46" : "#991B1B" }}>
+                              {geminiScraper.domainCited ? "Your domain was cited by Gemini" : "Your domain was not cited by Gemini for these keywords"}
+                            </div>
+                            <div style={{ fontSize: 12, color: "#6b7280", marginLeft: "auto" }}>{geminiScraper.allSources.length} sources found</div>
+                          </div>
+                          <div style={{ display: "grid", gridTemplateColumns: "2fr 3fr 100px", gap: 8, padding: "8px 16px", background: "#fafafa", borderBottom: "0.5px solid #f3f4f6" }}>
+                            {["Domain", "Title", "Publisher"].map(h => (
+                              <div key={h} style={{ fontSize: 11, color: "#9ca3af", fontWeight: 500 }}>{h}</div>
+                            ))}
+                          </div>
+                          {geminiScraper.allSources.slice(0, 12).map((src, i) => {
+                            const isYours = selectedBrand?.domain && (src.domain.includes(selectedBrand.domain.replace(/^www\./, "")) || selectedBrand.domain.replace(/^www\./, "").includes(src.domain.split(".")[0] ?? ""));
+                            return (
+                              <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 3fr 100px", gap: 8, padding: "9px 16px", borderBottom: i < geminiScraper.allSources.slice(0, 12).length - 1 ? "0.5px solid #f9fafb" : "none", alignItems: "center", background: isYours ? "#F0FDF4" : "white" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                                  {isYours && <span style={{ background: "#DCFCE7", color: "#15803D", borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 600 }}>YOU</span>}
+                                  <a href={`https://${src.domain}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "#4F46E5", textDecoration: "none", fontWeight: isYours ? 600 : 400 }}>{src.domain}</a>
+                                </div>
+                                <div style={{ fontSize: 11, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{src.title}</div>
+                                <div style={{ fontSize: 11, color: "#9ca3af", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{src.sourceName ?? "-"}</div>
+                              </div>
+                            );
+                          })}
+                          {geminiScraper.keywords.length > 0 && (
+                            <div style={{ padding: "10px 16px", borderTop: "0.5px solid #f3f4f6", background: "#fafafa" }}>
+                              <div style={{ fontSize: 11, color: "#9ca3af", fontWeight: 500, marginBottom: 6 }}>Per keyword</div>
+                              {geminiScraper.keywords.map((kw, i) => (
                                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: kw.mentioned ? "#16A34A" : "#DC2626", flexShrink: 0 }} />
                                   <span style={{ fontSize: 11, color: "#374151", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{kw.keyword}</span>
