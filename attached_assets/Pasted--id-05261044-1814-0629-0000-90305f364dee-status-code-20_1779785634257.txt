@@ -1,0 +1,200 @@
+{
+  "id": "05261044-1814-0629-0000-90305f364dee",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "17.3241 sec.",
+  "cost": 0.004,
+  "result_count": 1,
+  "path": [
+    "v3",
+    "ai_optimization",
+    "chat_gpt",
+    "llm_scraper",
+    "live",
+    "advanced"
+  ],
+  "data": {
+    "api": "ai_optimization",
+    "function": "llm_scraper",
+    "se": "chat_gpt",
+    "keyword": "seo",
+    "language_code": "en",
+    "location_code": 2840,
+    "force_web_search": true,
+    "device": "desktop",
+    "os": "windows"
+  },
+  "result": [
+    {
+      "keyword": "seo",
+      "location_code": 2840,
+      "language_code": "en",
+      "model": "gpt-5-5",
+      "check_url": "https://chatgpt.com/?prompt=seo&hints=search",
+      "datetime": "2026-05-26 07:44:24 +00:00",
+      "markdown": "SEO stands for **Search Engine Optimization**. It’s the process of improving a website so it appears higher in search engine results on platforms like Google and Bing, helping attract more unpaid (“organic”) traffic. [www.britannica.com](https://www.britannica.com/topic/search-engine-optimization?utm_source=chatgpt.com)[www.seo.com](https://www.seo.com/basics/glossary/seo/?utm_source=chatgpt.com)\n\nThe main goal of SEO is to help search engines understand your content and show it to the right users when they search for something relevant. [www.searchenginejournal.com](https://www.searchenginejournal.com/seo-101/?utm_source=chatgpt.com)\n\nSEO is usually divided into 3 main areas:\n\n1. **On-page SEO**  \n   Optimizing content, keywords, titles, headings, and internal links.\n\n2. **Technical SEO**  \n   Improving website speed, mobile-friendliness, crawlability, and site structure.\n\n3. **Off-page SEO**  \n   Building authority through backlinks, mentions, and online reputation. [www.seo.com](https://www.seo.com/basics/glossary/seo/?utm_source=chatgpt.com)\n\nExample:\n- If you own a pizza shop in Hoboken and someone searches “best pizza near me,” SEO helps your website appear higher in those search results.\n\nGood SEO focuses on:\n- Helpful content\n- Fast, user-friendly websites\n- Matching user intent\n- Building trust and authority\n\nBad SEO (“black hat SEO”) uses manipulative tactics like keyword stuffing and can get penalized by search engines. [www.britannica.com](https://www.britannica.com/topic/search-engine-optimization?utm_source=chatgpt.com)\n\nIf you want, I can also explain:\n- How SEO works step-by-step\n- SEO for beginners\n- Local SEO\n- Technical SEO\n- SEO vs SEM\n- How to learn SEO in 30 days\n- Best SEO tools in 2026",
+      "search_results": [
+        {
+          "type": "chatgpt_search_result",
+          "url": "https://www.searchenginejournal.com/seo/?utm_source=chatgpt.com",
+          "domain": "www.searchenginejournal.com",
+          "title": "What is SEO? An Introduction to SEO Basics",
+          "description": "WHAT IS SEO? AN INTRODUCTION TO SEO BASICS  Read Now  Image: What is SEO? An Introduction to SEO Basics  Image: What is SEO? An Introduction to SEO Basics  What is SEO? At its core, the meaning of se...",
+          "breadcrumb": "searchenginejournal.com"
+        },
+        {
+          "type": "chatgpt_search_result",
+          "url": "https://www.seo.com/basics/?utm_source=chatgpt.com",
+          "domain": "www.seo.com",
+          "title": "SEO Basics: Beginner's Guide to SEO From SEO.com",
+          "description": "SEO BASICS: THE BEGINNER’S GUIDE TO SEO FROM SEO EXPERTS  Master SEO basics with our beginner’s guide, exploring the importance of SEO, how search engines function, and practical steps to kick-start...",
+          "breadcrumb": "seo.com"
+        },
+        {
+          "type": "chatgpt_search_result",
+          "url": "https://ahrefs.com/seo/glossary/seo?utm_source=chatgpt.com",
+          "domain": "ahrefs.com",
+          "title": "What is SEO?",
+          "description": "SEO  WHAT IS SEO?  SEO (Search Engine Optimization) is the set of practices and actions aimed at increasing a website’s organic traffic from search results. SEO is one of the most important and effec...",
+          "breadcrumb": "ahrefs.com"
+        },
+        {
+          "type": "chatgpt_search_result",
+          "url": "https://ahrefs.com/blog/seo-basics/?utm_source=chatgpt.com",
+          "domain": "ahrefs.com",
+          "title": "SEO Basics: Beginner’s Guide to SEO Success",
+          "description": "SEO BASICS: BEGINNER’S GUIDE TO SEO SUCCESS  Image: Portrait of Joshua Hardwick  By Joshua Hardwick  Former Head of Content at Ahrefs  Contributors  Image: Portrait of Sam OhSam Oh  Image: Portrait o...",
+          "breadcrumb": "ahrefs.com"
+        },
+        {
+          "type": "chatgpt_search_result",
+          "url": "https://www.seoparents.com/blog/what-is-seo/?utm_source=chatgpt.com",
+          "domain": "www.seoparents.com",
+          "title": "What Is SEO? Beginner Guide & Best Practices | SeoParents",
+          "description": "WHAT IS SEO? BEGINNER GUIDE, BEST PRACTICES, TOOLS & SITE STRUCTURE  SEO, or Search Engine Optimization, is the process of improving a website so it can rank higher in search engines, attract organic...",
+          "breadcrumb": "seoparents.com"
+        },
+        {
+          "type": "chatgpt_search_result",
+          "url": "https://backlinko.com/hub/seo/what-is-seo?utm_source=chatgpt.com",
+          "domain": "backlinko.com",
+          "title": "What is SEO? The Complete Search Engine Optimization Guide",
+          "description": "WHAT IS SEO?  Image: Brian Dean  Written by Brian Dean  Last updated Nov. 24, 2025  Search engine optimization (SEO) is the practice of getting targeted traffic to a website from a search engine’s or...",
+          "breadcrumb": "backlinko.com"
+        },
+        {
+          "type": "chatgpt_search_result",
+          "url": "https://searchengineland.com/guide/what-is-seo?utm_source=chatgpt.com",
+          "domain": "searchengineland.com",
+          "title": "What Is SEO - Search Engine Optimization?",
+          "description": "WHAT IS SEO – SEARCH ENGINE OPTIMIZATION?  Last updated: May 18, 2026 at 9:08 am  Read Time: 29 minutes  Last updated: May 18, 2026 at 9:08 am  Read Time: 29 minutes  Written by Search Engine Land &...",
+          "breadcrumb": "searchengineland.com"
+        },
+        {
+          "type": "chatgpt_search_result",
+          "url": "https://www.dreikon.de/en/news/glossary/seo/?utm_source=chatgpt.com",
+          "domain": "www.dreikon.de",
+          "title": "SEO meaning - search engine optimisation explained simply",
+          "description": "To the overview  SEO - DEFINITION AND MEANING OF SEARCH ENGINE OPTIMIZATION  Search engine optimization, or SEO for short, has become an integral part of modern online marketing. If you don't appear...",
+          "breadcrumb": "dreikon.de"
+        },
+        {
+          "type": "chatgpt_search_result",
+          "url": "https://www.geeksforgeeks.org/seo-search-engine-optimization/?utm_source=chatgpt.com",
+          "domain": "www.geeksforgeeks.org",
+          "title": "What is SEO Optimization or Search Engine Optimization? - GeeksforGeeks",
+          "description": "WHAT IS SEO OPTIMIZATION OR SEARCH ENGINE OPTIMIZATION?  Last Updated : 23 Jul, 2025  Improve  *   *   * Suggest changes  3 Likes  Like  Report  WHAT IS SEARCH ENGINE OPTIMIZATION (SEO)?  > SEO stand...",
+          "breadcrumb": "geeksforgeeks.org"
+        }
+      ],
+      "sources": [
+        {
+          "type": "chat_gpt_source",
+          "title": "Search engine optimization (SEO) | Meaning, Google, History, & Facts | Britannica",
+          "snippet": null,
+          "domain": "www.britannica.com",
+          "url": "https://www.britannica.com/topic/search-engine-optimization?utm_source=chatgpt.com",
+          "thumbnail": null,
+          "source_name": "Encyclopedia Britannica",
+          "publication_date": "2026-03-05 00:00:00 +00:00",
+          "markdown": null
+        },
+        {
+          "type": "chat_gpt_source",
+          "title": "What Is SEO? Search Engine Optimization Guide for 2026",
+          "snippet": null,
+          "domain": "www.seo.com",
+          "url": "https://www.seo.com/basics/glossary/seo/?utm_source=chatgpt.com",
+          "thumbnail": null,
+          "source_name": "SEO.com",
+          "publication_date": "2025-11-18 00:00:00 +00:00",
+          "markdown": null
+        },
+        {
+          "type": "chat_gpt_source",
+          "title": "What is SEO? An Introduction to SEO Basics",
+          "snippet": null,
+          "domain": "www.searchenginejournal.com",
+          "url": "https://www.searchenginejournal.com/seo-101/?utm_source=chatgpt.com",
+          "thumbnail": null,
+          "source_name": "Search Engine Journal",
+          "publication_date": null,
+          "markdown": null
+        }
+      ],
+      "fan_out_queries": [
+        "SEO meaning basics"
+      ],
+      "brand_entities": null,
+      "se_results_count": 0,
+      "item_types": [
+        "chat_gpt_text"
+      ],
+      "items_count": 1,
+      "items": [
+        {
+          "type": "chat_gpt_text",
+          "rank_group": 1,
+          "rank_absolute": 1,
+          "markdown": "SEO stands for **Search Engine Optimization**. It’s the process of improving a website so it appears higher in search engine results on platforms like Google and Bing, helping attract more unpaid (“organic”) traffic. [www.britannica.com](https://www.britannica.com/topic/search-engine-optimization?utm_source=chatgpt.com)[www.seo.com](https://www.seo.com/basics/glossary/seo/?utm_source=chatgpt.com)\n\nThe main goal of SEO is to help search engines understand your content and show it to the right users when they search for something relevant. [www.searchenginejournal.com](https://www.searchenginejournal.com/seo-101/?utm_source=chatgpt.com)\n\nSEO is usually divided into 3 main areas:\n\n1. **On-page SEO**  \n   Optimizing content, keywords, titles, headings, and internal links.\n\n2. **Technical SEO**  \n   Improving website speed, mobile-friendliness, crawlability, and site structure.\n\n3. **Off-page SEO**  \n   Building authority through backlinks, mentions, and online reputation. [www.seo.com](https://www.seo.com/basics/glossary/seo/?utm_source=chatgpt.com)\n\nExample:\n- If you own a pizza shop in Hoboken and someone searches “best pizza near me,” SEO helps your website appear higher in those search results.\n\nGood SEO focuses on:\n- Helpful content\n- Fast, user-friendly websites\n- Matching user intent\n- Building trust and authority\n\nBad SEO (“black hat SEO”) uses manipulative tactics like keyword stuffing and can get penalized by search engines. [www.britannica.com](https://www.britannica.com/topic/search-engine-optimization?utm_source=chatgpt.com)\n\nIf you want, I can also explain:\n- How SEO works step-by-step\n- SEO for beginners\n- Local SEO\n- Technical SEO\n- SEO vs SEM\n- How to learn SEO in 30 days\n- Best SEO tools in 2026",
+          "sources": [
+            {
+              "type": "chat_gpt_source",
+              "title": "Search engine optimization (SEO) | Meaning, Google, History, & Facts | Britannica",
+              "snippet": null,
+              "domain": "www.britannica.com",
+              "url": "https://www.britannica.com/topic/search-engine-optimization?utm_source=chatgpt.com",
+              "thumbnail": null,
+              "source_name": "Encyclopedia Britannica",
+              "publication_date": "2026-03-05 00:00:00 +00:00",
+              "markdown": null
+            },
+            {
+              "type": "chat_gpt_source",
+              "title": "What Is SEO? Search Engine Optimization Guide for 2026",
+              "snippet": null,
+              "domain": "www.seo.com",
+              "url": "https://www.seo.com/basics/glossary/seo/?utm_source=chatgpt.com",
+              "thumbnail": null,
+              "source_name": "SEO.com",
+              "publication_date": "2025-11-18 00:00:00 +00:00",
+              "markdown": null
+            },
+            {
+              "type": "chat_gpt_source",
+              "title": "What is SEO? An Introduction to SEO Basics",
+              "snippet": null,
+              "domain": "www.searchenginejournal.com",
+              "url": "https://www.searchenginejournal.com/seo-101/?utm_source=chatgpt.com",
+              "thumbnail": null,
+              "source_name": "Search Engine Journal",
+              "publication_date": null,
+              "markdown": null
+            }
+          ],
+          "brand_entities": null
+        }
+      ]
+    }
+  ]
+}

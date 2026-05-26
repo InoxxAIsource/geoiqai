@@ -1,0 +1,168 @@
+{
+  "id": "05261044-1814-0619-0000-a439f75d22fd",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "0.7686 sec.",
+  "cost": 0.0102,
+  "result_count": 1,
+  "path": [
+    "v3",
+    "ai_optimization",
+    "ai_keyword_data",
+    "keywords_search_volume",
+    "live"
+  ],
+  "data": {
+    "api": "ai_optimization",
+    "function": "keywords_search_volume",
+    "keywords": [
+      "seo",
+      "seo tool"
+    ],
+    "location_code": 2840,
+    "language_code": "en"
+  },
+  "result": [
+    {
+      "location_code": 2840,
+      "language_code": "en",
+      "items_count": 2,
+      "items": [
+        {
+          "keyword": "seo",
+          "ai_search_volume": 116836,
+          "ai_monthly_searches": [
+            {
+              "year": 2026,
+              "month": 4,
+              "ai_search_volume": 116836
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "ai_search_volume": 121773
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "ai_search_volume": 122182
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "ai_search_volume": 131483
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "ai_search_volume": 145809
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "ai_search_volume": 135137
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "ai_search_volume": 131758
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "ai_search_volume": 145392
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "ai_search_volume": 155556
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "ai_search_volume": 145208
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "ai_search_volume": 137051
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "ai_search_volume": 125563
+            }
+          ]
+        },
+        {
+          "keyword": "seo tool",
+          "ai_search_volume": 3733,
+          "ai_monthly_searches": [
+            {
+              "year": 2026,
+              "month": 4,
+              "ai_search_volume": 3733
+            },
+            {
+              "year": 2026,
+              "month": 3,
+              "ai_search_volume": 4286
+            },
+            {
+              "year": 2026,
+              "month": 2,
+              "ai_search_volume": 4717
+            },
+            {
+              "year": 2026,
+              "month": 1,
+              "ai_search_volume": 5214
+            },
+            {
+              "year": 2025,
+              "month": 12,
+              "ai_search_volume": 5690
+            },
+            {
+              "year": 2025,
+              "month": 11,
+              "ai_search_volume": 5209
+            },
+            {
+              "year": 2025,
+              "month": 10,
+              "ai_search_volume": 5039
+            },
+            {
+              "year": 2025,
+              "month": 9,
+              "ai_search_volume": 5648
+            },
+            {
+              "year": 2025,
+              "month": 8,
+              "ai_search_volume": 6345
+            },
+            {
+              "year": 2025,
+              "month": 7,
+              "ai_search_volume": 5968
+            },
+            {
+              "year": 2025,
+              "month": 6,
+              "ai_search_volume": 5781
+            },
+            {
+              "year": 2025,
+              "month": 5,
+              "ai_search_volume": 5245
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+Show less
