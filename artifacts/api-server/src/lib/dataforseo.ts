@@ -1,4 +1,4 @@
-import { db, keywordCacheTable } from "@workspace/db";
+import { db, keywordCacheTable, dataforseoCacheTable } from "@workspace/db";
 import { eq, gt } from "drizzle-orm";
 import type { KeywordData } from "@workspace/db";
 
@@ -570,5 +570,288 @@ export async function runOnPageAudit(domain: string): Promise<OnPageAuditResult>
     };
   } catch {
     return errorResult;
+  }
+}
+
+// ─── Generic DataForSEO 24h cache helpers ──────────────────────────────────────
+
+async function getDfCache(key: string): Promise<Record<string, unknown> | null> {
+  try {
+    const [row] = await db
+      .select()
+      .from(dataforseoCacheTable)
+      .where(eq(dataforseoCacheTable.key, key))
+      .limit(1);
+    if (row && row.expiresAt > new Date()) {
+      return row.data as Record<string, unknown>;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function setDfCache(
+  key: string,
+  data: Record<string, unknown>,
+  costUsd?: string,
+): Promise<void> {
+  try {
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await db
+      .insert(dataforseoCacheTable)
+      .values({ key, data, costUsd: costUsd ?? null, expiresAt })
+      .onConflictDoUpdate({
+        target: dataforseoCacheTable.key,
+        set: { data, costUsd: costUsd ?? null, cachedAt: new Date(), expiresAt },
+      });
+  } catch {
+    // Non-fatal
+  }
+}
+
+// ─── LLM Mentions - Top Domains ────────────────────────────────────────────────
+
+export interface LlmTopDomain {
+  domain: string;
+  mentions: number;
+  mentionRate: number;
+}
+
+export interface LlmTopDomainsResult {
+  domains: LlmTopDomain[];
+  keywords: string[];
+  totalMentions: number;
+  estimatedCostUsd: number;
+  cached: boolean;
+}
+
+export async function getLlmTopDomains(
+  keywords: string[],
+  locationCode = 2840,
+): Promise<LlmTopDomainsResult> {
+  const empty: LlmTopDomainsResult = {
+    domains: [],
+    keywords,
+    totalMentions: 0,
+    estimatedCostUsd: 0,
+    cached: false,
+  };
+
+  const login = process.env.DATAFORSEO_LOGIN ?? "";
+  const password = process.env.DATAFORSEO_PASSWORD ?? "";
+  if (!login || !password || keywords.length === 0) return empty;
+
+  const top5 = keywords.slice(0, 5);
+  const cacheKey = `llm_top:${locationCode}:${top5.slice(0, 3).map(k => k.slice(0, 30).replace(/\s+/g, "_")).join("|")}`;
+
+  const cached = await getDfCache(cacheKey);
+  if (cached) {
+    return { ...(cached as unknown as LlmTopDomainsResult), cached: true };
+  }
+
+  const payload = top5.map(kw => ({
+    keyword: kw,
+    location_code: locationCode,
+    language_code: "en",
+  }));
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    const resp = await fetch(`${DATAFORSEO_BASE}/v3/ai_optimization/llm_mentions/top_domains/live`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: getAuthHeader(),
+      body: JSON.stringify(payload),
+    });
+    clearTimeout(timeout);
+
+    if (!resp.ok) {
+      return empty;
+    }
+
+    const data = (await resp.json()) as Record<string, unknown>;
+    const tasks = (data.tasks as Array<Record<string, unknown>>) ?? [];
+
+    const totalCost = tasks.reduce(
+      (s, t) => s + Number((t as Record<string, unknown>).cost ?? 0),
+      0,
+    );
+
+    const domainMap = new Map<string, number>();
+    let totalMentions = 0;
+
+    for (const task of tasks) {
+      const resultItems = (task.result as Array<Record<string, unknown>>) ?? [];
+      for (const resultItem of resultItems) {
+        const items = (resultItem.items as Array<Record<string, unknown>>) ?? [];
+        for (const item of items) {
+          const raw = String(item.domain ?? item.url ?? "");
+          const domain = raw
+            .replace(/^https?:\/\//, "")
+            .replace(/^www\./, "")
+            .split("/")[0] ?? "";
+          if (!domain) continue;
+          const count = Number(
+            item.mentions_count ?? item.mentions ?? item.count ?? 1,
+          );
+          domainMap.set(domain, (domainMap.get(domain) ?? 0) + count);
+          totalMentions += count;
+        }
+      }
+    }
+
+    const domains: LlmTopDomain[] = Array.from(domainMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 15)
+      .map(([domain, mentions]) => ({
+        domain,
+        mentions,
+        mentionRate: totalMentions > 0 ? Math.round((mentions / totalMentions) * 100) : 0,
+      }));
+
+    const result: LlmTopDomainsResult = {
+      domains,
+      keywords: top5,
+      totalMentions,
+      estimatedCostUsd: totalCost,
+      cached: false,
+    };
+
+    await setDfCache(cacheKey, result as unknown as Record<string, unknown>, totalCost.toFixed(5));
+    return result;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!msg.includes("abort")) {
+      // Log non-timeout errors only
+    }
+    return empty;
+  }
+}
+
+// ─── LLM Mentions - Cross Aggregated ──────────────────────────────────────────
+
+export interface LlmCrossAggTarget {
+  domain: string;
+  mentionCount: number;
+  mentionRate: number;
+}
+
+export interface LlmCrossAggResult {
+  targets: LlmCrossAggTarget[];
+  keywords: string[];
+  estimatedCostUsd: number;
+  cached: boolean;
+}
+
+export async function getLlmCrossAggregated(
+  myDomain: string,
+  competitorDomains: string[],
+  keywords: string[],
+  locationCode = 2840,
+): Promise<LlmCrossAggResult> {
+  const allTargets = [myDomain, ...competitorDomains.slice(0, 4)];
+  const empty: LlmCrossAggResult = {
+    targets: allTargets.map(d => ({ domain: d.replace(/^www\./, ""), mentionCount: 0, mentionRate: 0 })),
+    keywords,
+    estimatedCostUsd: 0,
+    cached: false,
+  };
+
+  const login = process.env.DATAFORSEO_LOGIN ?? "";
+  const password = process.env.DATAFORSEO_PASSWORD ?? "";
+  if (!login || !password || keywords.length === 0) return empty;
+
+  const top5kw = keywords.slice(0, 5);
+  const sortedTargets = [...allTargets].sort().join("|");
+  const cacheKey = `llm_cross:${locationCode}:${sortedTargets.slice(0, 80)}:${top5kw.slice(0, 2).map(k => k.slice(0, 20).replace(/\s+/g, "_")).join("|")}`;
+
+  const cached = await getDfCache(cacheKey);
+  if (cached) {
+    return { ...(cached as unknown as LlmCrossAggResult), cached: true };
+  }
+
+  const payload = [{
+    targets: allTargets,
+    keywords: top5kw,
+    location_code: locationCode,
+    language_code: "en",
+  }];
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    const resp = await fetch(
+      `${DATAFORSEO_BASE}/v3/ai_optimization/llm_mentions/cross_aggregated_metrics/live`,
+      {
+        method: "POST",
+        signal: controller.signal,
+        headers: getAuthHeader(),
+        body: JSON.stringify(payload),
+      },
+    );
+    clearTimeout(timeout);
+
+    if (!resp.ok) {
+      return empty;
+    }
+
+    const data = (await resp.json()) as Record<string, unknown>;
+    const tasks = (data.tasks as Array<Record<string, unknown>>) ?? [];
+
+    const totalCost = tasks.reduce(
+      (s, t) => s + Number((t as Record<string, unknown>).cost ?? 0),
+      0,
+    );
+
+    const result0 = (tasks[0]?.result as Array<Record<string, unknown>>)?.[0];
+    const items = (result0?.items as Array<Record<string, unknown>>) ?? [];
+
+    const targetMap = new Map<string, number>();
+
+    for (const item of items) {
+      const raw = String(item.domain ?? item.target ?? item.url ?? "");
+      const domain = raw
+        .replace(/^https?:\/\//, "")
+        .replace(/^www\./, "")
+        .split("/")[0] ?? "";
+      if (!domain) continue;
+      const count = Number(
+        item.total_mentions ?? item.mentions_count ?? item.mentions ?? 0,
+      );
+      targetMap.set(domain, (targetMap.get(domain) ?? 0) + count);
+    }
+
+    const maxMentions = Math.max(...Array.from(targetMap.values()), 1);
+    const targets: LlmCrossAggTarget[] = allTargets.map(domain => {
+      const bare = domain.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? domain;
+      const count = targetMap.get(bare) ?? 0;
+      return {
+        domain: bare,
+        mentionCount: count,
+        mentionRate: Math.round((count / maxMentions) * 100),
+      };
+    });
+
+    const crossResult: LlmCrossAggResult = {
+      targets,
+      keywords: top5kw,
+      estimatedCostUsd: totalCost,
+      cached: false,
+    };
+
+    await setDfCache(
+      cacheKey,
+      crossResult as unknown as Record<string, unknown>,
+      totalCost.toFixed(5),
+    );
+    return crossResult;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!msg.includes("abort")) {
+      // Log non-timeout errors only
+    }
+    return empty;
   }
 }

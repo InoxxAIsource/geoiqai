@@ -7,6 +7,8 @@ import {
   runOnPageAudit,
   getDomainKeywords,
   getLocationCode,
+  getLlmTopDomains,
+  getLlmCrossAggregated,
 } from "../lib/dataforseo";
 import { db, citationsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
@@ -219,6 +221,64 @@ router.post("/onpage/audit", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
+  res.json(result);
+});
+
+// LLM Mentions - top cited domains for a set of keywords
+router.post("/dataforseo/llm-top-domains", requireAuth, async (req, res): Promise<void> => {
+  const user = (req as AuthRequest).user;
+  if (user.plan === "free") {
+    res.status(403).json({ error: "LLM citation data requires a paid plan." });
+    return;
+  }
+
+  const { domain, keywords } = req.body as { domain?: string; keywords?: string[] };
+  if (!domain) {
+    res.status(400).json({ error: "domain is required" });
+    return;
+  }
+
+  const kws: string[] = Array.isArray(keywords) && keywords.length > 0
+    ? keywords.slice(0, 5)
+    : (await getDomainKeywords(domain)).slice(0, 5).map(k => k.keyword);
+
+  const locationCode = getLocationCode(domain);
+  req.log.info({ domain, kws: kws.length }, "llm-top-domains request");
+
+  const result = await getLlmTopDomains(kws, locationCode);
+  req.log.info({ domain, domains: result.domains.length, cost: result.estimatedCostUsd, cached: result.cached }, "llm-top-domains done");
+  res.json(result);
+});
+
+// LLM Mentions - cross-domain aggregated mention rates
+router.post("/dataforseo/llm-cross-aggregated", requireAuth, async (req, res): Promise<void> => {
+  const user = (req as AuthRequest).user;
+  if (user.plan === "free") {
+    res.status(403).json({ error: "Competitive AI mention data requires a paid plan." });
+    return;
+  }
+
+  const { domain, competitorDomains, keywords } = req.body as {
+    domain?: string;
+    competitorDomains?: string[];
+    keywords?: string[];
+  };
+  if (!domain) {
+    res.status(400).json({ error: "domain is required" });
+    return;
+  }
+
+  const competitors: string[] = Array.isArray(competitorDomains) ? competitorDomains.slice(0, 4) : [];
+
+  const kws: string[] = Array.isArray(keywords) && keywords.length > 0
+    ? keywords.slice(0, 5)
+    : (await getDomainKeywords(domain)).slice(0, 5).map(k => k.keyword);
+
+  const locationCode = getLocationCode(domain);
+  req.log.info({ domain, competitors: competitors.length, kws: kws.length }, "llm-cross-aggregated request");
+
+  const result = await getLlmCrossAggregated(domain, competitors, kws, locationCode);
+  req.log.info({ domain, targets: result.targets.length, cost: result.estimatedCostUsd, cached: result.cached }, "llm-cross-aggregated done");
   res.json(result);
 });
 

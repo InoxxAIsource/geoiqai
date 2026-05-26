@@ -377,6 +377,12 @@ export default function Dashboard() {
   const [brandEntityCitations, setBrandEntityCitations] = useState<Array<{ id: string; brandName: string | null; citedDomain: string | null; citationType: string | null; timesCited: number | null }>>([]);
   const [brandEntityLoading, setBrandEntityLoading] = useState(false);
   const [brandEntityBrandId, setBrandEntityBrandId] = useState<string | null>(null);
+  const [llmTopDomains, setLlmTopDomains] = useState<Array<{ domain: string; mentions: number; mentionRate: number }> | null>(null);
+  const [llmTopDomainsLoading, setLlmTopDomainsLoading] = useState(false);
+  const [llmTopDomainsBrandId, setLlmTopDomainsBrandId] = useState<string | null>(null);
+  const [llmCrossAgg, setLlmCrossAgg] = useState<Array<{ domain: string; mentionCount: number; mentionRate: number }> | null>(null);
+  const [llmCrossAggLoading, setLlmCrossAggLoading] = useState(false);
+  const [llmCrossAggBrandId, setLlmCrossAggBrandId] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768);
@@ -442,6 +448,31 @@ export default function Dashboard() {
       .catch(() => setBrandEntityCitations([]))
       .finally(() => setBrandEntityLoading(false));
   }, [activeTab, selectedBrand?.id, brandEntityBrandId]);
+
+  // Fetch LLM top cited domains when Citations tab opens
+  useEffect(() => {
+    if (activeTab !== "Citations" || !selectedBrand?.id || !selectedBrand.domain) return;
+    if (llmTopDomainsBrandId === selectedBrand.id) return;
+    const token = localStorage.getItem("auth_token");
+    setLlmTopDomainsLoading(true);
+    const kws = brandKeywords && brandKeywords.length > 0
+      ? brandKeywords.slice(0, 5).map(k => k.keyword)
+      : undefined;
+    fetch("/api/dataforseo/llm-top-domains", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token ?? ""}` },
+      body: JSON.stringify({ domain: selectedBrand.domain, keywords: kws }),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then((data: { domains: Array<{ domain: string; mentions: number; mentionRate: number }> } | null) => {
+        if (data && data.domains.length > 0) {
+          setLlmTopDomains(data.domains);
+          setLlmTopDomainsBrandId(selectedBrand.id);
+        }
+      })
+      .catch(() => { /* non-fatal */ })
+      .finally(() => setLlmTopDomainsLoading(false));
+  }, [activeTab, selectedBrand?.id, selectedBrand?.domain, llmTopDomainsBrandId, brandKeywords]);
 
   const handleScanBrand = useCallback(async (brandId: string) => {
     setIsScanningBrandId(brandId);
@@ -583,6 +614,32 @@ export default function Dashboard() {
     }
   };
 
+  const handleFetchLlmCrossAgg = async () => {
+    if (!selectedBrand?.domain) return;
+    setLlmCrossAggLoading(true);
+    setLlmCrossAggBrandId(selectedBrand.id);
+    const token = localStorage.getItem("auth_token");
+    const kws = brandKeywords && brandKeywords.length > 0
+      ? brandKeywords.slice(0, 5).map(k => k.keyword)
+      : undefined;
+    const competitorDomains = (selectedBrand.competitors ?? [])
+      .slice(0, 4)
+      .map((c: string) => c.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? c);
+    try {
+      const resp = await fetch("/api/dataforseo/llm-cross-aggregated", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token ?? ""}` },
+        body: JSON.stringify({ domain: selectedBrand.domain, competitorDomains, keywords: kws }),
+      });
+      if (resp.ok) {
+        const data = await resp.json() as { targets: Array<{ domain: string; mentionCount: number; mentionRate: number }> };
+        setLlmCrossAgg(data.targets ?? []);
+      }
+    } catch { /* ignore */ } finally {
+      setLlmCrossAggLoading(false);
+    }
+  };
+
   const handleRunOnPageAudit = async () => {
     if (!selectedBrand?.domain) return;
     setOnPageLoading(true);
@@ -672,7 +729,42 @@ export default function Dashboard() {
   const activeScore = selectedBrand?.latestScore ?? 0;
   const visibleCount = systemStatuses.filter(s => s.found).length;
 
-  const citationData = getCitationData(selectedBrand?.category, selectedBrand?.domain ?? "");
+  const citationData = (() => {
+    const raw = getCitationData(selectedBrand?.category, selectedBrand?.domain ?? "");
+    if (!llmTopDomains || llmTopDomains.length === 0) return raw;
+    const myDomain = (selectedBrand?.domain ?? "").replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? "";
+    const myRoot = myDomain.split(".")[0] ?? "";
+    const competitorSet = new Set(
+      (selectedBrand?.competitors ?? []).map((c: string) =>
+        c.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? c
+      )
+    );
+    const topDomains = llmTopDomains.slice(0, 8).map(d => {
+      const bare = d.domain.replace(/^www\./, "").split("/")[0] ?? d.domain;
+      const type: "yours" | "competitor" | "authority" =
+        bare === myDomain || (myRoot.length > 2 && bare.includes(myRoot)) ? "yours" :
+        competitorSet.has(bare) ? "competitor" :
+        "authority";
+      return { domain: d.domain, times: d.mentions, type };
+    });
+    const yourEntry = topDomains.find(d => d.type === "yours");
+    const isInTop5 = !!yourEntry;
+    const competitorTotal = topDomains.filter(d => d.type === "competitor").reduce((s, d) => s + d.times, 0);
+    const authorityTotal = topDomains.filter(d => d.type === "authority").reduce((s, d) => s + d.times, 0);
+    const yourTotal = yourEntry?.times ?? 0;
+    const socialTotal = Math.round((competitorTotal + authorityTotal) * 0.08);
+    return {
+      topDomains,
+      donut: [
+        { name: "Your brand", value: yourTotal, color: "#4F46E5" },
+        { name: "Competitors", value: competitorTotal, color: "#DC2626" },
+        { name: "Authority sites", value: authorityTotal, color: "#D97706" },
+        { name: "Social", value: socialTotal, color: "#059669" },
+      ],
+      isInTop5,
+      total: yourTotal + competitorTotal + authorityTotal + socialTotal,
+    };
+  })();
   const competitorDisplayName = getCompetitorBase(selectedBrand?.category);
   const competitorLatest = Math.min(100, activeScore + 22);
   const scoreDiff = activeScore - competitorLatest;
@@ -1367,7 +1459,14 @@ export default function Dashboard() {
 
                   {/* Citation Landscape */}
                   <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 12 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 14 }}>Citation landscape</div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>Citation landscape</div>
+                      {llmTopDomainsLoading ? (
+                        <span style={{ fontSize: 10, color: "#9ca3af" }}>Fetching live data...</span>
+                      ) : llmTopDomains && llmTopDomains.length > 0 ? (
+                        <span style={{ background: "#ECFDF5", color: "#065F46", borderRadius: 9999, padding: "2px 8px", fontSize: 10, fontWeight: 500 }}>Live data</span>
+                      ) : null}
+                    </div>
                     <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: 24, alignItems: "flex-start" }}>
                       {/* Donut chart */}
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
@@ -2038,8 +2137,18 @@ export default function Dashboard() {
               {/* ===================== COMPETITION TAB ===================== */}
               {activeTab === "Competition" && (() => {
                 const compList = getCategoryCompetitors(selectedBrand?.category, activeScore);
-                const topBrand = compList[0];
-                const yourRank = compList.findIndex(c => c.isYours) + 1;
+                // Overlay real LLM cross-aggregated data when available
+                const effectiveCompList = (() => {
+                  if (!llmCrossAgg || llmCrossAgg.length === 0 || llmCrossAggBrandId !== selectedBrand?.id) return compList;
+                  const myDomain = (selectedBrand?.domain ?? "").replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? "";
+                  return llmCrossAgg.map(t => ({
+                    name: t.domain,
+                    pct: t.mentionRate,
+                    isYours: t.domain === myDomain || (myDomain.length > 2 && t.domain.includes(myDomain.split(".")[0] ?? "")),
+                  })).sort((a, b) => b.pct - a.pct);
+                })();
+                const topBrand = effectiveCompList[0];
+                const yourRank = effectiveCompList.findIndex(c => c.isYours) + 1;
                 const winnerPrompts = promptList.filter(p => {
                   const total = p.chatgpt + p.gemini + p.perplexity;
                   return total >= p.competitorScore;
@@ -2047,6 +2156,7 @@ export default function Dashboard() {
                 const insight = yourRank === 1
                   ? `You lead your category on AI visibility with ${activeScore}% mention rate. Maintain this with regular content and citation building.`
                   : `You win on ${winnerPrompts.length} of ${promptList.length} tracked prompts. Your strongest prompt is "${promptList.find(p => p.chatgpt + p.gemini + p.perplexity > 0)?.keyword ?? "your brand name"}". Your biggest gap is "${promptList[0]?.keyword ?? "category keywords"}" where ${topBrand?.name ?? competitorDisplayName} leads at ${topBrand?.pct ?? 0}%. Focus on citation building to close this gap.`;
+                const hasRealCompData = llmCrossAgg && llmCrossAgg.length > 0 && llmCrossAggBrandId === selectedBrand?.id;
                 return (
                   <div>
                     <div style={{ marginBottom: 14 }}>
@@ -2056,9 +2166,22 @@ export default function Dashboard() {
 
                     {/* Mention rate chart */}
                     <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 12 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 14 }}>AI mention rates - who dominates your category</div>
-                      {compList.map((row, i) => (
-                        <div key={row.name} style={{ marginBottom: i < compList.length - 1 ? 13 : 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>AI mention rates - who dominates your category</div>
+                        {hasRealCompData ? (
+                          <span style={{ background: "#ECFDF5", color: "#065F46", borderRadius: 9999, padding: "2px 8px", fontSize: 10, fontWeight: 500 }}>Live data</span>
+                        ) : (
+                          <button
+                            onClick={handleFetchLlmCrossAgg}
+                            disabled={llmCrossAggLoading}
+                            style={{ background: "transparent", border: "0.5px solid #4F46E5", borderRadius: 6, padding: "4px 12px", fontSize: 11, color: "#4F46E5", cursor: llmCrossAggLoading ? "not-allowed" : "pointer", fontWeight: 500, opacity: llmCrossAggLoading ? 0.6 : 1 }}
+                          >
+                            {llmCrossAggLoading ? "Fetching..." : "Fetch real mention rates"}
+                          </button>
+                        )}
+                      </div>
+                      {effectiveCompList.map((row, i) => (
+                        <div key={row.name} style={{ marginBottom: i < effectiveCompList.length - 1 ? 13 : 0 }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, marginBottom: 5 }}>
                             <span style={{ fontWeight: row.isYours ? 700 : 400, color: row.isYours ? "#111827" : "#6b7280", display: "flex", alignItems: "center", gap: 5 }}>
                               {row.name}
@@ -2076,7 +2199,11 @@ export default function Dashboard() {
                           </div>
                         </div>
                       ))}
-                      <div style={{ marginTop: 10, fontSize: 11, color: "#9ca3af" }}>You rank #{yourRank} in your category. Scores are based on AI mention analysis across tracked prompts.</div>
+                      <div style={{ marginTop: 10, fontSize: 11, color: "#9ca3af" }}>
+                        {hasRealCompData
+                          ? `Live AI mention data across ${effectiveCompList.length} domains. Cached for 24 hours.`
+                          : `You rank #${yourRank} in your category. Scores are based on AI mention analysis across tracked prompts.`}
+                      </div>
                     </div>
 
                     {/* Per-prompt winner table */}

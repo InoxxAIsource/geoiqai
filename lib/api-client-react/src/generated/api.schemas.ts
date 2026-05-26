@@ -335,3 +335,32 @@ export interface RoadmapTaskToggle {
   completed: boolean;
 }
 
+export interface LlmTopDomain {
+  domain: string;
+  mentions: number;
+  /** Share of total mentions (0-100) */
+  mentionRate: number;
+}
+
+export interface LlmTopDomainsResult {
+  domains: LlmTopDomain[];
+  keywords: string[];
+  totalMentions: number;
+  estimatedCostUsd: number;
+  cached: boolean;
+}
+
+export interface LlmCrossAggTarget {
+  domain: string;
+  mentionCount: number;
+  /** Mention rate relative to top domain (0-100) */
+  mentionRate: number;
+}
+
+export interface LlmCrossAggResult {
+  targets: LlmCrossAggTarget[];
+  keywords: string[];
+  estimatedCostUsd: number;
+  cached: boolean;
+}
+

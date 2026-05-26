@@ -1,0 +1,1 @@
+- [DataForSEO LLM cache pattern](dataforseo-llm-cache.md) — generic getDfCache/setDfCache helpers using dataforseo_cache table; cast cached JSON as `unknown` first before target type.

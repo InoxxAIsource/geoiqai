@@ -884,3 +884,63 @@ components:
           type: string
         completed:
           type: boolean
+
+    LlmTopDomain:
+      type: object
+      required: [domain, mentions, mentionRate]
+      properties:
+        domain:
+          type: string
+        mentions:
+          type: integer
+        mentionRate:
+          type: integer
+          description: Share of total mentions (0-100)
+
+    LlmTopDomainsResult:
+      type: object
+      required: [domains, keywords, totalMentions, estimatedCostUsd, cached]
+      properties:
+        domains:
+          type: array
+          items:
+            $ref: "#/components/schemas/LlmTopDomain"
+        keywords:
+          type: array
+          items:
+            type: string
+        totalMentions:
+          type: integer
+        estimatedCostUsd:
+          type: number
+        cached:
+          type: boolean
+
+    LlmCrossAggTarget:
+      type: object
+      required: [domain, mentionCount, mentionRate]
+      properties:
+        domain:
+          type: string
+        mentionCount:
+          type: integer
+        mentionRate:
+          type: integer
+          description: Mention rate relative to top domain (0-100)
+
+    LlmCrossAggResult:
+      type: object
+      required: [targets, keywords, estimatedCostUsd, cached]
+      properties:
+        targets:
+          type: array
+          items:
+            $ref: "#/components/schemas/LlmCrossAggTarget"
+        keywords:
+          type: array
+          items:
+            type: string
+        estimatedCostUsd:
+          type: number
+        cached:
+          type: boolean
