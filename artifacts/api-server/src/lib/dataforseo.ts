@@ -218,7 +218,7 @@ export async function getGoogleAiOverview(
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 25000);
-    const resp = await fetch(`${DATAFORSEO_BASE}/v3/serp/google/ai_mode/live/advanced`, {
+    const resp = await fetch(`${DATAFORSEO_BASE}/v3/serp/google/organic/live/advanced`, {
       method: "POST",
       signal: controller.signal,
       headers: getAuthHeader(),

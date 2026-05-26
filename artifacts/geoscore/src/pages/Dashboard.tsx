@@ -598,11 +598,14 @@ export default function Dashboard() {
     setGoogleAiDashResult(null);
     setGoogleAiDashBrandId(selectedBrand.id);
     const token = localStorage.getItem("auth_token");
+    const kws = brandKeywords && brandKeywords.length > 0
+      ? brandKeywords.slice(0, 5).map(k => k.keyword)
+      : undefined;
     try {
       const resp = await fetch("/api/dataforseo/google-ai-overview", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token ?? ""}` },
-        body: JSON.stringify({ domain: selectedBrand.domain, brandId: selectedBrand.id }),
+        body: JSON.stringify({ domain: selectedBrand.domain, brandId: selectedBrand.id, keywords: kws }),
       });
       if (resp.ok) {
         setGoogleAiDashResult(await resp.json());
