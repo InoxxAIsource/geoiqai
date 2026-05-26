@@ -593,26 +593,26 @@ async function queryPerplexity(prompt: string): Promise<{ text: string; simulate
       });
       clearTimeout(timeout);
 
-      if (res.ok) {
-        const data = await res.json() as Record<string, unknown>;
-        // RapidAPI perplexity2 returns: choices.content.parts[0].text
-        const choices = data.choices as Record<string, unknown> | undefined;
-        const parts = (choices?.content as Record<string, unknown>)?.parts as Array<Record<string, unknown>> | undefined;
-        const partsText = typeof parts?.[0]?.text === "string" ? parts[0].text : null;
-        const text =
-          partsText ??
-          (typeof data.answer === "string" ? data.answer : null) ??
-          (typeof data.response === "string" ? data.response : null) ??
-          (typeof data.text === "string" ? data.text : null) ??
-          (typeof data.content === "string" ? data.content : null) ??
-          (typeof data.output === "string" ? data.output : null) ??
-          (typeof data.result === "string" ? data.result : null) ??
-          (Array.isArray(data.choices)
-            ? ((data.choices[0] as Record<string, unknown>)?.message as Record<string, unknown>)?.content as string ?? ""
-            : "") ??
-          "";
-        if (text) return { text, simulated: false };
-      }
+      // Note: perplexity2 on RapidAPI sometimes returns 500 status with valid JSON body
+      // so we attempt to parse the body regardless of res.ok
+      const data = await res.json() as Record<string, unknown>;
+      // RapidAPI perplexity2 returns: choices.content.parts[0].text
+      const choices = data.choices as Record<string, unknown> | undefined;
+      const parts = (choices?.content as Record<string, unknown>)?.parts as Array<Record<string, unknown>> | undefined;
+      const partsText = typeof parts?.[0]?.text === "string" ? parts[0].text : null;
+      const text =
+        partsText ??
+        (typeof data.answer === "string" ? data.answer : null) ??
+        (typeof data.response === "string" ? data.response : null) ??
+        (typeof data.text === "string" ? data.text : null) ??
+        (typeof data.content === "string" ? data.content : null) ??
+        (typeof data.output === "string" ? data.output : null) ??
+        (typeof data.result === "string" ? data.result : null) ??
+        (Array.isArray(data.choices)
+          ? ((data.choices[0] as Record<string, unknown>)?.message as Record<string, unknown>)?.content as string ?? ""
+          : "") ??
+        "";
+      if (text) return { text, simulated: false };
     } catch {
       // fall through to simulated
     }
