@@ -75,12 +75,20 @@ if (!rawTemplate.includes(INJECTION_POINT)) {
 
 const template = rawTemplate;
 
+/** Strip Replit dev-overlay attributes injected by the Babel plugin at SSR time. */
+function stripDevAttributes(html: string): string {
+  return html
+    .replace(/\s+data-replit-metadata="[^"]*"/g, "")
+    .replace(/\s+data-component-name="[^"]*"/g, "");
+}
+
 let ok = 0;
 let failed = 0;
 
 for (const route of STATIC_ROUTES) {
   try {
-    const appHtml = render(route);
+    const rawAppHtml = render(route);
+    const appHtml = stripDevAttributes(rawAppHtml);
 
     const html = template.replace(
       '<div id="root"></div>',
