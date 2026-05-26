@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getDomainKeywords } from "./dataforseo";
+import { logger } from "./logger";
 
 // --- OpenAI client (ChatGPT + fallback) ---
 const openaiClient = new OpenAI({
@@ -964,8 +965,9 @@ function buildKeywordPrompts(
     return `What are the best tools or platforms for ${kw}? List the top options with a brief description of each.`;
   });
 
-  console.log(
-    `[DataForSEO] ${domain} — ${keywords.length} fetched, ${keywords.length - topical.length} filtered out (branded/informational/navigational), ${topical.length} topical passed, ${extra.length} added as bonus prompts`,
+  logger.info(
+    { domain, fetched: keywords.length, filtered: keywords.length - topical.length, topical: topical.length, bonus: extra.length },
+    "DataForSEO keyword processing complete",
   );
 
   return {
@@ -1057,7 +1059,7 @@ export async function runAuditEngine(
     keywordsFilteredOut = kpResult.keywordsFilteredOut;
   } else {
     prompts = generatePrompts(brandName, domain, category, market, competitors);
-    console.log(`[DataForSEO] ${domain} — no keywords from DataForSEO, using category-based prompts`);
+    logger.info({ domain }, "No DataForSEO keywords found, using category-based prompts");
   }
 
   // Direct brand query — used only for display ("what did [AI] say about you")
