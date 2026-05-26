@@ -380,7 +380,7 @@ const VALID_CATEGORIES = new Set([
   "social media", "video platform", "search engine", "discussion forum",
   "news media", "entertainment", "ecommerce", "saas tool", "health app",
   "fintech", "edtech", "developer tool", "productivity", "food delivery",
-  "travel", "real estate", "other",
+  "travel", "real estate", "personal brand", "other",
 ]);
 
 // Domains with these TLDs are almost always tech/SaaS products.
@@ -424,11 +424,12 @@ Rules:
 - Only use the page title, description, h1, and content to pick the category. Do not infer from the domain name alone.
 - If the page describes a software tool, API, AI product, or online service for businesses or developers, use "saas tool" or "developer tool".
 - Only use "news media" if the page content clearly shows a news publication or media outlet with articles and journalism.
+- Use "personal brand" if the site is primarily about a specific person (consultant, coach, freelancer, speaker, author) and not a product or company.
 
 Return exactly this JSON:
 {
   "brand_name": "the product or brand name (short, not the full page title)",
-  "category": "one of: social media, video platform, search engine, discussion forum, news media, entertainment, ecommerce, saas tool, health app, fintech, edtech, developer tool, productivity, food delivery, travel, real estate, other",
+  "category": "one of: social media, video platform, search engine, discussion forum, news media, entertainment, ecommerce, saas tool, health app, fintech, edtech, developer tool, productivity, food delivery, travel, real estate, personal brand, other",
   "market": "one of: India, Global, US, UK",
   "top_competitors": ["competitor1", "competitor2", "competitor3"]
 }`;
@@ -497,6 +498,7 @@ function generatePrompts(
     "food delivery":    "food delivery and restaurant tech platforms",
     "travel":           "travel and hospitality platforms",
     "real estate":      "real estate and property tech platforms",
+    "personal brand":   "consultants, coaches, and independent experts",
     "other":            "popular internet platforms and online services",
   };
   const noun = CATEGORY_NOUN[category] ?? `${category} platforms`;

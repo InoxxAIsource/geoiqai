@@ -380,6 +380,10 @@ router.post("/auth/test-login", async (req, res): Promise<void> => {
   });
 });
 
+router.post("/auth/logout", requireAuth, async (req, res): Promise<void> => {
+  res.json({ ok: true });
+});
+
 router.get("/auth/me", requireAuth, async (req, res): Promise<void> => {
   const user = (req as AuthRequest).user;
   res.json({

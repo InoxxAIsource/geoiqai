@@ -1,0 +1,415 @@
+Run a complete end-to-end audit of the entire GeoIQ application.
+Check everything systematically and report honestly.
+Do not skip any section.
+
+=== SECTION 1: BROKEN LINKS AND ROUTES ===
+
+Check every route in the application loads correctly:
+
+Public routes:
+□ / — homepage loads
+□ /pricing — pricing page loads
+□ /what-is-geo — loads with content
+□ /how-to-rank-in-chatgpt — loads with content
+□ /geo-tools — loads with content
+□ /llms-txt-guide — loads with content
+□ /ai-visibility-score — loads with content
+□ /ai-visibility-for-indian-startups — loads with content
+□ /blog/why-startup-not-showing-chatgpt — loads
+□ /blog/indian-startups-chatgpt-scores — loads
+□ /blog/robots-txt-blocking-ai — loads
+□ /blog/what-is-geo-score — loads
+□ /blog/geo-vs-seo-2026 — loads
+□ /about — loads
+□ /privacy — loads
+□ /terms — loads
+
+Auth routes:
+□ /login — loads correctly
+□ /signup — loads correctly
+□ /forgot-password — loads correctly
+□ /auth/magic?token=test — handles invalid token gracefully
+□ /auth/verify-email — handles correctly
+
+Protected routes (should redirect non-paid users):
+□ /dashboard — redirects to /pricing if not paid
+□ /dashboard/overview — same
+□ /dashboard/fix-actions — same
+□ /dashboard/geo-agent — same
+□ /dashboard/citations — same
+□ /dashboard/visibility — same
+□ /dashboard/competition — same
+□ /dashboard/keywords — same
+□ /dashboard/settings — same
+
+API routes:
+□ POST /api/audit — returns valid response
+□ POST /api/subscribe — saves email correctly
+□ POST /api/payment/create-subscription — works
+□ POST /api/payment/verify — works
+□ POST /api/payment/webhook — returns 200
+□ GET /api/auth/magic — handles token
+□ POST /api/auth/request-magic-link — works
+□ POST /api/auth/logout — works
+□ GET /api/dashboard — returns data for paid user
+□ POST /api/agent/chat — returns response
+
+Static files:
+□ /robots.txt — loads as plain text
+□ /llms.txt — loads as plain text
+□ /sitemap.xml — loads correctly
+□ /og-image.png — loads
+
+For every broken route show:
+- Exact URL
+- Expected behavior
+- Actual behavior (error, blank, redirect)
+
+=== SECTION 2: AUDIT ENGINE ===
+
+Run these 5 test audits and show full results:
+
+Test 1: notion.so
+Expected: ~24/100, cached result
+Show: category, score, all 5 AI systems
+
+Test 2: mealcoreai.com
+Expected: 30/100, 0 on ChatGPT/Gemini, 30 on Perplexity
+Show: category detected, technical scores
+
+Test 3: xusjhf.com (fake domain)
+Expected: 0/100, unreachable message
+Show: time taken (must be under 10 seconds)
+
+Test 4: bree-sharp.com or breesharp.com
+Expected: low score, category should be
+"consultant/personal brand" NOT "saas tool"
+This is the bug Bree Sharp reported.
+Show: what category is detected
+
+Test 5: geoiqai.com (our own domain)
+Expected: some visibility score
+Show: full breakdown
+
+For each test show:
+- Category detected
+- Market detected
+- DataForSEO keywords found
+- Prompts actually used
+- Score per AI system
+- Technical audit scores
+- Time taken
+- Cache hit or fresh
+
+=== SECTION 3: TECHNICAL AUDIT CHECKS ===
+
+For mealcoreai.com verify all 5 checks work:
+
+□ robots.txt check — fetches and parses correctly?
+□ llms.txt check — detects file exists?
+□ Schema markup check — finds JSON-LD?
+□ Content structure check — word count detected?
+□ Entity consistency check — social links found?
+
+Show actual scores for each check.
+Show if any check is timing out or failing silently.
+
+=== SECTION 4: FREE AUDIT FLOW ===
+
+Test complete free user experience:
+
+□ Enter URL on homepage → audit runs without login
+□ Loading screen shows all 6 steps
+□ Result page shows score correctly
+□ AI system cards show with correct badges
+□ Raw AI responses expandable
+□ Technical audit section visible
+□ GEO files section shows:
+  - llms.txt generated correctly
+  - robots.txt additions generated
+  - Schema JSON generated
+  - All 3 have copy buttons
+□ Roadmap preview shows (locked)
+□ Email capture box shows
+□ Upgrade CTA shows
+
+Rate limiting:
+□ 3rd anonymous audit from same IP blocked
+□ Error message is user friendly
+□ Cached domain does not count against limit
+
+=== SECTION 5: EMAIL AND PAYMENTS ===
+
+Email capture:
+□ Submit email on audit result
+□ Verify saved to email_subscribers table
+□ Verify NOT saved to users table
+□ Verify report email sends via Resend
+□ Verify no session created
+□ Verify no dashboard access given
+
+Razorpay (live mode):
+□ Pricing page shows correct prices:
+  Starter: $69/month
+  Agency: $129/month
+□ Click upgrade → email modal appears
+□ Razorpay checkout opens
+□ Test card works:
+  4111 1111 1111 1111
+  Expiry: 12/28, CVV: 123, OTP: 1234
+□ After payment:
+  User created in users table
+  Magic link email sent
+  Redirected correctly
+
+Magic link:
+□ Click link → session created
+□ Redirected to /dashboard
+□ Dashboard loads with real data
+□ Expired link shows friendly message
+
+=== SECTION 6: PAID DASHBOARD TABS ===
+
+As paid user test every tab:
+
+Overview tab:
+□ Score shows correctly
+□ Trend chart renders (Chart.js)
+□ AI system status cards show
+□ Citation landscape donut chart renders
+□ Metric cards show real numbers
+
+GEO Agent tab:
+□ Auto briefing generates on open
+□ Briefing mentions correct brand
+□ No **bold** markdown in responses
+□ Thinking messages show while loading
+□ Contextual chips appear after response
+□ run_audit tool works when asked
+□ Score breakdown chart renders after audit
+□ Technical scorecard renders after audit
+□ Tweet generator produces 3 tweet cards
+□ Blog generator produces blog card with EEAT score
+□ Message counter shows correctly
+
+Visibility tab:
+□ Per-prompt scores table shows
+□ Click row → deep dive expands
+□ Raw responses visible in dark boxes
+
+Citations tab:
+□ Citation source table loads
+□ DR numbers show for known domains
+□ Type badges colored correctly
+□ Citation gap chart renders
+
+Competition tab:
+□ Mention rate bars render
+□ Your brand highlighted in indigo
+□ Per-prompt winner table shows
+
+Fix Actions tab:
+□ 4 week tabs show
+□ CITE tags on each task
+□ Tasks expand with instructions
+□ Copy buttons work
+□ Mark complete updates progress
+□ Completed tasks section shows
+□ Tasks already fixed not shown as active
+
+Content Improvements tab:
+□ Tab exists and loads
+□ Current vs improved content shows
+□ Citability scores shown
+□ Copy buttons work
+
+Keywords tab:
+□ Real DataForSEO keywords show
+□ NOT the empty credentials message
+□ AI search volume column shows
+□ Trend sparklines render
+
+Settings tab:
+□ All fields editable
+□ Brand name saves
+□ Category dropdown works
+□ Save button shows success toast
+□ Billing link works
+
+=== SECTION 7: CATEGORY CLASSIFIER ===
+
+Test classifier accuracy on these domains:
+
+□ mealcoreai.com → should be: health app
+□ geoiqai.com → should be: saas tool
+□ cricketarb.com → should be: sports analytics
+□ notion.so → should be: saas tool / productivity
+□ breesharp.com → should be: consultant / personal brand
+□ reddit.com → should be: social media / community
+□ amazon.com → should be: ecommerce
+□ healthifyme.com → should be: health app
+
+Show detected category for each.
+Flag any misclassification.
+
+Personal brand / consultant category:
+□ Does this category exist in classifier?
+□ If not — add it with these prompts:
+  "who is [name]"
+  "best [category] consultant"
+  "[name] reviews"
+  "[name] services"
+  NOT "best saas tool" or "best software"
+
+=== SECTION 8: DATABASE HEALTH ===
+
+Check all tables exist and have data:
+
+□ audits — row count
+□ users — row count
+□ monitored_brands — row count
+□ daily_scores — row count
+□ email_subscribers — row count
+□ rate_limits — row count
+□ keyword_cache — row count, any expired entries
+□ citations — row count
+□ agent_conversations — row count
+□ custom_prompts — row count
+□ magic_tokens — row count, any expired unused
+□ password_reset_tokens — exists
+
+Show counts for each table.
+Flag any table with 0 rows that should have data.
+
+=== SECTION 9: API INTEGRATIONS ===
+
+Test each external API is connected:
+
+□ OpenAI (Replit provisioned)
+  Last successful call: when?
+  Test: simple completion call
+  
+□ Anthropic Claude
+  Last successful call: when?
+  Test: simple completion call
+  
+□ Gemini
+  Last successful call: when?
+  Test: simple completion call
+  
+□ Perplexity (RapidAPI)
+  Last successful call: when?
+  Test: simple completion call
+
+□ DataForSEO
+  Balance remaining: show amount
+  Last successful call: when?
+  Test: keyword lookup for "geoiqai"
+
+□ Resend
+  Last email sent: when?
+  Test: send test email to hello@geoiqai.com
+  
+□ Razorpay
+  Mode: confirm LIVE mode active
+  Last transaction: when?
+  Plans exist: show plan IDs
+
+□ RapidAPI (cricket API + Perplexity)
+  Status: active?
+
+For each API show:
+- Connected: yes/no
+- Last successful call
+- Any error in recent logs
+
+=== SECTION 10: PERFORMANCE ===
+
+Measure these:
+
+□ Fresh audit time for notion.so
+  Target: under 15 seconds
+  
+□ Cached audit time for notion.so
+  Target: under 200ms
+
+□ Homepage load time
+  Target: under 3 seconds
+
+□ Dashboard load time after login
+  Target: under 2 seconds
+
+□ GEO Agent first response time
+  Target: under 10 seconds
+
+□ Rate limiting response
+  Run 4 audits rapidly
+  4th should block in under 100ms
+
+=== SECTION 11: SEO AND META TAGS ===
+
+Check page source for:
+
+Homepage:
+□ <title> tag present and correct
+□ <meta name="description"> present
+□ <meta property="og:title"> present
+□ <meta property="og:image"> present
+□ Schema.org JSON-LD present
+□ Canonical tag present
+
+Each SEO page:
+□ Unique title tag
+□ Unique meta description
+□ Article schema where appropriate
+
+Check:
+□ sitemap.xml accessible and valid
+□ robots.txt accessible
+□ llms.txt accessible
+
+=== SECTION 12: MOBILE RESPONSIVENESS ===
+
+Check at 375px width:
+
+□ Homepage hero section
+□ Audit input — full width, usable
+□ Pricing cards — single column
+□ Audit result page — readable
+□ Dashboard sidebar — collapses correctly
+□ GEO Agent — keyboard pushes input up
+□ Fix Actions — tasks readable
+
+=== FINAL REPORT FORMAT ===
+
+Report in exactly this format:
+
+WORKING CORRECTLY ✅
+[list every feature confirmed working]
+
+BROKEN OR BUGGY ❌
+[list every issue with exact description]
+
+NOT BUILT YET ⏳
+[list anything missing]
+
+CRITICAL FIXES NEEDED 🚨
+[maximum 5 things — ordered by priority]
+[what breaks user experience or costs money]
+
+CATEGORY CLASSIFIER STATUS
+[list which categories exist]
+[confirm personal brand category exists or not]
+
+DATABASE HEALTH
+[table name: row count]
+
+API STATUS
+[each API: connected/error + last call time]
+
+PERFORMANCE SCORES
+[each metric: actual time vs target]
+
+READY FOR REAL CUSTOMERS?
+Honest yes or no.
+If no — list exactly 3 things to fix first.
