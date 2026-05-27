@@ -3,6 +3,7 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import seoPagesRouter from "./routes/seo-pages";
+import seoPagesRouter2 from "./routes/seo-pages-2";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
@@ -38,6 +39,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(seoPagesRouter);
+app.use(seoPagesRouter2);
 app.use("/api", router);
 
 export default app;

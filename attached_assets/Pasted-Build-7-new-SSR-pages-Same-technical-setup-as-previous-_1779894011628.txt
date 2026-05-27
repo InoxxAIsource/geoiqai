@@ -1,0 +1,625 @@
+Build 7 new SSR pages. Same technical setup 
+as previous pages — Express SSR routes, 
+complete HTML on first fetch, no React 
+rendering required, Googlebot gets full 
+content immediately.
+
+Each page needs:
+- Unique title tag (under 60 chars)
+- Unique meta description (under 155 chars)
+- Article + FAQPage + BreadcrumbList JSON-LD
+- Canonical tag
+- OG/Twitter meta tags
+- Indigo summary box with quick answer
+- Reading time display
+- Author: Tauheed, Date: 2026-05-27
+- Internal links to /, /what-is-geo, /pricing
+- CTA block linking to free audit
+- Answer-first content structure
+- Specific statistics throughout
+- No em dashes, no emojis
+
+=== PAGE 1: /generative-engine-optimization ===
+
+Title: "Generative Engine Optimization (GEO): 
+Complete 2026 Guide | GeoIQ"
+
+Meta: "GEO is how brands get cited by ChatGPT, 
+Gemini and Perplexity. Complete guide with 
+checklist, stats and free audit. 2026 edition."
+
+H1: Generative Engine Optimization (GEO): 
+The Complete 2026 Guide
+
+Summary box:
+GEO (Generative Engine Optimization) is the 
+practice of optimizing your brand to appear 
+in AI-generated answers from ChatGPT, Gemini, 
+Perplexity, Claude and Grok. Unlike SEO which 
+targets Google rankings, GEO targets AI citations. 
+Brands actively optimizing for GEO see 2-3x 
+higher citation rates than those using 
+traditional SEO alone.
+
+Content sections:
+
+H2: What is Generative Engine Optimization?
+GEO optimizes content so AI systems cite your 
+brand when answering questions in your category. 
+The goal is not a ranking position — it is being 
+included in a synthesised answer.
+
+When someone asks ChatGPT "best project 
+management tool for remote teams" — ChatGPT 
+synthesises from multiple sources. GEO determines 
+whether your brand is in that answer or not.
+
+Key distinction:
+SEO = get your page ranked in a list of links
+GEO = get your brand cited inside an AI answer
+
+H2: Why GEO matters in 2026
+Stats to include:
+- ChatGPT: 900 million weekly active users
+- Perplexity: 630 million monthly searches
+- Google AI Overviews: 40%+ of all searches
+- Google-to-AI source overlap: dropped from 
+  70% to under 20% in 18 months
+- Brands optimizing for GEO: 2-3x higher 
+  citation rates
+- Citation frequency: 35% of AI answer 
+  inclusions (GEO research)
+- Gartner: 25% reduction in traditional 
+  search volume by end of 2026
+
+H2: GEO vs SEO vs AEO
+Comparison table:
+| | SEO | GEO | AEO |
+|--|-----|-----|-----|
+| Target | Google rankings | AI citations | Voice answers |
+| Goal | Rank position | Brand mention | Direct answer |
+| Signal | Backlinks | Citation frequency | Schema |
+| Metric | Organic traffic | Mention rate | Snippet wins |
+| Time to results | 3-6 months | 4-8 weeks | 2-4 months |
+
+H2: How AI systems decide what to cite
+Three layers:
+1. Training data coverage (ChatGPT, Gemini, Claude)
+2. Live web presence (Perplexity, Google AI Overview)
+3. Entity recognition
+
+Query fan-out explained:
+When someone asks "best GEO tool for startups"
+AI breaks it into sub-queries:
+- "GEO tools 2026"
+- "AI visibility software"
+- "generative engine optimization platforms"
+Your content must answer all of these.
+
+H2: The 5 pillars of GEO
+1. Technical access — robots.txt, llms.txt, schema
+2. Content structure — answer-first, factual density
+3. Citation authority — G2, Crunchbase, publications
+4. Entity consistency — same brand facts everywhere
+5. Topical authority — content clusters not single pages
+
+H2: GEO optimization checklist
+Technical week 1 (8 items with code):
+- Allow GPTBot, PerplexityBot, ClaudeBot,
+  Bingbot, anthropic-ai in robots.txt
+- Create llms.txt
+- Add Organization schema to homepage
+- Submit to Bing Webmaster Tools
+
+Citations week 2 (8 items):
+- Crunchbase, Product Hunt, LinkedIn Company,
+  G2, Capterra, Show HN, AI directories,
+  industry newsletter feature
+
+Content week 3 (8 items):
+- Rewrite page openings answer-first
+- Add statistics to key pages
+- FAQ sections on top pages
+- Foundational brand article
+- Republish on Medium and dev.to
+
+Authority week 4 (8 items):
+- Industry publication feature
+- Comparison page vs competitor
+- Reddit presence
+- Weekly content publishing
+
+H2: How to measure GEO
+Track: brand mention rate, citation frequency,
+AI referral traffic
+Do NOT track: keyword positions, page rankings
+
+H2: Check your GEO score free
+CTA: Free audit across 6 AI systems, 60 seconds
+
+H2: FAQ (12 questions)
+1. What is generative engine optimization?
+2. How is GEO different from SEO?
+3. How long does GEO take to work?
+4. What is a good GEO score?
+5. Does SEO help with GEO?
+6. What AI systems does GEO cover?
+7. How do I measure GEO performance?
+8. What is the most important GEO factor?
+9. Can a new startup do GEO?
+10. What is query fan-out in AI search?
+11. How often should I audit my GEO score?
+12. Is GEO the same as AEO?
+
+Target: 3000+ words
+Priority in sitemap: 1.0
+
+=== PAGE 2: /google-ai-overview-seo ===
+
+Title: "Google AI Overview SEO: How to Get 
+Featured in 2026 | GeoIQ"
+
+Meta: "Google AI Overviews appear on 40%+ of 
+searches. Learn exactly how to get featured. 
+Includes technical requirements and free check."
+
+H1: Google AI Overview SEO: How to Get 
+Featured in 2026
+
+Summary box:
+Google AI Overviews appear on over 40% of 
+all Google searches in 2026, reducing organic 
+click-through by 15-35%. Getting featured 
+requires structured content, strong E-E-A-T 
+signals, Organization schema, and allowing 
+Googlebot-Extended. Different from traditional 
+SEO — you need both to rank and to be selected.
+
+Content sections:
+
+H2: What are Google AI Overviews?
+AI-generated summaries above all organic links.
+Key facts:
+- Appear on 40%+ of Google searches
+- Reduce organic CTR by 15-35%
+- Powered by Gemini model
+- Pull from pages Google already trusts
+- Different from featured snippets
+
+H2: How Google AI Overviews select sources
+3 factors:
+1. E-E-A-T signals
+2. Structured data (Organization + Article schema)
+3. Existing domain trust in Google index
+
+Key difference from Perplexity:
+AI Overviews pull from pages already 
+ranking organically. Strong SEO is a 
+prerequisite but not sufficient alone.
+
+H2: Technical requirements
+robots.txt — allow Googlebot-Extended:
+User-agent: Googlebot-Extended
+Allow: /
+
+Schema required:
+- Organization on homepage
+- Article on blog posts
+- FAQPage on how-to content
+- HowTo on step-by-step guides
+
+Core Web Vitals:
+LCP under 2.5 seconds is baseline.
+AI Overview sources tend to be fast pages.
+
+H2: Content requirements
+- Answer main question in first 100 words
+- Specific statistics with attribution
+- Conversational writing for natural language
+- Factual density throughout
+- No thin content under 500 words
+
+H2: Google AI Overview checklist
+(12 specific items with exact code/steps)
+
+H2: How to track AI Overview appearances
+- Google Search Console Performance report
+- Look for "AI Overview" filter
+- Track impressions not just clicks
+- Use GeoIQ to monitor overall AI visibility
+
+H2: Check your Google AI visibility
+CTA → GeoIQ free audit
+
+H2: FAQ (10 questions)
+1. What are Google AI Overviews?
+2. How do I get featured in Google AI Overviews?
+3. Do AI Overviews hurt organic traffic?
+4. What is Googlebot-Extended?
+5. Does schema help with AI Overviews?
+6. How is AI Overview different from snippets?
+7. Can small sites appear in AI Overviews?
+8. How do I track AI Overview appearances?
+9. What content gets selected?
+10. Is Google AI Overview the same as Gemini?
+
+Target: 2500+ words
+Priority in sitemap: 0.9
+
+=== PAGE 3: /geo-optimization-checklist ===
+
+Title: "GEO Optimization Checklist 2026: 
+48 Actions for AI Visibility | GeoIQ"
+
+Meta: "Complete GEO checklist: 48 specific 
+actions across technical, citations, content 
+and authority. Most brands reach 40+ score 
+in 30 days. Free audit included."
+
+H1: GEO Optimization Checklist 2026: 
+48 Actions to Get Cited by AI
+
+Summary box:
+This checklist covers every GEO action that 
+moves the needle in 2026. Work through it in 
+order — technical first, then citations, 
+then content. Most brands can go from 0 to 
+40+ GEO score in 30 days by completing 
+Week 1 and Week 2 sections.
+
+Content sections:
+
+H2: Before you start — check your baseline
+Run GeoIQ free audit first. 60 seconds.
+[Check my score →] CTA button
+
+H2: Week 1 — Technical Foundation (12 items)
+For each item show:
+- Why it matters (1 sentence)
+- Exact code or URL
+- Time: X minutes
+- Score impact: +X points
+
+Items:
+1. Allow GPTBot — code block
+2. Allow ChatGPT-User — code block
+3. Allow PerplexityBot — code block
+4. Allow Claude-Web — code block
+5. Allow anthropic-ai — code block
+6. Allow ClaudeBot — code block
+7. Allow Bingbot — code block
+8. Allow Googlebot-Extended — code block
+9. Create llms.txt — template
+10. Add Organization schema — JSON-LD template
+11. Submit to Bing Webmaster Tools — URL
+12. Submit sitemap to Google Search Console — URL
+
+H2: Week 2 — Citation Building (12 items)
+13. Create Crunchbase profile — URL + tips
+14. Submit to Product Hunt — URL + tips
+15. Create LinkedIn Company Page — URL
+16. Get G2 listing — URL
+17. Get Capterra listing — URL
+18. Post Show HN on Hacker News — template
+19. Submit to theresanaiforthat.com — URL
+20. Submit to futuretools.io — URL
+21. Submit to toolify.ai — URL
+22. Create Wellfound profile — URL
+23. Get 10+ G2 reviews — email template to send users
+24. Newsletter feature — list of newsletters to pitch
+
+H2: Week 3 — Content Optimisation (12 items)
+25-36: Content items with specific instructions
+
+H2: Week 4 — Authority Building (12 items)
+37-48: Authority items with specific instructions
+
+H2: After the checklist — ongoing
+Weekly actions, monthly actions
+
+H2: FAQ (8 questions)
+1. How long does the GEO checklist take?
+2. Which items have most impact?
+3. Do I need all 48 actions?
+4. How do I track progress?
+5. What score should I aim for?
+6. Does order matter?
+7. How often should I repeat this?
+8. What if my score does not improve?
+
+Target: 2500+ words
+Priority in sitemap: 0.9
+
+=== PAGE 4: /gemini-seo ===
+
+Title: "Gemini SEO: How to Rank in Google 
+Gemini AI Search (2026) | GeoIQ"
+
+Meta: "Google Gemini uses Google's knowledge 
+graph and India data. Learn how to optimize 
+for Gemini citations. Free visibility check."
+
+H1: Gemini SEO: How to Get Your Brand 
+Cited in Google Gemini (2026)
+
+Summary box:
+Gemini is Google's AI model powering Google 
+AI Overviews and Gemini.com. Unlike ChatGPT 
+which relies on third-party training data, 
+Gemini uses Google's own knowledge graph — 
+meaning Google SEO directly feeds Gemini 
+visibility. For Indian brands, Gemini has 
+significantly better India entity coverage 
+than ChatGPT.
+
+Content sections:
+
+H2: How Gemini works differently from ChatGPT
+- Uses Google's knowledge graph directly
+- Fed by Google Search index
+- Better India coverage than ChatGPT
+- Entity-based not just keyword-based
+- Google Business Profile feeds Gemini
+- Schema markup feeds Gemini directly
+
+H2: Gemini ranking factors
+1. Google knowledge graph presence
+2. Organization schema on homepage
+3. Google Business Profile (for local)
+4. Wikipedia or Wikidata entry
+5. Coverage in Google-indexed publications
+6. Structured data across the site
+7. E-E-A-T signals
+
+H2: Why Gemini matters for Indian brands
+- Better India entity coverage than ChatGPT
+- YourStory, Inc42, Economic Times indexed well
+- Google India knowledge graph is strong
+- Gemini scores higher for brands in 
+  Indian-language publications
+- Still below 25/100 for most Indian startups
+
+H2: Gemini optimization checklist (10 items)
+Specific to Gemini — different from ChatGPT
+
+H2: Gemini vs ChatGPT vs Perplexity
+Comparison table
+
+H2: Check your Gemini visibility
+CTA → GeoIQ shows separate Gemini score
+
+H2: FAQ (8 questions)
+1. What is Gemini SEO?
+2. How is Gemini different from ChatGPT?
+3. Does Google SEO help Gemini visibility?
+4. What is the Google knowledge graph?
+5. Is Gemini better for Indian brands?
+6. How do I check my Gemini score?
+7. Does schema help Gemini visibility?
+8. How long does Gemini take to update?
+
+Target: 2000+ words
+Priority in sitemap: 0.8
+
+=== PAGE 5: /ai-search-optimization ===
+
+Title: "AI Search Optimization: Complete 
+Guide for 2026 | GeoIQ"
+
+Meta: "AI search optimization covers ChatGPT, 
+Gemini, Perplexity and more. Learn what works 
+in 2026. Free brand audit in 60 seconds."
+
+H1: AI Search Optimization: The Complete 
+2026 Guide
+
+Summary box:
+AI search optimization is the practice of 
+making your brand discoverable and citable 
+across AI-powered search systems including 
+ChatGPT, Gemini, Perplexity, Claude, Grok 
+and Google AI Overviews. It combines 
+technical optimization, content structure, 
+citation building, and entity consistency 
+across the web.
+
+Content sections:
+
+H2: What is AI search optimization?
+Definition, scope, why it is different from SEO
+
+H2: The 6 AI search systems that matter in 2026
+ChatGPT, Gemini, Perplexity, Claude, Grok, 
+Google AI Overview — how each works differently
+
+H2: Platform-specific optimization
+What works for ChatGPT (training data citations)
+What works for Perplexity (live web, answer-first)
+What works for Gemini (Google knowledge graph)
+What works for Claude (Anthropic training data)
+What works for Grok (X/Twitter data)
+What works for Google AI Overview (E-E-A-T + schema)
+
+H2: The universal optimization factors
+Things that help across ALL AI systems:
+- llms.txt
+- Organization schema
+- AI crawler access in robots.txt
+- Crunchbase and Product Hunt presence
+- Consistent brand description everywhere
+
+H2: AI search optimization checklist
+Combined technical + content + citation list
+
+H2: Check your AI search score
+CTA → GeoIQ free audit
+
+H2: FAQ (10 questions)
+Target: 2500+ words
+Priority in sitemap: 0.9
+
+=== PAGE 6: /geoiq-vs-profound ===
+
+Title: "GeoIQ vs Profound: Which AI Visibility 
+Tool is Right for You? | GeoIQ"
+
+Meta: "GeoIQ vs Profound compared honestly. 
+Pricing, features, AI systems tracked, fix 
+actions, India pricing. Written by GeoIQ team."
+
+H1: GeoIQ vs Profound: Honest Comparison 
+for 2026
+
+Note at top (same as vs-rankscale page):
+Written by GeoIQ team. Check Profound's 
+website for their latest pricing.
+
+Summary box:
+GeoIQ is built for founders and indie teams 
+who want to monitor AND fix AI visibility 
+affordably. Profound is an enterprise platform 
+with deep analytics built for large marketing 
+teams with significant budgets. GeoIQ starts 
+at $69/month with a free no-signup audit. 
+Profound targets enterprise pricing.
+
+Content sections:
+
+H2: Feature comparison table
+| Feature | GeoIQ | Profound |
+|---------|-------|---------|
+| Free audit | Yes, no signup | No |
+| AI systems | 6 | Multiple |
+| India pricing INR | Yes | No |
+| GEO Agent (Claude) | Yes | No |
+| Fix Actions roadmap | Yes | No |
+| Content generator | Yes | No |
+| Citation tracking | Yes | Yes |
+| Competitor analysis | Yes | Yes |
+| Enterprise features | Limited | Strong |
+| Starter price | $69/mo | Enterprise |
+| Target user | Founders | Enterprise teams |
+
+H2: Where Profound is stronger
+Enterprise analytics, breadth of coverage,
+team collaboration, reporting depth
+
+H2: Where GeoIQ is stronger
+GEO Agent, Fix Actions, India pricing,
+free audit, founder-focused pricing
+
+H2: Which should you choose
+Choose GeoIQ if: founder/small team, 
+need to fix not just monitor, India pricing,
+budget under $100/month
+
+Choose Profound if: enterprise team, 
+need deep analytics, budget not a constraint
+
+H2: Start with the free audit
+CTA → no signup required
+
+H2: FAQ (8 questions)
+Target: 1500+ words
+Priority in sitemap: 0.8
+
+=== PAGE 7: /rankscale-alternative ===
+
+Title: "Rankscale Alternative: GeoIQ vs 
+Rankscale for AI Visibility (2026) | GeoIQ"
+
+Meta: "Looking for a Rankscale alternative? 
+GeoIQ offers a free no-signup audit, GEO Agent, 
+4-week fix roadmap and India pricing at $69/mo."
+
+H1: Rankscale Alternative: Why Founders 
+Choose GeoIQ in 2026
+
+Summary box:
+GeoIQ is the most common Rankscale alternative 
+for founders and small teams. Key differences: 
+GeoIQ has a free audit with no signup, a 
+Claude-powered GEO Agent, a 4-week fix roadmap, 
+and India pricing via Razorpay. Rankscale has 
+broader AI system coverage (17 systems) suited 
+for enterprise teams.
+
+Content sections:
+
+H2: Why people look for Rankscale alternatives
+- Enterprise pricing not suited for founders
+- Monitoring only — no fix recommendations
+- No GEO Agent or content generation
+- No India pricing
+
+H2: GeoIQ vs Rankscale — full comparison
+Same table as /geoiq-vs-rankscale page
+but with alternative-seeker framing
+
+H2: What GeoIQ has that Rankscale does not
+1. Free audit — no signup, instant
+2. GEO Agent — Claude AI in dashboard
+3. Fix Actions — 4-week roadmap with tasks
+4. Content generator — tweets, blogs, pitches
+5. India pricing — INR via Razorpay
+
+H2: What Rankscale has that GeoIQ does not
+Honest: 17 AI systems vs 6, enterprise 
+reporting, team collaboration features
+
+H2: Who GeoIQ is built for
+Founders, indie hackers, small marketing teams,
+Indian startups, anyone who wants to fix 
+AI visibility not just track it
+
+H2: Try GeoIQ free
+CTA — no signup, free audit
+
+H2: FAQ (8 questions)
+1. Is GeoIQ a good Rankscale alternative?
+2. How is GeoIQ different from Rankscale?
+3. Does GeoIQ cost less than Rankscale?
+4. Does GeoIQ have a free trial?
+5. Which tracks more AI systems?
+6. Does GeoIQ work for Indian companies?
+7. What is the GEO Agent?
+8. Can I switch from Rankscale to GeoIQ?
+
+Target: 1500+ words
+Priority in sitemap: 0.8
+
+=== UPDATE SITEMAP ===
+
+Add ALL 10 new pages to sitemap.xml
+(7 new + the 3 from earlier today that 
+were not added):
+
+/perplexity-seo — 0.9
+/chatgpt-brand-visibility — 0.9
+/geoiq-vs-rankscale — 0.8
+/generative-engine-optimization — 1.0
+/google-ai-overview-seo — 0.9
+/geo-optimization-checklist — 0.9
+/gemini-seo — 0.8
+/ai-search-optimization — 0.9
+/geoiq-vs-profound — 0.8
+/rankscale-alternative — 0.8
+
+All with lastmod: 2026-05-27
+
+=== AFTER BUILDING ALL 7 ===
+
+Confirm:
+□ All 7 pages load with full HTML (SSR)
+□ Sitemap updated with all 10 new URLs
+□ Schema valid on each page
+□ Word counts meet targets
+□ All pages link to / and /pricing
+□ CTA buttons present on every page
+□ Reading time shown on every page
+□ No broken internal links
+
+Show final page count:
+Previous: 19 pages
+New today: 10 pages
+Total: 29 pages
