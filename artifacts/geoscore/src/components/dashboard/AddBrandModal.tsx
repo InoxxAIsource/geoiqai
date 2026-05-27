@@ -42,7 +42,13 @@ export function AddBrandModal({ onBrandAdded }: AddBrandModalProps) {
   });
 
   const onSubmit = (values: z.infer<typeof addBrandSchema>) => {
-    addBrandMutation.mutate({ data: values }, {
+    const normalizedDomain = values.domain
+      .trim()
+      .replace(/^https?:\/\//i, "")
+      .replace(/^www\./i, "")
+      .split("/")[0]!
+      .toLowerCase();
+    addBrandMutation.mutate({ data: { ...values, domain: normalizedDomain } }, {
       onSuccess: (data) => {
         setOpen(false);
         form.reset();

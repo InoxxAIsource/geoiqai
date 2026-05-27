@@ -55,7 +55,9 @@ router.post("/dashboard/brands", requirePaidAuth, async (req, res): Promise<void
     return;
   }
 
-  const { domain, brandName, category, market, keywords, competitors } = parsed.data;
+  const raw = parsed.data;
+  const domain = raw.domain.trim().replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0]!.toLowerCase();
+  const { brandName, category, market, keywords, competitors } = raw;
 
   const competitorLimit = user.plan === "agency" ? 10 : user.plan === "starter" ? 3 : 0;
   if (competitors && competitors.length > competitorLimit) {

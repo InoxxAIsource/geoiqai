@@ -190,7 +190,11 @@ export default function Home() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = url.trim();
+    const trimmed = url.trim()
+      .replace(/^https?:\/\//i, "")
+      .replace(/^www\./i, "")
+      .split("/")[0]!
+      .toLowerCase();
     if (!trimmed) return;
     setLocation(`/audit?url=${encodeURIComponent(trimmed)}`);
   };
