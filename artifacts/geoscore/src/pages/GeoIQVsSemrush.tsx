@@ -130,8 +130,8 @@ const rows: CompareRow[] = [
   },
   {
     feature: "Price (entry paid plan)",
-    geoiq: "yes", geoiqNote: "Rs 3,999/mo (~$48/mo)",
-    semrush: "no", semrushNote: "$99/mo per domain billed annually (~Rs 8,300/mo) - plus base Semrush plan cost",
+    geoiq: "yes", geoiqNote: "$69/mo - no base subscription needed",
+    semrush: "no", semrushNote: "$99/mo per domain billed annually - plus base Semrush plan cost",
   },
 ];
 
@@ -212,7 +212,7 @@ export default function GeoIQVsSemrush() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 48 }}>
           <div style={{ background: "#EEF2FF", border: "2px solid #4F46E5", borderRadius: 12, padding: 24 }}>
             <div style={{ fontWeight: 800, fontSize: 16, fontFamily: "'Syne', sans-serif", color: "#4F46E5", marginBottom: 8 }}>GeoIQ</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#111827", marginBottom: 4 }}>Rs 3,999/mo</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#111827", marginBottom: 4 }}>$69/mo</div>
             <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 16 }}>Starter plan, or free forever</div>
             <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8 }}>
               {["5 AI systems (incl. Claude + Grok)", "Free audit, no signup", "INR pricing, India-focused", "Built only for AI visibility"].map(f => (
@@ -270,18 +270,18 @@ export default function GeoIQVsSemrush() {
           Pricing comparison
         </h2>
         <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.75, marginBottom: 24 }}>
-          Semrush AI Visibility costs $99/mo per domain billed annually - roughly Rs 8,300/mo at current exchange rates. That is before your base Semrush subscription, which starts at $140/mo. So realistically you are looking at $240+/mo to get Semrush plus its AI Visibility add-on for a single domain.
+          Semrush AI Visibility costs $99/mo per domain billed annually. That is before your base Semrush subscription, which starts at $140/mo. So realistically you are looking at $240+/mo to get Semrush plus its AI Visibility add-on for a single domain.
         </p>
         <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.75, marginBottom: 24 }}>
-          GeoIQ Starter is Rs 3,999/mo and covers multiple brands. The Agency plan at Rs 11,999/mo covers unlimited brands. There is no base subscription cost - GeoIQ is the whole product, not an add-on.
+          GeoIQ Starter is $69/mo and covers multiple brands. The Agency plan at $144/mo covers unlimited brands. There is no base subscription cost - GeoIQ is the whole product, not an add-on.
         </p>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 48 }}>
           {[
-            { name: "GeoIQ Free", price: "Rs 0", note: "Public audit, no signup", highlight: false },
-            { name: "GeoIQ Starter", price: "Rs 3,999/mo", note: "Multiple brands, daily tracking", highlight: true },
-            { name: "GeoIQ Agency", price: "Rs 11,999/mo", note: "Unlimited brands, white-label", highlight: false },
-            { name: "Semrush AI Visibility", price: "~Rs 8,300/mo", note: "$99/mo per domain + base plan not included", highlight: false },
+            { name: "GeoIQ Free", price: "$0", note: "Public audit, no signup", highlight: false },
+            { name: "GeoIQ Starter", price: "$69/mo", note: "Multiple brands, daily tracking", highlight: true },
+            { name: "GeoIQ Agency", price: "$144/mo", note: "Unlimited brands, white-label", highlight: false },
+            { name: "Semrush AI Visibility", price: "$99/mo per domain", note: "Plus base Semrush plan ($140+/mo) not included", highlight: false },
           ].map(plan => (
             <div key={plan.name} style={{
               background: plan.highlight ? "#EEF2FF" : "white",
