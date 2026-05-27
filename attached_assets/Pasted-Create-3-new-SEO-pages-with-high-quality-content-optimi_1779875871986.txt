@@ -1,0 +1,518 @@
+Create 3 new SEO pages with high quality content 
+optimised for both Google indexing and AI citation.
+
+Apply these content rules to ALL 3 pages:
+
+AI OPTIMISATION RULES:
+- Answer the main question in first 100 words
+- Use H2s as plain questions or noun phrases
+  NOT keyword-stuffed headers
+- Include specific data points and statistics
+- Write quotable 1-2 sentence summaries
+- Add FAQ schema with 10+ questions
+- Add Article schema with author and date
+- Add HowTo schema where applicable
+- Internal link to homepage audit tool on every page
+- Summary box at top of every page
+- No fluff — every paragraph must be citable
+
+GOOGLE INDEXING RULES:
+- Unique title tag per page (under 60 chars)
+- Unique meta description (under 155 chars)
+- Canonical tag pointing to own URL
+- Breadcrumb navigation + schema
+- lastmod date in sitemap
+- Open Graph tags complete
+- Reading time shown at top
+- Author: Tauheed
+- Date published: May 2026
+
+=== PAGE 1: /perplexity-seo ===
+
+Title tag:
+"Perplexity SEO: How to Get Cited in 
+Perplexity AI (2026 Guide) | GeoIQ"
+
+Meta description:
+"Perplexity processes 630M searches monthly 
+and cites only 4-8 sources per answer. 
+Learn exactly how to get your brand cited. 
+Free visibility check included."
+
+H1: Perplexity SEO: How to Get Your 
+Brand Cited in Perplexity AI (2026)
+
+Summary box (bg #EEF2FF):
+"Quick answer: You rank in Perplexity by 
+getting cited as a source inside answers — 
+not by ranking in a position. Perplexity 
+uses RAG architecture, visits ~10 pages 
+per query, and cites only 3-4 sources. 
+Citation-optimised content gets 7.2x more 
+references than non-optimised content."
+
+H2: How Perplexity actually works
+Perplexity is an answer engine not a 
+search engine. It uses Retrieval-Augmented 
+Generation (RAG) — it searches the web, 
+retrieves relevant pages, and synthesises 
+a direct answer with citations.
+
+Key facts:
+- 630 million searches per month (2026)
+- Growing 45% month over month  
+- Visits ~10 pages per query
+- Cites only 3-4 sources in the answer
+- Pro users skew high-income, high-intent
+- Built on Bing's infrastructure + own index
+
+This means: there is no "position 1-10" 
+in Perplexity. You are either cited or you 
+are not. The optimization goal is citation, 
+not ranking.
+
+H2: The 6 factors that determine 
+Perplexity citations
+
+Factor 1: PerplexityBot crawler access
+If PerplexityBot is blocked in your 
+robots.txt — nothing else matters. 
+It cannot read your site.
+
+Check: visit yourdomain.com/robots.txt
+Fix: add User-agent: PerplexityBot Allow: /
+
+Factor 2: Answer-first content structure
+Perplexity extracts answers from the 
+first 150 words of a page. 
+
+Wrong: long introduction before the answer
+Right: direct answer in sentence 1
+
+"If a 200-word setup precedes the actual 
+information, Perplexity extracts nothing 
+useful and deprioritises the page."
+— Harbor SEO, 2026
+
+Factor 3: Schema markup
+Organization schema, Article schema, 
+FAQPage schema all signal structured, 
+trustworthy content to Perplexity's 
+extraction model.
+
+Factor 4: Domain authority and citations
+Perplexity weights domain authority 
+heavily. Sites with 350,000+ referring 
+domains average significantly higher 
+citation counts. Getting cited on 
+high-DR sites is the fastest path to 
+Perplexity visibility.
+
+Factor 5: Content freshness
+Perplexity's index updates frequently. 
+New, accurate content has an advantage 
+over older pages on fast-moving topics.
+
+Factor 6: E-E-A-T signals
+Author credentials, original research, 
+first-person experience — Perplexity's 
+NLP identifies expertise signals and 
+weights them in source selection.
+
+H2: What Perplexity SEO is NOT
+
+Common mistakes:
+- Keyword-stuffed headers confuse 
+  Perplexity's entity extraction model
+- Affiliate-heavy content with multiple 
+  CTAs gets deprioritised
+- Generic content without specific 
+  data points gets ignored
+- Long introductions before the answer 
+  mean Perplexity extracts nothing useful
+
+H2: The Perplexity optimisation checklist
+
+Technical (do this week):
+□ Allow PerplexityBot in robots.txt
+□ Create llms.txt at domain root
+□ Add Organization schema to homepage
+□ Verify content indexed by Bing
+  (Perplexity is built on Bing infrastructure)
+□ Submit to Bing Webmaster Tools
+
+Content (do this month):
+□ Rewrite page openings — answer first
+□ Add plain-language H2s (not keyword-stuffed)
+□ Include specific statistics with sources
+□ Add FAQ sections to key pages
+□ Create original data or research
+
+Citation building:
+□ Get mentioned in high-DR publications
+□ Create content other sites will cite
+□ Build Reddit presence in relevant subreddits
+  (Perplexity indexes Reddit heavily)
+□ Get listed on G2, ProductHunt, Crunchbase
+
+H2: How Perplexity differs from ChatGPT
+(comparison table)
+
+| | Perplexity | ChatGPT |
+|--|-----------|---------|
+| Data source | Live web | Training data |
+| Speed of indexing | Days | Months/training cycles |
+| Citation style | Explicit URLs | Implicit |
+| Ranking concept | Citation rate | Mention rate |
+| Best fix | Technical + content | Citations + authority |
+
+H2: Check your Perplexity visibility score
+CTA: "GeoIQ checks your brand across 
+Perplexity and 5 other AI systems in 
+60 seconds. See your citation rate free."
+[Check my Perplexity score →]
+
+H2: FAQ (10 questions)
+"What is Perplexity SEO?"
+"How does Perplexity choose its sources?"
+"How long does it take to get cited by Perplexity?"
+"Does Google SEO help with Perplexity?"
+"What is PerplexityBot?"
+"How do I check if Perplexity cites my brand?"
+"Is Perplexity better than Google for research?"
+"How many sources does Perplexity cite per answer?"
+"Does Perplexity use Bing?"
+"What content gets cited most by Perplexity?"
+
+=== PAGE 2: /chatgpt-brand-visibility ===
+
+Title tag:
+"ChatGPT Brand Visibility: Complete 
+Optimization Guide 2026 | GeoIQ"
+
+Meta description:
+"ChatGPT has 900M weekly users and drives 
+87.4% of AI referral traffic. Learn how to 
+get your brand cited and recommended. 
+Free check in 60 seconds."
+
+H1: ChatGPT Brand Visibility: 
+How to Get Recommended in 2026
+
+Summary box:
+"Quick answer: ChatGPT brand visibility 
+means appearing in synthesised answers 
+when users ask questions in your category. 
+ChatGPT drives 87.4% of all AI-referred 
+website traffic. Brands don't rank in 
+positions — they either appear in answers 
+or they don't. The fix: training data 
+citations, structured content, and 
+consistent brand entity signals."
+
+H2: Why ChatGPT brand visibility matters
+
+Key stats (2026):
+- 900 million weekly active users
+- 2.5 billion prompts per day
+- 87.4% of AI-referred website traffic
+- Overlap with Google top-10: only 10%
+- ChatGPT-influenced traffic footprint 
+  is 2-3x tracked referral numbers 
+  (dark funnel effect)
+
+The dark funnel insight:
+Users hear your brand in ChatGPT, 
+then arrive via branded search or 
+direct traffic. Your analytics 
+undersells ChatGPT's actual impact 
+by 2-3x.
+
+H2: How ChatGPT decides what to recommend
+
+ChatGPT does not rank websites. It 
+synthesises information from:
+1. Training data (web crawl up to cutoff)
+2. Real-time web search (browsing mode)
+3. Bing index integration
+
+Key factors:
+- Citation frequency across independent sources
+- Brand entity consistency across the web
+- Content authority and E-E-A-T signals
+- LinkedIn now #1 most-cited domain for 
+  professional queries (Profound research, 2026)
+- Structured, extractable content
+
+H2: The ChatGPT visibility problem 
+for new brands
+
+ChatGPT's training data has a cutoff date. 
+New brands that launched recently are 
+simply not in the data — regardless of 
+product quality.
+
+For Perplexity (live web): 
+new content indexed in days.
+
+For ChatGPT base model: 
+improvements align with training cycles — 
+months to take effect.
+
+This is why citation building on 
+permanent, indexed sources is critical:
+Crunchbase, Product Hunt, G2, Wikipedia,
+GitHub, LinkedIn Company Page.
+
+H2: ChatGPT brand visibility factors ranked
+
+1. Training data coverage
+   How many authoritative sources 
+   mention your brand before cutoff
+
+2. Entity consistency
+   Same brand name, description, 
+   and facts across all platforms
+
+3. Citation authority
+   Quality of sites mentioning you
+   (LinkedIn, Crunchbase, TechCrunch 
+   weighted heavily)
+
+4. Content extractability
+   Can ChatGPT pull a clear, 
+   quotable description of your brand
+
+5. Query-specific relevance
+   Does your content answer the exact 
+   questions users ask about your category
+
+H2: The fastest fixes for ChatGPT visibility
+
+Week 1 (technical):
+□ Add GPTBot to robots.txt Allow: /
+□ Add OAI-SearchBot Allow: /
+□ Create llms.txt
+□ Add Organization schema
+
+Week 2 (citations):
+□ Create Crunchbase profile
+□ Submit to Product Hunt
+□ Create LinkedIn Company Page
+□ Get 10+ G2 reviews
+
+Week 3 (content):
+□ Write foundational brand article
+  (1500+ words, published on your domain)
+□ Republish on Medium and dev.to
+□ Answer questions on Reddit in your category
+
+Week 4 (authority):
+□ Pitch YourStory or Inc42 
+  (for Indian brands)
+□ Pitch TLDR or Ben's Bites newsletter
+□ Create a comparison page:
+  "{your brand} vs {competitor}"
+
+H2: ChatGPT vs Perplexity vs Gemini 
+— what is different
+
+(Same comparison table as Page 1 
+but expanded to include Gemini)
+
+H2: Check your ChatGPT visibility
+CTA → GeoIQ free audit
+
+H2: FAQ (10 questions)
+"What is ChatGPT brand visibility?"
+"How does ChatGPT decide what to recommend?"
+"Why doesn't my brand show up in ChatGPT?"
+"How long does it take to appear in ChatGPT?"
+"Does ChatGPT use real-time web search?"
+"What is GPTBot?"
+"How do I check if ChatGPT mentions my brand?"
+"Does LinkedIn help ChatGPT visibility?"
+"Can a new startup appear in ChatGPT?"
+"What is the dark funnel effect in AI search?"
+
+=== PAGE 3: /geoiq-vs-rankscale ===
+
+Title tag:
+"GeoIQ vs Rankscale: Which AI Visibility 
+Tool is Right for You? (2026) | GeoIQ"
+
+Meta description:
+"GeoIQ vs Rankscale compared: pricing, 
+AI systems tracked, fix actions, 
+India pricing, and GEO Agent. 
+Honest comparison from the GeoIQ team."
+
+H1: GeoIQ vs Rankscale: Honest Comparison 
+for 2026
+
+Note at top:
+"This comparison is written by the GeoIQ 
+team. We have tried to be fair and accurate. 
+Check Rankscale's website for their 
+latest pricing and features."
+
+Summary box:
+"Quick answer: GeoIQ is built for 
+founders and indie teams who want to 
+monitor AND fix their AI visibility 
+affordably. Rankscale is built for 
+enterprise marketing teams with larger 
+budgets who need breadth of AI system 
+coverage. GeoIQ starts at $69/month 
+with a free audit. Rankscale starts 
+at a higher price point targeting 
+enterprise buyers."
+
+H2: Feature comparison table
+
+| Feature | GeoIQ | Rankscale |
+|---------|-------|-----------|
+| Free audit | ✓ No signup | Trial only |
+| AI systems | 6 | 17 |
+| India pricing (INR) | ✓ Razorpay | ✗ |
+| GEO Agent (Claude AI) | ✓ | ✗ |
+| Fix Actions roadmap | ✓ 4-week | ✗ |
+| Content generator | ✓ | ✗ |
+| Content improvements | ✓ | ✓ |
+| Citation tracking | ✓ | ✓ |
+| Daily monitoring | ✓ | ✓ |
+| Competitor tracking | ✓ | ✓ |
+| Starter price | $69/mo | Higher |
+| Target user | Founders | Enterprise |
+
+H2: Where Rankscale is stronger
+Honest — they track 17 AI systems 
+vs GeoIQ's 6. For enterprise teams 
+that need breadth across niche AI 
+systems, Rankscale has more coverage.
+Strong analytics and reporting.
+
+H2: Where GeoIQ is stronger
+GEO Agent: Claude-powered AI that 
+runs live audits from conversation, 
+generates content, and builds your 
+fix roadmap. Rankscale has no equivalent.
+
+Fix Actions: 4-week roadmap with 
+exact tasks, submission URLs, and 
+generated content. Rankscale shows 
+the problem. GeoIQ tells you how to fix it.
+
+India pricing: GeoIQ bills in INR 
+via Razorpay. No equivalent from Rankscale.
+
+Free audit: No signup, instant results.
+Rankscale requires a trial signup.
+
+H2: Which one should you choose
+
+Choose GeoIQ if:
+- You are a founder or small team
+- You want to fix visibility not just track it
+- You need India pricing
+- You want a GEO Agent to work with
+- Budget is under $100/month
+
+Choose Rankscale if:
+- You are an enterprise marketing team
+- You need 17+ AI systems tracked
+- Budget is not a constraint
+- You have a dedicated SEO team
+
+H2: Start with the free audit
+CTA → GeoIQ free audit, no signup
+
+H2: FAQ (8 questions)
+"What is the difference between 
+GeoIQ and Rankscale?"
+"Which is cheaper — GeoIQ or Rankscale?"
+"Does GeoIQ track as many AI systems as Rankscale?"
+"Does Rankscale have a GEO Agent?"
+"Which tool is better for Indian founders?"
+"Is there a free version of either tool?"
+"Do both tools track Google AI Overview?"
+"Which tool gives fix recommendations?"
+
+=== SCHEMA FOR ALL 3 PAGES ===
+
+Article schema:
+{
+  "@type": "Article",
+  "headline": "[page H1]",
+  "author": {
+    "@type": "Person",
+    "name": "Tauheed"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "GeoIQ",
+    "url": "https://geoiqai.com"
+  },
+  "datePublished": "2026-05-27",
+  "dateModified": "2026-05-27"
+}
+
+FAQPage schema:
+Add all FAQ questions and answers
+in proper FAQPage JSON-LD format
+
+BreadcrumbList schema:
+Home > [Page name]
+
+=== INTERNAL LINKS ===
+
+Each page must link to:
+→ / (homepage) — anchor: "free AI visibility audit"
+→ /what-is-geo
+→ /pricing
+→ One related page
+
+=== UPDATE SITEMAP ===
+
+Add all 3 new URLs to sitemap.xml:
+
+<url>
+  <loc>https://geoiqai.com/perplexity-seo</loc>
+  <lastmod>2026-05-27</lastmod>
+  <changefreq>monthly</changefreq>
+  <priority>0.9</priority>
+</url>
+
+<url>
+  <loc>https://geoiqai.com/chatgpt-brand-visibility</loc>
+  <lastmod>2026-05-27</lastmod>
+  <changefreq>monthly</changefreq>
+  <priority>0.9</priority>
+</url>
+
+<url>
+  <loc>https://geoiqai.com/geoiq-vs-rankscale</loc>
+  <lastmod>2026-05-27</lastmod>
+  <changefreq>monthly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+=== TEST AFTER BUILDING ===
+
+□ All 3 pages load correctly
+□ Summary boxes render with styling
+□ Comparison tables render correctly
+□ FAQ sections show with schema
+□ CTA buttons link to homepage
+□ Breadcrumb shows at top
+□ Reading time shows
+□ Mobile responsive at 375px
+□ Schema valid at schema.org/validator
+□ Sitemap updated with 3 new URLs
+□ Meta tags unique per page
+□ Canonical tags present
+
+Show word count for each page:
+/perplexity-seo: target 2500+ words
+/chatgpt-brand-visibility: target 2500+ words
+/geoiq-vs-rankscale: target 1500+ words
