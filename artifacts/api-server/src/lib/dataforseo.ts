@@ -420,6 +420,7 @@ export interface OnPageCheck {
   name: string;
   status: "pass" | "warn" | "fail";
   detail: string;
+  fix: string;
   score: number;
 }
 
@@ -437,48 +438,177 @@ export interface OnPageAuditResult {
   estimatedCostUsd: number;
 }
 
-function checkScore(val: number): number {
-  return Math.round(Math.min(100, Math.max(0, val)));
-}
-
-function checkStatus(val: number): "pass" | "warn" | "fail" {
-  if (val >= 80) return "pass";
-  if (val >= 40) return "warn";
+function checkStatus(score: number): "pass" | "warn" | "fail" {
+  if (score >= 80) return "pass";
+  if (score >= 40) return "warn";
   return "fail";
 }
 
-function mapOnPageChecks(checks: Record<string, number>): OnPageCategory[] {
-  const get = (k: string) => checkScore(Number(checks[k] ?? 0));
+// DataForSEO page_metrics.checks values are PAGE COUNTS (not scores).
+// "issue" keys: count of pages WITH the problem — lower is better.
+// "presence" keys: count of pages WITH the feature — higher is better.
+// We normalise against totalPages to get a 0-100 score.
+function mapOnPageChecks(checks: Record<string, number>, totalPages: number): OnPageCategory[] {
+  const n = Math.max(totalPages, 1);
+
+  // Score for an "issue" key: 100% of pages clean = 100, all broken = 0
+  const issueScore = (k: string) => Math.round(Math.max(0, (1 - (Number(checks[k] ?? 0) / n)) * 100));
+
+  // Score for a "presence" key: 100% of pages have it = 100, none = 0
+  const presenceScore = (k: string) => Math.round(Math.min(100, (Number(checks[k] ?? 0) / n) * 100));
+
+  // DataForSEO also returns boolean 0/1 flags for site-wide checks
+  const flag = (k: string) => Number(checks[k] ?? 0) > 0 ? 100 : 0;
 
   const content: OnPageCheck[] = [
-    { name: "Meta title present and optimised", score: get("title"), status: checkStatus(get("title")), detail: get("title") >= 80 ? "Title tag is well configured" : "Title tag is missing or too short/long" },
-    { name: "Meta description", score: get("meta_description"), status: checkStatus(get("meta_description")), detail: get("meta_description") >= 80 ? "Meta description is present" : "Missing or duplicate meta description" },
-    { name: "H1 tag structure", score: get("h1"), status: checkStatus(get("h1")), detail: get("h1") >= 80 ? "H1 tag is present and unique" : "H1 tag missing or duplicated" },
-    { name: "Content length and depth", score: get("content_length"), status: checkStatus(get("content_length")), detail: get("content_length") >= 80 ? "Pages have sufficient content depth" : "Content is too thin — AI needs more to cite" },
-    { name: "Duplicate content", score: 100 - get("duplicate_content"), status: checkStatus(100 - get("duplicate_content")), detail: get("duplicate_content") < 20 ? "No significant duplicate content found" : "Duplicate content detected — AI engines penalise this" },
+    {
+      name: "Meta title",
+      score: issueScore("no_title"),
+      status: checkStatus(issueScore("no_title")),
+      detail: issueScore("no_title") >= 80
+        ? "Title tags are present across crawled pages"
+        : `${Number(checks["no_title"] ?? 0)} page(s) are missing a title tag`,
+      fix: "Add a unique <title> tag (50-60 characters) to every page. For Next.js/React use a <Helmet> component. For plain HTML add it inside <head>.",
+    },
+    {
+      name: "Meta description",
+      score: issueScore("no_description"),
+      status: checkStatus(issueScore("no_description")),
+      detail: issueScore("no_description") >= 80
+        ? "Meta descriptions are present"
+        : `${Number(checks["no_description"] ?? 0)} page(s) missing meta description`,
+      fix: "Add a unique meta description (120-160 chars) to each page. It should summarise the page's answer in plain language — AI engines extract this directly.",
+    },
+    {
+      name: "H1 tag structure",
+      score: issueScore("no_h1_tag"),
+      status: checkStatus(issueScore("no_h1_tag")),
+      detail: issueScore("no_h1_tag") >= 80
+        ? "H1 tags are present on crawled pages"
+        : `${Number(checks["no_h1_tag"] ?? 0)} page(s) missing an H1 tag`,
+      fix: "Every page needs exactly one <h1> tag that matches the page's main topic. Put the direct answer to the page's core question in the H1 — not a brand tagline.",
+    },
+    {
+      name: "Duplicate content",
+      score: issueScore("duplicate_content"),
+      status: checkStatus(issueScore("duplicate_content")),
+      detail: issueScore("duplicate_content") >= 80
+        ? "No significant duplicate content detected"
+        : `${Number(checks["duplicate_content"] ?? 0)} page(s) have duplicate content`,
+      fix: "Consolidate near-identical pages using canonical tags pointing to the preferred version. Delete thin duplicates entirely and 301-redirect them to the main page.",
+    },
+    {
+      name: "Duplicate titles",
+      score: issueScore("duplicate_title"),
+      status: checkStatus(issueScore("duplicate_title")),
+      detail: issueScore("duplicate_title") >= 80
+        ? "Title tags are unique across pages"
+        : `${Number(checks["duplicate_title"] ?? 0)} page(s) share a duplicate title`,
+      fix: "Make every title unique. If pages share a title, differentiate them by including the specific topic, location, or entity that makes each page distinct.",
+    },
   ];
 
   const technical: OnPageCheck[] = [
-    { name: "Canonical tags", score: get("canonical"), status: checkStatus(get("canonical")), detail: get("canonical") >= 80 ? "Canonical tags are correctly configured" : "Canonical tag issues found" },
-    { name: "robots.txt / AI crawler access", score: get("robots_txt"), status: checkStatus(get("robots_txt")), detail: get("robots_txt") >= 80 ? "robots.txt allows AI crawlers" : "robots.txt may be blocking AI crawlers" },
-    { name: "Broken internal links", score: 100 - get("broken_links"), status: checkStatus(100 - get("broken_links")), detail: get("broken_links") < 20 ? "No significant broken links found" : "Broken links found — fix for better crawlability" },
-    { name: "Page response code", score: get("response_code"), status: checkStatus(get("response_code")), detail: get("response_code") >= 80 ? "Pages returning correct 200 status" : "Some pages returning error codes" },
-    { name: "Mobile-friendliness", score: get("is_https"), status: checkStatus(get("is_https")), detail: get("is_https") >= 80 ? "Site is served over HTTPS" : "HTTPS not configured properly" },
+    {
+      name: "HTTPS / secure connection",
+      score: flag("is_https"),
+      status: checkStatus(flag("is_https")),
+      detail: flag("is_https") === 100
+        ? "Site is served over HTTPS"
+        : "Site is not fully served over HTTPS",
+      fix: "Install an SSL certificate and force all traffic to HTTPS via a 301 redirect. Most hosts (Vercel, Netlify, Cloudflare) do this automatically. Check for mixed content warnings in Chrome DevTools.",
+    },
+    {
+      name: "Canonical tags",
+      score: presenceScore("canonical"),
+      status: checkStatus(presenceScore("canonical")),
+      detail: presenceScore("canonical") >= 80
+        ? "Canonical tags are configured on most pages"
+        : `Only ${presenceScore("canonical")}% of pages have canonical tags`,
+      fix: "Add <link rel='canonical' href='...'> to every page pointing to its own URL (self-canonical). This prevents duplicate content issues and tells Google and AI crawlers which version to index.",
+    },
+    {
+      name: "Broken links",
+      score: issueScore("broken_links"),
+      status: checkStatus(issueScore("broken_links")),
+      detail: issueScore("broken_links") >= 80
+        ? "No significant broken links found"
+        : `${Number(checks["broken_links"] ?? 0)} broken link(s) found`,
+      fix: "Fix broken links by updating URLs or removing them. Use a free tool like Screaming Frog or Ahrefs Site Audit to find all broken links. AI crawlers skip pages with high broken link counts.",
+    },
+    {
+      name: "HTTP to HTTPS links",
+      score: issueScore("https_to_http_links"),
+      status: checkStatus(issueScore("https_to_http_links")),
+      detail: issueScore("https_to_http_links") >= 80
+        ? "Internal links are using HTTPS correctly"
+        : `${Number(checks["https_to_http_links"] ?? 0)} page(s) have HTTP links`,
+      fix: "Update all internal links to use https:// instead of http://. Search your codebase for 'http://' and replace with 'https://'. Also check your CMS settings for a base URL option.",
+    },
+    {
+      name: "Redirects",
+      score: issueScore("redirect"),
+      status: checkStatus(issueScore("redirect")),
+      detail: issueScore("redirect") >= 80
+        ? "Minimal redirect chains detected"
+        : `${Number(checks["redirect"] ?? 0)} page(s) involved in redirects`,
+      fix: "Eliminate redirect chains (A -> B -> C) by pointing directly to the final destination (A -> C). Each redirect hop wastes crawl budget and slows page load for AI crawlers.",
+    },
   ];
 
   const authority: OnPageCheck[] = [
-    { name: "Schema.org markup", score: get("structured_data"), status: checkStatus(get("structured_data")), detail: get("structured_data") >= 80 ? "Structured data present — helps AI understand entities" : "No structured data — AI struggles to identify entities" },
-    { name: "Internal linking depth", score: get("internal_links_count"), status: checkStatus(get("internal_links_count")), detail: get("internal_links_count") >= 80 ? "Good internal link structure" : "Sparse internal linking — AI can't discover key pages" },
-    { name: "External links (citations)", score: get("external_links_count"), status: checkStatus(get("external_links_count")), detail: get("external_links_count") >= 80 ? "Pages cite external sources" : "No external citations — reduces authority signals" },
+    {
+      name: "Schema.org / structured data",
+      score: presenceScore("has_micromarkup"),
+      status: checkStatus(presenceScore("has_micromarkup")),
+      detail: presenceScore("has_micromarkup") >= 80
+        ? "Structured data is present on most pages"
+        : `Only ${presenceScore("has_micromarkup")}% of pages have schema markup`,
+      fix: "Add JSON-LD schema to every key page. Start with Organization schema on the homepage, Article schema on blog posts, FAQPage schema on FAQ sections, and Product schema on product pages. Test at schema.org/validator.",
+    },
+    {
+      name: "Duplicate H1 tags",
+      score: issueScore("duplicate_h1"),
+      status: checkStatus(issueScore("duplicate_h1")),
+      detail: issueScore("duplicate_h1") >= 80
+        ? "H1 tags are unique across pages"
+        : `${Number(checks["duplicate_h1"] ?? 0)} page(s) have duplicate H1s`,
+      fix: "Each page must have a unique H1 that describes that specific page's content. Copy the title tag pattern if needed — just make the H1 describe what is actually on the page.",
+    },
+    {
+      name: "SEO-friendly URLs",
+      score: flag("seo_friendly_url"),
+      status: checkStatus(flag("seo_friendly_url")),
+      detail: flag("seo_friendly_url") === 100
+        ? "URLs appear SEO-friendly"
+        : "Some URLs are not SEO-friendly",
+      fix: "Use short, descriptive, hyphen-separated URLs. Avoid dynamic parameters like ?id=123. Example: /blog/how-to-rank-in-chatgpt is better than /blog/post?id=45. AI engines use URL structure as a context signal.",
+    },
   ];
 
   const engagement: OnPageCheck[] = [
-    { name: "Image alt text", score: get("no_image_alt"), status: checkStatus(get("no_image_alt")), detail: get("no_image_alt") >= 80 ? "Images have descriptive alt text" : "Images missing alt text — missed entity context" },
-    { name: "Heading hierarchy (H2/H3)", score: get("h2"), status: checkStatus(get("h2")), detail: get("h2") >= 80 ? "Good heading structure" : "Missing H2/H3 structure — hurts AI extractability" },
+    {
+      name: "Image alt text",
+      score: issueScore("no_image_alt"),
+      status: checkStatus(issueScore("no_image_alt")),
+      detail: issueScore("no_image_alt") >= 80
+        ? "Images have alt text across crawled pages"
+        : `${Number(checks["no_image_alt"] ?? 0)} page(s) have images without alt text`,
+      fix: "Add descriptive alt text to every meaningful image. Include relevant entity names and keywords naturally. Alt text is a primary source of entity context for AI image-understanding models.",
+    },
+    {
+      name: "Heading hierarchy (H2/H3)",
+      score: issueScore("no_h2_h3"),
+      status: checkStatus(issueScore("no_h2_h3")),
+      detail: issueScore("no_h2_h3") >= 80
+        ? "Pages use a proper heading structure"
+        : `${Number(checks["no_h2_h3"] ?? 0)} page(s) lack H2/H3 subheadings`,
+      fix: "Structure your content with clear H2 and H3 subheadings that read like questions or direct answers. AI engines use heading hierarchy to understand page structure and extract quotable sections.",
+    },
   ];
 
-  const avgScore = (checks: OnPageCheck[]) =>
-    checks.length ? Math.round(checks.reduce((s, c) => s + c.score, 0) / checks.length) : 0;
+  const avgScore = (items: OnPageCheck[]) =>
+    items.length ? Math.round(items.reduce((s, c) => s + c.score, 0) / items.length) : 0;
 
   return [
     { name: "Content Quality", score: avgScore(content), checks: content },
@@ -558,7 +688,13 @@ export async function runOnPageAudit(domain: string): Promise<OnPageAuditResult>
     const onpageScore = Number(pageMetrics.onpage_score ?? 0);
     const rawChecks = (pageMetrics.checks ?? {}) as Record<string, number>;
 
-    const categories = mapOnPageChecks(rawChecks);
+    // crawl_status.pages_crawled is the reliable count; fall back to page_metrics.total
+    const crawlStatus = (summaryResult.crawl_status ?? {}) as Record<string, unknown>;
+    const totalPages = Number(
+      crawlStatus.pages_crawled ?? pageMetrics.total ?? Object.values(rawChecks).reduce((a, b) => Math.max(a, b), 1)
+    ) || 1;
+
+    const categories = mapOnPageChecks(rawChecks, totalPages);
     const overallScore = Math.round(onpageScore);
 
     return {

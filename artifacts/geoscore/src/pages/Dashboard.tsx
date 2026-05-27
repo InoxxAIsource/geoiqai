@@ -2459,28 +2459,36 @@ export default function Dashboard() {
                               </button>
                             </div>
                             {onPageResult.categories.map(cat => (
-                              <div key={cat.name} style={{ marginBottom: 14 }}>
+                              <div key={cat.name} style={{ marginBottom: 18 }}>
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                                   <div style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{cat.name}</div>
                                   <div style={{ fontSize: 12, fontWeight: 600, color: cat.score >= 70 ? "#059669" : cat.score >= 40 ? "#D97706" : "#DC2626" }}>{cat.score}/100</div>
                                 </div>
                                 {cat.checks.map(check => (
-                                  <div key={check.name} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "7px 0", borderBottom: "0.5px solid #f9fafb" }}>
-                                    <span style={{
-                                      flexShrink: 0, marginTop: 1, width: 7, height: 7, borderRadius: "50%",
-                                      background: check.status === "pass" ? "#10b981" : check.status === "warn" ? "#f59e0b" : "#ef4444",
-                                    }} />
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                      <div style={{ fontSize: 12, color: "#111827", fontWeight: 500 }}>{check.name}</div>
-                                      <div style={{ fontSize: 11, color: "#6b7280", marginTop: 1 }}>{check.detail}</div>
+                                  <div key={check.name} style={{ marginBottom: 2, borderBottom: "0.5px solid #f3f4f6", paddingBottom: 8 }}>
+                                    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, paddingTop: 7 }}>
+                                      <span style={{
+                                        flexShrink: 0, marginTop: 3, width: 7, height: 7, borderRadius: "50%",
+                                        background: check.status === "pass" ? "#10b981" : check.status === "warn" ? "#f59e0b" : "#ef4444",
+                                      }} />
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontSize: 12, color: "#111827", fontWeight: 500 }}>{check.name}</div>
+                                        <div style={{ fontSize: 11, color: "#6b7280", marginTop: 1 }}>{check.detail}</div>
+                                      </div>
+                                      <span style={{
+                                        flexShrink: 0, fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 4,
+                                        background: check.status === "pass" ? "#ecfdf5" : check.status === "warn" ? "#fffbeb" : "#fef2f2",
+                                        color: check.status === "pass" ? "#059669" : check.status === "warn" ? "#D97706" : "#DC2626",
+                                      }}>
+                                        {check.status.toUpperCase()}
+                                      </span>
                                     </div>
-                                    <span style={{
-                                      flexShrink: 0, fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 4,
-                                      background: check.status === "pass" ? "#ecfdf5" : check.status === "warn" ? "#fffbeb" : "#fef2f2",
-                                      color: check.status === "pass" ? "#059669" : check.status === "warn" ? "#D97706" : "#DC2626",
-                                    }}>
-                                      {check.status.toUpperCase()}
-                                    </span>
+                                    {check.status !== "pass" && (
+                                      <div style={{ marginLeft: 17, marginTop: 6, background: "#f8fafc", border: "0.5px solid #e2e8f0", borderRadius: 6, padding: "7px 10px" }}>
+                                        <div style={{ fontSize: 10, fontWeight: 600, color: "#4F46E5", marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.04em" }}>How to fix</div>
+                                        <div style={{ fontSize: 11, color: "#374151", lineHeight: 1.55 }}>{check.fix}</div>
+                                      </div>
+                                    )}
                                   </div>
                                 ))}
                               </div>
