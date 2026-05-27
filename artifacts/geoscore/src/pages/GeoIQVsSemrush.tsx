@@ -105,7 +105,7 @@ const rows: CompareRow[] = [
   },
   {
     feature: "Indian market focus",
-    geoiq: "yes", geoiqNote: "INR pricing, Indian publication signals (YourStory, Inc42), India-specific prompts",
+    geoiq: "yes", geoiqNote: "India-specific prompts, Indian publication signals (YourStory, Inc42), local market focus",
     semrush: "no", semrushNote: "USD pricing, no India-specific tracking",
   },
   {
@@ -163,7 +163,7 @@ const schemaJson = {
 export default function GeoIQVsSemrush() {
   useEffect(() => {
     document.title = "GeoIQ vs Semrush AI Visibility (2026) | Comparison";
-    setMeta("description", "GeoIQ vs Semrush AI Visibility: side-by-side feature and pricing comparison. 5 AI systems vs 4, INR pricing, free audit, and India-specific tracking.");
+    setMeta("description", "GeoIQ vs Semrush AI Visibility: side-by-side feature and pricing comparison. 5 AI systems vs 4, $69/mo vs $99/mo per domain, free audit, and India-specific tracking.");
     setMeta("og:title", "GeoIQ vs Semrush AI Visibility (2026)", true);
     setMeta("og:description", "GeoIQ tracks ChatGPT, Gemini, Perplexity, Claude, and Grok. Semrush AI Visibility tracks 4. See the full comparison.", true);
     setMeta("og:type", "article", true);
@@ -204,7 +204,7 @@ export default function GeoIQVsSemrush() {
             GeoIQ vs Semrush AI Visibility: Which one actually tracks AI search?
           </h1>
           <p style={{ fontSize: 17, color: "#374151", lineHeight: 1.75, marginBottom: 0 }}>
-            Semrush launched an AI Visibility add-on in 2025. It is a solid first step, especially if you already pay for Semrush. But it tracks 4 AI systems, prices in USD, and costs $99/mo per domain on top of your existing Semrush subscription. GeoIQ is built specifically for AI visibility from day one - 5 systems, INR pricing, free audit, and India-specific signals. Here is the full breakdown.
+            Semrush launched an AI Visibility add-on in 2025. It is a solid first step, especially if you already pay for Semrush. But it tracks 4 AI systems and costs $99/mo per domain on top of your existing Semrush subscription. GeoIQ is built specifically for AI visibility from day one - 5 AI systems, $69/mo, free audit, and India-specific signals. Here is the full breakdown.
           </p>
         </div>
 
@@ -215,7 +215,7 @@ export default function GeoIQVsSemrush() {
             <div style={{ fontSize: 22, fontWeight: 800, color: "#111827", marginBottom: 4 }}>$69/mo</div>
             <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 16 }}>Starter plan, or free forever</div>
             <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8 }}>
-              {["5 AI systems (incl. Claude + Grok)", "Free audit, no signup", "INR pricing, India-focused", "Built only for AI visibility"].map(f => (
+              {["5 AI systems (incl. Claude + Grok)", "Free audit, no signup", "$69/mo, India-focused signals", "Built only for AI visibility"].map(f => (
                 <li key={f} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "#374151" }}>
                   <Check /> {f}
                 </li>
@@ -340,7 +340,7 @@ export default function GeoIQVsSemrush() {
           Semrush is a global tool priced and designed for global (mostly US/EU) companies. If you are an Indian startup, you are paying $99/mo in USD with no special consideration for Indian publication signals, Indian audience search patterns, or the way Gemini weights regional sources.
         </p>
         <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.75, marginBottom: 32 }}>
-          GeoIQ is built for the Indian market. INR pricing removes currency risk. The audit engine specifically checks YourStory, Inc42, and other Indian publications as citation signals for Gemini. Prompts are tuned for how Indian users actually ask questions - "best fintech app in India" versus generic global queries. For founders building products for India, that specificity matters.
+          GeoIQ is built with Indian founders in mind. The audit engine specifically checks YourStory, Inc42, and other Indian publications as citation signals for Gemini. Prompts are tuned for how Indian users actually ask questions - "best fintech app in India" versus generic global queries. For founders building products for India, that specificity matters.
         </p>
 
         {/* When to use each */}
