@@ -628,14 +628,12 @@ export async function runOnPageAudit(domain: string): Promise<OnPageAuditResult>
 
   if (!login || !password) return errorResult;
 
-  // Strip protocol - DataForSEO wants bare hostname or hostname+path
+  // Strip protocol — DataForSEO expects bare domain or domain+path
   const target = domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
   try {
-    // Use the live endpoint: one POST call, blocks until crawl is done (10-60s).
-    // summary/live accepts the same target config as task_post and returns
-    // results immediately — no separate polling step needed.
-    const liveResp = await fetch(`${DATAFORSEO_BASE}/v3/on_page/summary/live`, {
+    // Step 1: create async crawl task
+    const createResp = await fetch(`${DATAFORSEO_BASE}/v3/on_page/task_post`, {
       method: "POST",
       headers: { ...getAuthHeader(), "Content-Type": "application/json" },
       body: JSON.stringify([{
@@ -646,28 +644,67 @@ export async function runOnPageAudit(domain: string): Promise<OnPageAuditResult>
         store_raw_html: false,
         check_spell: false,
       }]),
-      signal: AbortSignal.timeout(90000),
+      signal: AbortSignal.timeout(15000),
     });
 
-    if (!liveResp.ok) {
-      logger.warn({ domain, status: liveResp.status }, "onpage summary/live non-2xx");
+    if (!createResp.ok) {
+      logger.warn({ domain, status: createResp.status }, "onpage task_post non-2xx");
       return errorResult;
     }
 
-    const liveData = (await liveResp.json()) as Record<string, unknown>;
-    const taskEntry = (liveData.tasks as Array<Record<string, unknown>>)?.[0];
-    const statusCode = Number(taskEntry?.status_code ?? 0);
+    const createData = (await createResp.json()) as Record<string, unknown>;
+    const taskId = String(
+      ((createData.tasks as Array<Record<string, unknown>>)?.[0])?.id ?? ""
+    );
 
-    if (statusCode !== 20000) {
-      logger.warn({ domain, statusCode, msg: taskEntry?.status_message }, "onpage summary/live task error");
+    if (!taskId) {
+      logger.warn({ domain }, "onpage task_post returned no task id");
       return errorResult;
     }
 
-    const summaryResult = (taskEntry?.result as Array<Record<string, unknown>>)?.[0] ?? null;
+    logger.info({ domain, taskId }, "onpage task created, polling summary/task_get");
+
+    // Step 2: poll summary/task_get until crawl_progress = "finished" (up to 90s)
+    // The correct endpoint for fetching results of a previously created on_page task.
+    let summaryResult: Record<string, unknown> | null = null;
+    for (let attempt = 0; attempt < 12; attempt++) {
+      await new Promise(r => setTimeout(r, attempt === 0 ? 8000 : 7000));
+      try {
+        const summResp = await fetch(`${DATAFORSEO_BASE}/v3/on_page/summary/task_get/${taskId}`, {
+          method: "GET",
+          headers: getAuthHeader(),
+          signal: AbortSignal.timeout(10000),
+        });
+        if (!summResp.ok) {
+          logger.warn({ domain, taskId, attempt, status: summResp.status }, "onpage summary/task_get non-2xx");
+          continue;
+        }
+        const summData = (await summResp.json()) as Record<string, unknown>;
+        const res = ((summData.tasks as Array<Record<string, unknown>>)?.[0]
+          ?.result as Array<Record<string, unknown>>)?.[0];
+
+        if (!res) continue;
+
+        const progress = String(res.crawl_progress ?? "");
+        logger.info({ domain, taskId, attempt, progress }, "onpage poll");
+
+        if (progress === "finished") {
+          summaryResult = res;
+          break;
+        }
+        // After 6 attempts (~50s), accept partial results
+        if (attempt >= 6 && res) {
+          summaryResult = res;
+          break;
+        }
+      } catch (pollErr) {
+        logger.warn({ domain, taskId, attempt, pollErr }, "onpage poll error");
+      }
+    }
 
     if (!summaryResult) {
-      logger.warn({ domain }, "onpage summary/live returned no result");
-      return { overallScore: 0, categories: [], status: "pending", taskId: null, estimatedCostUsd: 0.02 };
+      logger.warn({ domain, taskId }, "onpage audit timed out — no summary result");
+      return { overallScore: 0, categories: [], status: "pending", taskId, estimatedCostUsd: 0.02 };
     }
 
     const pageMetrics = (summaryResult.page_metrics ?? {}) as Record<string, unknown>;
@@ -675,22 +712,14 @@ export async function runOnPageAudit(domain: string): Promise<OnPageAuditResult>
     const rawChecks = (pageMetrics.checks ?? {}) as Record<string, number>;
 
     const crawlStatus = (summaryResult.crawl_status ?? {}) as Record<string, unknown>;
-    const totalPages = Number(
-      crawlStatus.pages_crawled ?? pageMetrics.total ?? 1
-    ) || 1;
+    const totalPages = Number(crawlStatus.pages_crawled ?? pageMetrics.total ?? 1) || 1;
 
-    logger.info({ domain, onpageScore, totalPages, checkKeys: Object.keys(rawChecks), rawChecks }, "onpage audit dataforseo result");
+    logger.info({ domain, taskId, onpageScore, totalPages, checkKeys: Object.keys(rawChecks), rawChecks }, "onpage audit result");
 
     const categories = mapOnPageChecks(rawChecks, totalPages);
     const overallScore = Math.round(onpageScore);
 
-    return {
-      overallScore,
-      categories,
-      status: "done",
-      taskId: String(taskEntry?.id ?? ""),
-      estimatedCostUsd: 0.02,
-    };
+    return { overallScore, categories, status: "done", taskId, estimatedCostUsd: 0.02 };
   } catch (err) {
     logger.error({ domain, err }, "onpage audit exception");
     return errorResult;
