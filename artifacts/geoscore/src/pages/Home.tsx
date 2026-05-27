@@ -350,7 +350,7 @@ export default function Home() {
             Free audit · No signup · 60 seconds
           </div>
 
-          {/* Proof points — clean single line */}
+          {/* Proof points - clean single line */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, marginTop: 24 }}>
             {["5 AI systems", "4-week roadmap", "GEO Agent included"].map((label, i) => (
               <span key={label} style={{ display: "flex", alignItems: "center" }}>

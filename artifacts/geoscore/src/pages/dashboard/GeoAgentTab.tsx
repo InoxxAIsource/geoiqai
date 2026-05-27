@@ -657,14 +657,14 @@ export function GeoAgentTab({
               )}
             </div>
 
-            {/* Visual component below agent message — only after streaming is done */}
+            {/* Visual component below agent message - only after streaming is done */}
             {msg.role === "agent" && !msg.isLoading && !msg.isStreaming && msg.visualType && msg.content && (
               <div style={{ marginLeft: 36, marginTop: 2 }}>
                 <AgentVisual visualType={msg.visualType} data={buildVisualData(msg)} />
               </div>
             )}
 
-            {/* Follow-up chips — only below the last agent message and after streaming */}
+            {/* Follow-up chips - only below the last agent message and after streaming */}
             {msg.role === "agent" && !msg.isLoading && !msg.isStreaming && msg.content && i === lastAgentIdx && msg.followUpChips && !loading && (
               <FollowUpChips chips={msg.followUpChips} onChipClick={sendMessage} />
             )}

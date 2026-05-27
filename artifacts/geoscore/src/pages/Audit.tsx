@@ -960,7 +960,7 @@ export default function Audit() {
               </div>
             </div>
 
-            {/* Score Bar — split between AI Memory and Live Web */}
+            {/* Score Bar - split between AI Memory and Live Web */}
             <div style={{ height: 8, background: "#f3f4f6", borderRadius: 4, overflow: "hidden", marginBottom: 8 }}>
               <div style={{ height: "100%", display: "flex", borderRadius: 4, overflow: "hidden" }}>
                 <div style={{ width: `${aiMemoryScore}%`, background: "#4F46E5", transition: "width 0.8s ease" }} />
@@ -1010,7 +1010,7 @@ export default function Audit() {
                 </div>
               </div>
 
-              {/* How AI systems work — collapsible explainer */}
+              {/* How AI systems work - collapsible explainer */}
               <AiExplainerBox aiMemoryScore={aiMemoryScore} liveWebScore={liveWebScore} />
 
               <SystemCard system="ChatGPT" found={auditResult.chatgptFound} score={auditResult.scoreChatgpt} detail={auditResult.chatgptDetail} rawResponse={auditResult.chatgptRawResponse} checkedAt={auditResult.createdAt} />
@@ -1174,7 +1174,7 @@ export default function Audit() {
                     <GeoFileBlock
                       title="llms.txt"
                       filename={`Save as llms.txt and upload to ${domain}/llms.txt`}
-                      instruction={`Upload this file to your web root at https://${domain}/llms.txt — it tells AI systems about your brand directly.`}
+                      instruction={`Upload this file to your web root at https://${domain}/llms.txt - it tells AI systems about your brand directly.`}
                       content={generateLlmsTxt(brandName, domain, description, socialLinks, contactEmail)}
                     />
                   )}

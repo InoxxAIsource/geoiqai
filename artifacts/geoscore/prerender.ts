@@ -69,7 +69,7 @@ const rawTemplate = fs.readFileSync(templatePath, "utf-8");
 // original Vite template. Detect by checking for the bare injection point.
 const INJECTION_POINT = '<div id="root"></div>';
 if (!rawTemplate.includes(INJECTION_POINT)) {
-  console.error("index.html already pre-rendered — run vite build before prerender");
+  console.error("index.html already pre-rendered - run vite build before prerender");
   process.exit(1);
 }
 

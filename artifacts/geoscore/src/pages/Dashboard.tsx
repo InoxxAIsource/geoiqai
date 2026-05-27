@@ -1160,7 +1160,7 @@ export default function Dashboard() {
             <div style={{ maxWidth: 520, width: "100%" }}>
               <div style={{ fontFamily: "monospace", marginBottom: 20 }}>
                 <div style={{ color: "#4ADE80", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>
-                  GeoIQ Audit Engine v2 — {scanningBrand?.domain ?? ""}
+                  GeoIQ Audit Engine v2 - {scanningBrand?.domain ?? ""}
                 </div>
                 {SCAN_STEPS.slice(0, scanStep).map((line, i) => (
                   <div key={i} style={{ display: "flex", gap: 8, color: "#94A3B8", fontSize: 12, marginBottom: 5 }}>
@@ -1869,7 +1869,7 @@ export default function Dashboard() {
                               </div>
                               <span style={{ fontSize: 12, color: "#374151", fontWeight: src.type === "yours" ? 600 : 400 }}>{src.domain}</span>
                             </div>
-                            <div style={{ fontSize: 12, color: "#374151" }}>{dr !== undefined ? dr : "—"}</div>
+                            <div style={{ fontSize: 12, color: "#374151" }}>{dr !== undefined ? dr : "-"}</div>
                             <div>
                               <span style={{ background: typeCfg.bg, color: typeCfg.text, borderRadius: 4, padding: "2px 7px", fontSize: 11, fontWeight: 500 }}>{typeCfg.label}</span>
                             </div>
