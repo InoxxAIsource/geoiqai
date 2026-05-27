@@ -619,109 +619,241 @@ function mapOnPageChecks(checks: Record<string, number>, totalPages: number): On
   ];
 }
 
+// Direct HTML crawl-based on-page audit — no DataForSEO on_page plan required.
+// Fetches the homepage (and robots.txt) and checks SEO signals via regex.
 export async function runOnPageAudit(domain: string): Promise<OnPageAuditResult> {
-  const login = process.env.DATAFORSEO_LOGIN ?? "";
-  const password = process.env.DATAFORSEO_PASSWORD ?? "";
   const errorResult: OnPageAuditResult = {
     overallScore: 0, categories: [], status: "error", taskId: null, estimatedCostUsd: 0,
   };
 
-  if (!login || !password) return errorResult;
-
-  // Strip protocol — DataForSEO expects bare domain or domain+path
-  const target = domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
-
   try {
-    // Step 1: create async crawl task
-    const createResp = await fetch(`${DATAFORSEO_BASE}/v3/on_page/task_post`, {
-      method: "POST",
-      headers: { ...getAuthHeader(), "Content-Type": "application/json" },
-      body: JSON.stringify([{
-        target,
-        max_crawl_pages: 10,
-        load_resources: false,
-        enable_javascript: false,
-        store_raw_html: false,
-        check_spell: false,
-      }]),
+    // Normalise to a full URL
+    const base = domain.startsWith("http") ? domain.replace(/\/$/, "") : `https://${domain}`;
+    const homeUrl = `${base}/`;
+
+    // Fetch homepage HTML
+    const homeResp = await fetch(homeUrl, {
+      headers: { "User-Agent": "GeoIQ-Audit/1.0 (+https://geoiqai.com)" },
       signal: AbortSignal.timeout(15000),
+      redirect: "follow",
     });
 
-    if (!createResp.ok) {
-      logger.warn({ domain, status: createResp.status }, "onpage task_post non-2xx");
-      return errorResult;
-    }
+    const isHttps = homeUrl.startsWith("https://") && homeResp.ok;
+    const finalUrl = homeResp.url ?? homeUrl;
+    const html = homeResp.ok ? await homeResp.text() : "";
 
-    const createData = (await createResp.json()) as Record<string, unknown>;
-    const taskId = String(
-      ((createData.tasks as Array<Record<string, unknown>>)?.[0])?.id ?? ""
+    // Fetch robots.txt
+    let robotsTxt = "";
+    try {
+      const robotsResp = await fetch(`${base}/robots.txt`, {
+        headers: { "User-Agent": "GeoIQ-Audit/1.0" },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (robotsResp.ok) robotsTxt = await robotsResp.text();
+    } catch { /* ignore */ }
+
+    // ---- Extract signals from HTML ----
+
+    // Title
+    const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+    const title = titleMatch ? titleMatch[1].trim() : "";
+    const hasTitle = title.length > 0;
+    const titleLen = title.length;
+    const titleScore = hasTitle ? (titleLen >= 30 && titleLen <= 70 ? 100 : 60) : 0;
+
+    // Meta description
+    const descMatch = html.match(/<meta[^>]+name=["']description["'][^>]*content=["']([^"']*)["']/i)
+      ?? html.match(/<meta[^>]+content=["']([^"']*)["'][^>]*name=["']description["']/i);
+    const description = descMatch ? descMatch[1].trim() : "";
+    const hasDesc = description.length > 0;
+    const descLen = description.length;
+    const descScore = hasDesc ? (descLen >= 80 && descLen <= 170 ? 100 : 60) : 0;
+
+    // H1
+    const h1Matches = html.match(/<h1[^>]*>/gi) ?? [];
+    const h1Count = h1Matches.length;
+    const h1Score = h1Count === 1 ? 100 : h1Count === 0 ? 0 : 50;
+
+    // H2/H3
+    const h2Matches = html.match(/<h2[^>]*>/gi) ?? [];
+    const h2Count = h2Matches.length;
+    const headingScore = h2Count >= 2 ? 100 : h2Count === 1 ? 70 : 0;
+
+    // Canonical
+    const canonicalMatch = html.match(/<link[^>]+rel=["']canonical["'][^>]*href=["']([^"']*)["']/i)
+      ?? html.match(/<link[^>]+href=["']([^"']*)["'][^>]*rel=["']canonical["']/i);
+    const hasCanonical = !!canonicalMatch;
+    const canonicalScore = hasCanonical ? 100 : 0;
+
+    // Schema markup (JSON-LD)
+    const jsonLdMatches = html.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>/gi) ?? [];
+    const hasSchema = jsonLdMatches.length > 0;
+    const schemaScore = hasSchema ? 100 : 0;
+
+    // Open Graph / social tags
+    const ogTitleMatch = html.match(/<meta[^>]+property=["']og:title["']/i);
+    const hasOgTags = !!ogTitleMatch;
+    const ogScore = hasOgTags ? 100 : 0;
+
+    // Images without alt text
+    const allImgMatches = html.match(/<img[^>]*>/gi) ?? [];
+    const imgCount = allImgMatches.length;
+    const imgsMissingAlt = allImgMatches.filter(img => !/alt=["'][^"']+["']/i.test(img)).length;
+    const imgAltScore = imgCount === 0 ? 100 : Math.round((1 - imgsMissingAlt / imgCount) * 100);
+
+    // Internal links
+    const internalLinkMatches = html.match(new RegExp(`href=["']${base}[^"']*["']|href=["']/[^"']*["']`, "gi")) ?? [];
+    const internalLinkCount = internalLinkMatches.length;
+    const internalLinksScore = internalLinkCount >= 10 ? 100 : internalLinkCount >= 5 ? 70 : internalLinkCount >= 2 ? 50 : 20;
+
+    // Robots.txt — check if GPTBot / AI crawlers are blocked
+    const blocksGptBot = /User-agent:\s*GPTBot[\s\S]*?Disallow:\s*\//i.test(robotsTxt);
+    const blocksClaudeBot = /User-agent:\s*ClaudeBot[\s\S]*?Disallow:\s*\//i.test(robotsTxt);
+    const aiCrawlerScore = blocksGptBot || blocksClaudeBot ? 0 : 100;
+
+    // Viewport / mobile meta
+    const viewportMatch = html.match(/<meta[^>]+name=["']viewport["']/i);
+    const mobileScore = viewportMatch ? 100 : 0;
+
+    logger.info({
+      domain, hasTitle, titleLen, hasDesc, descLen, h1Count, h2Count,
+      hasCanonical, hasSchema, imgCount, imgsMissingAlt, internalLinkCount,
+      blocksGptBot, blocksClaudeBot, isHttps,
+    }, "onpage audit direct crawl result");
+
+    // ---- Build categories ----
+
+    const content: OnPageCheck[] = [
+      {
+        name: "Meta title",
+        score: titleScore,
+        status: checkStatus(titleScore),
+        detail: hasTitle
+          ? `Title: "${title.slice(0, 60)}${title.length > 60 ? "..." : ""}" (${titleLen} chars)`
+          : "No title tag found",
+        fix: "Add a unique <title> tag (50-60 chars) to every page. Use your primary keyword near the start. For React, use react-helmet or the <title> inside a Helmet component.",
+      },
+      {
+        name: "Meta description",
+        score: descScore,
+        status: checkStatus(descScore),
+        detail: hasDesc
+          ? `Description is ${descLen} chars (ideal: 120-160)`
+          : "No meta description found",
+        fix: "Add a <meta name='description'> tag (120-160 chars) to every page. Write it as a clear answer to what the page covers — AI engines extract this directly as context.",
+      },
+      {
+        name: "H1 tag structure",
+        score: h1Score,
+        status: checkStatus(h1Score),
+        detail: h1Count === 0 ? "No H1 tag found" : h1Count === 1 ? "One H1 tag found (correct)" : `${h1Count} H1 tags found — should be exactly one`,
+        fix: "Every page needs exactly one <h1> tag. Put the core answer or primary keyword in the H1 — AI engines treat it as the definitive label for the page.",
+      },
+      {
+        name: "Heading hierarchy (H2/H3)",
+        score: headingScore,
+        status: checkStatus(headingScore),
+        detail: h2Count === 0 ? "No H2 subheadings found" : `${h2Count} H2 headings found`,
+        fix: "Add H2 and H3 subheadings that read like questions or section topics. AI engines use heading structure to extract quotable chunks from your content.",
+      },
+      {
+        name: "Open Graph tags",
+        score: ogScore,
+        status: checkStatus(ogScore),
+        detail: hasOgTags ? "Open Graph tags present" : "No og:title tag found",
+        fix: "Add og:title, og:description, og:image, and og:url to every page. These help AI engines and social platforms understand your page's identity and content.",
+      },
+    ];
+
+    const technical: OnPageCheck[] = [
+      {
+        name: "HTTPS",
+        score: isHttps ? 100 : 0,
+        status: checkStatus(isHttps ? 100 : 0),
+        detail: isHttps ? "Site is served over HTTPS" : "Site is not on HTTPS",
+        fix: "Set up an SSL certificate and force all traffic to HTTPS with a 301 redirect. Cloudflare, Vercel, and Netlify all provide free SSL. Check for mixed content (HTTP assets on an HTTPS page) in Chrome DevTools.",
+      },
+      {
+        name: "Canonical tag",
+        score: canonicalScore,
+        status: checkStatus(canonicalScore),
+        detail: hasCanonical ? `Canonical URL: ${canonicalMatch![1]}` : "No canonical tag found",
+        fix: "Add <link rel='canonical' href='YOUR_PAGE_URL'> to every page. This tells search engines and AI crawlers the definitive URL to index, preventing duplicate content issues.",
+      },
+      {
+        name: "Mobile viewport tag",
+        score: mobileScore,
+        status: checkStatus(mobileScore),
+        detail: viewportMatch ? "Viewport meta tag present" : "No viewport meta tag found",
+        fix: "Add <meta name='viewport' content='width=device-width, initial-scale=1'> inside your <head>. This is required for mobile-friendly rendering and influences how AI crawlers score your page.",
+      },
+      {
+        name: "AI crawler access (robots.txt)",
+        score: aiCrawlerScore,
+        status: checkStatus(aiCrawlerScore),
+        detail: blocksGptBot
+          ? "robots.txt is blocking GPTBot (ChatGPT crawler)"
+          : blocksClaudeBot
+            ? "robots.txt is blocking ClaudeBot"
+            : robotsTxt
+              ? "robots.txt does not block major AI crawlers"
+              : "No robots.txt found (AI crawlers have full access)",
+        fix: "Check your robots.txt for 'Disallow: /' under 'User-agent: GPTBot' or 'User-agent: ClaudeBot'. Remove those rules to let ChatGPT and Claude index your content. This is often set accidentally by default CMS configs.",
+      },
+    ];
+
+    const authority: OnPageCheck[] = [
+      {
+        name: "Schema.org markup (JSON-LD)",
+        score: schemaScore,
+        status: checkStatus(schemaScore),
+        detail: hasSchema ? `${jsonLdMatches.length} JSON-LD block(s) found` : "No structured data found",
+        fix: "Add JSON-LD schema to key pages. Start with Organization schema on the homepage, Article on blog posts, FAQPage on FAQ sections. AI engines use schema to identify your brand as an entity. Test at validator.schema.org.",
+      },
+      {
+        name: "Internal links",
+        score: internalLinksScore,
+        status: checkStatus(internalLinksScore),
+        detail: `${internalLinkCount} internal link(s) on homepage`,
+        fix: "Add more internal links between your pages. A well-linked site lets AI crawlers discover all your content from the homepage. Link to your most important pages from the nav and from body content.",
+      },
+    ];
+
+    const engagement: OnPageCheck[] = [
+      {
+        name: "Image alt text",
+        score: imgAltScore,
+        status: checkStatus(imgAltScore),
+        detail: imgCount === 0
+          ? "No images found on homepage"
+          : imgsMissingAlt === 0
+            ? `All ${imgCount} image(s) have alt text`
+            : `${imgsMissingAlt} of ${imgCount} image(s) missing alt text`,
+        fix: "Add descriptive alt text to every meaningful image. Include your brand name, product names, and relevant keywords naturally. Alt text is a primary way AI image models understand entities on your page.",
+      },
+    ];
+
+    const avgScore = (items: OnPageCheck[]) =>
+      items.length ? Math.round(items.reduce((s, c) => s + c.score, 0) / items.length) : 0;
+
+    const categories: OnPageCategory[] = [
+      { name: "Content Quality", score: avgScore(content), checks: content },
+      { name: "Technical Structure", score: avgScore(technical), checks: technical },
+      { name: "Authority Signals", score: avgScore(authority), checks: authority },
+      { name: "Engagement Signals", score: avgScore(engagement), checks: engagement },
+    ];
+
+    // Overall score = weighted average (content 40%, technical 30%, authority 20%, engagement 10%)
+    const overallScore = Math.round(
+      avgScore(content) * 0.4 +
+      avgScore(technical) * 0.3 +
+      avgScore(authority) * 0.2 +
+      avgScore(engagement) * 0.1
     );
 
-    if (!taskId) {
-      logger.warn({ domain }, "onpage task_post returned no task id");
-      return errorResult;
-    }
-
-    logger.info({ domain, taskId }, "onpage task created, polling summary/task_get");
-
-    // Step 2: poll summary/task_get until crawl_progress = "finished" (up to 90s)
-    // The correct endpoint for fetching results of a previously created on_page task.
-    let summaryResult: Record<string, unknown> | null = null;
-    for (let attempt = 0; attempt < 12; attempt++) {
-      await new Promise(r => setTimeout(r, attempt === 0 ? 8000 : 7000));
-      try {
-        const summResp = await fetch(`${DATAFORSEO_BASE}/v3/on_page/summary/task_get/${taskId}`, {
-          method: "GET",
-          headers: getAuthHeader(),
-          signal: AbortSignal.timeout(10000),
-        });
-        if (!summResp.ok) {
-          logger.warn({ domain, taskId, attempt, status: summResp.status }, "onpage summary/task_get non-2xx");
-          continue;
-        }
-        const summData = (await summResp.json()) as Record<string, unknown>;
-        const res = ((summData.tasks as Array<Record<string, unknown>>)?.[0]
-          ?.result as Array<Record<string, unknown>>)?.[0];
-
-        if (!res) continue;
-
-        const progress = String(res.crawl_progress ?? "");
-        logger.info({ domain, taskId, attempt, progress }, "onpage poll");
-
-        if (progress === "finished") {
-          summaryResult = res;
-          break;
-        }
-        // After 6 attempts (~50s), accept partial results
-        if (attempt >= 6 && res) {
-          summaryResult = res;
-          break;
-        }
-      } catch (pollErr) {
-        logger.warn({ domain, taskId, attempt, pollErr }, "onpage poll error");
-      }
-    }
-
-    if (!summaryResult) {
-      logger.warn({ domain, taskId }, "onpage audit timed out — no summary result");
-      return { overallScore: 0, categories: [], status: "pending", taskId, estimatedCostUsd: 0.02 };
-    }
-
-    const pageMetrics = (summaryResult.page_metrics ?? {}) as Record<string, unknown>;
-    const onpageScore = Number(pageMetrics.onpage_score ?? 0);
-    const rawChecks = (pageMetrics.checks ?? {}) as Record<string, number>;
-
-    const crawlStatus = (summaryResult.crawl_status ?? {}) as Record<string, unknown>;
-    const totalPages = Number(crawlStatus.pages_crawled ?? pageMetrics.total ?? 1) || 1;
-
-    logger.info({ domain, taskId, onpageScore, totalPages, checkKeys: Object.keys(rawChecks), rawChecks }, "onpage audit result");
-
-    const categories = mapOnPageChecks(rawChecks, totalPages);
-    const overallScore = Math.round(onpageScore);
-
-    return { overallScore, categories, status: "done", taskId, estimatedCostUsd: 0.02 };
+    return { overallScore, categories, status: "done", taskId: null, estimatedCostUsd: 0 };
   } catch (err) {
-    logger.error({ domain, err }, "onpage audit exception");
+    logger.error({ domain, err }, "onpage direct crawl exception");
     return errorResult;
   }
 }
