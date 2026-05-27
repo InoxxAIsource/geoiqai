@@ -1,6 +1,7 @@
 import { db, keywordCacheTable, dataforseoCacheTable } from "@workspace/db";
 import { eq, gt } from "drizzle-orm";
 import type { KeywordData } from "@workspace/db";
+import { logger } from "./logger";
 
 const DATAFORSEO_BASE = "https://api.dataforseo.com";
 
@@ -693,6 +694,9 @@ export async function runOnPageAudit(domain: string): Promise<OnPageAuditResult>
     const totalPages = Number(
       crawlStatus.pages_crawled ?? pageMetrics.total ?? Object.values(rawChecks).reduce((a, b) => Math.max(a, b), 1)
     ) || 1;
+
+    // Diagnostic: log raw DataForSEO response so we can verify key names
+    logger.info({ domain, onpageScore, totalPages, crawlStatus, rawChecks }, "onpage audit raw dataforseo response");
 
     const categories = mapOnPageChecks(rawChecks, totalPages);
     const overallScore = Math.round(onpageScore);
