@@ -106,3 +106,7 @@ Sitemap URL: https://geoiqai.com/sitemap.xml
 | https://geoiqai.com/blog/robots-txt-blocking-ai | 25 May 2026 |
 | https://geoiqai.com/blog/what-is-geo-score | 25 May 2026 |
 | https://geoiqai.com/blog/geo-vs-seo-2026 | 25 May 2026 |
+| https://geoiqai.com/geoiq-vs-semrush | 27 May 2026 |
+| https://geoiqai.com/perplexity-seo | 27 May 2026 |
+| https://geoiqai.com/chatgpt-brand-visibility | 27 May 2026 |
+| https://geoiqai.com/geoiq-vs-rankscale | 27 May 2026 |
