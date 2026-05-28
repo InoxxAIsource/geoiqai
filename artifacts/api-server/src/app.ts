@@ -1,5 +1,6 @@
 import express, { type Express } from "express";
 import cors from "cors";
+import path from "path";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import seoPagesRouter from "./routes/seo-pages";
@@ -45,6 +46,13 @@ app.use("/api/payment/webhook", express.raw({ type: "application/json" }), (req,
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve sitemap.xml directly from source - bypasses CDN/build cache
+app.get("/sitemap.xml", (_req, res) => {
+  res.setHeader("Content-Type", "text/xml; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  res.sendFile(path.resolve(process.cwd(), "../geoscore/public/sitemap.xml"));
+});
 
 app.use(seoPagesRouter);
 app.use(seoPagesRouter2);
