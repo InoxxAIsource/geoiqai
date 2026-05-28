@@ -65,7 +65,10 @@ export default defineConfig({
       process.env.NODE_ENV !== "production"
         ? {
             "Cache-Control": "no-store, no-cache, must-revalidate",
-            Pragma: "no-cache",
+            "Pragma": "no-cache",
+            "X-Frame-Options": "SAMEORIGIN",
+            "X-Content-Type-Options": "nosniff",
+            "Referrer-Policy": "strict-origin-when-cross-origin",
           }
         : {},
   },

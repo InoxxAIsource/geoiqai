@@ -29,6 +29,14 @@ app.use(
 );
 app.use(cors());
 
+// Security headers on all responses
+app.use((_req, res, next) => {
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  next();
+});
+
 // Capture raw body for Razorpay webhook signature verification before JSON parsing
 app.use("/api/payment/webhook", express.raw({ type: "application/json" }), (req, _res, next) => {
   (req as express.Request & { rawBody?: Buffer }).rawBody = req.body as Buffer;
