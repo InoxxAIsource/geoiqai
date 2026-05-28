@@ -7,7 +7,19 @@ id = "3B4_FFSkEVBkAeYMFRJ2e"
 [[services]]
 localPort = 8080
 name = "API Server"
-paths = ["/api", "/perplexity-seo", "/chatgpt-brand-visibility", "/geoiq-vs-rankscale"]
+paths = [
+  "/api",
+  "/perplexity-seo",
+  "/chatgpt-brand-visibility",
+  "/geoiq-vs-rankscale",
+  "/generative-engine-optimization",
+  "/google-ai-overview-seo",
+  "/geo-optimization-checklist",
+  "/gemini-seo",
+  "/ai-search-optimization",
+  "/geoiq-vs-profound",
+  "/rankscale-alternative"
+]
 
 [services.development]
 run = "pnpm --filter @workspace/api-server run dev"
