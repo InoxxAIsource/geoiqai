@@ -431,12 +431,30 @@ export interface OnPageCategory {
   checks: OnPageCheck[];
 }
 
+export interface OnPagePerformance {
+  ttfbMs: number;
+  pageSpeedScore: number | null;
+  lcp: number | null;
+  cls: number | null;
+  fcp: number | null;
+}
+
+export interface OnPageTechStack {
+  cms: string | null;
+  framework: string | null;
+  cdn: string | null;
+  analytics: string[];
+  server: string | null;
+}
+
 export interface OnPageAuditResult {
   overallScore: number;
   categories: OnPageCategory[];
   status: "done" | "pending" | "error";
   taskId: string | null;
   estimatedCostUsd: number;
+  performance?: OnPagePerformance;
+  techStack?: OnPageTechStack;
 }
 
 function checkStatus(score: number): "pass" | "warn" | "fail" {
@@ -631,16 +649,80 @@ export async function runOnPageAudit(domain: string): Promise<OnPageAuditResult>
     const base = domain.startsWith("http") ? domain.replace(/\/$/, "") : `https://${domain}`;
     const homeUrl = `${base}/`;
 
-    // Fetch homepage HTML
+    // Fetch homepage HTML and measure TTFB
+    const fetchStart = Date.now();
     const homeResp = await fetch(homeUrl, {
       headers: { "User-Agent": "GeoIQ-Audit/1.0 (+https://geoiqai.com)" },
       signal: AbortSignal.timeout(15000),
       redirect: "follow",
     });
+    const ttfbMs = Date.now() - fetchStart;
+
+    // Start Google PageSpeed Insights call concurrently (free, no key needed)
+    const finalUrl = homeResp.url ?? homeUrl;
+    const psiPromise = fetch(
+      `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(finalUrl)}&strategy=mobile&category=performance`,
+      { signal: AbortSignal.timeout(20000) },
+    ).then(r => r.ok ? r.json() as Promise<Record<string, unknown>> : null).catch(() => null);
 
     const isHttps = homeUrl.startsWith("https://") && homeResp.ok;
-    const finalUrl = homeResp.url ?? homeUrl;
     const html = homeResp.ok ? await homeResp.text() : "";
+
+    // ---- Security headers ----
+    const hsts = homeResp.headers.get("strict-transport-security") !== null;
+    const xFrameOptions = homeResp.headers.get("x-frame-options") !== null;
+    const xContentTypeOptions = homeResp.headers.get("x-content-type-options") !== null;
+    const cspHeader = homeResp.headers.get("content-security-policy");
+    const hasCsp = cspHeader !== null;
+    const referrerPolicy = homeResp.headers.get("referrer-policy") !== null;
+    const serverHeader = homeResp.headers.get("server") ?? "";
+
+    // ---- Technology stack detection ----
+    let cms: string | null = null;
+    if (/wp-content|wp-includes/i.test(html)) cms = "WordPress";
+    else if (/webflow\.com|\.wf-page|x-wf-site/i.test(html) || homeResp.headers.get("x-wf-site")) cms = "Webflow";
+    else if (/<meta[^>]+generator["']?\s*=?\s*["']Ghost/i.test(html)) cms = "Ghost";
+    else if (/squarespace\.com|static\.squarespace/i.test(html)) cms = "Squarespace";
+    else if (/shopify\.com|cdn\.shopify/i.test(html)) cms = "Shopify";
+    else {
+      const genMatch = html.match(/<meta[^>]+name=["']generator["'][^>]*content=["']([^"']{2,40})["']/i);
+      if (genMatch) cms = genMatch[1].split(" ")[0] ?? null;
+    }
+
+    let framework: string | null = null;
+    if (/_next\/static/i.test(html)) framework = "Next.js";
+    else if (/__gatsby|gatsby-/i.test(html)) framework = "Gatsby";
+    else if (/nuxt|__NUXT__/i.test(html)) framework = "Nuxt.js";
+    else if (/data-reactroot|__NEXT_DATA__|react-dom/i.test(html)) framework = "React";
+    else if (/ng-version|angular\.min\.js/i.test(html)) framework = "Angular";
+    else if (/__svelte|svelte\.dev/i.test(html)) framework = "Svelte";
+    else if (/vue\.js|vue\.min\.js|__vue__/i.test(html)) framework = "Vue.js";
+    else if (serverHeader.toLowerCase().includes("vercel") || homeResp.headers.get("x-vercel-id")) framework = framework ?? null;
+
+    let cdn: string | null = null;
+    if (homeResp.headers.get("cf-ray")) cdn = "Cloudflare";
+    else if (homeResp.headers.get("x-vercel-id")) cdn = "Vercel";
+    else if (homeResp.headers.get("x-nf-request-id")) cdn = "Netlify";
+    else if (homeResp.headers.get("x-amz-cf-id") || homeResp.headers.get("x-amz-request-id")) cdn = "AWS CloudFront";
+    else if ((homeResp.headers.get("x-served-by") ?? "").includes("fastly")) cdn = "Fastly";
+
+    const analytics: string[] = [];
+    if (/gtag\(|G-[A-Z0-9]{6,}|analytics\.google\.com/i.test(html)) analytics.push("Google Analytics");
+    if (/googletagmanager\.com/i.test(html)) analytics.push("Google Tag Manager");
+    if (/hotjar\.com|_hjSettings/i.test(html)) analytics.push("Hotjar");
+    if (/mixpanel\.com|mixpanel\.init/i.test(html)) analytics.push("Mixpanel");
+    if (/posthog\.com|posthog\.init/i.test(html)) analytics.push("PostHog");
+    if (/plausible\.io/i.test(html)) analytics.push("Plausible");
+    if (/crisp\.chat|crispSDK/i.test(html)) analytics.push("Crisp");
+    if (/intercom\.com|Intercom\(/i.test(html)) analytics.push("Intercom");
+
+    const techStack: OnPageTechStack = {
+      cms,
+      framework,
+      cdn,
+      analytics,
+      server: serverHeader.split("/")[0].trim() || null,
+    };
 
     // Fetch robots.txt
     let robotsTxt = "";
@@ -765,6 +847,12 @@ export async function runOnPageAudit(domain: string): Promise<OnPageAuditResult>
       },
     ];
 
+    // ---- Security header scores ----
+    const hstsScore = hsts ? 100 : 0;
+    const xFrameScore = xFrameOptions || hasCsp ? 100 : 0;
+    const xCtoScore = xContentTypeOptions ? 100 : 0;
+    const securityHeadersPassCount = [hsts, xFrameOptions || hasCsp, xContentTypeOptions, referrerPolicy].filter(Boolean).length;
+
     const technical: OnPageCheck[] = [
       {
         name: "HTTPS",
@@ -800,6 +888,34 @@ export async function runOnPageAudit(domain: string): Promise<OnPageAuditResult>
               : "No robots.txt found (AI crawlers have full access)",
         fix: "Check your robots.txt for 'Disallow: /' under 'User-agent: GPTBot' or 'User-agent: ClaudeBot'. Remove those rules to let ChatGPT and Claude index your content. This is often set accidentally by default CMS configs.",
       },
+      // ---- Security headers ----
+      {
+        name: "HSTS (Strict-Transport-Security)",
+        score: hstsScore,
+        status: checkStatus(hstsScore),
+        detail: hsts
+          ? "HSTS header is set - browsers always use HTTPS"
+          : "HSTS header missing - browsers may load HTTP on first visit",
+        fix: "Add 'Strict-Transport-Security: max-age=31536000; includeSubDomains' to your server response headers. On Cloudflare, enable HSTS in SSL/TLS > Edge Certificates. On Vercel/Netlify, add it in headers config.",
+      },
+      {
+        name: "Clickjacking protection",
+        score: xFrameScore,
+        status: checkStatus(xFrameScore),
+        detail: (xFrameOptions || hasCsp)
+          ? "X-Frame-Options or CSP frame-ancestors is set"
+          : "No clickjacking protection header found",
+        fix: "Add 'X-Frame-Options: SAMEORIGIN' or a CSP header with 'frame-ancestors self' to prevent your site from being embedded in malicious iframes. This is a standard trust signal that security scanners check.",
+      },
+      {
+        name: "MIME-type sniffing protection",
+        score: xCtoScore,
+        status: checkStatus(xCtoScore),
+        detail: xContentTypeOptions
+          ? "X-Content-Type-Options: nosniff is set"
+          : "X-Content-Type-Options header missing",
+        fix: "Add 'X-Content-Type-Options: nosniff' to your server headers. This prevents browsers from guessing file types and is a basic security hardening step. One line in your server or CDN config.",
+      },
     ];
 
     const authority: OnPageCheck[] = [
@@ -833,6 +949,65 @@ export async function runOnPageAudit(domain: string): Promise<OnPageAuditResult>
       },
     ];
 
+    // ---- Await PageSpeed Insights ----
+    let pageSpeedScore: number | null = null;
+    let lcp: number | null = null;
+    let cls: number | null = null;
+    let fcp: number | null = null;
+
+    try {
+      const psiData = await psiPromise;
+      if (psiData) {
+        const lhr = (psiData as Record<string, unknown>).lighthouseResult as Record<string, unknown> | undefined;
+        const perfScore = ((lhr?.categories as Record<string, unknown>)?.performance as Record<string, unknown>)?.score;
+        pageSpeedScore = perfScore != null ? Math.round(Number(perfScore) * 100) : null;
+        const audits = lhr?.audits as Record<string, Record<string, unknown>> | undefined;
+        const lcpMs = audits?.["largest-contentful-paint"]?.numericValue;
+        const fcpMs = audits?.["first-contentful-paint"]?.numericValue;
+        const clsVal = audits?.["cumulative-layout-shift"]?.numericValue;
+        lcp = lcpMs != null ? Math.round(Number(lcpMs)) / 1000 : null;
+        fcp = fcpMs != null ? Math.round(Number(fcpMs)) / 1000 : null;
+        cls = clsVal != null ? Math.round(Number(clsVal) * 1000) / 1000 : null;
+      }
+    } catch { /* PSI is optional, ignore */ }
+
+    // Performance category checks
+    const ttfbScore = ttfbMs < 800 ? 100 : ttfbMs < 1800 ? 60 : 20;
+    const speedScore = pageSpeedScore != null ? pageSpeedScore : null;
+    const lcpScore = lcp != null ? (lcp <= 2.5 ? 100 : lcp <= 4.0 ? 60 : 20) : null;
+    const clsScore = cls != null ? (cls <= 0.1 ? 100 : cls <= 0.25 ? 60 : 20) : null;
+
+    const performanceChecks: OnPageCheck[] = [
+      {
+        name: "Time to First Byte (TTFB)",
+        score: ttfbScore,
+        status: checkStatus(ttfbScore),
+        detail: `TTFB: ${ttfbMs}ms${ttfbMs < 800 ? " (fast)" : ttfbMs < 1800 ? " (acceptable)" : " (slow - fix this)"}`,
+        fix: "A high TTFB usually means a slow server or no CDN. Put your site behind Cloudflare (free tier works) or move to Vercel/Netlify. For server-side apps, add Redis caching for database queries. Target under 800ms.",
+      },
+      ...(speedScore != null ? [{
+        name: "Mobile PageSpeed score",
+        score: speedScore,
+        status: checkStatus(speedScore),
+        detail: `Google PageSpeed (mobile): ${speedScore}/100${speedScore >= 90 ? " (excellent)" : speedScore >= 50 ? " (needs work)" : " (critical - hurting crawlability)"}`,
+        fix: "Key fixes: compress images (use WebP format), remove unused JavaScript, add lazy loading to images below the fold. Run the free test at pagespeed.web.dev for the full breakdown with specific line-by-line fixes.",
+      }] : []),
+      ...(lcp != null ? [{
+        name: "Largest Contentful Paint (LCP)",
+        score: lcpScore ?? 50,
+        status: checkStatus(lcpScore ?? 50),
+        detail: `LCP: ${lcp}s${lcp <= 2.5 ? " (good - under 2.5s)" : lcp <= 4.0 ? " (needs improvement)" : " (poor - over 4s)"}`,
+        fix: "LCP is usually your hero image or largest text block. Preload it with <link rel='preload'>, serve images in WebP format, and make sure your server responds fast (see TTFB above). Target under 2.5 seconds.",
+      }] : []),
+      ...(cls != null ? [{
+        name: "Cumulative Layout Shift (CLS)",
+        score: clsScore ?? 50,
+        status: checkStatus(clsScore ?? 50),
+        detail: `CLS: ${cls}${cls <= 0.1 ? " (good - stable layout)" : cls <= 0.25 ? " (moderate shifting)" : " (poor - content jumps around)"}`,
+        fix: "Layout shift happens when elements load without reserved space. Set explicit width/height on all images and video embeds. Avoid injecting content above existing content. For ads or embeds, reserve their space with min-height.",
+      }] : []),
+    ];
+
     const avgScore = (items: OnPageCheck[]) =>
       items.length ? Math.round(items.reduce((s, c) => s + c.score, 0) / items.length) : 0;
 
@@ -841,17 +1016,34 @@ export async function runOnPageAudit(domain: string): Promise<OnPageAuditResult>
       { name: "Technical Structure", score: avgScore(technical), checks: technical },
       { name: "Authority Signals", score: avgScore(authority), checks: authority },
       { name: "Engagement Signals", score: avgScore(engagement), checks: engagement },
+      { name: "Performance", score: avgScore(performanceChecks), checks: performanceChecks },
     ];
 
-    // Overall score = weighted average (content 40%, technical 30%, authority 20%, engagement 10%)
+    // Overall score = weighted average
     const overallScore = Math.round(
-      avgScore(content) * 0.4 +
-      avgScore(technical) * 0.3 +
-      avgScore(authority) * 0.2 +
-      avgScore(engagement) * 0.1
+      avgScore(content) * 0.35 +
+      avgScore(technical) * 0.30 +
+      avgScore(authority) * 0.15 +
+      avgScore(engagement) * 0.10 +
+      avgScore(performanceChecks) * 0.10
     );
 
-    return { overallScore, categories, status: "done", taskId: null, estimatedCostUsd: 0 };
+    const performance: OnPagePerformance = {
+      ttfbMs,
+      pageSpeedScore,
+      lcp,
+      cls,
+      fcp,
+    };
+
+    logger.info({
+      domain, ttfbMs, pageSpeedScore, lcp, cls, fcp,
+      hsts, xFrameOptions: xFrameOptions || hasCsp, xContentTypeOptions,
+      securityHeadersPassCount,
+      cms, framework, cdn, analyticsCount: analytics.length,
+    }, "onpage audit complete");
+
+    return { overallScore, categories, status: "done", taskId: null, estimatedCostUsd: 0, performance, techStack };
   } catch (err) {
     logger.error({ domain, err }, "onpage direct crawl exception");
     return errorResult;

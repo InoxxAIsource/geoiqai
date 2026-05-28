@@ -369,7 +369,12 @@ export default function Dashboard() {
   const [backlinkError, setBacklinkError] = useState<string | null>(null);
   const [citationGaps, setCitationGaps] = useState<Array<{ url: string; domain: string; domainRank: number; refDomainsCount: number }> | null>(null);
   const [citationGapsLoading, setCitationGapsLoading] = useState(false);
-  const [onPageResult, setOnPageResult] = useState<{ overallScore: number; categories: Array<{ name: string; score: number; checks: Array<{ name: string; status: string; detail: string; score: number }> }> } | null>(null);
+  const [onPageResult, setOnPageResult] = useState<{
+    overallScore: number;
+    categories: Array<{ name: string; score: number; checks: Array<{ name: string; status: string; detail: string; fix?: string; score: number }> }>;
+    performance?: { ttfbMs: number; pageSpeedScore: number | null; lcp: number | null; cls: number | null; fcp: number | null };
+    techStack?: { cms: string | null; framework: string | null; cdn: string | null; analytics: string[]; server: string | null };
+  } | null>(null);
   const [onPageLoading, setOnPageLoading] = useState(false);
   const [onPageBrandId, setOnPageBrandId] = useState<string | null>(null);
   const [llmTopDomains, setLlmTopDomains] = useState<Array<{ domain: string; mentions: number; mentionRate: number }> | null>(null);
@@ -2427,81 +2432,237 @@ export default function Dashboard() {
                       <AuditReportView auditResult={lastScanResult} />
 
                       {/* OnPage Audit Section */}
-                      <div style={{ marginTop: 20, background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
-                        <div style={{ padding: "14px 16px", borderBottom: "0.5px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ marginTop: 20, background: "white", border: "0.5px solid #e5e7eb", borderRadius: 12, overflow: "hidden" }}>
+                        {/* Header */}
+                        <div style={{ padding: "14px 18px", borderBottom: "0.5px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                           <div>
-                            <div style={{ fontSize: 14, fontWeight: 600, color: "#111827" }}>OnPage audit</div>
-                            <div style={{ fontSize: 11, color: "#6b7280", marginTop: 1 }}>Full crawl of your site's technical, content, and authority signals</div>
+                            <div style={{ fontSize: 14, fontWeight: 600, color: "#111827" }}>Site Health Audit</div>
+                            <div style={{ fontSize: 11, color: "#6b7280", marginTop: 1 }}>Performance, security headers, tech stack, content and authority signals</div>
                           </div>
-                          {(!onPageResult || onPageBrandId !== selectedBrand?.id) && (
+                          {(!onPageResult || onPageBrandId !== selectedBrand?.id) ? (
                             <button
                               onClick={handleRunOnPageAudit}
                               disabled={onPageLoading}
                               style={{ background: onPageLoading ? "#f3f4f6" : "#4F46E5", color: onPageLoading ? "#9ca3af" : "white", border: "none", borderRadius: 7, padding: "7px 16px", fontSize: 12, fontWeight: 500, cursor: onPageLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}
                             >
-                              {onPageLoading ? "Crawling (30-45s)..." : "Run OnPage audit"}
+                              {onPageLoading ? "Scanning..." : "Run audit"}
+                            </button>
+                          ) : (
+                            <button onClick={handleRunOnPageAudit} disabled={onPageLoading} style={{ background: "transparent", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "5px 12px", fontSize: 11, color: "#6b7280", cursor: "pointer" }}>
+                              Re-run
                             </button>
                           )}
                         </div>
 
-                        {onPageResult && onPageBrandId === selectedBrand?.id ? (
-                          <div style={{ padding: 16 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-                              <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 32, fontWeight: 800, color: onPageResult.overallScore >= 70 ? "#059669" : onPageResult.overallScore >= 40 ? "#D97706" : "#DC2626" }}>
-                                {onPageResult.overallScore}
-                              </div>
-                              <div>
-                                <div style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>Overall OnPage score</div>
-                                <div style={{ fontSize: 11, color: "#6b7280" }}>{onPageResult.overallScore >= 70 ? "Good health - focus on authority building" : onPageResult.overallScore >= 40 ? "Some issues need attention" : "Critical issues found - fix these first"}</div>
-                              </div>
-                              <button onClick={handleRunOnPageAudit} disabled={onPageLoading} style={{ marginLeft: "auto", background: "transparent", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "5px 12px", fontSize: 11, color: "#6b7280", cursor: "pointer" }}>
-                                Re-run
-                              </button>
-                            </div>
-                            {onPageResult.categories.map(cat => (
-                              <div key={cat.name} style={{ marginBottom: 18 }}>
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                                  <div style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{cat.name}</div>
-                                  <div style={{ fontSize: 12, fontWeight: 600, color: cat.score >= 70 ? "#059669" : cat.score >= 40 ? "#D97706" : "#DC2626" }}>{cat.score}/100</div>
-                                </div>
-                                {cat.checks.map(check => (
-                                  <div key={check.name} style={{ marginBottom: 2, borderBottom: "0.5px solid #f3f4f6", paddingBottom: 8 }}>
-                                    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, paddingTop: 7 }}>
-                                      <span style={{
-                                        flexShrink: 0, marginTop: 3, width: 7, height: 7, borderRadius: "50%",
-                                        background: check.status === "pass" ? "#10b981" : check.status === "warn" ? "#f59e0b" : "#ef4444",
-                                      }} />
-                                      <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ fontSize: 12, color: "#111827", fontWeight: 500 }}>{check.name}</div>
-                                        <div style={{ fontSize: 11, color: "#6b7280", marginTop: 1 }}>{check.detail}</div>
-                                      </div>
-                                      <span style={{
-                                        flexShrink: 0, fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 4,
-                                        background: check.status === "pass" ? "#ecfdf5" : check.status === "warn" ? "#fffbeb" : "#fef2f2",
-                                        color: check.status === "pass" ? "#059669" : check.status === "warn" ? "#D97706" : "#DC2626",
-                                      }}>
-                                        {check.status.toUpperCase()}
-                                      </span>
+                        {onPageResult && onPageBrandId === selectedBrand?.id ? (() => {
+                          const s = onPageResult.overallScore;
+                          const grade = s >= 90 ? "A+" : s >= 80 ? "A" : s >= 70 ? "B" : s >= 55 ? "C" : s >= 40 ? "D" : "F";
+                          const gradeColor = s >= 80 ? "#059669" : s >= 55 ? "#D97706" : "#DC2626";
+                          const gradeBg = s >= 80 ? "#ecfdf5" : s >= 55 ? "#fffbeb" : "#fef2f2";
+                          const perf = onPageResult.performance;
+                          const stack = onPageResult.techStack;
+                          const totalChecks = onPageResult.categories.reduce((acc, c) => acc + c.checks.length, 0);
+                          const passChecks = onPageResult.categories.reduce((acc, c) => acc + c.checks.filter(ch => ch.status === "pass").length, 0);
+                          const failChecks = onPageResult.categories.reduce((acc, c) => acc + c.checks.filter(ch => ch.status === "fail").length, 0);
+
+                          return (
+                            <div style={{ padding: 18 }}>
+
+                              {/* Score + Grade Hero */}
+                              <div style={{ display: "flex", alignItems: "stretch", gap: 12, marginBottom: 16 }}>
+                                {/* Overall score */}
+                                <div style={{ flex: 1, background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: "14px 16px", display: "flex", alignItems: "center", gap: 14 }}>
+                                  <div style={{ textAlign: "center" }}>
+                                    <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 42, fontWeight: 800, lineHeight: 1, color: gradeColor }}>{s}</div>
+                                    <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>/ 100</div>
+                                  </div>
+                                  <div style={{ width: "0.5px", background: "#e5e7eb", alignSelf: "stretch" }} />
+                                  <div>
+                                    <div style={{ display: "inline-block", background: gradeBg, color: gradeColor, borderRadius: 8, padding: "3px 10px", fontSize: 20, fontWeight: 800, fontFamily: "'Syne', sans-serif", marginBottom: 4 }}>{grade}</div>
+                                    <div style={{ fontSize: 12, fontWeight: 500, color: "#374151" }}>
+                                      {s >= 80 ? "Healthy site" : s >= 55 ? "Needs attention" : "Critical issues"}
                                     </div>
-                                    {check.status !== "pass" && (
-                                      <div style={{ marginLeft: 17, marginTop: 6, background: "#f8fafc", border: "0.5px solid #e2e8f0", borderRadius: 6, padding: "7px 10px" }}>
-                                        <div style={{ fontSize: 10, fontWeight: 600, color: "#4F46E5", marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.04em" }}>How to fix</div>
-                                        <div style={{ fontSize: 11, color: "#374151", lineHeight: 1.55 }}>{check.fix}</div>
+                                    <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
+                                      {passChecks}/{totalChecks} checks passing, {failChecks} failing
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* TTFB + PageSpeed mini-cards */}
+                                {perf && (
+                                  <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 130 }}>
+                                    {/* TTFB */}
+                                    <div style={{
+                                      flex: 1, background: perf.ttfbMs < 800 ? "#ecfdf5" : perf.ttfbMs < 1800 ? "#fffbeb" : "#fef2f2",
+                                      border: `0.5px solid ${perf.ttfbMs < 800 ? "#6ee7b7" : perf.ttfbMs < 1800 ? "#fcd34d" : "#fca5a5"}`,
+                                      borderRadius: 8, padding: "10px 12px",
+                                    }}>
+                                      <div style={{ fontSize: 10, fontWeight: 600, color: "#6b7280", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 3 }}>TTFB</div>
+                                      <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800, color: perf.ttfbMs < 800 ? "#059669" : perf.ttfbMs < 1800 ? "#D97706" : "#DC2626", lineHeight: 1 }}>
+                                        {perf.ttfbMs}ms
+                                      </div>
+                                      <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>
+                                        {perf.ttfbMs < 800 ? "Fast" : perf.ttfbMs < 1800 ? "Acceptable" : "Slow"}
+                                      </div>
+                                    </div>
+                                    {/* PageSpeed */}
+                                    {perf.pageSpeedScore != null && (
+                                      <div style={{
+                                        flex: 1, background: perf.pageSpeedScore >= 90 ? "#ecfdf5" : perf.pageSpeedScore >= 50 ? "#fffbeb" : "#fef2f2",
+                                        border: `0.5px solid ${perf.pageSpeedScore >= 90 ? "#6ee7b7" : perf.pageSpeedScore >= 50 ? "#fcd34d" : "#fca5a5"}`,
+                                        borderRadius: 8, padding: "10px 12px",
+                                      }}>
+                                        <div style={{ fontSize: 10, fontWeight: 600, color: "#6b7280", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 3 }}>PageSpeed</div>
+                                        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800, color: perf.pageSpeedScore >= 90 ? "#059669" : perf.pageSpeedScore >= 50 ? "#D97706" : "#DC2626", lineHeight: 1 }}>
+                                          {perf.pageSpeedScore}
+                                        </div>
+                                        <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>Mobile score</div>
                                       </div>
                                     )}
                                   </div>
-                                ))}
+                                )}
                               </div>
-                            ))}
-                          </div>
-                        ) : onPageLoading ? (
-                          <div style={{ padding: "32px 16px", textAlign: "center" }}>
-                            <div style={{ fontSize: 13, color: "#374151", fontWeight: 500, marginBottom: 4 }}>Crawling your site...</div>
-                            <div style={{ fontSize: 12, color: "#9ca3af" }}>Auditing up to 10 pages. This takes 30-45 seconds.</div>
+
+                              {/* Core Web Vitals row */}
+                              {perf && (perf.lcp != null || perf.cls != null || perf.fcp != null) && (
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 14 }}>
+                                  {perf.lcp != null && (
+                                    <div style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "10px 12px" }}>
+                                      <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 4 }}>LCP</div>
+                                      <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: perf.lcp <= 2.5 ? "#059669" : perf.lcp <= 4.0 ? "#D97706" : "#DC2626" }}>{perf.lcp}s</div>
+                                      <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>{perf.lcp <= 2.5 ? "Good" : perf.lcp <= 4.0 ? "Needs work" : "Poor"}</div>
+                                    </div>
+                                  )}
+                                  {perf.fcp != null && (
+                                    <div style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "10px 12px" }}>
+                                      <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 4 }}>FCP</div>
+                                      <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: perf.fcp <= 1.8 ? "#059669" : perf.fcp <= 3.0 ? "#D97706" : "#DC2626" }}>{perf.fcp}s</div>
+                                      <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>{perf.fcp <= 1.8 ? "Good" : perf.fcp <= 3.0 ? "Needs work" : "Poor"}</div>
+                                    </div>
+                                  )}
+                                  {perf.cls != null && (
+                                    <div style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "10px 12px" }}>
+                                      <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 4 }}>CLS</div>
+                                      <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: perf.cls <= 0.1 ? "#059669" : perf.cls <= 0.25 ? "#D97706" : "#DC2626" }}>{perf.cls}</div>
+                                      <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>{perf.cls <= 0.1 ? "Good" : perf.cls <= 0.25 ? "Needs work" : "Poor"}</div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Tech stack pills */}
+                              {stack && (stack.cms || stack.framework || stack.cdn || stack.analytics.length > 0 || stack.server) && (
+                                <div style={{ background: "#f0f4ff", border: "0.5px solid #c7d2fe", borderRadius: 8, padding: "10px 12px", marginBottom: 14 }}>
+                                  <div style={{ fontSize: 10, fontWeight: 700, color: "#4F46E5", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 8 }}>Tech Stack Detected</div>
+                                  <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6 }}>
+                                    {stack.cms && (
+                                      <span style={{ background: "#e0e7ff", color: "#3730a3", borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 600 }}>
+                                        CMS: {stack.cms}
+                                      </span>
+                                    )}
+                                    {stack.framework && (
+                                      <span style={{ background: "#dbeafe", color: "#1e40af", borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 600 }}>
+                                        {stack.framework}
+                                      </span>
+                                    )}
+                                    {stack.cdn && (
+                                      <span style={{ background: "#d1fae5", color: "#065f46", borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 600 }}>
+                                        CDN: {stack.cdn}
+                                      </span>
+                                    )}
+                                    {stack.server && !stack.cdn && (
+                                      <span style={{ background: "#f3f4f6", color: "#374151", borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 600 }}>
+                                        Server: {stack.server}
+                                      </span>
+                                    )}
+                                    {stack.analytics.map(a => (
+                                      <span key={a} style={{ background: "#fef3c7", color: "#92400e", borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 600 }}>
+                                        {a}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Category score bars */}
+                              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8, marginBottom: 18 }}>
+                                {onPageResult.categories.map(cat => {
+                                  const catGrade = cat.score >= 90 ? "A+" : cat.score >= 80 ? "A" : cat.score >= 70 ? "B" : cat.score >= 55 ? "C" : cat.score >= 40 ? "D" : "F";
+                                  const catColor = cat.score >= 70 ? "#059669" : cat.score >= 40 ? "#D97706" : "#DC2626";
+                                  const catBg = cat.score >= 70 ? "#ecfdf5" : cat.score >= 40 ? "#fffbeb" : "#fef2f2";
+                                  const catPass = cat.checks.filter(c => c.status === "pass").length;
+                                  return (
+                                    <div key={cat.name} style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "10px 12px" }}>
+                                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                                        <div style={{ fontSize: 11, fontWeight: 600, color: "#374151" }}>{cat.name}</div>
+                                        <span style={{ background: catBg, color: catColor, borderRadius: 6, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{catGrade}</span>
+                                      </div>
+                                      <div style={{ height: 5, background: "#e5e7eb", borderRadius: 99, overflow: "hidden", marginBottom: 5 }}>
+                                        <div style={{ height: "100%", width: `${cat.score}%`, background: catColor, borderRadius: 99, transition: "width 0.8s ease" }} />
+                                      </div>
+                                      <div style={{ fontSize: 10, color: "#9ca3af" }}>{catPass}/{cat.checks.length} passing</div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Detailed checks per category */}
+                              {onPageResult.categories.map(cat => (
+                                <div key={cat.name} style={{ marginBottom: 20 }}>
+                                  <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                                    <span style={{ width: 3, height: 14, borderRadius: 99, background: "#4F46E5", display: "inline-block" }} />
+                                    {cat.name}
+                                  </div>
+                                  <div style={{ display: "flex", flexDirection: "column" as const, gap: 4 }}>
+                                    {cat.checks.map(check => (
+                                      <div key={check.name} style={{
+                                        background: check.status === "pass" ? "#f9fafb" : check.status === "warn" ? "#fffdf0" : "#fff9f9",
+                                        border: `0.5px solid ${check.status === "pass" ? "#e5e7eb" : check.status === "warn" ? "#fde68a" : "#fecaca"}`,
+                                        borderRadius: 8, overflow: "hidden",
+                                      }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px" }}>
+                                          <span style={{
+                                            flexShrink: 0, width: 8, height: 8, borderRadius: "50%",
+                                            background: check.status === "pass" ? "#10b981" : check.status === "warn" ? "#f59e0b" : "#ef4444",
+                                          }} />
+                                          <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontSize: 12, color: "#111827", fontWeight: 600 }}>{check.name}</div>
+                                            <div style={{ fontSize: 11, color: "#6b7280", marginTop: 1 }}>{check.detail}</div>
+                                          </div>
+                                          <span style={{
+                                            flexShrink: 0, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 5,
+                                            background: check.status === "pass" ? "#d1fae5" : check.status === "warn" ? "#fef3c7" : "#fee2e2",
+                                            color: check.status === "pass" ? "#065f46" : check.status === "warn" ? "#92400e" : "#991b1b",
+                                          }}>
+                                            {check.status === "pass" ? "PASS" : check.status === "warn" ? "WARN" : "FAIL"}
+                                          </span>
+                                        </div>
+                                        {check.status !== "pass" && check.fix && (
+                                          <div style={{ margin: "0 12px 10px 30px", background: "white", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "8px 10px" }}>
+                                            <div style={{ fontSize: 10, fontWeight: 700, color: "#4F46E5", marginBottom: 3, textTransform: "uppercase" as const, letterSpacing: "0.04em" }}>How to fix</div>
+                                            <div style={{ fontSize: 11, color: "#374151", lineHeight: 1.6 }}>{check.fix}</div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })() : onPageLoading ? (
+                          <div style={{ padding: "40px 16px", textAlign: "center" }}>
+                            <div style={{ width: 36, height: 36, border: "3px solid #e5e7eb", borderTopColor: "#4F46E5", borderRadius: "50%", margin: "0 auto 14px", animation: "spin 0.8s linear infinite" }} />
+                            <div style={{ fontSize: 13, color: "#374151", fontWeight: 500, marginBottom: 4 }}>Scanning your site...</div>
+                            <div style={{ fontSize: 11, color: "#9ca3af" }}>Crawling page, fetching PageSpeed data, detecting tech stack. Usually takes 20-35 seconds.</div>
                           </div>
                         ) : (
-                          <div style={{ padding: "24px 16px", textAlign: "center" }}>
-                            <div style={{ fontSize: 12, color: "#9ca3af" }}>Run the OnPage audit to get a full technical breakdown across {onPageResult?.categories.length ?? 4} categories and 14+ checks.</div>
+                          <div style={{ padding: "32px 16px", textAlign: "center" }}>
+                            <div style={{ fontSize: 13, color: "#374151", fontWeight: 500, marginBottom: 6 }}>Get your full site health score</div>
+                            <div style={{ fontSize: 11, color: "#9ca3af", maxWidth: 320, margin: "0 auto 16px" }}>Checks performance (TTFB, Core Web Vitals), security headers (HSTS, CSP), tech stack, content quality, and 20+ signals in one scan.</div>
+                            <button onClick={handleRunOnPageAudit} style={{ background: "#4F46E5", color: "white", border: "none", borderRadius: 7, padding: "8px 20px", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
+                              Run audit
+                            </button>
                           </div>
                         )}
                       </div>
