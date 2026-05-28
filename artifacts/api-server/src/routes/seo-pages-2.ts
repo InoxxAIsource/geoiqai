@@ -1622,6 +1622,169 @@ function rankscaleAlternativeHtml(): string {
 }
 
 // ============================================================
+// PAGE 7: /geoiq-vs-semrush
+// ============================================================
+
+function geoiqVsSemrushHtml(): string {
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "GeoIQ vs Semrush AI Visibility: Which Tool Should You Use in 2026?",
+    "author": { "@type": "Person", "name": "Tauheed" },
+    "publisher": { "@type": "Organization", "name": "GeoIQ", "url": "https://geoiqai.com" },
+    "datePublished": "2026-05-27",
+    "dateModified": "2026-05-28",
+    "url": "https://geoiqai.com/geoiq-vs-semrush",
+    "description": "GeoIQ vs Semrush AI Visibility feature comparison. Pricing, AI systems tracked, Indian market focus, and which tool is right for your brand."
+  };
+
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      { "@type": "Question", "name": "Does Semrush track AI visibility?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Semrush launched an AI Visibility add-on in 2025. It tracks 4 AI systems - ChatGPT, Gemini, Perplexity, and Google AI Overview. It costs $99/month per domain billed annually, on top of your existing Semrush subscription." } },
+      { "@type": "Question", "name": "How many AI systems does GeoIQ track vs Semrush?", "acceptedAnswer": { "@type": "Answer", "text": "GeoIQ tracks 5 AI systems: ChatGPT, Gemini, Perplexity, Claude, and Grok. Semrush AI Visibility tracks 4 (ChatGPT, Gemini, Perplexity, Google AI Overview). GeoIQ includes Claude and Grok which Semrush does not." } },
+      { "@type": "Question", "name": "Is GeoIQ cheaper than Semrush AI Visibility?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. GeoIQ Starter is $69/month (Rs 5,999/mo INR). Semrush AI Visibility is $99/month per domain billed annually, plus the cost of your base Semrush plan. For most founders tracking one or two brands, GeoIQ is significantly cheaper." } },
+      { "@type": "Question", "name": "Can I use GeoIQ without a Semrush subscription?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. GeoIQ is a standalone product - no other subscription required. You can run a free audit at geoiqai.com in 60 seconds with no signup. Semrush AI Visibility requires an active Semrush subscription before you can add on the AI Visibility module." } },
+      { "@type": "Question", "name": "Does GeoIQ have a free audit?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. GeoIQ's free audit at geoiqai.com requires no signup and no credit card. It checks your domain across ChatGPT, Gemini, and Perplexity and returns a visibility score in about 60 seconds. Semrush does not offer a free AI visibility audit." } },
+      { "@type": "Question", "name": "Which is better for Indian startups - GeoIQ or Semrush?", "acceptedAnswer": { "@type": "Answer", "text": "GeoIQ is better for Indian startups. It offers INR pricing via Razorpay, was built with Indian founders as a primary use case, and costs significantly less. Semrush AI Visibility is USD-only and costs more when combined with the required base plan." } },
+      { "@type": "Question", "name": "Who should choose Semrush AI Visibility over GeoIQ?", "acceptedAnswer": { "@type": "Answer", "text": "Choose Semrush AI Visibility if you already pay for Semrush and want AI visibility data inside the same dashboard. The integration with Semrush's existing SEO data is a genuine advantage if you are a heavy Semrush user. If you are not already a Semrush customer, GeoIQ is likely the better starting point." } }
+    ]
+  };
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://geoiqai.com" },
+      { "@type": "ListItem", "position": 2, "name": "GeoIQ vs Semrush", "item": "https://geoiqai.com/geoiq-vs-semrush" }
+    ]
+  };
+
+  const body = `
+    <div class="breadcrumb">
+      <a href="/">Home</a>
+      <span>/</span>
+      <span>GeoIQ vs Semrush</span>
+    </div>
+
+    <div class="tag-pill">COMPARISON 2026</div>
+
+    <h1>GeoIQ vs Semrush AI Visibility: Which one actually tracks AI search?</h1>
+
+    <div class="reading-meta">
+      <span>By Tauheed, GeoIQ team</span>
+      <span>May 27, 2026</span>
+      <span>7 min read</span>
+      <span>Updated May 2026</span>
+    </div>
+
+    <p style="font-size:13px;color:#6B7280;margin-bottom:24px">Written by the GeoIQ team. We have tried to be fair about where Semrush is stronger. Check Semrush's website for their latest pricing - it changes.</p>
+
+    <div class="summary-box">
+      <div class="summary-box-label">Quick Answer</div>
+      <p>Semrush AI Visibility is a solid add-on if you already pay for Semrush. But it tracks 4 AI systems, costs $99/month per domain on top of your Semrush plan, and requires a paid subscription just to start. GeoIQ is built specifically for AI visibility - 5 systems, $69/month, free no-signup audit, and India pricing via Razorpay.</p>
+    </div>
+
+    <h2>Feature comparison</h2>
+
+    <table class="comparison-table">
+      <thead><tr><th>Feature</th><th>GeoIQ</th><th>Semrush AI Visibility</th></tr></thead>
+      <tbody>
+        <tr><td>Free audit</td><td class="yes-cell">Yes, no signup</td><td class="no-cell">No</td></tr>
+        <tr><td>AI systems tracked</td><td>5 (ChatGPT, Gemini, Perplexity, Claude, Grok)</td><td>4 (ChatGPT, Gemini, Perplexity, Google AI)</td></tr>
+        <tr><td>Requires base subscription</td><td class="yes-cell">No - standalone product</td><td class="no-cell">Yes - Semrush plan required</td></tr>
+        <tr><td>India pricing (INR)</td><td class="yes-cell">Yes, via Razorpay</td><td class="no-cell">USD only</td></tr>
+        <tr><td>GEO Agent (AI fix assistant)</td><td class="yes-cell">Yes, Claude-powered</td><td class="no-cell">No</td></tr>
+        <tr><td>Fix Actions roadmap</td><td class="yes-cell">Yes, 4-week plan</td><td class="no-cell">No</td></tr>
+        <tr><td>Citation tracking</td><td class="yes-cell">Yes</td><td class="yes-cell">Yes</td></tr>
+        <tr><td>Competitor analysis</td><td class="yes-cell">Yes</td><td class="yes-cell">Yes</td></tr>
+        <tr><td>Existing SEO data integration</td><td class="no-cell">No</td><td class="yes-cell">Yes (if on Semrush)</td></tr>
+        <tr><td>Starter price</td><td>$69/month (Rs 5,999/mo)</td><td>$99/month per domain + Semrush plan</td></tr>
+        <tr><td>Built for AI visibility</td><td class="yes-cell">Yes - purpose-built</td><td class="partial-cell">Add-on feature</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Where Semrush AI Visibility is stronger</h2>
+
+    <ul>
+      <li><strong>Existing Semrush users:</strong> If you already pay for Semrush, adding AI visibility inside the same dashboard you use daily is genuinely convenient. No new login, no context switching.</li>
+      <li><strong>Combined SEO + AI data:</strong> Semrush can show you traditional search rankings alongside AI visibility in one view. For SEO-heavy teams, that combined picture is useful.</li>
+      <li><strong>Brand history:</strong> If you have years of Semrush data on a domain, adding AI visibility creates a richer long-term record.</li>
+    </ul>
+
+    <h2>Where GeoIQ is stronger</h2>
+
+    <ul>
+      <li><strong>No subscription required to start:</strong> Run a free audit at geoiqai.com in 60 seconds. No credit card, no Semrush plan needed.</li>
+      <li><strong>More AI systems:</strong> GeoIQ tracks Claude and Grok. Semrush does not. Claude in particular is growing fast as a research tool.</li>
+      <li><strong>Built to fix, not just monitor:</strong> The GEO Agent (Claude-powered) turns your audit results into a 4-week fix roadmap, content drafts, and schema markup. Semrush tells you the score - GeoIQ helps you improve it.</li>
+      <li><strong>India pricing:</strong> INR billing via Razorpay means no international card fees and no currency conversion on your invoice.</li>
+      <li><strong>Lower cost:</strong> $69/month standalone vs $99/month per domain plus a Semrush base plan.</li>
+    </ul>
+
+    <h2>Pricing breakdown</h2>
+
+    <table class="comparison-table">
+      <thead><tr><th>Plan</th><th>GeoIQ</th><th>Semrush AI Visibility</th></tr></thead>
+      <tbody>
+        <tr><td>Free tier</td><td>Unlimited free audits, no signup</td><td>None</td></tr>
+        <tr><td>Starter</td><td>$69/mo (Rs 5,999 INR)</td><td>$99/mo per domain + Semrush plan ($139+/mo)</td></tr>
+        <tr><td>Agency</td><td>$199/mo (Rs 11,999 INR, 10 brands)</td><td>Multiple add-ons, contact for pricing</td></tr>
+        <tr><td>Billed annually?</td><td>No - monthly</td><td>Yes (annual commitment)</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Who should choose GeoIQ?</h2>
+
+    <p>GeoIQ is the better choice if you:</p>
+    <ul>
+      <li>Are a founder, indie hacker, or small team without a Semrush subscription</li>
+      <li>Want to start free without a credit card</li>
+      <li>Need India pricing (INR via Razorpay)</li>
+      <li>Want actionable fix guidance, not just a score</li>
+      <li>Track Claude or Grok specifically</li>
+    </ul>
+
+    <h2>Who should choose Semrush AI Visibility?</h2>
+
+    <p>Semrush AI Visibility is the better choice if you:</p>
+    <ul>
+      <li>Already pay for Semrush and want everything in one dashboard</li>
+      <li>Have an SEO team that lives inside Semrush daily</li>
+      <li>Need combined traditional search + AI visibility reporting</li>
+    </ul>
+
+    <h2>Bottom line</h2>
+
+    <p>Semrush AI Visibility is a reasonable feature for existing Semrush customers. But if you are not already paying for Semrush, starting with GeoIQ is the smarter move - it is purpose-built for AI visibility, costs less, has a free audit, tracks more AI systems, and actively helps you improve your score instead of just reporting it.</p>
+
+    <div class="cta-box">
+      <div class="cta-heading">Check your AI visibility score - free</div>
+      <p>No signup. No credit card. Results in 60 seconds.</p>
+      <a href="/audit" class="cta-btn">Run free audit</a>
+    </div>
+
+    <div class="related-links">
+      <div class="rel-heading">Related pages</div>
+      <a href="/geoiq-vs-rankscale">GeoIQ vs Rankscale: feature comparison</a>
+      <a href="/geoiq-vs-profound">GeoIQ vs Profound: comparison</a>
+      <a href="/rankscale-alternative">Rankscale alternative: why teams switch to GeoIQ</a>
+      <a href="/pricing">GeoIQ pricing: free and paid plans</a>
+    </div>
+  `;
+
+  return ssrHtmlShell({
+    title: "GeoIQ vs Semrush AI Visibility (2026) | Comparison",
+    description: "GeoIQ vs Semrush AI Visibility: side-by-side feature and pricing comparison. 5 AI systems vs 4, $69/mo vs $99/mo per domain, free audit, and India-specific tracking.",
+    canonical: "https://geoiqai.com/geoiq-vs-semrush",
+    schemaJson: [articleSchema, faqSchema, breadcrumbSchema],
+    body,
+    readingTime: 7,
+  });
+}
+
+// ============================================================
 // Routes
 // ============================================================
 
@@ -1665,6 +1828,12 @@ router.get("/rankscale-alternative", (_req, res) => {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("Cache-Control", "public, max-age=86400");
   res.send(rankscaleAlternativeHtml());
+});
+
+router.get("/geoiq-vs-semrush", (_req, res) => {
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=86400");
+  res.send(geoiqVsSemrushHtml());
 });
 
 export default router;

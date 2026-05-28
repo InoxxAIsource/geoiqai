@@ -18,7 +18,8 @@ paths = [
   "/gemini-seo",
   "/ai-search-optimization",
   "/geoiq-vs-profound",
-  "/rankscale-alternative"
+  "/rankscale-alternative",
+  "/geoiq-vs-semrush"
 ]
 
 [services.development]
