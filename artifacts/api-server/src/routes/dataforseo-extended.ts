@@ -18,6 +18,103 @@ import { eq, and } from "drizzle-orm";
 
 const router = Router();
 
+// ─── Public quick site health check (no auth) ────────────────────────────────
+// Fetches the homepage, measures TTFB, reads security headers, detects tech stack.
+// Intentionally skips PageSpeed Insights to keep response time under 10s.
+router.post("/onpage/quick", async (req, res): Promise<void> => {
+  const { domain } = req.body as { domain?: string };
+  if (!domain) { res.status(400).json({ error: "domain is required" }); return; }
+
+  try {
+    const base = domain.startsWith("http") ? domain.replace(/\/$/, "") : `https://${domain}`;
+    const homeUrl = `${base}/`;
+
+    const fetchStart = Date.now();
+    const homeResp = await fetch(homeUrl, {
+      headers: { "User-Agent": "GeoIQ-Audit/1.0 (+https://geoiqai.com)" },
+      signal: AbortSignal.timeout(10000),
+      redirect: "follow",
+    });
+    const ttfbMs = Date.now() - fetchStart;
+
+    const isHttps = homeUrl.startsWith("https://") && homeResp.ok;
+    const html = homeResp.ok ? await homeResp.text() : "";
+    const serverHeader = homeResp.headers.get("server") ?? "";
+
+    // Security headers
+    const hsts = homeResp.headers.get("strict-transport-security") !== null;
+    const xFrameOptions = homeResp.headers.get("x-frame-options") !== null;
+    const hasCsp = homeResp.headers.get("content-security-policy") !== null;
+    const xContentTypeOptions = homeResp.headers.get("x-content-type-options") !== null;
+    const referrerPolicy = homeResp.headers.get("referrer-policy") !== null;
+
+    // CMS detection
+    let cms: string | null = null;
+    if (/wp-content|wp-includes/i.test(html)) cms = "WordPress";
+    else if (/webflow\.com|\.wf-page/i.test(html) || homeResp.headers.get("x-wf-site")) cms = "Webflow";
+    else if (/<meta[^>]+generator["']?\s*=?\s*["']Ghost/i.test(html)) cms = "Ghost";
+    else if (/squarespace\.com|static\.squarespace/i.test(html)) cms = "Squarespace";
+    else if (/shopify\.com|cdn\.shopify/i.test(html)) cms = "Shopify";
+    else {
+      const gen = html.match(/<meta[^>]+name=["']generator["'][^>]*content=["']([^"']{2,40})["']/i);
+      if (gen) cms = gen[1].split(" ")[0] ?? null;
+    }
+
+    // Framework detection
+    let framework: string | null = null;
+    if (/_next\/static/i.test(html)) framework = "Next.js";
+    else if (/__gatsby|gatsby-/i.test(html)) framework = "Gatsby";
+    else if (/nuxt|__NUXT__/i.test(html)) framework = "Nuxt.js";
+    else if (/data-reactroot|__NEXT_DATA__|react-dom/i.test(html)) framework = "React";
+    else if (/ng-version|angular\.min\.js/i.test(html)) framework = "Angular";
+    else if (/__svelte|svelte\.dev/i.test(html)) framework = "Svelte";
+    else if (/vue\.js|vue\.min\.js|__vue__/i.test(html)) framework = "Vue.js";
+
+    // CDN detection
+    let cdn: string | null = null;
+    if (homeResp.headers.get("cf-ray")) cdn = "Cloudflare";
+    else if (homeResp.headers.get("x-vercel-id")) cdn = "Vercel";
+    else if (homeResp.headers.get("x-nf-request-id")) cdn = "Netlify";
+    else if (homeResp.headers.get("x-amz-cf-id")) cdn = "AWS CloudFront";
+    else if ((homeResp.headers.get("x-served-by") ?? "").includes("fastly")) cdn = "Fastly";
+
+    // Analytics
+    const analytics: string[] = [];
+    if (/gtag\(|G-[A-Z0-9]{6,}|analytics\.google\.com/i.test(html)) analytics.push("Google Analytics");
+    if (/googletagmanager\.com/i.test(html)) analytics.push("GTM");
+    if (/hotjar\.com|_hjSettings/i.test(html)) analytics.push("Hotjar");
+    if (/mixpanel\.com/i.test(html)) analytics.push("Mixpanel");
+    if (/posthog\.com|posthog\.init/i.test(html)) analytics.push("PostHog");
+    if (/plausible\.io/i.test(html)) analytics.push("Plausible");
+    if (/crisp\.chat|crispSDK/i.test(html)) analytics.push("Crisp");
+    if (/intercom\.com|Intercom\(/i.test(html)) analytics.push("Intercom");
+
+    const securityScore = [isHttps, hsts, xFrameOptions || hasCsp, xContentTypeOptions, referrerPolicy].filter(Boolean).length;
+
+    res.json({
+      ttfbMs,
+      isHttps,
+      security: {
+        hsts,
+        clickjacking: xFrameOptions || hasCsp,
+        mimeSniffing: xContentTypeOptions,
+        referrerPolicy,
+        score: securityScore,
+        total: 5,
+      },
+      techStack: {
+        cms,
+        framework,
+        cdn,
+        analytics,
+        server: serverHeader.split("/")[0].trim() || null,
+      },
+    });
+  } catch {
+    res.status(502).json({ error: "Could not fetch site" });
+  }
+});
+
 // ─── Public Google AI check (used by free audit - rate-limited by IP) ──────────
 
 const publicAiCheckCount = new Map<string, { count: number; resetAt: number }>();

@@ -530,6 +530,13 @@ export default function Audit() {
   const [subscriberEmail, setSubscriberEmail] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [siteHealth, setSiteHealth] = useState<{
+    ttfbMs: number;
+    isHttps: boolean;
+    security: { hsts: boolean; clickjacking: boolean; mimeSniffing: boolean; referrerPolicy: boolean; score: number; total: number };
+    techStack: { cms: string | null; framework: string | null; cdn: string | null; analytics: string[]; server: string | null };
+  } | null>(null);
+  const [siteHealthLoading, setSiteHealthLoading] = useState(false);
 
   const emailForm = useForm<z.infer<typeof emailSchema>>({
     resolver: zodResolver(emailSchema),
@@ -595,6 +602,22 @@ export default function Audit() {
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlParam]);
+
+  // Fetch quick site health after audit result arrives
+  useEffect(() => {
+    if (!auditResult?.domain) return;
+    setSiteHealth(null);
+    setSiteHealthLoading(true);
+    fetch("/api/onpage/quick", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ domain: auditResult.domain }),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setSiteHealth(data); })
+      .catch(() => {})
+      .finally(() => setSiteHealthLoading(false));
+  }, [auditResult?.domain]);
 
 
   useEffect(() => {
@@ -1205,6 +1228,110 @@ export default function Audit() {
                 </div>
               );
             })()}
+
+            {/* Site Health Card */}
+            {(siteHealthLoading || siteHealth) && (
+              <div style={{ marginBottom: 28, background: "white", border: "0.5px solid #e5e7eb", borderRadius: 12, overflow: "hidden" }}>
+                <div style={{ padding: "12px 16px", borderBottom: "0.5px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>Site Health Snapshot</div>
+                    <div style={{ fontSize: 11, color: "#6b7280", marginTop: 1 }}>TTFB, security headers, tech stack</div>
+                  </div>
+                  {siteHealthLoading && <div style={{ width: 18, height: 18, border: "2px solid #e5e7eb", borderTopColor: "#4F46E5", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />}
+                </div>
+
+                {siteHealth && (
+                  <div style={{ padding: 16 }}>
+                    {/* Row 1: TTFB + Security score */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+                      {/* TTFB */}
+                      <div style={{
+                        padding: "12px 14px", borderRadius: 10,
+                        background: siteHealth.ttfbMs < 800 ? "#ecfdf5" : siteHealth.ttfbMs < 1800 ? "#fffbeb" : "#fef2f2",
+                        border: `0.5px solid ${siteHealth.ttfbMs < 800 ? "#6ee7b7" : siteHealth.ttfbMs < 1800 ? "#fcd34d" : "#fca5a5"}`,
+                      }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "#6b7280", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 4 }}>Time to First Byte</div>
+                        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 26, fontWeight: 800, lineHeight: 1, color: siteHealth.ttfbMs < 800 ? "#059669" : siteHealth.ttfbMs < 1800 ? "#D97706" : "#DC2626" }}>
+                          {siteHealth.ttfbMs}ms
+                        </div>
+                        <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>
+                          {siteHealth.ttfbMs < 800 ? "Fast server response" : siteHealth.ttfbMs < 1800 ? "Acceptable, but could be faster" : "Slow - add a CDN or cache your pages"}
+                        </div>
+                      </div>
+
+                      {/* Security score */}
+                      <div style={{ padding: "12px 14px", borderRadius: 10, background: "#f0f4ff", border: "0.5px solid #c7d2fe" }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "#6b7280", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 4 }}>Security Headers</div>
+                        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 26, fontWeight: 800, lineHeight: 1, color: siteHealth.security.score >= 4 ? "#059669" : siteHealth.security.score >= 2 ? "#D97706" : "#DC2626" }}>
+                          {siteHealth.security.score}/{siteHealth.security.total}
+                        </div>
+                        <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" as const }}>
+                          {[
+                            { key: "isHttps", label: "HTTPS", pass: siteHealth.isHttps },
+                            { key: "hsts", label: "HSTS", pass: siteHealth.security.hsts },
+                            { key: "cj", label: "X-Frame", pass: siteHealth.security.clickjacking },
+                            { key: "mime", label: "MIME", pass: siteHealth.security.mimeSniffing },
+                            { key: "ref", label: "Referrer", pass: siteHealth.security.referrerPolicy },
+                          ].map(item => (
+                            <span key={item.key} style={{
+                              fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 99,
+                              background: item.pass ? "#d1fae5" : "#fee2e2",
+                              color: item.pass ? "#065f46" : "#991b1b",
+                            }}>
+                              {item.pass ? "+" : "-"}{item.label}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tech stack pills */}
+                    {(siteHealth.techStack.cms || siteHealth.techStack.framework || siteHealth.techStack.cdn || siteHealth.techStack.analytics.length > 0) && (
+                      <div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 8 }}>Tech Stack Detected</div>
+                        <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6 }}>
+                          {siteHealth.techStack.cms && (
+                            <span style={{ background: "#e0e7ff", color: "#3730a3", borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 600 }}>
+                              {siteHealth.techStack.cms}
+                            </span>
+                          )}
+                          {siteHealth.techStack.framework && (
+                            <span style={{ background: "#dbeafe", color: "#1e40af", borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 600 }}>
+                              {siteHealth.techStack.framework}
+                            </span>
+                          )}
+                          {siteHealth.techStack.cdn && (
+                            <span style={{ background: "#d1fae5", color: "#065f46", borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 600 }}>
+                              CDN: {siteHealth.techStack.cdn}
+                            </span>
+                          )}
+                          {siteHealth.techStack.analytics.map(a => (
+                            <span key={a} style={{ background: "#fef3c7", color: "#92400e", borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 600 }}>
+                              {a}
+                            </span>
+                          ))}
+                        </div>
+                        {!siteHealth.techStack.cdn && (
+                          <div style={{ marginTop: 10, padding: "8px 12px", background: "#fffbeb", border: "0.5px solid #fcd34d", borderRadius: 8, fontSize: 11, color: "#92400e" }}>
+                            No CDN detected. Adding Cloudflare (free) could cut your TTFB by 30-60% and improve your PageSpeed score.
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Upgrade nudge for full audit */}
+                    <div style={{ marginTop: 14, padding: "10px 14px", background: "#f0f4ff", border: "0.5px solid #c7d2fe", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" as const }}>
+                      <div style={{ fontSize: 12, color: "#374151" }}>
+                        Get the full audit with PageSpeed score, LCP, CLS, and 20+ checks in the dashboard.
+                      </div>
+                      <a href="/pricing" style={{ flexShrink: 0, fontSize: 12, fontWeight: 600, color: "#4F46E5", textDecoration: "none", whiteSpace: "nowrap" as const }}>
+                        See plans
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Section 04: GEO IQ Roadmap */}
             {(() => {
