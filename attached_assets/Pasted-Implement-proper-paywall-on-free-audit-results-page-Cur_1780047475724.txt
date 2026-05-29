@@ -1,0 +1,78 @@
+Implement proper paywall on free audit 
+results page. Currently everything is 
+free. Must match PageGains model where 
+only first 2-3 items are free.
+
+WHAT STAYS FREE:
+1. Overall GEO IQ score (0-100)
+2. Verdict badge (INVISIBLE/WEAK/AVERAGE/STRONG)
+3. ChatGPT result only — raw response visible
+4. Technical GEO audit scores (pass/fail only,
+   no descriptions)
+5. First 1 fix action only (unlocked)
+6. llms.txt download (keep free — 
+   it drives return visits)
+
+WHAT GETS LOCKED (blur + lock icon):
+1. Gemini, Perplexity, Claude, Grok 
+   responses → show card with blur overlay
+   "See what Gemini says about you →"
+   
+2. EEAT Score section → entire section 
+   blurred with lock overlay
+   "Your EEAT score and breakdown →"
+
+3. Fix Actions #2 onwards → blur all 
+   but first fix action
+   Show count: "4 more fix actions locked"
+
+4. Site Health Snapshot → blur entire section
+   "Full technical audit in dashboard →"
+
+5. llms.txt content → keep visible 
+   (it's a quick win that builds trust)
+
+PAYWALL UI (same as PageGains):
+After fix action #1, add dark section:
+
+Background: #0F0F14 (near black)
+Lock icon: 🔒 in indigo box
+Large text: "4 more fixes locked"
+Subtext: "Your audit found 5 total fixes.
+Unlock all ranked by score impact."
+Social proof line: 
+"Most brands reach 50+ GEO IQ in 30 days"
+CTA button: "Unlock full report — $69/mo"
+Secondary: "7-day free trial · cancel anytime"
+
+BLUR IMPLEMENTATION:
+For each locked section add wrapper:
+- filter: blur(4px)
+- pointer-events: none
+- position: relative
+Over the blur add absolute overlay:
+- Semi-transparent dark background
+- Lock icon
+- "Unlock to see [section name]" text
+- "See plans →" link in indigo
+
+VERDICT BADGE:
+Add next to the score number:
+0-20: "INVISIBLE" red badge
+21-40: "WEAK" orange badge  
+41-60: "AVERAGE" yellow badge
+61-80: "GOOD" blue badge
+81-100: "STRONG" green badge
+
+STICKY UPGRADE CARD:
+On desktop, right side sticky:
+Black card, always visible while scrolling:
+- "Your top fix:" + first fix title
+- "X fixes locked" count
+- Indigo "Unlock full report →" button
+- Small text: "$69/mo · 7-day free trial"
+
+This directly converts free audit 
+users to paid subscribers by showing
+them just enough to feel the pain
+but not enough to fix it themselves.

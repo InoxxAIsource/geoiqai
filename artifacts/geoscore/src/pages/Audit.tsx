@@ -368,30 +368,57 @@ function getVerdict(score: number): { label: string; color: string; bg: string }
   return { label: "STRONG", color: "#16A34A", bg: "#F0FDF4" };
 }
 
-function LockWall({ remaining, domain }: { remaining: number; domain: string }) {
+function LockedSection({ title, linkText = "See plans →", children }: { title: string; linkText?: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: "#0f172a", borderRadius: 12, padding: "28px 24px", textAlign: "center", marginTop: 8, marginBottom: 28, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "relative" }}>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(79,70,229,0.15)", border: "1px solid rgba(79,70,229,0.3)", borderRadius: 99, padding: "4px 14px", marginBottom: 16 }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#818CF8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <div style={{ position: "relative", marginBottom: 28 }}>
+      <div style={{ filter: "blur(4px)", pointerEvents: "none", userSelect: "none" as const }}>
+        {children}
+      </div>
+      <div style={{
+        position: "absolute", inset: 0,
+        background: "rgba(249,250,251,0.7)",
+        display: "flex", flexDirection: "column" as const,
+        alignItems: "center", justifyContent: "center",
+        gap: 10, borderRadius: 12,
+      }}>
+        <div style={{ background: "#4F46E5", borderRadius: 8, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
-          <span style={{ fontSize: 11, fontWeight: 600, color: "#818CF8", letterSpacing: "0.06em", textTransform: "uppercase" as const }}>
-            {remaining} more fixes locked
-          </span>
         </div>
-        <div style={{ fontSize: 20, fontWeight: 700, color: "white", marginBottom: 8 }}>
-          Unlock your full fix list
-        </div>
-        <div style={{ fontSize: 13, color: "#94A3B8", lineHeight: 1.6, maxWidth: 380, margin: "0 auto 20px" }}>
-          Get all {remaining + 3} prioritized fixes, Gemini + Perplexity + Claude + Grok responses, citation gaps, and a 4-week roadmap tailored to {domain}.
-        </div>
-        <a href="/pricing" style={{ display: "inline-block", background: "#4F46E5", color: "white", borderRadius: 8, padding: "12px 28px", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
-          Unlock full report - Rs 3,999/mo →
-        </a>
-        <div style={{ fontSize: 11, color: "#64748B", marginTop: 12 }}>7-day free trial. Cancel anytime.</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", textAlign: "center" as const, maxWidth: 280 }}>{title}</div>
+        <a href="/pricing" style={{ fontSize: 12, fontWeight: 600, color: "#4F46E5", textDecoration: "none" }}>{linkText}</a>
       </div>
+    </div>
+  );
+}
+
+function LockWall({ remaining, domain }: { remaining: number; domain: string }) {
+  return (
+    <div style={{ background: "#0F0F14", borderRadius: 12, padding: "32px 24px", textAlign: "center", marginTop: 8, marginBottom: 28 }}>
+      <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(79,70,229,0.15)", border: "1px solid rgba(79,70,229,0.3)", borderRadius: 99, padding: "5px 16px", marginBottom: 20 }}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#818CF8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "#818CF8", letterSpacing: "0.08em", textTransform: "uppercase" as const }}>
+          {remaining} more fixes locked
+        </span>
+      </div>
+      <div style={{ fontSize: 22, fontWeight: 700, color: "white", marginBottom: 10 }}>
+        {remaining} more fixes locked
+      </div>
+      <div style={{ fontSize: 13, color: "#94A3B8", lineHeight: 1.7, maxWidth: 360, margin: "0 auto 6px" }}>
+        Your audit found {remaining + 1} total fixes. Unlock all ranked by score impact.
+      </div>
+      <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 24 }}>
+        Most brands reach 50+ GEO IQ in 30 days
+      </div>
+      <a href="/pricing" style={{ display: "inline-block", background: "#4F46E5", color: "white", borderRadius: 8, padding: "13px 32px", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
+        Unlock full report - $69/mo
+      </a>
+      <div style={{ fontSize: 11, color: "#64748B", marginTop: 12 }}>7-day free trial · cancel anytime</div>
     </div>
   );
 }
@@ -523,7 +550,7 @@ function UpgradeBox({ domain }: { domain: string }) {
   );
 }
 
-function TechCheckCard({ check }: { check: { id: string; name: string; score: number; status: string; detail: string } }) {
+function TechCheckCard({ check, hideDetail = false }: { check: { id: string; name: string; score: number; status: string; detail: string }; hideDetail?: boolean }) {
   const statusConfig = {
     pass: { bg: "#ecfdf5", border: "#6ee7b7", icon: <CheckCircle2 style={{ width: 16, height: 16, color: "#059669" }} />, badgeBg: "#dcfce7", badgeColor: "#15803d", label: "Pass" },
     warn: { bg: "#fffbeb", border: "#fde68a", icon: <AlertTriangle style={{ width: 16, height: 16, color: "#D97706" }} />, badgeBg: "#fef9c3", badgeColor: "#854d0e", label: "Warn" },
@@ -554,7 +581,7 @@ function TechCheckCard({ check }: { check: { id: string; name: string; score: nu
           </span>
         </div>
       </div>
-      <p style={{ fontSize: 12, color: "#6b7280", margin: 0, lineHeight: 1.5 }}>{check.detail}</p>
+      {!hideDetail && <p style={{ fontSize: 12, color: "#6b7280", margin: 0, lineHeight: 1.5 }}>{check.detail}</p>}
     </div>
   );
 }
@@ -1124,18 +1151,14 @@ export default function Audit() {
                   <SystemCard system="Grok" found={auditResult.grokFound ?? false} score={auditResult.scoreGrok ?? 0} detail={auditResult.grokDetail} rawResponse={auditResult.grokRawResponse} checkedAt={auditResult.createdAt} />
                 </>
               ) : (
-                <div style={{ background: "#F9FAFB", border: "0.5px solid #E5E7EB", borderRadius: 10, padding: "14px 20px", display: "flex", alignItems: "center", gap: 14, marginBottom: 4 }}>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
-                    {["Gemini", "Perplexity", "Claude", "Grok"].map(s => (
-                      <span key={s} style={{ background: "#E5E7EB", borderRadius: 6, padding: "4px 10px", fontSize: 12, color: "#9CA3AF", fontWeight: 500 }}>{s}</span>
-                    ))}
+                <LockedSection title="See what Gemini, Perplexity, Claude and Grok say about you" linkText="Unlock 4 more AI responses →">
+                  <div>
+                    <SystemCard system="Gemini" found={auditResult.geminiFound} score={auditResult.scoreGemini} detail={auditResult.geminiDetail} rawResponse={auditResult.geminiRawResponse} checkedAt={auditResult.createdAt} />
+                    <SystemCard system="Perplexity" found={auditResult.perplexityFound} score={auditResult.scorePerplexity} detail={auditResult.perplexityDetail} rawResponse={auditResult.perplexityRawResponse} checkedAt={auditResult.createdAt} isLiveWeb />
+                    <SystemCard system="Claude" found={auditResult.claudeFound ?? false} score={auditResult.scoreClaude ?? 0} detail={auditResult.claudeDetail} rawResponse={auditResult.claudeRawResponse} checkedAt={auditResult.createdAt} simulated />
+                    <SystemCard system="Grok" found={auditResult.grokFound ?? false} score={auditResult.scoreGrok ?? 0} detail={auditResult.grokDetail} rawResponse={auditResult.grokRawResponse} checkedAt={auditResult.createdAt} />
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>4 more AI systems checked</div>
-                    <div style={{ fontSize: 11, color: "#9CA3AF" }}>Upgrade to see Gemini, Perplexity, Claude and Grok responses</div>
-                  </div>
-                  <a href="/pricing" style={{ fontSize: 12, fontWeight: 600, color: "#4F46E5", textDecoration: "none", whiteSpace: "nowrap" as const }}>Unlock →</a>
-                </div>
+                </LockedSection>
               )}
             </div>
 
@@ -1149,7 +1172,7 @@ export default function Audit() {
                   These technical signals directly affect how AI engines crawl and understand your brand.
                 </p>
                 {tech.checks.map((check: any) => (
-                  <TechCheckCard key={check.id} check={check} />
+                  <TechCheckCard key={check.id} check={check} hideDetail={!isPaidUser} />
                 ))}
                 <div style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <span style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>Technical GEO Score</span>
@@ -1169,7 +1192,7 @@ export default function Audit() {
               ];
               const pct = Math.round((eeat.total / 100) * 100);
               const scoreColor = eeat.total >= 70 ? "#059669" : eeat.total >= 45 ? "#D97706" : "#DC2626";
-              return (
+              const eeatEl = (
                 <div style={{ marginBottom: 28 }}>
                   <div style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>
                     03 - Content Quality (EEAT)
@@ -1215,6 +1238,7 @@ export default function Audit() {
                   </div>
                 </div>
               );
+              return isPaidUser ? eeatEl : <LockedSection title="Your EEAT score and content quality breakdown">{eeatEl}</LockedSection>;
             })()}
 
             {/* Section 04: Fix Actions - CITE Framework */}
@@ -1245,7 +1269,7 @@ export default function Audit() {
                       );
                     })}
                   </div>
-                  {recs.slice(0, isPaidUser ? recs.length : 3).map((rec, i) => {
+                  {recs.slice(0, isPaidUser ? recs.length : 1).map((rec, i) => {
                     const cite = CITE_CONFIG[rec.citeCategory] ?? CITE_CONFIG["C"]!;
                     return (
                       <div key={i} style={{ background: "white", border: "0.5px solid #e5e7eb", borderLeft: `3px solid ${cite.border}`, borderRadius: 10, padding: "14px 16px", marginBottom: 10 }}>
@@ -1266,8 +1290,8 @@ export default function Audit() {
                       </div>
                     );
                   })}
-                  {!isPaidUser && recs.length > 3 && (
-                    <LockWall remaining={recs.length - 3} domain={domain} />
+                  {!isPaidUser && recs.length > 1 && (
+                    <LockWall remaining={recs.length - 1} domain={domain} />
                   )}
                 </div>
               );
@@ -1329,7 +1353,8 @@ export default function Audit() {
             })()}
 
             {/* Site Health Card */}
-            {(siteHealthLoading || siteHealth) && (
+            {(siteHealthLoading || siteHealth) && (() => {
+              const siteHealthEl = (
               <div style={{ marginBottom: 28, background: "white", border: "0.5px solid #e5e7eb", borderRadius: 12, overflow: "hidden" }}>
                 <div style={{ padding: "12px 16px", borderBottom: "0.5px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <div>
@@ -1430,7 +1455,9 @@ export default function Audit() {
                   </div>
                 )}
               </div>
-            )}
+              );
+              return isPaidUser ? siteHealthEl : <LockedSection title="Full technical audit in dashboard">{siteHealthEl}</LockedSection>;
+            })()}
 
             {/* Section 04: GEO IQ Roadmap */}
             {(() => {
