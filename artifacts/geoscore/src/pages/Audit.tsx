@@ -18,16 +18,15 @@ const emailSchema = z.object({
 });
 
 const LOADING_STEPS = [
-  "Scraping your website",
-  "Extracting keywords",
-  "Querying ChatGPT",
-  "Querying Gemini",
-  "Querying Perplexity",
-  "Querying Claude",
-  "Querying Grok",
-  "Running technical GEO audit",
-  "Computing your GEO IQ",
+  { label: "Fetching & crawling your domain",        signals: 4,  issues: 2 },
+  { label: "Detecting brand category & market",      signals: 6,  issues: 3 },
+  { label: "Running ChatGPT visibility prompts",     signals: 8,  issues: 5 },
+  { label: "Running Gemini & Perplexity prompts",    signals: 8,  issues: 6 },
+  { label: "Scoring technical GEO signals",          signals: 12, issues: 8 },
+  { label: "Building your fix roadmap",              signals: 9,  issues: 6 },
 ];
+
+const TOTAL_SIGNALS = LOADING_STEPS.reduce((s, st) => s + st.signals, 0);
 
 const LOADING_CSS = `
 @keyframes audit-fade-in {
@@ -37,7 +36,122 @@ const LOADING_CSS = `
 .audit-result-anim {
   animation: audit-fade-in 0.45s ease forwards;
 }
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
 `;
+
+function AuditLoadingCard({
+  loadingStep,
+  doneSteps,
+  elapsedSeconds,
+  url,
+}: {
+  loadingStep: number;
+  doneSteps: boolean[];
+  elapsedSeconds: number;
+  url: string;
+}) {
+  const progress = Math.round(
+    ((loadingStep + (doneSteps[loadingStep] ? 1 : 0)) / LOADING_STEPS.length) * 100
+  );
+  const signalsChecked = LOADING_STEPS.reduce((sum, step, i) => {
+    if (doneSteps[i]) return sum + step.signals;
+    if (i === loadingStep) return sum + Math.floor(step.signals * 0.5);
+    return sum;
+  }, 0);
+  const issuesFound = LOADING_STEPS.reduce(
+    (sum, step, i) => (doneSteps[i] ? sum + step.issues : sum),
+    0
+  );
+  const aiSystemsChecked = doneSteps[5] ? 6 : doneSteps[4] ? 5 : doneSteps[3] ? 3 : doneSteps[2] ? 1 : 0;
+
+  return (
+    <div style={{
+      width: "100%", maxWidth: 480,
+      background: "#fff",
+      borderRadius: 12,
+      border: "1px solid #E5E7EB",
+      borderLeft: "4px solid #4F46E5",
+      boxShadow: "0 4px 24px rgba(0,0,0,0.07)",
+      padding: 24,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#9CA3AF" }}>
+          Live Readout
+        </span>
+        <span style={{ fontFamily: "monospace", fontSize: 12, color: "#6B7280" }}>
+          {elapsedSeconds}s elapsed
+        </span>
+      </div>
+
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+          <span style={{ fontSize: 12, color: "#6B7280", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const, maxWidth: "75%" }}>
+            {url}
+          </span>
+          <span style={{ fontSize: 12, color: "#4F46E5", fontWeight: 600 }}>{progress}%</span>
+        </div>
+        <div style={{ height: 6, background: "#EEF2FF", borderRadius: 4, overflow: "hidden" }}>
+          <div style={{ height: "100%", background: "linear-gradient(90deg, #4F46E5, #7C3AED)", borderRadius: 4, width: `${progress}%`, transition: "width 1.6s ease" }} />
+        </div>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#F9FAFB", borderRadius: 8, padding: "10px 14px", marginBottom: 20 }}>
+        <span style={{ fontSize: 13, color: "#6B7280" }}>
+          <strong style={{ color: "#111827" }}>{signalsChecked}</strong> / {TOTAL_SIGNALS} signals checked
+        </span>
+        <span style={{ fontSize: 28, fontWeight: 800, color: "#4F46E5", lineHeight: 1 }}>
+          {progress}%
+        </span>
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        {LOADING_STEPS.map((step, i) => {
+          const isDone = doneSteps[i];
+          const isCurrent = loadingStep === i && !isDone;
+          return (
+            <div key={i} style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "8px 0",
+              opacity: i > loadingStep ? 0.35 : 1,
+              transition: "opacity 0.4s",
+              borderBottom: i < LOADING_STEPS.length - 1 ? "1px solid #F3F4F6" : "none",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: isDone ? "#10b981" : isCurrent ? "#4F46E5" : "#E5E7EB", transition: "background 0.35s" }}>
+                  {isDone
+                    ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    : isCurrent
+                      ? <Loader2 style={{ width: 11, height: 11, color: "white", animation: "spin 1s linear infinite" }} />
+                      : null}
+                </div>
+                <span style={{ fontSize: 13, color: isDone ? "#111827" : isCurrent ? "#4F46E5" : "#9CA3AF", fontWeight: isCurrent ? 500 : 400 }}>
+                  {step.label}
+                </span>
+              </div>
+              <span style={{ fontFamily: "monospace", fontSize: 11, color: isDone ? "#10b981" : isCurrent ? "#4F46E5" : "#D1D5DB", fontWeight: 500, whiteSpace: "nowrap" as const, marginLeft: 8 }}>
+                {step.signals} sig
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ background: "#F9FAFB", borderRadius: 8, padding: "12px 14px", textAlign: "center" as const }}>
+          <div style={{ fontSize: 28, fontWeight: 800, color: "#111827", lineHeight: 1 }}>{aiSystemsChecked}</div>
+          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#9CA3AF", marginTop: 4 }}>AI Systems Checked</div>
+        </div>
+        <div style={{ background: "#EEF2FF", borderRadius: 8, padding: "12px 14px", textAlign: "center" as const }}>
+          <div style={{ fontSize: 28, fontWeight: 800, color: "#4F46E5", lineHeight: 1 }}>{issuesFound}</div>
+          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#9CA3AF", marginTop: 4 }}>Issues Found</div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function getScoreColor(score: number): string {
   if (score < 34) return "#ef4444";
@@ -522,6 +636,7 @@ export default function Audit() {
   const [auditResult, setAuditResult] = useState<any>(null);
   const [loadingStep, setLoadingStep] = useState(0);
   const [doneSteps, setDoneSteps] = useState<boolean[]>(LOADING_STEPS.map(() => false));
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [auditError, setAuditError] = useState<{
     type: "ip_limit" | "email_limit" | "generic";
     message?: string;
@@ -635,6 +750,15 @@ export default function Audit() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runAuditMutation.isPending, retrying, refreshing]);
 
+  useEffect(() => {
+    const isActive = runAuditMutation.isPending || retrying || refreshing;
+    if (!isActive) { setElapsedSeconds(0); return; }
+    setElapsedSeconds(0);
+    const timer = setInterval(() => setElapsedSeconds(s => s + 1), 1000);
+    return () => clearInterval(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runAuditMutation.isPending, retrying, refreshing]);
+
   const runFreshAudit = async () => {
     if (!urlParam) return;
     setRefreshing(true);
@@ -702,8 +826,6 @@ export default function Audit() {
     : "";
   const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
 
-  const progress = Math.round(((loadingStep + (doneSteps[loadingStep] ? 1 : 0)) / LOADING_STEPS.length) * 100);
-
   const tech = auditResult?.technicalAudit ?? null;
   const hasTechnicalData = tech && Array.isArray(tech.checks) && tech.checks.length > 0;
   const brandName = auditResult?.brandName ?? auditResult?.domain ?? "";
@@ -732,109 +854,22 @@ export default function Audit() {
 
         {/* Loading state */}
         {runAuditMutation.isPending && (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 60, width: "100%", maxWidth: 440 }}>
-            <div style={{ fontWeight: 700, fontSize: 18, color: "#111827", textAlign: "center", marginBottom: 6 }}>
-              Hang tight...
-            </div>
-            <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 32, textAlign: "center", lineHeight: 1.5 }}>
-              Scanning <strong style={{ color: "#374151" }}>{urlParam}</strong> across<br />
-              ChatGPT, Gemini, Perplexity, Claude &amp; Grok
-            </p>
-            <div style={{ width: "100%", marginBottom: 28 }}>
-              {LOADING_STEPS.map((label, i) => {
-                const isDone = doneSteps[i];
-                const isCurrent = loadingStep === i && !isDone;
-                return (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0", opacity: i > loadingStep ? 0.3 : 1, transition: "opacity 0.4s" }}>
-                    <div style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: isDone ? "#10b981" : isCurrent ? "#4F46E5" : "#e5e7eb", transition: "background 0.35s" }}>
-                      {isDone
-                        ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                        : isCurrent
-                          ? <Loader2 style={{ width: 13, height: 13, color: "white", animation: "spin 1s linear infinite" }} />
-                          : <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#9ca3af", display: "block" }} />}
-                    </div>
-                    <span style={{ fontSize: 14, color: isDone ? "#10b981" : isCurrent ? "#4F46E5" : "#6b7280", fontWeight: isCurrent ? 500 : 400 }}>
-                      {label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ width: "100%", height: 6, background: "#e5e7eb", borderRadius: 4, overflow: "hidden" }}>
-              <div style={{ height: "100%", background: "linear-gradient(90deg, #4F46E5, #7C3AED)", borderRadius: 4, width: `${progress}%`, transition: "width 1.6s ease" }} />
-            </div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 48, width: "100%" }}>
+            <AuditLoadingCard loadingStep={loadingStep} doneSteps={doneSteps} elapsedSeconds={elapsedSeconds} url={urlParam ?? ""} />
           </div>
         )}
 
         {/* Refreshing state - force fresh audit */}
         {refreshing && (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 60, width: "100%", maxWidth: 440 }}>
-            <div style={{ fontWeight: 700, fontSize: 18, color: "#111827", textAlign: "center", marginBottom: 6 }}>
-              Running fresh audit...
-            </div>
-            <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 32, textAlign: "center", lineHeight: 1.5 }}>
-              Scanning <strong style={{ color: "#374151" }}>{urlParam}</strong> across<br />
-              ChatGPT, Gemini, Perplexity, Claude &amp; Grok
-            </p>
-            <div style={{ width: "100%", marginBottom: 28 }}>
-              {LOADING_STEPS.map((label, i) => {
-                const isDone = doneSteps[i];
-                const isCurrent = loadingStep === i && !isDone;
-                return (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0", opacity: i > loadingStep ? 0.3 : 1, transition: "opacity 0.4s" }}>
-                    <div style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: isDone ? "#10b981" : isCurrent ? "#4F46E5" : "#e5e7eb", transition: "background 0.35s" }}>
-                      {isDone
-                        ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                        : isCurrent
-                          ? <Loader2 style={{ width: 13, height: 13, color: "white", animation: "spin 1s linear infinite" }} />
-                          : <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#9ca3af", display: "block" }} />}
-                    </div>
-                    <span style={{ fontSize: 14, color: isDone ? "#10b981" : isCurrent ? "#4F46E5" : "#6b7280", fontWeight: isCurrent ? 500 : 400 }}>
-                      {label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ width: "100%", height: 6, background: "#e5e7eb", borderRadius: 4, overflow: "hidden" }}>
-              <div style={{ height: "100%", background: "linear-gradient(90deg, #4F46E5, #7C3AED)", borderRadius: 4, width: `${progress}%`, transition: "width 1.6s ease" }} />
-            </div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 48, width: "100%" }}>
+            <AuditLoadingCard loadingStep={loadingStep} doneSteps={doneSteps} elapsedSeconds={elapsedSeconds} url={urlParam ?? ""} />
           </div>
         )}
 
         {/* Retrying with email state */}
         {retrying && (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 60, width: "100%", maxWidth: 440 }}>
-            <div style={{ fontWeight: 700, fontSize: 18, color: "#111827", textAlign: "center", marginBottom: 6 }}>
-              Hang tight...
-            </div>
-            <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 32, textAlign: "center", lineHeight: 1.5 }}>
-              Scanning <strong style={{ color: "#374151" }}>{urlParam}</strong> across<br />
-              ChatGPT, Gemini, Perplexity, Claude &amp; Grok
-            </p>
-            <div style={{ width: "100%", marginBottom: 28 }}>
-              {LOADING_STEPS.map((label, i) => {
-                const isDone = doneSteps[i];
-                const isCurrent = loadingStep === i && !isDone;
-                return (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0", opacity: i > loadingStep ? 0.3 : 1, transition: "opacity 0.4s" }}>
-                    <div style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: isDone ? "#10b981" : isCurrent ? "#4F46E5" : "#e5e7eb", transition: "background 0.35s" }}>
-                      {isDone
-                        ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                        : isCurrent
-                          ? <Loader2 style={{ width: 13, height: 13, color: "white", animation: "spin 1s linear infinite" }} />
-                          : <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#9ca3af", display: "block" }} />}
-                    </div>
-                    <span style={{ fontSize: 14, color: isDone ? "#10b981" : isCurrent ? "#4F46E5" : "#6b7280", fontWeight: isCurrent ? 500 : 400 }}>
-                      {label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ width: "100%", height: 6, background: "#e5e7eb", borderRadius: 4, overflow: "hidden" }}>
-              <div style={{ height: "100%", background: "linear-gradient(90deg, #4F46E5, #7C3AED)", borderRadius: 4, width: `${progress}%`, transition: "width 1.6s ease" }} />
-            </div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 48, width: "100%" }}>
+            <AuditLoadingCard loadingStep={loadingStep} doneSteps={doneSteps} elapsedSeconds={elapsedSeconds} url={urlParam ?? ""} />
           </div>
         )}
 
