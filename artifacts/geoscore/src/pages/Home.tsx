@@ -282,21 +282,58 @@ export default function Home() {
             wordBreak: "break-word",
             overflowWrap: "break-word",
           }}>
-            Get your brand<br />
-            <span style={{ color: "#4F46E5", fontWeight: 800 }}>recommended by AI</span>
+            Your brand is invisible to ChatGPT.<br />
+            <span style={{ color: "#4F46E5", fontWeight: 800 }}>We find out why, and fix it.</span>
           </h1>
 
           <p style={{
             fontSize: 20,
             color: "#6B7280",
             maxWidth: 560,
-            margin: "0 auto 40px",
+            margin: "0 auto 28px",
             lineHeight: 1.6,
             fontWeight: 400,
           }}>
-            Most brands are invisible to ChatGPT, Gemini and Perplexity.
-            GeoIQ finds the gaps and gives you the exact steps to fix them.
-            Free in 60 seconds.
+            Most brands don't appear when customers ask ChatGPT or Gemini to recommend products in their category.
+            GeoIQ shows you exactly where you stand and what to do about it. Free in 60 seconds.
+          </p>
+
+          {/* Social proof - above the input */}
+          <div style={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            gap: "8px 20px",
+            marginBottom: 24,
+          }}>
+            {[
+              "500+ brands audited",
+              "Notion scored 24/100",
+              "Used by SEO strategists",
+            ].map((item) => (
+              <span key={item} style={{
+                fontSize: 13,
+                color: "#374151",
+                fontWeight: 500,
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+              }}>
+                <span style={{ color: "#4F46E5", fontWeight: 700 }}>&#8594;</span>
+                {item}
+              </span>
+            ))}
+          </div>
+
+          {/* Reassurance line */}
+          <p style={{
+            fontSize: 13,
+            color: "#9CA3AF",
+            textAlign: "center",
+            margin: "0 auto 12px",
+            fontWeight: 400,
+          }}>
+            No account needed - just enter your website and see your results instantly.
           </p>
 
           <form

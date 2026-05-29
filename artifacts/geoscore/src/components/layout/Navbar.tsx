@@ -5,8 +5,6 @@ import { useAuthGuard } from "@/hooks/use-auth-guard";
 const NAV_LINKS = [
   { label: "How it works", href: "/#how-it-works", scrollId: "how-it-works" },
   { label: "Pricing", href: "/pricing" },
-  { label: "Blog", href: "/blog" },
-  { label: "What is GEO", href: "/what-is-geo" },
 ];
 
 export function Navbar() {
