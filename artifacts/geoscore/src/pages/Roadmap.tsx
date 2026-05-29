@@ -442,9 +442,153 @@ function WeekProgress({ week, completed }: { week: RoadmapWeek; completed: numbe
   );
 }
 
+const SAMPLE_WEEKS = [
+  {
+    label: "Week 1-2", subtitle: "Technical foundation", tasks: [
+      { title: "Add llms.txt file so AI engines know who you are", priority: "CRITICAL", time: "30 mins", impact: "+12 to +18 pts" },
+      { title: "Fix robots.txt to allow GPTBot and PerplexityBot", priority: "HIGH", time: "15 mins", impact: "+8 to +12 pts" },
+      { title: "Add Organization schema markup to your homepage", priority: "HIGH", time: "45 mins", impact: "+6 to +10 pts" },
+    ],
+  },
+  {
+    label: "Week 2-3", subtitle: "Entity and citations", tasks: [
+      { title: "Submit brand to Crunchbase and G2 for AI citations", priority: "HIGH", time: "60 mins", impact: "+8 to +14 pts" },
+      { title: "Add founder bio page with verifiable credentials", priority: "MEDIUM", time: "90 mins", impact: "+5 to +9 pts" },
+      { title: "Publish a case study with real customer outcome data", priority: "MEDIUM", time: "3 hrs", impact: "+6 to +10 pts" },
+    ],
+  },
+  {
+    label: "Week 3-4", subtitle: "Content depth", tasks: [
+      { title: "Write a comparison article covering your category", priority: "HIGH", time: "4 hrs", impact: "+7 to +12 pts" },
+      { title: "Add FAQ schema to key landing pages", priority: "MEDIUM", time: "45 mins", impact: "+4 to +7 pts" },
+      { title: "Get featured in 2 industry newsletters", priority: "MEDIUM", time: "2 hrs", impact: "+5 to +8 pts" },
+    ],
+  },
+  {
+    label: "Week 4-5", subtitle: "Momentum and monitoring", tasks: [
+      { title: "Set up weekly GEO score monitoring via dashboard", priority: "MEDIUM", time: "10 mins", impact: "+0 to +0 pts (tracking)" },
+      { title: "Post 3 original Reddit threads in your category", priority: "MEDIUM", time: "90 mins", impact: "+4 to +7 pts" },
+      { title: "Update homepage meta description for AI clarity", priority: "LOW", time: "20 mins", impact: "+3 to +5 pts" },
+    ],
+  },
+];
+
+function RoadmapPublicPage() {
+  const BG = "#F2F0EB";
+  const PURPLE = "#5B3FEA";
+  const BORDER = "#D4D0C8";
+  const MUTED = "#6B7280";
+  const CARD = "#E8E4DC";
+
+  const priorityColor: Record<string, { bg: string; color: string }> = {
+    CRITICAL: { bg: "#fef2f2", color: "#991b1b" },
+    HIGH: { bg: "#fffbeb", color: "#92400e" },
+    MEDIUM: { bg: "#f0f9ff", color: "#075985" },
+    LOW: { bg: "#f9fafb", color: "#374151" },
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: BG, fontFamily: "'Inter', sans-serif" }}>
+      <Navbar />
+      <main style={{ maxWidth: 900, margin: "0 auto", padding: "56px 20px 80px" }}>
+
+        <div style={{ textAlign: "center", marginBottom: 56 }}>
+          <div style={{ display: "inline-block", background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: "4px 14px", fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: MUTED, marginBottom: 20 }}>
+            GEO Execution Roadmap
+          </div>
+          <h1 style={{ fontSize: 40, fontWeight: 800, color: "#0A0A0A", lineHeight: 1.15, marginBottom: 16 }}>
+            A week-by-week plan to make<br />AI engines notice your brand
+          </h1>
+          <p style={{ fontSize: 17, color: MUTED, maxWidth: 560, margin: "0 auto 32px", lineHeight: 1.65 }}>
+            After your audit, GEOscore generates a personalised roadmap - exact tasks, time estimates, and expected score gains - so you know exactly what to fix and in what order.
+          </p>
+          <a href="/audit" style={{ display: "inline-block", background: PURPLE, color: "white", borderRadius: 10, padding: "14px 36px", fontSize: 15, fontWeight: 700, textDecoration: "none" }}>
+            Run your free audit to get your roadmap
+          </a>
+          <div style={{ marginTop: 12, fontSize: 13, color: MUTED }}>Free, no sign-up needed. Results in 60 seconds.</div>
+        </div>
+
+        <div style={{ marginBottom: 40 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: MUTED, marginBottom: 20, textAlign: "center" }}>
+            What your roadmap looks like
+          </div>
+
+          <div style={{ display: "flex", gap: 0, borderBottom: `1.5px solid ${BORDER}`, marginBottom: 24 }}>
+            {SAMPLE_WEEKS.map((w, i) => (
+              <div key={i} style={{ flex: 1, padding: "10px 8px", textAlign: "center", borderBottom: i === 0 ? `2.5px solid ${PURPLE}` : "2.5px solid transparent", marginBottom: -1.5 }}>
+                <div style={{ fontSize: 12, fontWeight: i === 0 ? 700 : 500, color: i === 0 ? PURPLE : MUTED }}>{w.label}</div>
+                <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>{w.subtitle}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {SAMPLE_WEEKS[0].tasks.map((task, i) => {
+              const p = priorityColor[task.priority] ?? priorityColor.MEDIUM;
+              return (
+                <div key={i} style={{ background: "white", border: `0.5px solid ${BORDER}`, borderLeft: `3px solid ${task.priority === "CRITICAL" ? "#ef4444" : task.priority === "HIGH" ? "#f59e0b" : "#4F46E5"}`, borderRadius: 10, padding: "14px 16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                      <div style={{ width: 18, height: 18, borderRadius: "50%", border: "1.5px solid #d1d5db", flexShrink: 0 }} />
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 3 }}>
+                          <span style={{ background: p.bg, color: p.color, borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>{task.priority}</span>
+                          <span style={{ fontSize: 11, color: MUTED }}>{task.time}</span>
+                        </div>
+                        <div style={{ fontSize: 14, fontWeight: 500, color: "#111827" }}>{task.title}</div>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 12, color: "#10b981", fontWeight: 600, flexShrink: 0 }}>{task.impact}</div>
+                  </div>
+                </div>
+              );
+            })}
+            <div style={{ background: CARD, border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "18px 16px", textAlign: "center" }}>
+              <div style={{ fontSize: 13, color: MUTED, marginBottom: 10 }}>
+                Your roadmap will have tasks specific to your domain, score, and category.
+              </div>
+              <a href="/audit" style={{ display: "inline-block", background: PURPLE, color: "white", borderRadius: 8, padding: "10px 24px", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+                Get my personalised roadmap
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 48 }}>
+          {[
+            { label: "Personalised", desc: "Every task is generated from your actual audit data, not a generic checklist." },
+            { label: "Prioritised by impact", desc: "Highest-impact fixes come first. You'll see estimated score gains per task." },
+            { label: "Step-by-step", desc: "Each task includes exact instructions, copy-paste code, and before/after examples." },
+          ].map((f) => (
+            <div key={f.label} style={{ background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 12, padding: "20px 18px" }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#0A0A0A", marginBottom: 8 }}>{f.label}</div>
+              <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.6 }}>{f.desc}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ background: "#0A0A0A", borderRadius: 16, padding: "40px 32px", textAlign: "center" }}>
+          <h2 style={{ fontSize: 26, fontWeight: 800, color: "white", marginBottom: 12 }}>
+            Run a free audit to unlock your roadmap
+          </h2>
+          <p style={{ fontSize: 15, color: "#9ca3af", marginBottom: 28, maxWidth: 460, margin: "0 auto 28px" }}>
+            Paste your domain. Get your AI visibility score and a full execution plan in under 60 seconds.
+          </p>
+          <a href="/audit" style={{ display: "inline-block", background: PURPLE, color: "white", borderRadius: 10, padding: "14px 36px", fontSize: 15, fontWeight: 700, textDecoration: "none" }}>
+            Start free audit
+          </a>
+        </div>
+
+      </main>
+    </div>
+  );
+}
+
 export default function Roadmap() {
   const params = new URLSearchParams(window.location.search);
   const auditId = params.get("auditId");
+
+  if (!auditId) return <RoadmapPublicPage />;
 
   const { data: me, isLoading: meLoading } = useGetMe();
   const [roadmap, setRoadmap] = useState<RoadmapData | null>(null);
