@@ -540,7 +540,7 @@ export default function Home() {
                   e.currentTarget.style.transform = "translateY(0)";
                 }}
               >
-                <div style={{ ...SYNE, fontSize: 40, fontWeight: 700, color: "#C7D2FE", lineHeight: 1, marginBottom: 20 }}>{card.num}</div>
+                <div style={{ ...SYNE, fontSize: 40, fontWeight: 700, color: "#A5B4FC", lineHeight: 1, marginBottom: 20 }}>{card.num}</div>
                 <h3 style={{ fontSize: 17, fontWeight: 600, color: "#111827", marginBottom: 8 }}>{card.title}</h3>
                 <p style={{ fontSize: 14, color: "#6B7280", lineHeight: 1.6, margin: 0 }}>{card.body}</p>
               </div>
@@ -744,7 +744,7 @@ export default function Home() {
               { step: "03", title: "Get found", desc: "Watch your AI visibility score climb as your brand gets recommended in AI search results." },
             ].map((item, i) => (
               <div key={i}>
-                <div style={{ ...SYNE, fontSize: 48, fontWeight: 800, color: "#E5E7EB", lineHeight: 1, marginBottom: 12 }}>
+                <div style={{ ...SYNE, fontSize: 48, fontWeight: 700, color: "#A5B4FC", lineHeight: 1, marginBottom: 12 }}>
                   {item.step}
                 </div>
                 <h3 style={{ fontSize: 18, fontWeight: 600, color: "#111827", marginBottom: 8 }}>{item.title}</h3>
