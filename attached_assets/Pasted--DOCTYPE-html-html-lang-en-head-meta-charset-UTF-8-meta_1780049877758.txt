@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeoIQ – Get Your Brand Recommended by AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#F2F0EB;
+  --text:#0A0A0A;
+  --purple:#5B3FEA;
+  --purple-light:#7C5FF0;
+  --muted:#6B7280;
+  --border:#D4D0C8;
+  --card:#E8E4DC;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+a{text-decoration:none;color:inherit}
+
+/* --- BADGE --- */
+.badge{display:inline-flex;align-items:center;gap:8px;background:#0A0A0A;color:#fff;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:6px 14px;border-radius:4px}
+.badge .dot{width:6px;height:6px;background:#5B3FEA;border-radius:50%;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* --- NAV --- */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding:0 48px;height:64px;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px}
+.nav-links{display:flex;align-items:center;gap:36px}
+.nav-links a{font-size:14px;font-weight:500;color:var(--muted);transition:.2s}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{background:var(--purple);color:#fff;padding:10px 22px;border-radius:6px;font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:inherit;transition:.2s}
+.nav-cta:hover{background:var(--purple-light)}
+
+/* --- HERO --- */
+.hero-wrap{max-width:1200px;margin:0 auto;padding:160px 48px 60px}
+.hero-kicker{display:flex;align-items:center;gap:16px;margin-bottom:28px}
+.hero-kicker span{font-size:12px;color:var(--muted);font-weight:500;letter-spacing:.05em}
+.hero h1{font-size:clamp(52px,7vw,96px);font-weight:900;line-height:.95;letter-spacing:-.03em;margin-bottom:32px}
+.hero h1 em{font-style:italic;font-weight:900}
+.hero h1 .highlight{background:var(--purple);color:#fff;padding:2px 12px;display:inline-block;line-height:1.1}
+.hero-sub{font-size:18px;color:var(--muted);max-width:540px;line-height:1.6;margin-bottom:48px}
+.hero-input-wrap{display:flex;background:#0A0A0A;border-radius:10px;overflow:hidden;max-width:580px;padding:8px 8px 8px 24px;gap:8px;margin-bottom:24px;border:2px solid #0A0A0A;transition:.2s}
+.hero-input-wrap:focus-within{border-color:var(--purple)}
+.hero-input-wrap input{flex:1;background:transparent;border:none;color:#fff;font-size:15px;outline:none;font-family:inherit}
+.hero-input-wrap input::placeholder{color:#555}
+.hero-btn{background:var(--purple);color:#fff;border:none;padding:14px 28px;border-radius:6px;font-size:15px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;transition:.2s}
+.hero-btn:hover{background:var(--purple-light)}
+.hero-stats{display:flex;gap:32px;align-items:center}
+.hero-stats span{font-size:13px;color:var(--muted)}
+.hero-stats span strong{color:var(--text);font-weight:700}
+
+/* --- AI LOGOS --- */
+.ai-logos-section{background:#fff;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:40px 48px}
+.ai-logos-inner{max-width:1200px;margin:0 auto}
+.ai-logos-label{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:center;margin-bottom:24px}
+.ai-logos-grid{display:flex;justify-content:center;align-items:center;gap:40px;flex-wrap:wrap}
+.ai-logo-item{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12px;color:var(--muted);font-weight:500}
+.ai-logo-icon{width:48px;height:48px;background:#0A0A0A;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff}
+
+/* --- STATS BAR --- */
+.stats-bar{background:#0A0A0A;color:#fff;padding:40px 48px}
+.stats-bar-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#333}
+.stat-item{background:#0A0A0A;padding:32px 24px;text-align:center}
+.stat-num{font-size:48px;font-weight:900;letter-spacing:-.03em}
+.stat-num span{color:var(--purple)}
+.stat-label{font-size:13px;color:#888;margin-top:4px;font-weight:500}
+
+/* --- TICKER --- */
+.ticker-wrap{overflow:hidden;background:var(--bg);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:16px 0}
+.ticker{display:flex;animation:ticker 30s linear infinite;white-space:nowrap}
+.ticker:hover{animation-play-state:paused}
+.ticker-item{font-size:13px;color:var(--muted);font-weight:500;padding:0 24px;border-right:1px solid var(--border)}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* --- SECTIONS --- */
+.section-wrap{padding:80px 48px}
+.section-wrap.dark{background:#0A0A0A;color:#fff}
+.section-inner{max-width:1200px;margin:0 auto}
+.section-kicker{display:flex;align-items:center;gap:12px;font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:24px}
+.section-kicker::before{content:'';display:block;width:24px;height:1px;background:var(--muted)}
+.section-kicker.light{color:#555}
+.section-kicker.light::before{background:#555}
+.section-h2{font-size:clamp(36px,5vw,72px);font-weight:900;line-height:.95;letter-spacing:-.03em;margin-bottom:16px}
+.section-h2 em{font-style:italic}
+.section-lead{font-size:17px;color:var(--muted);max-width:520px;line-height:1.6}
+
+/* --- GRIDS --- */
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:64px}
+.grid-3-nopad{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:64px}
+
+/* --- CARDS --- */
+.card{background:var(--bg);padding:40px 36px}
+.card-dark{background:#0A0A0A;padding:40px 36px}
+.card-filled{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:36px 32px;position:relative;overflow:hidden}
+.card-filled::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--purple)}
+.card-num{font-size:64px;font-weight:900;color:rgba(91,63,234,.15);letter-spacing:-.04em;line-height:1;margin-bottom:16px}
+.card-icon-box{width:44px;height:44px;background:#0A0A0A;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:28px;font-size:20px;color:#fff}
+.card-step{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--muted);margin-bottom:16px;text-transform:uppercase}
+.card h3{font-size:22px;font-weight:800;margin-bottom:12px;line-height:1.2}
+.card-filled h3{font-size:18px;font-weight:800;margin-bottom:10px}
+.card p,.card-filled p{font-size:15px;color:var(--muted);line-height:1.6}
+.card-filled-icon{width:40px;height:40px;background:rgba(91,63,234,.12);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:24px}
+
+/* --- SCORE DEMO --- */
+.score-wrap{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;margin-top:64px}
+.score-copy h2{font-size:clamp(32px,4vw,56px);font-weight:900;line-height:1;letter-spacing:-.03em;margin-bottom:20px;color:#fff}
+.score-copy p{font-size:16px;color:#aaa;line-height:1.6;margin-bottom:32px}
+.btn-purple{background:var(--purple);color:#fff;padding:14px 28px;border-radius:6px;font-size:15px;font-weight:700;cursor:pointer;border:none;font-family:inherit;display:inline-flex;align-items:center;gap:8px;transition:.2s}
+.btn-purple:hover{background:var(--purple-light)}
+.score-widget{background:#111;border:1px solid #222;border-radius:16px;padding:32px}
+.score-widget-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.score-label{font-size:11px;font-weight:700;letter-spacing:.12em;color:#666;text-transform:uppercase}
+.score-big{font-size:72px;font-weight:900;letter-spacing:-.05em;line-height:1;color:#fff}
+.score-big span{color:var(--purple)}
+.score-tag{background:rgba(251,191,36,.15);color:#FBBF24;font-size:11px;font-weight:700;padding:4px 10px;border-radius:100px}
+.score-bars{display:flex;flex-direction:column;gap:16px;margin-top:24px}
+.sbar{display:flex;align-items:center;gap:12px}
+.sbar-label{font-size:13px;font-weight:600;width:80px;flex-shrink:0;color:#aaa}
+.sbar-track{flex:1;height:6px;background:#222;border-radius:100px;overflow:hidden}
+.sbar-fill{height:100%;border-radius:100px;background:var(--purple)}
+.sbar-val{font-size:13px;font-weight:700;width:40px;text-align:right;color:#aaa}
+
+/* --- AUDIT CARDS --- */
+.audit-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.audit-top{padding:24px 24px 20px;border-bottom:1px solid var(--border)}
+.audit-domain{font-size:14px;font-weight:700;margin-bottom:4px}
+.audit-cat{font-size:12px;color:var(--muted)}
+.audit-score-row{display:flex;align-items:baseline;gap:8px;margin-top:16px}
+.audit-score-big{font-size:36px;font-weight:900;letter-spacing:-.03em}
+.audit-score-denom{font-size:14px;color:var(--muted)}
+.audit-bottom{padding:20px 24px}
+.audit-engines{display:flex;flex-direction:column;gap:10px}
+.audit-engine-row{display:flex;align-items:center;justify-content:space-between}
+.engine-name{font-size:13px;font-weight:500;color:var(--muted)}
+.ebadge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:100px}
+.ep{background:rgba(251,191,36,.15);color:#D97706}
+.ei{background:rgba(239,68,68,.12);color:#DC2626}
+.ev{background:rgba(34,197,94,.12);color:#16A34A}
+.audit-desc{font-size:13px;color:var(--muted);margin-top:16px;line-height:1.5;padding-top:16px;border-top:1px solid var(--border)}
+.audit-link{font-size:13px;font-weight:600;color:var(--purple);margin-top:12px;display:inline-flex;align-items:center;gap:4px}
+
+/* --- TESTIMONIALS --- */
+.stars{font-size:16px;margin-bottom:20px;letter-spacing:2px;color:#FBBF24}
+.quote{font-size:17px;font-weight:600;line-height:1.5;margin-bottom:24px;color:#ddd}
+.quote-big{font-size:22px;font-weight:700;line-height:1.4;margin-bottom:24px;font-style:italic;color:#fff}
+.tauthor{font-size:13px;color:#555;font-weight:500}
+
+/* --- PRICING --- */
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:64px}
+.pcard{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:36px 32px;position:relative;display:flex;flex-direction:column}
+.pcard.popular{background:#0A0A0A;color:#fff;border-color:#0A0A0A}
+.popular-badge{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:var(--purple);color:#fff;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;padding:5px 16px;border-radius:100px;white-space:nowrap}
+.pname{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.pcard.popular .pname{color:#555}
+.price-row{display:flex;align-items:baseline;gap:4px;margin-bottom:8px}
+.price-sym{font-size:24px;font-weight:800}
+.price-num{font-size:56px;font-weight:900;letter-spacing:-.04em;line-height:1}
+.price-period{font-size:14px;color:var(--muted);margin-left:4px}
+.pcard.popular .price-period{color:#555}
+.price-note{font-size:13px;color:var(--muted);margin-bottom:28px;padding-bottom:28px;border-bottom:1px solid var(--border)}
+.pcard.popular .price-note{color:#555;border-color:#222}
+.pfeatures{list-style:none;display:flex;flex-direction:column;gap:12px;margin-bottom:32px;flex:1}
+.pfeatures li{display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:1.4}
+.pfeatures li::before{content:'→';color:var(--purple);font-weight:700;flex-shrink:0;margin-top:1px}
+.pcta{width:100%;padding:14px;border-radius:6px;font-size:15px;font-weight:700;cursor:pointer;border:none;font-family:inherit;margin-top:auto;transition:.2s}
+.pcta-outline{background:transparent;color:var(--text);border:2px solid var(--border)}
+.pcta-outline:hover{border-color:var(--text)}
+.pcta-white{background:#fff;color:#0A0A0A}
+.pcta-white:hover{background:#eee}
+
+/* --- FAQ --- */
+.faq-wrap{max-width:800px;margin:64px auto 0}
+.faq-list{border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.faq-item{border-bottom:1px solid var(--border)}
+.faq-item:last-child{border-bottom:none}
+.faq-q{padding:24px 28px;font-size:16px;font-weight:700;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:16px;user-select:none;transition:.2s}
+.faq-q:hover{background:var(--card)}
+.faq-icon{font-size:20px;font-weight:300;color:var(--muted);transition:.3s;flex-shrink:0}
+.faq-a{padding:0 28px 24px;font-size:15px;color:var(--muted);line-height:1.7;display:none}
+.open .faq-a{display:block}
+.open .faq-icon{transform:rotate(45deg);color:var(--purple)}
+.open .faq-q{background:var(--card)}
+
+/* --- FINAL CTA --- */
+.final-cta-wrap{padding:120px 48px;background:#0A0A0A;color:#fff;text-align:center}
+.final-cta-wrap h2{font-size:clamp(40px,6vw,80px);font-weight:900;letter-spacing:-.03em;line-height:.95;margin-bottom:24px}
+.final-cta-wrap p{font-size:18px;color:#888;margin-bottom:48px}
+.final-btn{background:var(--purple);color:#fff;padding:18px 40px;border-radius:8px;font-size:16px;font-weight:700;border:none;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:10px;transition:.2s}
+.final-btn:hover{background:var(--purple-light)}
+
+/* --- FOOTER --- */
+.footer{background:var(--bg);border-top:1px solid var(--border);padding:60px 48px 40px}
+.footer-inner{max-width:1200px;margin:0 auto}
+.footer-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px;margin-bottom:48px}
+.footer-brand{font-size:14px;color:var(--muted);line-height:1.6;margin-top:16px;max-width:280px}
+.footer-col h4{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
+.footer-col ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+.footer-col ul li a{font-size:14px;color:var(--muted);transition:.2s}
+.footer-col ul li a:hover{color:var(--text)}
+.footer-bottom{border-top:1px solid var(--border);padding-top:24px;display:flex;justify-content:space-between;align-items:center}
+.footer-copyright{font-size:13px;color:var(--muted)}
+.footer-social{display:flex;gap:16px}
+.footer-social a{font-size:13px;color:var(--muted);transition:.2s}
+.footer-social a:hover{color:var(--text)}
+
+/* --- GEO AGENT BADGE --- */
+.geo-agent-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(91,63,234,.1);border:1px solid rgba(91,63,234,.3);border-radius:100px;padding:8px 20px;font-size:13px;font-weight:600;color:var(--purple);margin-bottom:32px}
+.geo-agent-badge .dot{width:6px;height:6px;background:var(--purple);border-radius:50%;animation:pulse 1.5s infinite}
+
+/* --- RESPONSIVE --- */
+@media(max-width:768px){
+  nav{padding:0 20px}
+  .nav-links{display:none}
+  .hero-wrap,.section-wrap,.ai-logos-section,.stats-bar,.final-cta-wrap,.footer{padding-left:20px;padding-right:20px}
+  .grid-3,.grid-3-nopad,.pricing-grid,.footer-top{grid-template-columns:1fr}
+  .score-wrap{grid-template-columns:1fr}
+  .stats-bar-inner{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      <rect width="32" height="32" rx="8" fill="#5B3FEA"/>
+      <rect x="8" y="8" width="6" height="6" rx="1.5" fill="white"/>
+      <rect x="8" y="18" width="6" height="6" rx="1.5" fill="white" opacity="0.6"/>
+      <rect x="18" y="8" width="6" height="6" rx="1.5" fill="white" opacity="0.6"/>
+      <rect x="18" y="18" width="6" height="6" rx="1.5" fill="white"/>
+    </svg>
+    GeoIQ
+  </div>
+  <div class="nav-links">
+    <a href="#how">How it works</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#faq">FAQ</a>
+    <a href="#">What is GEO</a>
+  </div>
+  <button class="nav-cta">Dashboard →</button>
+</nav>
+
+<!-- HERO -->
+<div class="hero-wrap">
+  <div class="hero">
+    <div class="hero-kicker">
+      <div class="badge"><span class="dot"></span>GEO AUDIT · v2.0</div>
+      <span>Live · Built for SaaS &amp; Founders</span>
+    </div>
+    <h1>Your brand is <span class="highlight">invisible</span><br><em>to AI right now.</em></h1>
+    <p class="hero-sub">Paste your URL. GeoIQ checks ChatGPT, Gemini, Perplexity, Claude &amp; Grok — and returns your AI visibility score with exact fixes. Free in 60 seconds.</p>
+    <div class="hero-input-wrap">
+      <input type="text" placeholder="https:// yoursite.com" />
+      <button class="hero-btn">Check my AI visibility →</button>
+    </div>
+    <div class="hero-stats">
+      <span><strong>500+</strong> audits run</span>
+      <span><strong>6</strong> AI systems</span>
+      <span><strong>Free</strong> forever</span>
+      <span><strong>60s</strong> results</span>
+    </div>
+  </div>
+</div>
+
+<!-- AI LOGOS -->
+<div class="ai-logos-section">
+  <div class="ai-logos-inner">
+    <div class="ai-logos-label">Tracks 6 AI Systems</div>
+    <div class="ai-logos-grid">
+      <div class="ai-logo-item"><div class="ai-logo-icon">🤖</div><span>ChatGPT</span></div>
+      <div class="ai-logo-item"><div class="ai-logo-icon">✦</div><span>Gemini</span></div>
+      <div class="ai-logo-item"><div class="ai-logo-icon">🔍</div><span>Perplexity</span></div>
+      <div class="ai-logo-item"><div class="ai-logo-icon">🔶</div><span>Claude</span></div>
+      <div class="ai-logo-item"><div class="ai-logo-icon">✕</div><span>Grok</span></div>
+      <div class="ai-logo-item"><div class="ai-logo-icon" style="background:#f0f0f0;border:1px solid #ddd;color:#333;font-weight:800;font-size:18px">G</div><span>Google AI</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stats-bar-inner">
+    <div class="stat-item"><div class="stat-num">500<span>+</span></div><div class="stat-label">Audits Run</div></div>
+    <div class="stat-item"><div class="stat-num">6</div><div class="stat-label">AI Systems Tracked</div></div>
+    <div class="stat-item"><div class="stat-num" style="color:#5B3FEA">Free</div><div class="stat-label">Forever Plan</div></div>
+    <div class="stat-item"><div class="stat-num">60<span>s</span></div><div class="stat-label">Average Audit Time</div></div>
+  </div>
+</div>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    <span class="ticker-item">notion.so</span><span class="ticker-item">groww.in</span><span class="ticker-item">razorpay.com</span><span class="ticker-item">figma.com</span><span class="ticker-item">linear.app</span><span class="ticker-item">zepto.com</span><span class="ticker-item">meesho.com</span><span class="ticker-item">zerodha.com</span><span class="ticker-item">cred.club</span><span class="ticker-item">freshworks.com</span><span class="ticker-item">postman.com</span><span class="ticker-item">browserstack.com</span><span class="ticker-item">chargebee.com</span><span class="ticker-item">clevertap.com</span>
+    <span class="ticker-item">notion.so</span><span class="ticker-item">groww.in</span><span class="ticker-item">razorpay.com</span><span class="ticker-item">figma.com</span><span class="ticker-item">linear.app</span><span class="ticker-item">zepto.com</span><span class="ticker-item">meesho.com</span><span class="ticker-item">zerodha.com</span><span class="ticker-item">cred.club</span><span class="ticker-item">freshworks.com</span><span class="ticker-item">postman.com</span><span class="ticker-item">browserstack.com</span><span class="ticker-item">chargebee.com</span><span class="ticker-item">clevertap.com</span>
+  </div>
+</div>
+
+<!-- PROBLEM SECTION -->
+<div class="section-wrap">
+  <div class="section-inner">
+    <div class="section-kicker">The Problem · 3 Gaps</div>
+    <div class="section-h2">Your customers ask AI.<br><em>AI recommends your competitor.</em></div>
+    <p class="section-lead">Your customers are not Googling anymore. They are asking AI. And right now, AI is recommending your competitors — not you.</p>
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-num">01</div>
+        <h3>ChatGPT recommends competitors</h3>
+        <p>When users ask for tools in your category, ChatGPT suggests funded competitors because they optimized for AI context. You are not even in the conversation.</p>
+      </div>
+      <div class="card">
+        <div class="card-num">02</div>
+        <h3>Gemini has not heard of you</h3>
+        <p>Despite having great SEO traffic, Gemini's knowledge graph does not connect your brand to the problems you solve. You are invisible where it counts.</p>
+      </div>
+      <div class="card">
+        <div class="card-num">03</div>
+        <h3>No way to track any of this</h3>
+        <p>Search Console is useless for AI systems. You have no dashboard to know if your PR and content are actually working. GeoIQ fixes this.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<div class="section-wrap" id="how">
+  <div class="section-inner">
+    <div class="section-kicker">How It Works · 3 Steps</div>
+    <div class="section-h2">Three steps.<br><em>Your GEO IQ in 60 seconds.</em></div>
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-icon-box">→</div>
+        <div class="card-step">01 / Audit</div>
+        <h3>Paste your URL</h3>
+        <p>We query ChatGPT, Gemini, Perplexity, Claude, and Grok with real buyer-intent prompts about your category. No scraping. No guessing.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon-box" style="background:#5B3FEA">⟳</div>
+        <div class="card-step">02 / Fix</div>
+        <h3>Get your exact roadmap</h3>
+        <p>GeoIQ returns a 4-week fix plan with CITE tags, AI-ready content rewrites, and direct submission URLs. Every fix has a reason and a predicted impact.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon-box" style="background:#16A34A">↗</div>
+        <div class="card-step">03 / Get Found</div>
+        <h3>Watch your score climb</h3>
+        <p>Track your GEO IQ score across all 6 AI systems daily. See which AI mentions you, when your brand appears, and how you stack up against competitors.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCORE DEMO (DARK) -->
+<div class="section-wrap dark">
+  <div class="section-inner">
+    <div class="section-kicker light">Your Score</div>
+    <div class="score-wrap">
+      <div class="score-copy">
+        <div class="geo-agent-badge"><span class="dot"></span>Powered by Claude AI</div>
+        <h2>Your GEO IQ.<br>Real. Live. Brutal.</h2>
+        <p>GeoIQ gives you a score from 0 to 100 for each AI system, a combined GEO IQ, and a full breakdown of what each AI actually says about your brand right now.</p>
+        <button class="btn-purple">Check your score free →</button>
+      </div>
+      <div class="score-widget">
+        <div class="score-widget-header">
+          <div>
+            <div class="score-label">GEO IQ Score</div>
+            <div class="score-big"><span>47</span>/100</div>
+          </div>
+          <div class="score-tag">Partial Visibility</div>
+        </div>
+        <div class="score-bars">
+          <div class="sbar"><div class="sbar-label">ChatGPT</div><div class="sbar-track"><div class="sbar-fill" style="width:67%"></div></div><div class="sbar-val">22/33</div></div>
+          <div class="sbar"><div class="sbar-label">Gemini</div><div class="sbar-track"><div class="sbar-fill" style="width:42%"></div></div><div class="sbar-val">14/33</div></div>
+          <div class="sbar"><div class="sbar-label">Perplexity</div><div class="sbar-track"><div class="sbar-fill" style="width:33%"></div></div><div class="sbar-val">11/33</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES GRID -->
+<div class="section-wrap">
+  <div class="section-inner">
+    <div class="section-kicker">What You Get</div>
+    <div class="section-h2">Everything you need<br>to get recommended<br><em>by AI.</em></div>
+    <div class="grid-3-nopad">
+      <div class="card-filled"><div class="card-filled-icon">📊</div><h3>Measure your AI visibility</h3><p>Get a GEO IQ score across ChatGPT, Gemini, Perplexity, Claude, Grok, and Google AI. See exactly where your brand appears and where it is missing.</p></div>
+      <div class="card-filled"><div class="card-filled-icon">🗺️</div><h3>Your step-by-step roadmap</h3><p>A 4-week fix plan with exact tasks, generated content, CITE tags, and direct submission URLs. Not generic advice — your brand, your gaps, your fixes.</p></div>
+      <div class="card-filled"><div class="card-filled-icon">✍️</div><h3>AI-cited content generation</h3><p>GeoIQ rewrites your homepage copy, generates AI-ready blog posts, and creates the exact content that gets cited by ChatGPT and Gemini.</p></div>
+      <div class="card-filled"><div class="card-filled-icon">🔍</div><h3>Citation tracking</h3><p>See which sites AI cites when answering questions in your category. Know exactly what drives your competitors' AI mentions — and how to match it.</p></div>
+      <div class="card-filled"><div class="card-filled-icon">⚔️</div><h3>Competitor analysis</h3><p>Compare your AI mention rate against up to 10 competitors. See which AI systems favor them and where to attack in your content strategy.</p></div>
+      <div class="card-filled"><div class="card-filled-icon">🤖</div><h3>GeoIQ Agent (Claude AI)</h3><p>A Claude-powered AI strategist in your dashboard. Run live audits, generate content, ask strategy questions — all in one conversation.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- REAL AUDIT RESULTS -->
+<div class="section-wrap">
+  <div class="section-inner">
+    <div class="section-kicker">Real Audit Results</div>
+    <div class="section-h2">Even well-known brands<br><em>are mostly invisible.</em></div>
+    <p class="section-lead">These are live audit results from real domains, not estimates. Run them yourself.</p>
+    <div class="grid-3-nopad" style="margin-top:48px">
+      <div class="audit-card">
+        <div class="audit-top">
+          <div class="audit-domain">notion.so</div>
+          <div class="audit-cat">SaaS tool · Global</div>
+          <div class="audit-score-row"><div class="audit-score-big">24</div><div class="audit-score-denom">/100</div></div>
+        </div>
+        <div class="audit-bottom">
+          <div class="audit-engines">
+            <div class="audit-engine-row"><span class="engine-name">ChatGPT</span><span class="ebadge ep">Partial</span></div>
+            <div class="audit-engine-row"><span class="engine-name">Gemini</span><span class="ebadge ei">Invisible</span></div>
+            <div class="audit-engine-row"><span class="engine-name">Perplexity</span><span class="ebadge ei">Invisible</span></div>
+          </div>
+          <div class="audit-desc">30 million users. Still mostly invisible in AI search.</div>
+          <a class="audit-link" href="#">Run it →</a>
+        </div>
+      </div>
+      <div class="audit-card">
+        <div class="audit-top">
+          <div class="audit-domain">groww.in</div>
+          <div class="audit-cat">

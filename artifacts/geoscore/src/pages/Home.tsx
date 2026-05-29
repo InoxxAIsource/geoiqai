@@ -4,177 +4,12 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { PricingCards } from "@/components/pricing/PricingCards";
 
-const PRIMARY = "#4F46E5";
-const PRIMARY_HOVER = "#4338CA";
-
-const SYNE: React.CSSProperties = { fontFamily: "'Sora', sans-serif", letterSpacing: "-0.02em", lineHeight: 1.15 };
-
-const FEATURES = [
-  {
-    id: "score",
-    label: "Measure your visibility",
-    headline: "Know exactly where AI ranks you",
-    body: "GeoIQ queries ChatGPT, Gemini, Perplexity, Claude, and Grok with real buyer-intent prompts. You get a score from 0-100 for each system, a combined GEO IQ, and a breakdown of what each AI actually said about you.",
-    visual: (
-      <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 12, padding: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>GEO IQ Score</div>
-            <div style={{ ...SYNE, fontSize: 64, fontWeight: 800, color: "#D97706", lineHeight: 1 }}>47<span style={{ fontSize: 20, color: "#CBD5E1", fontWeight: 400 }}>/100</span></div>
-          </div>
-          <div style={{ background: "#FEF3C7", border: "1px solid #FDE68A", borderRadius: 8, padding: "8px 14px", fontSize: 13, color: "#92400E", fontWeight: 500 }}>Partial visibility</div>
-        </div>
-        {[
-          { name: "ChatGPT", score: 22, color: "#10a37f", bg: "#DCFCE7" },
-          { name: "Gemini", score: 14, color: "#4285f4", bg: "#DBEAFE" },
-          { name: "Perplexity", score: 11, color: "#9333ea", bg: "#F3E8FF" },
-        ].map(row => (
-          <div key={row.name} style={{ marginBottom: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-              <span style={{ fontSize: 12, color: "#374151", fontWeight: 500 }}>{row.name}</span>
-              <span style={{ fontSize: 12, color: "#6B7280" }}>{row.score}/33</span>
-            </div>
-            <div style={{ height: 6, background: "#F1F5F9", borderRadius: 3, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${(row.score / 33) * 100}%`, background: row.color, borderRadius: 3, transition: "width 1s ease" }} />
-            </div>
-          </div>
-        ))}
-      </div>
-    ),
-  },
-  {
-    id: "agent",
-    label: "Fix it with AI",
-    headline: "An AI that knows GEO so you don't have to",
-    body: "Ask your GEO Agent anything - why your score is low, what your competitor is doing differently, or what you should publish next. It has full context of your audit and tailors every answer to your specific brand.",
-    visual: (
-      <div style={{ background: "#0F172A", borderRadius: 12, padding: 20, minHeight: 180 }}>
-        <div style={{ fontSize: 11, color: "#4ADE80", fontFamily: "monospace", marginBottom: 16 }}>GeoIQ Agent</div>
-        {[
-          { role: "user", text: "Why is my ChatGPT score only 8/33?" },
-          { role: "agent", text: "ChatGPT's training data doesn't include strong citations for your brand. The most effective fix is to get featured on Crunchbase, Product Hunt, and at least 3 domain-authority publications. That usually moves the needle in 6-8 weeks." },
-        ].map((msg, i) => (
-          <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start", marginBottom: 10 }}>
-            <div style={{
-              maxWidth: "80%", padding: "10px 14px", borderRadius: msg.role === "user" ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
-              background: msg.role === "user" ? "#4F46E5" : "#1E293B",
-              color: msg.role === "user" ? "white" : "#CBD5E1",
-              fontSize: 13, lineHeight: 1.5,
-            }}>
-              {msg.text}
-            </div>
-          </div>
-        ))}
-      </div>
-    ),
-  },
-  {
-    id: "fixes",
-    label: "Your step-by-step roadmap",
-    headline: "A prioritized roadmap, not a generic checklist",
-    body: "GeoIQ generates a ranked list of specific fixes based on your audit results - from technical issues (missing schema, no HTTPS) to authority signals (directory submissions, press coverage) to content gaps (FAQ pages, comparison posts).",
-    visual: (
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {[
-          { priority: "HIGH", label: "Add FAQ schema markup", pts: "+12 pts", color: "#DC2626", bg: "#FEE2E2" },
-          { priority: "HIGH", label: "Submit to ProductHunt", pts: "+10 pts", color: "#DC2626", bg: "#FEE2E2" },
-          { priority: "MED", label: "Create comparison page", pts: "+8 pts", color: "#D97706", bg: "#FEF3C7" },
-          { priority: "MED", label: "Add Crunchbase profile", pts: "+7 pts", color: "#D97706", bg: "#FEF3C7" },
-        ].map((item, i) => (
-          <div key={i} style={{ background: "white", border: "1px solid #E5E7EB", borderRadius: 8, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, background: item.bg, color: item.color, borderRadius: 4, padding: "2px 6px", letterSpacing: "0.05em", flexShrink: 0 }}>{item.priority}</span>
-            <span style={{ fontSize: 13, color: "#374151", flex: 1 }}>{item.label}</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "#059669" }}>{item.pts}</span>
-          </div>
-        ))}
-      </div>
-    ),
-  },
-  {
-    id: "citations",
-    label: "Build your AI authority",
-    headline: "See which sources AI trusts for your category",
-    body: "GeoIQ tracks where the AI systems are pulling information about your industry from. You see exactly which publications, directories, and sites are being cited - so you know where to get coverage to improve your score.",
-    visual: (
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {[
-          { source: "TechCrunch", authority: 94, cited: true },
-          { source: "Product Hunt", authority: 81, cited: true },
-          { source: "Crunchbase", authority: 78, cited: false },
-          { source: "G2.com", authority: 72, cited: false },
-        ].map((item, i) => (
-          <div key={i} style={{ background: "white", border: "1px solid #E5E7EB", borderRadius: 8, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: item.cited ? "#10B981" : "#E5E7EB", flexShrink: 0 }} />
-            <span style={{ fontSize: 13, color: "#374151", flex: 1 }}>{item.source}</span>
-            <span style={{ fontSize: 12, color: "#9CA3AF" }}>DR {item.authority}</span>
-            <span style={{ fontSize: 11, color: item.cited ? "#059669" : "#9CA3AF", fontWeight: 500 }}>{item.cited ? "Your brand cited" : "Not cited yet"}</span>
-          </div>
-        ))}
-      </div>
-    ),
-  },
-  {
-    id: "content",
-    label: "Create AI-cited content",
-    headline: "Content built to train AI on your brand",
-    body: "GeoIQ generates ready-to-publish content specifically designed to improve AI visibility - FAQ pages, comparison articles, schema markup, and structured data that AI systems pick up during crawling.",
-    visual: (
-      <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 12, padding: 20 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>Generated FAQ page</div>
-        {[
-          "What is [YourBrand] and who is it for?",
-          "How does [YourBrand] compare to [Competitor]?",
-          "What problems does [YourBrand] solve?",
-        ].map((q, i) => (
-          <div key={i} style={{ padding: "10px 0", borderBottom: i < 2 ? "1px solid #E5E7EB" : "none" }}>
-            <div style={{ fontSize: 13, fontWeight: 500, color: "#374151", marginBottom: 4 }}>Q: {q}</div>
-            <div style={{ height: 8, background: "#E5E7EB", borderRadius: 4, width: "85%", marginBottom: 4 }} />
-            <div style={{ height: 8, background: "#E5E7EB", borderRadius: 4, width: "60%" }} />
-          </div>
-        ))}
-      </div>
-    ),
-  },
-];
-
-const AUDIT_CARDS = [
-  {
-    domain: "notion.so",
-    category: "SaaS tool · Global",
-    score: 24,
-    scoreColor: "#D97706",
-    rows: [
-      { ai: "ChatGPT", status: "Partial", bg: "#FEF3C7", color: "#92400E" },
-      { ai: "Gemini", status: "Invisible", bg: "#FEE2E2", color: "#991B1B" },
-      { ai: "Perplexity", status: "Invisible", bg: "#FEE2E2", color: "#991B1B" },
-    ],
-    insight: "30 million users. Still mostly invisible in AI search.",
-  },
-  {
-    domain: "groww.in",
-    category: "Fintech · India",
-    score: 38,
-    scoreColor: "#D97706",
-    rows: [
-      { ai: "ChatGPT", status: "Partial", bg: "#FEF3C7", color: "#92400E" },
-      { ai: "Gemini", status: "Invisible", bg: "#FEE2E2", color: "#991B1B" },
-      { ai: "Perplexity", status: "Partial", bg: "#FEF3C7", color: "#92400E" },
-    ],
-    insight: "India's most trusted investment app. Missing from most AI answers.",
-  },
-  {
-    domain: "lemlist.com",
-    category: "SaaS · Global",
-    score: 0,
-    scoreColor: "#DC2626",
-    rows: [
-      { ai: "ChatGPT", status: "Invisible", bg: "#FEE2E2", color: "#991B1B" },
-      { ai: "Gemini", status: "Invisible", bg: "#FEE2E2", color: "#991B1B" },
-      { ai: "Perplexity", status: "Invisible", bg: "#FEE2E2", color: "#991B1B" },
-    ],
-    insight: "Huge blog. Strong SEO. Active community. Zero AI visibility.",
-  },
-];
+const BG = "#F2F0EB";
+const TEXT = "#0A0A0A";
+const PURPLE = "#5B3FEA";
+const MUTED = "#6B7280";
+const BORDER = "#D4D0C8";
+const CARD = "#E8E4DC";
 
 const TICKER_BRANDS = [
   "notion.so", "groww.in", "razorpay.com", "figma.com", "linear.app",
@@ -182,10 +17,96 @@ const TICKER_BRANDS = [
   "postman.com", "browserstack.com", "chargebee.com", "clevertap.com",
 ];
 
+const AI_SYSTEMS = [
+  { name: "ChatGPT", abbr: "GPT", color: "#10A37F", bg: "#D1FAE5" },
+  { name: "Gemini", abbr: "G", color: "#4285F4", bg: "#DBEAFE" },
+  { name: "Perplexity", abbr: "PX", color: "#7C3AED", bg: "#EDE9FE" },
+  { name: "Claude", abbr: "C", color: "#D97706", bg: "#FEF3C7" },
+  { name: "Grok", abbr: "X", color: "#0A0A0A", bg: "#F3F4F6" },
+  { name: "Google AI", abbr: "AI", color: "#EA4335", bg: "#FEE2E2" },
+];
+
+const AUDIT_CARDS = [
+  {
+    domain: "notion.so",
+    category: "SaaS tool · Global",
+    score: 24,
+    rows: [
+      { ai: "ChatGPT", status: "Partial", cls: "ep" },
+      { ai: "Gemini", status: "Invisible", cls: "ei" },
+      { ai: "Perplexity", status: "Invisible", cls: "ei" },
+    ],
+    insight: "30 million users. Still mostly invisible in AI search.",
+  },
+  {
+    domain: "groww.in",
+    category: "Fintech · India",
+    score: 38,
+    rows: [
+      { ai: "ChatGPT", status: "Partial", cls: "ep" },
+      { ai: "Gemini", status: "Invisible", cls: "ei" },
+      { ai: "Perplexity", status: "Partial", cls: "ep" },
+    ],
+    insight: "India's most trusted investment app. Missing from most AI answers.",
+  },
+  {
+    domain: "lemlist.com",
+    category: "SaaS · Global",
+    score: 0,
+    rows: [
+      { ai: "ChatGPT", status: "Invisible", cls: "ei" },
+      { ai: "Gemini", status: "Invisible", cls: "ei" },
+      { ai: "Perplexity", status: "Invisible", cls: "ei" },
+    ],
+    insight: "Huge blog. Strong SEO. Active community. Zero AI visibility.",
+  },
+];
+
+const TESTIMONIALS = [
+  {
+    quote: "We were spending on SEO but ChatGPT was recommending our competitors. GeoIQ showed us exactly why and gave us a fix list. Our score went from 12 to 47 in 6 weeks.",
+    author: "Priya S.",
+    role: "Founder, SaaS startup · Bangalore",
+  },
+  {
+    quote: "The audit took 60 seconds and I immediately saw three things we were doing wrong. The robots.txt issue alone was costing us visibility across all AI systems.",
+    author: "Rohit M.",
+    role: "Growth lead · B2B SaaS · Mumbai",
+  },
+  {
+    quote: "I showed the audit to my team and they finally understood why content quality matters for AI. The CITE breakdown was eye-opening - we had no authority signals at all.",
+    author: "Aditya K.",
+    role: "Co-founder · Fintech startup · Delhi",
+  },
+];
+
+const FAQS = [
+  {
+    q: "What is GEO IQ and how is it different from SEO?",
+    a: "GEO IQ (Generative Engine Optimization Intelligence Quotient) is your brand's visibility score across AI systems like ChatGPT, Gemini, and Perplexity. Unlike SEO which tracks Google rankings, GEO IQ measures whether AI actually mentions and recommends your brand when users ask questions in your category.",
+  },
+  {
+    q: "How does the free audit work?",
+    a: "Paste your domain and GeoIQ queries ChatGPT, Gemini, Perplexity, Claude, and Grok with real buyer-intent prompts about your product category. We analyze the responses, check your technical setup, and return a 0-100 score with specific fixes in about 60 seconds.",
+  },
+  {
+    q: "Is this accurate? How do you query the AI systems?",
+    a: "We use the official APIs for each AI system with prompts that mirror how real users ask about products in your category. The responses vary slightly each time (that is how LLMs work), so scores represent your average visibility across multiple query runs.",
+  },
+  {
+    q: "How long does it take to improve my score?",
+    a: "Technical fixes (robots.txt, schema markup) take effect within 1-2 weeks. Content changes and citation building typically show results in 4-8 weeks. Most users see meaningful movement in their GEO IQ within 30 days of implementing the recommended fixes.",
+  },
+  {
+    q: "Does this work for Indian startups and regional brands?",
+    a: "Yes. GeoIQ was built with the Indian market in mind. We understand that AI systems have different training data distributions, and we specifically test how your brand appears for Indian user intents and regional contexts.",
+  },
+];
+
 export default function Home() {
   const [, setLocation] = useLocation();
   const [url, setUrl] = useState("");
-  const [activeFeature, setActiveFeature] = useState("score");
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -199,16 +120,13 @@ export default function Home() {
     setLocation(`/audit?url=${encodeURIComponent(trimmed)}`);
   };
 
-  const scrollToInput = (value?: string) => {
-    if (value !== undefined) setUrl(value);
+  const scrollToInput = () => {
     inputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    setTimeout(() => inputRef.current?.focus(), 500);
+    setTimeout(() => inputRef.current?.focus(), 400);
   };
 
-  const activeFeatureData = FEATURES.find(f => f.id === activeFeature) ?? FEATURES[0];
-
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "white" }}>
+    <div style={{ background: BG, color: TEXT, fontFamily: "'Inter', sans-serif", overflowX: "hidden" }}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -220,609 +138,463 @@ export default function Home() {
             "logo": "https://geoiqai.com/favicon.svg",
             "description": "GeoIQ is an AI visibility platform that tracks how your brand appears in ChatGPT, Gemini, Perplexity, Claude, Grok and Google AI Overview. Free AI visibility audit in 60 seconds.",
             "foundingDate": "2026",
-            "founder": {
-              "@type": "Person",
-              "name": "Tauheed",
-              "sameAs": "https://twitter.com/BeingtauheedTk"
-            },
-            "contactPoint": {
-              "@type": "ContactPoint",
-              "email": "hello@geoiqai.com",
-              "contactType": "customer support"
-            },
             "sameAs": [
               "https://twitter.com/BeingtauheedTk",
-              "https://www.instagram.com/geoiqai",
               "https://www.linkedin.com/company/geoiqai",
-              "https://x.com/BeingtauheedTk"
-            ]
+            ],
           }),
         }}
       />
       <style>{`
-        @keyframes ticker {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        @keyframes pulse-dot {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+        @keyframes ticker-scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+        .ticker-track { display:flex; animation:ticker-scroll 30s linear infinite; white-space:nowrap; }
+        .ticker-track:hover { animation-play-state:paused; }
+        .pulse-dot { animation:pulse 1.5s infinite; }
+        @media(max-width:768px){
+          .hide-mobile{ display:none!important; }
+          .grid-3-mobile{ grid-template-columns:1fr!important; }
+          .grid-2-mobile{ grid-template-columns:1fr!important; }
+          .stats-grid-mobile{ grid-template-columns:repeat(2,1fr)!important; }
+          .hero-pad{ padding:100px 20px 48px!important; }
+          .section-pad{ padding:56px 20px!important; }
+          .section-h2-mobile{ font-size:clamp(30px,8vw,56px)!important; }
+          .input-wrap-mobile{ flex-direction:column!important; padding:12px!important; }
+          .input-wrap-mobile input{ color:white; }
+          .input-wrap-mobile button{ width:100%!important; }
         }
       `}</style>
 
       <Navbar />
 
-      {/* ── HERO ── */}
-      <section style={{ background: "white", padding: "80px 24px 56px", textAlign: "center" }}>
-        <div style={{ maxWidth: 800, margin: "0 auto" }}>
-
-          <div style={{
-            display: "inline-block",
-            background: "#EEF2FF",
-            color: "#4338CA",
-            borderRadius: 20,
-            padding: "4px 14px",
-            fontSize: 12,
-            fontWeight: 600,
-            letterSpacing: "0.05em",
-            textTransform: "uppercase" as const,
-            marginBottom: 20,
-          }}>
-            Free AI Visibility Audit
+      {/* HERO */}
+      <div className="hero-pad" style={{ maxWidth: 1200, margin: "0 auto", padding: "140px 48px 60px" }}>
+        <div style={{ maxWidth: 760 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 28 }}>
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              background: TEXT, color: "#fff",
+              fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" as const,
+              padding: "6px 14px", borderRadius: 4,
+            }}>
+              <span className="pulse-dot" style={{ width: 6, height: 6, background: PURPLE, borderRadius: "50%", display: "inline-block" }} />
+              GEO Audit · v2.0
+            </div>
+            <span style={{ fontSize: 12, color: MUTED, fontWeight: 500, letterSpacing: "0.05em" }}>
+              Live · Built for SaaS and Founders
+            </span>
           </div>
 
           <h1 style={{
-            fontFamily: "'Sora', sans-serif",
-            fontSize: "clamp(1.95rem, 5vw, 3.5rem)",
-            fontWeight: 700,
-            lineHeight: 1.15,
-            marginBottom: 20,
-            color: "#0A0A0A",
-            letterSpacing: "-0.025em",
-            wordBreak: "break-word",
-            overflowWrap: "break-word",
+            fontSize: "clamp(52px, 7vw, 88px)", fontWeight: 900, lineHeight: 0.95,
+            letterSpacing: "-0.03em", marginBottom: 32,
           }}>
-            Your brand is invisible to ChatGPT.<br />
-            <span style={{ color: "#4F46E5", fontWeight: 800 }}>We find out why, and fix it.</span>
+            Your brand is{" "}
+            <span style={{ background: PURPLE, color: "#fff", padding: "2px 12px", display: "inline-block", lineHeight: 1.1 }}>
+              invisible
+            </span>
+            <br />
+            <em style={{ fontStyle: "italic" }}>to AI right now.</em>
           </h1>
 
-          <p style={{
-            fontSize: 20,
-            color: "#6B7280",
-            maxWidth: 560,
-            margin: "0 auto 28px",
-            lineHeight: 1.6,
-            fontWeight: 400,
-          }}>
-            Most brands don't appear when customers ask ChatGPT or Gemini to recommend products in their category.
-            GeoIQ shows you exactly where you stand and what to do about it. Free in 60 seconds.
+          <p style={{ fontSize: 18, color: MUTED, maxWidth: 540, lineHeight: 1.6, marginBottom: 40 }}>
+            Paste your URL. GeoIQ checks ChatGPT, Gemini, Perplexity, Claude and Grok - and returns your AI visibility score with exact fixes. Free in 60 seconds.
           </p>
 
-          {/* Social proof - above the input */}
-          <div style={{
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "center",
-            gap: "8px 20px",
-            marginBottom: 24,
-          }}>
-            {[
-              "500+ brands audited",
-              "Notion scored 24/100",
-              "Used by SEO strategists",
-            ].map((item) => (
-              <span key={item} style={{
-                fontSize: 13,
-                color: "#374151",
-                fontWeight: 500,
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
+          <form onSubmit={handleSubmit} style={{ marginBottom: 24 }}>
+            <div className="input-wrap-mobile" style={{
+              display: "flex", background: TEXT, borderRadius: 10, overflow: "hidden",
+              maxWidth: 580, padding: "8px 8px 8px 24px", gap: 8,
+              border: `2px solid ${TEXT}`,
+            }}>
+              <input
+                ref={inputRef}
+                type="text"
+                value={url}
+                onChange={e => setUrl(e.target.value)}
+                placeholder="yoursite.com"
+                style={{
+                  flex: 1, background: "transparent", border: "none", color: "#fff",
+                  fontSize: 15, outline: "none", fontFamily: "inherit",
+                }}
+              />
+              <button type="submit" style={{
+                background: PURPLE, color: "#fff", border: "none",
+                padding: "13px 24px", borderRadius: 6, fontSize: 15, fontWeight: 700,
+                cursor: "pointer", whiteSpace: "nowrap" as const, fontFamily: "inherit",
               }}>
-                <span style={{ color: "#4F46E5", fontWeight: 700 }}>&#8594;</span>
-                {item}
+                Check my AI visibility
+              </button>
+            </div>
+          </form>
+
+          <div style={{ display: "flex", gap: 28, alignItems: "center", flexWrap: "wrap" as const }}>
+            {[
+              { num: "500+", label: "audits run" },
+              { num: "6", label: "AI systems" },
+              { num: "Free", label: "forever" },
+              { num: "60s", label: "results" },
+            ].map(s => (
+              <span key={s.label} style={{ fontSize: 13, color: MUTED }}>
+                <strong style={{ color: TEXT, fontWeight: 700 }}>{s.num}</strong> {s.label}
               </span>
             ))}
           </div>
+        </div>
+      </div>
 
-          {/* Reassurance line */}
-          <p style={{
-            fontSize: 13,
-            color: "#9CA3AF",
-            textAlign: "center",
-            margin: "0 auto 12px",
-            fontWeight: 400,
-          }}>
-            No account needed - just enter your website and see your results instantly.
-          </p>
-
-          <form
-            onSubmit={handleSubmit}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              background: "white",
-              border: "1.5px solid #E5E7EB",
-              borderRadius: 50,
-              padding: "6px 6px 6px 20px",
-              maxWidth: 560,
-              margin: "0 auto",
-              boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
-              gap: 8,
-            }}
-          >
-            <input
-              ref={inputRef}
-              type="text"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="Enter your website URL..."
-              style={{
-                flex: 1,
-                border: "none",
-                outline: "none",
-                fontSize: 15,
-                color: "#0A0A0A",
-                background: "transparent",
-                minWidth: 0,
-                height: 44,
-              }}
-            />
-            <button
-              type="submit"
-              disabled={!url.trim()}
-              style={{
-                background: url.trim() ? PRIMARY : "#D1D5DB",
-                color: "white",
-                border: "none",
-                borderRadius: 50,
-                padding: "12px 24px",
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: url.trim() ? "pointer" : "default",
-                whiteSpace: "nowrap",
-                flexShrink: 0,
-                transition: "background 150ms",
-              }}
-            >
-              Check my AI visibility →
-            </button>
-          </form>
-
-          <div style={{ fontSize: 12, color: "#9CA3AF", textAlign: "center", marginTop: 12 }}>
-            Free audit · No signup · 60 seconds
+      {/* AI LOGOS STRIP */}
+      <div style={{ background: "#fff", borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}`, padding: "36px 48px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" as const, color: MUTED, textAlign: "center", marginBottom: 24 }}>
+            Tracks 6 AI Systems
           </div>
-
-          {/* AI system logo grid */}
-          <div style={{ borderTop: "1px solid #F3F4F6", padding: "20px 12px", background: "#FAFAFA", marginTop: 24, borderRadius: "0 0 16px 16px" }}>
-            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "#9CA3AF", textAlign: "center", margin: "0 0 16px" }}>
-              Tracks 6 AI systems
-            </p>
-            <div style={{ display: "flex", justifyContent: "space-around", alignItems: "flex-start", gap: 4 }}>
-              {/* ChatGPT */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#000", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", flexShrink: 0 }}>
-                  <svg width="20" height="20" viewBox="0 0 41 41" fill="none">
-                    <path d="M37.532 16.87a9.963 9.963 0 0 0-.856-8.184 10.078 10.078 0 0 0-10.855-4.835 9.964 9.964 0 0 0-6.479-3.559 10.079 10.079 0 0 0-10.698 4.975 9.967 9.967 0 0 0-6.589 4.798 10.08 10.08 0 0 0 1.713 11.655 9.965 9.965 0 0 0 .856 8.185 10.079 10.079 0 0 0 10.855 4.835 9.965 9.965 0 0 0 6.479 3.559 10.078 10.078 0 0 0 10.698-4.975 9.967 9.967 0 0 0 6.589-4.798 10.079 10.079 0 0 0-1.713-11.655Zm-15.811 22.088a7.473 7.473 0 0 1-4.799-1.735c.061-.033.168-.091.237-.134l7.964-4.6a1.294 1.294 0 0 0 .655-1.134V19.054l3.366 1.944a.12.12 0 0 1 .066.092v9.299a7.505 7.505 0 0 1-7.49 7.569zm-16.252-6.88a7.469 7.469 0 0 1-.894-5.023c.06.036.162.099.237.141l7.964 4.6a1.297 1.297 0 0 0 1.308 0l9.724-5.614v3.888a.12.12 0 0 1-.048.103l-8.051 4.649a7.504 7.504 0 0 1-10.24-2.744zm-2.127-17.512a7.474 7.474 0 0 1 3.908-3.285c0 .068-.004.19-.004.274v9.201a1.294 1.294 0 0 0 .654 1.132l9.723 5.614-3.366 1.944a.12.12 0 0 1-.114.012L7.89 23.783a7.505 7.505 0 0 1-.548-9.217zm27.658 6.437l-9.724-5.615 3.367-1.943a.121.121 0 0 1 .114-.012l8.048 4.648a7.498 7.498 0 0 1-1.158 13.528v-9.476a1.293 1.293 0 0 0-.647-1.13zm3.35-5.043c-.059-.037-.162-.099-.236-.141l-7.965-4.6a1.298 1.298 0 0 0-1.308 0l-9.723 5.614v-3.888a.12.12 0 0 1 .048-.103l8.05-4.645a7.497 7.497 0 0 1 11.135 7.763zm-21.063 6.929l-3.367-1.944a.12.12 0 0 1-.065-.092v-9.299a7.497 7.497 0 0 1 12.293-5.756 6.94 6.94 0 0 0-.236.134l-7.965 4.6a1.294 1.294 0 0 0-.654 1.132l-.006 11.225zm1.829-3.943l4.33-2.501 4.332 2.5v4.999l-4.331 2.5-4.331-2.5V18.967z" fill="white" />
-                  </svg>
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 40, flexWrap: "wrap" as const }}>
+            {AI_SYSTEMS.map(ai => (
+              <div key={ai.name} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, fontSize: 12, color: MUTED, fontWeight: 500 }}>
+                <div style={{
+                  width: 48, height: 48, background: ai.bg, border: `1.5px solid ${BORDER}`,
+                  borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: ai.abbr.length > 1 ? 13 : 18, fontWeight: 800, color: ai.color,
+                }}>
+                  {ai.abbr}
                 </div>
-                <span style={{ fontSize: 9, fontWeight: 600, color: "#6B7280", textAlign: "center" }}>ChatGPT</span>
+                <span>{ai.name}</span>
               </div>
-              {/* Gemini */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "white", border: "1px solid #E5E7EB", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", flexShrink: 0 }}>
-                  <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
-                    <path d="M14 28C14 26.0633 13.6267 24.2433 12.88 22.54C12.1567 20.8367 11.165 19.355 9.905 18.095C8.645 16.835 7.16333 15.8433 5.46 15.12C3.75667 14.3733 1.93667 14 0 14C1.93667 14 3.75667 13.6383 5.46 12.915C7.16333 12.1683 8.645 11.165 9.905 9.905C11.165 8.645 12.1567 7.16333 12.88 5.46C13.6267 3.75667 14 1.93667 14 0C14 1.93667 14.3617 3.75667 15.085 5.46C15.8317 7.16333 16.835 8.645 18.095 9.905C19.355 11.165 20.8367 12.1683 22.54 12.915C24.2433 13.6383 26.0633 14 28 14C26.0633 14 24.2433 14.3733 22.54 15.12C20.8367 15.8433 19.355 16.835 18.095 18.095C16.835 19.355 15.8317 20.8367 15.085 22.54C14.3617 24.2433 14 26.0633 14 28Z" fill="url(#gg)" />
-                    <defs>
-                      <linearGradient id="gg" x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
-                        <stop stopColor="#4285F4" />
-                        <stop offset="0.5" stopColor="#9B72CB" />
-                        <stop offset="1" stopColor="#D96570" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                </div>
-                <span style={{ fontSize: 9, fontWeight: 600, color: "#6B7280", textAlign: "center" }}>Gemini</span>
-              </div>
-              {/* Perplexity */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#000", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", flexShrink: 0 }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M22 12.25h-9.25V3.93l-1.5 1.32V12.25H2v1.5h9.25v6.32l1.5 1.32v-7.64H22v-1.5z" fill="white" />
-                    <path d="M11.25 3L3 9.5v11h1.5V10.24L11.25 4.9l6.75 5.34V20.5H19.5v-11L11.25 3z" fill="white" />
-                  </svg>
-                </div>
-                <span style={{ fontSize: 9, fontWeight: 600, color: "#6B7280", textAlign: "center" }}>Perplexity</span>
-              </div>
-              {/* Claude */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#D97757", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", flexShrink: 0 }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-                    <path d="M14.5 2h-5L4 12l5.5 10h5L20 12z" />
-                  </svg>
-                </div>
-                <span style={{ fontSize: 9, fontWeight: 600, color: "#6B7280", textAlign: "center" }}>Claude</span>
-              </div>
-              {/* Grok */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#000", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", flexShrink: 0 }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                  </svg>
-                </div>
-                <span style={{ fontSize: 9, fontWeight: 600, color: "#6B7280", textAlign: "center" }}>Grok</span>
-              </div>
-              {/* Google AI */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "white", border: "1px solid #E5E7EB", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", flexShrink: 0 }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                  </svg>
-                </div>
-                <span style={{ fontSize: 9, fontWeight: 600, color: "#6B7280", textAlign: "center" }}>Google AI</span>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* ── STATS BAR ── */}
-      <section style={{
-        borderTop: "1px solid #F3F4F6",
-        borderBottom: "1px solid #F3F4F6",
-        padding: "24px 24px",
-      }}>
-        <div style={{
-          maxWidth: 720,
-          margin: "0 auto",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        }}>
+      {/* STATS BAR */}
+      <div style={{ background: TEXT, color: "#fff", padding: "40px 48px" }}>
+        <div className="stats-grid-mobile" style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 1, background: "#333" }}>
           {[
-            { number: "500+", label: "Audits Run" },
-            { number: "6", label: "AI Systems" },
-            { number: "Free", label: "Forever" },
-            { number: "60s", label: "Results" },
-          ].map((stat, i) => (
-            <div key={stat.label} style={{
-              textAlign: "center",
-              flex: 1,
-              padding: "0 16px",
-              borderRight: i < 3 ? "1px solid #E5E7EB" : "none",
-            }}>
-              <div style={{ ...SYNE, fontSize: 24, fontWeight: 700, color: "#0A0A0A" }}>{stat.number}</div>
-              <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>{stat.label}</div>
+            { num: "500+", label: "Audits Run" },
+            { num: "6", label: "AI Systems Tracked" },
+            { num: "Free", label: "Forever Plan", purple: true },
+            { num: "60s", label: "Average Audit Time" },
+          ].map(s => (
+            <div key={s.label} style={{ background: TEXT, padding: "28px 24px", textAlign: "center" }}>
+              <div style={{ fontSize: 44, fontWeight: 900, letterSpacing: "-0.03em", color: s.purple ? PURPLE : "#fff" }}>
+                {s.num}
+              </div>
+              <div style={{ fontSize: 13, color: "#888", marginTop: 4, fontWeight: 500 }}>{s.label}</div>
             </div>
           ))}
         </div>
-      </section>
+      </div>
 
-      {/* ── BRAND TICKER ── */}
-      <section style={{ background: "#F9FAFB", padding: "16px 0", overflow: "hidden" }}>
-        <div style={{ display: "flex", animation: "ticker 30s linear infinite", width: "max-content" }}>
+      {/* TICKER */}
+      <div style={{ overflow: "hidden", background: BG, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}`, padding: "14px 0" }}>
+        <div className="ticker-track">
           {[...TICKER_BRANDS, ...TICKER_BRANDS].map((brand, i) => (
-            <span key={i} style={{
-              fontSize: 13,
-              fontWeight: 500,
-              color: "#374151",
-              padding: "0 28px",
-              whiteSpace: "nowrap",
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-            }}>
+            <span key={i} style={{ fontSize: 13, color: MUTED, fontWeight: 500, padding: "0 24px", borderRight: `1px solid ${BORDER}`, display: "inline-block" }}>
               {brand}
-              <span style={{ color: "#D1D5DB" }}>·</span>
             </span>
           ))}
         </div>
-      </section>
+      </div>
 
-      {/* ── PAIN SECTION ── */}
-      <section style={{ padding: "96px 24px" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 64 }}>
-            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 700, lineHeight: 1.15, margin: "0 0 4px", color: "#0A0A0A" }}>
-              Your customers ask AI.
-            </h2>
-            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 700, lineHeight: 1.15, margin: "0 0 4px", color: "#0A0A0A" }}>
-              AI recommends your competitor.
-            </h2>
-            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 700, lineHeight: 1.15, margin: "0 0 24px", color: "#4F46E5" }}>
-              GeoIQ makes sure that changes.
-            </h2>
-            <p style={{ fontSize: 18, color: "#6B7280", maxWidth: 520, margin: "0 auto", lineHeight: 1.6 }}>
-              Your customers aren't Googling anymore. They're asking AI. And right now, AI is recommending your competitors.
-            </p>
+      {/* PROBLEM SECTION */}
+      <div className="section-pad" style={{ padding: "80px 48px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 11, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: MUTED, marginBottom: 24 }}>
+            <span style={{ display: "block", width: 24, height: 1, background: MUTED }} />
+            The Problem · 3 Gaps
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <h2 className="section-h2-mobile" style={{ fontSize: "clamp(36px,5vw,68px)", fontWeight: 900, lineHeight: 0.95, letterSpacing: "-0.03em", marginBottom: 16 }}>
+            Your customers ask AI.<br /><em style={{ fontStyle: "italic" }}>AI recommends your competitor.</em>
+          </h2>
+          <p style={{ fontSize: 17, color: MUTED, maxWidth: 520, lineHeight: 1.6, marginBottom: 0 }}>
+            Your customers are not Googling anymore. They are asking AI. And right now, AI is recommending your competitors - not you.
+          </p>
+          <div className="grid-3-mobile" style={{
+            display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 1,
+            background: BORDER, border: `1px solid ${BORDER}`, borderRadius: 12, overflow: "hidden", marginTop: 56,
+          }}>
             {[
-              {
-                num: "01",
-                title: "ChatGPT recommends competitors",
-                body: "When users ask for tools in your category, ChatGPT suggests your funded competitors because they optimized for AI context.",
-              },
-              {
-                num: "02",
-                title: "Gemini hasn't heard of you",
-                body: "Despite having great SEO traffic, Gemini's knowledge graph doesn't connect your brand to the problems you solve.",
-              },
-              {
-                num: "03",
-                title: "No way to track any of this",
-                body: "Search Console is useless for AI systems. You have no dashboard to know if your PR and content are actually working.",
-              },
-            ].map((card, i) => (
-              <div
-                key={i}
-                style={{
-                  background: "white",
-                  border: "1px solid #E5E7EB",
-                  borderRadius: 16,
-                  padding: 28,
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-                  transition: "box-shadow 200ms, transform 200ms",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = "0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -1px rgba(0,0,0,0.05)";
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)";
-                  e.currentTarget.style.transform = "translateY(0)";
-                }}
-              >
-                <div style={{ ...SYNE, fontSize: 40, fontWeight: 700, color: "#A5B4FC", lineHeight: 1, marginBottom: 20 }}>{card.num}</div>
-                <h3 style={{ fontSize: 17, fontWeight: 600, color: "#111827", marginBottom: 8 }}>{card.title}</h3>
-                <p style={{ fontSize: 14, color: "#6B7280", lineHeight: 1.6, margin: 0 }}>{card.body}</p>
+              { num: "01", title: "ChatGPT recommends competitors", body: "When users ask for tools in your category, ChatGPT suggests funded competitors because they optimized for AI context. You are not even in the conversation." },
+              { num: "02", title: "Gemini has not heard of you", body: "Despite having great SEO traffic, Gemini's knowledge graph does not connect your brand to the problems you solve. You are invisible where it counts." },
+              { num: "03", title: "No way to track any of this", body: "Search Console is useless for AI systems. You have no dashboard to know if your PR and content are actually working. GeoIQ fixes this." },
+            ].map(card => (
+              <div key={card.num} style={{ background: BG, padding: "36px 32px" }}>
+                <div style={{ fontSize: 60, fontWeight: 900, color: `rgba(91,63,234,0.12)`, letterSpacing: "-0.04em", lineHeight: 1, marginBottom: 16 }}>{card.num}</div>
+                <h3 style={{ fontSize: 21, fontWeight: 800, marginBottom: 12, lineHeight: 1.2 }}>{card.title}</h3>
+                <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.6 }}>{card.body}</p>
               </div>
             ))}
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* ── FEATURES TABS ── */}
-      <section style={{ background: "#F9FAFB", padding: "96px 24px" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 48 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: PRIMARY, letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 12 }}>
-              WHAT YOU GET
-            </div>
-            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 3.5vw, 40px)", fontWeight: 700, color: "#0A0A0A", marginBottom: 12 }}>
-              Everything you need to get recommended by AI
-            </h2>
+      {/* HOW IT WORKS */}
+      <div className="section-pad" id="how" style={{ padding: "80px 48px", borderTop: `1px solid ${BORDER}` }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 11, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: MUTED, marginBottom: 24 }}>
+            <span style={{ display: "block", width: 24, height: 1, background: MUTED }} />
+            How It Works · 3 Steps
           </div>
-
-          {/* Tab nav */}
-          <div style={{
-            display: "flex",
-            gap: 6,
-            flexWrap: "wrap",
-            justifyContent: "center",
-            marginBottom: 40,
-            background: "white",
-            border: "1px solid #E5E7EB",
-            borderRadius: 12,
-            padding: 6,
+          <h2 className="section-h2-mobile" style={{ fontSize: "clamp(36px,5vw,68px)", fontWeight: 900, lineHeight: 0.95, letterSpacing: "-0.03em" }}>
+            Three steps.<br /><em style={{ fontStyle: "italic" }}>Your GEO IQ in 60 seconds.</em>
+          </h2>
+          <div className="grid-3-mobile" style={{
+            display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 1,
+            background: BORDER, border: `1px solid ${BORDER}`, borderRadius: 12, overflow: "hidden", marginTop: 56,
           }}>
-            {FEATURES.map(f => (
-              <button
-                key={f.id}
-                onClick={() => setActiveFeature(f.id)}
-                style={{
-                  padding: "8px 16px",
-                  borderRadius: 8,
-                  border: "none",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  transition: "all 150ms",
-                  background: activeFeature === f.id ? PRIMARY : "transparent",
-                  color: activeFeature === f.id ? "white" : "#6B7280",
-                }}
-              >
-                {f.label}
-              </button>
+            {[
+              { icon: "->", iconBg: TEXT, step: "01 / Audit", title: "Paste your URL", body: "We query ChatGPT, Gemini, Perplexity, Claude, and Grok with real buyer-intent prompts about your category. No scraping. No guessing." },
+              { icon: "↻", iconBg: PURPLE, step: "02 / Fix", title: "Get your exact roadmap", body: "GeoIQ returns a 4-week fix plan with CITE tags, AI-ready content rewrites, and direct submission URLs. Every fix has a reason and a predicted impact." },
+              { icon: "↗", iconBg: "#16A34A", step: "03 / Get Found", title: "Watch your score climb", body: "Track your GEO IQ score across all 6 AI systems daily. See which AI mentions you, when your brand appears, and how you stack up against competitors." },
+            ].map(card => (
+              <div key={card.step} style={{ background: BG, padding: "36px 32px" }}>
+                <div style={{ width: 44, height: 44, background: card.iconBg, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24, fontSize: 18, color: "#fff", fontWeight: 700 }}>
+                  {card.icon}
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: MUTED, marginBottom: 14, textTransform: "uppercase" as const }}>{card.step}</div>
+                <h3 style={{ fontSize: 21, fontWeight: 800, marginBottom: 12, lineHeight: 1.2 }}>{card.title}</h3>
+                <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.6 }}>{card.body}</p>
+              </div>
             ))}
           </div>
+        </div>
+      </div>
 
-          {/* Feature content */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12" style={{ alignItems: "center" }}>
+      {/* SCORE DEMO - DARK */}
+      <div className="section-pad" style={{ background: TEXT, color: "#fff", padding: "80px 48px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 11, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: "#555", marginBottom: 24 }}>
+            <span style={{ display: "block", width: 24, height: 1, background: "#555" }} />
+            Your Score
+          </div>
+          <div className="grid-2-mobile" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 80, alignItems: "center" }}>
             <div>
-              <h3 style={{ ...SYNE, fontSize: "clamp(22px, 2.5vw, 30px)", fontWeight: 700, color: "#0A0A0A", marginBottom: 16 }}>
-                {activeFeatureData.headline}
-              </h3>
-              <p style={{ fontSize: 16, color: "#6B7280", lineHeight: 1.7, marginBottom: 28 }}>
-                {activeFeatureData.body}
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: `rgba(91,63,234,0.1)`, border: `1px solid rgba(91,63,234,0.3)`, borderRadius: 100, padding: "8px 20px", fontSize: 13, fontWeight: 600, color: PURPLE, marginBottom: 28 }}>
+                <span className="pulse-dot" style={{ width: 6, height: 6, background: PURPLE, borderRadius: "50%", display: "inline-block" }} />
+                Powered by Claude AI
+              </div>
+              <h2 style={{ fontSize: "clamp(32px,4vw,52px)", fontWeight: 900, lineHeight: 1, letterSpacing: "-0.03em", marginBottom: 20 }}>
+                Your GEO IQ.<br />Real. Live. Brutal.
+              </h2>
+              <p style={{ fontSize: 16, color: "#aaa", lineHeight: 1.6, marginBottom: 32 }}>
+                GeoIQ gives you a score from 0 to 100 for each AI system, a combined GEO IQ, and a full breakdown of what each AI actually says about your brand right now.
               </p>
-              <button
-                onClick={() => scrollToInput()}
-                style={{
-                  background: PRIMARY,
-                  color: "white",
-                  border: "none",
-                  borderRadius: 50,
-                  padding: "12px 24px",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                Try it free →
+              <button onClick={scrollToInput} style={{ background: PURPLE, color: "#fff", padding: "14px 28px", borderRadius: 6, fontSize: 15, fontWeight: 700, cursor: "pointer", border: "none", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 8 }}>
+                Check your score free
               </button>
             </div>
-            <div>
-              {activeFeatureData.visual}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── REAL RESULTS ── */}
-      <section style={{ padding: "96px 24px" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 56 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: PRIMARY, letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 12 }}>
-              REAL AUDIT RESULTS
-            </div>
-            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 3.5vw, 40px)", fontWeight: 700, color: "#0A0A0A", marginBottom: 12 }}>
-              Even well-known brands are mostly invisible
-            </h2>
-            <p style={{ fontSize: 18, color: "#6B7280", maxWidth: 560, margin: "0 auto", lineHeight: 1.6 }}>
-              These are live audit results from real domains, not estimates. Run them yourself.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6" style={{ marginBottom: 32 }}>
-            {AUDIT_CARDS.map((card) => (
-              <div
-                key={card.domain}
-                style={{
-                  background: "white",
-                  border: "1px solid #E5E7EB",
-                  borderRadius: 16,
-                  padding: 24,
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.06)",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 600, color: "#111827" }}>{card.domain}</div>
-                    <div style={{ fontSize: 12, color: "#9CA3AF" }}>{card.category}</div>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ ...SYNE, fontSize: 36, fontWeight: 800, color: card.scoreColor, lineHeight: 1 }}>{card.score}</div>
-                    <div style={{ fontSize: 12, color: "#9CA3AF" }}>/100</div>
+            <div style={{ background: "#111", border: "1px solid #222", borderRadius: 16, padding: 32 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "#666", textTransform: "uppercase" as const, marginBottom: 4 }}>GEO IQ Score</div>
+                  <div style={{ fontSize: 68, fontWeight: 900, letterSpacing: "-0.05em", lineHeight: 1, color: "#fff" }}>
+                    <span style={{ color: PURPLE }}>47</span>/100
                   </div>
                 </div>
-                <div style={{ height: 6, background: "#F3F4F6", borderRadius: 3, margin: "12px 0" }}>
-                  <div style={{ height: "100%", width: `${card.score}%`, background: card.scoreColor, borderRadius: 3 }} />
+                <div style={{ background: "rgba(251,191,36,0.15)", color: "#FBBF24", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 100 }}>
+                  Partial Visibility
                 </div>
-                {card.rows.map((row) => (
-                  <div key={row.ai} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0" }}>
-                    <span style={{ fontSize: 13, color: "#6B7280" }}>{row.ai}</span>
-                    <span style={{ fontSize: 12, fontWeight: 500, padding: "2px 8px", borderRadius: 9999, background: row.bg, color: row.color }}>
-                      {row.status}
-                    </span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {[
+                  { label: "ChatGPT", pct: 67, val: "22/33" },
+                  { label: "Gemini", pct: 42, val: "14/33" },
+                  { label: "Perplexity", pct: 33, val: "11/33" },
+                ].map(bar => (
+                  <div key={bar.label} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, width: 80, flexShrink: 0, color: "#aaa" }}>{bar.label}</div>
+                    <div style={{ flex: 1, height: 6, background: "#222", borderRadius: 100, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${bar.pct}%`, background: PURPLE, borderRadius: 100 }} />
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 700, width: 44, textAlign: "right" as const, color: "#aaa" }}>{bar.val}</div>
                   </div>
                 ))}
-                <div style={{ borderTop: "1px solid #F3F4F6", paddingTop: 12, marginTop: 12, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, flex: 1 }}>
-                  <p style={{ fontSize: 13, color: "#6B7280", margin: 0, fontStyle: "italic", lineHeight: 1.5, flex: 1 }}>{card.insight}</p>
-                  <button
-                    onClick={() => setLocation(`/audit?url=${card.domain}`)}
-                    style={{ fontSize: 12, color: PRIMARY, background: "none", border: "none", cursor: "pointer", whiteSpace: "nowrap", fontWeight: 500, padding: 0, flexShrink: 0 }}
-                  >
-                    Run it →
-                  </button>
-                </div>
               </div>
-            ))}
-          </div>
-
-          <div style={{ textAlign: "center" }}>
-            <button
-              onClick={() => scrollToInput()}
-              style={{ height: 44, padding: "0 28px", background: PRIMARY, color: "white", border: "none", borderRadius: 9999, fontSize: 15, fontWeight: 600, cursor: "pointer" }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = PRIMARY_HOVER)}
-              onMouseLeave={(e) => (e.currentTarget.style.background = PRIMARY)}
-            >
-              Check your brand free →
-            </button>
+            </div>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* ── SOCIAL PROOF DARK ── */}
-      <section style={{ background: "#0A0A0A", padding: "80px 24px" }}>
-        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-          <h2 style={{ ...SYNE, fontSize: "clamp(28px, 3.5vw, 36px)", fontWeight: 700, color: "white", textAlign: "center", marginBottom: 48 }}>
-            Trusted by founders who take AI search seriously
+      {/* FEATURES GRID */}
+      <div className="section-pad" style={{ padding: "80px 48px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 11, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: MUTED, marginBottom: 24 }}>
+            <span style={{ display: "block", width: 24, height: 1, background: MUTED }} />
+            What You Get
+          </div>
+          <h2 className="section-h2-mobile" style={{ fontSize: "clamp(36px,5vw,68px)", fontWeight: 900, lineHeight: 0.95, letterSpacing: "-0.03em" }}>
+            Everything you need<br />to get recommended<br /><em style={{ fontStyle: "italic" }}>by AI.</em>
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid-3-mobile" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20, marginTop: 56 }}>
             {[
-              { number: "500+", label: "Audits run" },
-              { number: "6", label: "AI systems tracked" },
-              { number: "0", label: "Signups needed" },
-              { number: "60s", label: "Average audit time" },
-            ].map((stat) => (
-              <div key={stat.label} style={{
-                background: "#1A1A1A",
-                border: "1px solid #2A2A2A",
-                borderRadius: 16,
-                padding: 32,
-                textAlign: "center",
+              { icon: "[ ]", label: "Measure your AI visibility", body: "Get a GEO IQ score across ChatGPT, Gemini, Perplexity, Claude, Grok, and Google AI. See exactly where your brand appears and where it is missing." },
+              { icon: "->", label: "Your step-by-step roadmap", body: "A 4-week fix plan with exact tasks, generated content, CITE tags, and direct submission URLs. Not generic advice - your brand, your gaps, your fixes." },
+              { icon: "//", label: "AI-cited content generation", body: "GeoIQ rewrites your homepage copy, generates AI-ready blog posts, and creates the exact content that gets cited by ChatGPT and Gemini." },
+              { icon: "~", label: "Citation tracking", body: "See which sites AI cites when answering questions in your category. Know exactly what drives your competitors' AI mentions - and how to match it." },
+              { icon: "vs", label: "Competitor analysis", body: "Compare your AI mention rate against up to 10 competitors. See which AI systems favor them and where to attack in your content strategy." },
+              { icon: "AI", label: "GeoIQ Agent (Claude AI)", body: "A Claude-powered AI strategist in your dashboard. Run live audits, generate content, ask strategy questions - all in one conversation." },
+            ].map(feat => (
+              <div key={feat.label} style={{
+                background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12,
+                padding: "32px 28px", position: "relative" as const, overflow: "hidden",
               }}>
-                <div style={{ ...SYNE, fontSize: 36, fontWeight: 800, color: "white", marginBottom: 8 }}>{stat.number}</div>
-                <div style={{ fontSize: 13, color: "#6B7280" }}>{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── HOW IT WORKS ── */}
-      <section id="how-it-works" style={{ background: "#F9FAFB", padding: "96px 24px" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 56 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: PRIMARY, letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 12 }}>HOW IT WORKS</div>
-            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 3.5vw, 40px)", fontWeight: 700, color: "#0A0A0A" }}>Your GEO IQ in 60 seconds</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { step: "01", title: "Audit", desc: "See exactly how ChatGPT, Gemini and Perplexity describe your brand right now." },
-              { step: "02", title: "Fix", desc: "Get your personalized 4-week roadmap with exact tasks, generated content, and direct submission URLs." },
-              { step: "03", title: "Get found", desc: "Watch your AI visibility score climb as your brand gets recommended in AI search results." },
-            ].map((item, i) => (
-              <div key={i}>
-                <div style={{ ...SYNE, fontSize: 48, fontWeight: 700, color: "#A5B4FC", lineHeight: 1, marginBottom: 12 }}>
-                  {item.step}
+                <div style={{ position: "absolute" as const, top: 0, left: 0, right: 0, height: 3, background: PURPLE }} />
+                <div style={{ width: 40, height: 40, background: `rgba(91,63,234,0.1)`, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: PURPLE, marginBottom: 20 }}>
+                  {feat.icon}
                 </div>
-                <h3 style={{ fontSize: 18, fontWeight: 600, color: "#111827", marginBottom: 8 }}>{item.title}</h3>
-                <p style={{ fontSize: 14, color: "#6B7280", lineHeight: 1.6, margin: 0 }}>{item.desc}</p>
+                <h3 style={{ fontSize: 17, fontWeight: 800, marginBottom: 10 }}>{feat.label}</h3>
+                <p style={{ fontSize: 14, color: MUTED, lineHeight: 1.6 }}>{feat.body}</p>
               </div>
             ))}
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* ── PRICING ── */}
-      <section id="pricing" style={{ background: "white", padding: "96px 24px" }}>
-        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 48 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: PRIMARY, letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 12 }}>PRICING</div>
-            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 3.5vw, 40px)", fontWeight: 700, color: "#0A0A0A", marginBottom: 8 }}>Start getting found by AI today</h2>
-            <p style={{ fontSize: 18, color: "#6B7280" }}>Free audit to see where you stand. Paid plan to fix it.</p>
+      {/* REAL AUDIT RESULTS */}
+      <div className="section-pad" style={{ padding: "80px 48px", borderTop: `1px solid ${BORDER}` }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 11, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: MUTED, marginBottom: 24 }}>
+            <span style={{ display: "block", width: 24, height: 1, background: MUTED }} />
+            Real Audit Results
           </div>
-          <PricingCards />
-        </div>
-      </section>
-
-      {/* ── CTA ── */}
-      <section style={{ background: "#0A0A0A", padding: "80px 24px", textAlign: "center" }}>
-        <div style={{ maxWidth: 600, margin: "0 auto" }}>
-          <h2 style={{ ...SYNE, fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 700, color: "white", marginBottom: 16 }}>
-            Start getting recommended by AI
+          <h2 className="section-h2-mobile" style={{ fontSize: "clamp(36px,5vw,68px)", fontWeight: 900, lineHeight: 0.95, letterSpacing: "-0.03em", marginBottom: 16 }}>
+            Even well-known brands<br /><em style={{ fontStyle: "italic" }}>are mostly invisible.</em>
           </h2>
-          <p style={{ fontSize: 18, color: "#6B7280", marginBottom: 32, lineHeight: 1.6 }}>
-            Join founders who stopped being invisible to ChatGPT and Gemini.
+          <p style={{ fontSize: 17, color: MUTED, maxWidth: 520, lineHeight: 1.6 }}>
+            These are live audit results from real domains, not estimates. Run them yourself.
           </p>
-          <button
-            onClick={() => scrollToInput()}
-            style={{ background: PRIMARY, color: "white", border: "none", borderRadius: 50, padding: "16px 40px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = PRIMARY_HOVER)}
-            onMouseLeave={(e) => (e.currentTarget.style.background = PRIMARY)}
-          >
-            Check your brand free →
+          <div className="grid-3-mobile" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20, marginTop: 44 }}>
+            {AUDIT_CARDS.map(card => (
+              <div key={card.domain} style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, overflow: "hidden" }}>
+                <div style={{ padding: "22px 22px 18px", borderBottom: `1px solid ${BORDER}` }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{card.domain}</div>
+                  <div style={{ fontSize: 12, color: MUTED }}>{card.category}</div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 14 }}>
+                    <span style={{ fontSize: 36, fontWeight: 900, letterSpacing: "-0.03em", color: card.score === 0 ? "#DC2626" : card.score < 40 ? "#D97706" : TEXT }}>{card.score}</span>
+                    <span style={{ fontSize: 14, color: MUTED }}>/100</span>
+                  </div>
+                </div>
+                <div style={{ padding: "18px 22px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {card.rows.map(row => (
+                      <div key={row.ai} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <span style={{ fontSize: 13, fontWeight: 500, color: MUTED }}>{row.ai}</span>
+                        <span style={{
+                          fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
+                          background: row.cls === "ei" ? "rgba(239,68,68,0.1)" : row.cls === "ev" ? "rgba(34,197,94,0.1)" : "rgba(251,191,36,0.12)",
+                          color: row.cls === "ei" ? "#DC2626" : row.cls === "ev" ? "#16A34A" : "#D97706",
+                        }}>
+                          {row.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 13, color: MUTED, marginTop: 16, lineHeight: 1.5, paddingTop: 16, borderTop: `1px solid ${BORDER}` }}>
+                    {card.insight}
+                  </div>
+                  <a href={`/audit?url=${card.domain}`} style={{ fontSize: 13, fontWeight: 600, color: PURPLE, marginTop: 12, display: "inline-flex", alignItems: "center", gap: 4, textDecoration: "none" }}>
+                    Run it
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* TESTIMONIALS - DARK */}
+      <div className="section-pad" style={{ background: TEXT, color: "#fff", padding: "80px 48px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 11, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: "#555", marginBottom: 24 }}>
+            <span style={{ display: "block", width: 24, height: 1, background: "#555" }} />
+            What founders are saying
+          </div>
+          <div className="grid-3-mobile" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 1, background: "#1a1a1a", border: "1px solid #1a1a1a", borderRadius: 12, overflow: "hidden", marginTop: 48 }}>
+            {TESTIMONIALS.map((t, i) => (
+              <div key={i} style={{ background: TEXT, padding: "36px 32px" }}>
+                <div style={{ fontSize: 16, letterSpacing: 2, color: "#FBBF24", marginBottom: 18 }}>*****</div>
+                <p style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.55, marginBottom: 24, color: "#ddd" }}>
+                  "{t.quote}"
+                </p>
+                <div style={{ fontSize: 13, color: "#555" }}>
+                  <strong style={{ color: "#888" }}>{t.author}</strong><br />{t.role}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* PRICING */}
+      <div className="section-pad" id="pricing" style={{ padding: "80px 48px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 11, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: MUTED, marginBottom: 24 }}>
+            <span style={{ display: "block", width: 24, height: 1, background: MUTED }} />
+            Pricing
+          </div>
+          <h2 className="section-h2-mobile" style={{ fontSize: "clamp(36px,5vw,68px)", fontWeight: 900, lineHeight: 0.95, letterSpacing: "-0.03em" }}>
+            Simple pricing.<br /><em style={{ fontStyle: "italic" }}>Cancel any time.</em>
+          </h2>
+          <div style={{ marginTop: 56 }}>
+            <PricingCards />
+          </div>
+        </div>
+      </div>
+
+      {/* FAQ */}
+      <div className="section-pad" id="faq" style={{ padding: "80px 48px", borderTop: `1px solid ${BORDER}` }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 11, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: MUTED, marginBottom: 24 }}>
+            <span style={{ display: "block", width: 24, height: 1, background: MUTED }} />
+            FAQ
+          </div>
+          <h2 className="section-h2-mobile" style={{ fontSize: "clamp(36px,5vw,68px)", fontWeight: 900, lineHeight: 0.95, letterSpacing: "-0.03em" }}>
+            Questions?<br /><em style={{ fontStyle: "italic" }}>We have answers.</em>
+          </h2>
+          <div style={{ maxWidth: 800, margin: "48px auto 0", border: `1px solid ${BORDER}`, borderRadius: 12, overflow: "hidden" }}>
+            {FAQS.map((faq, i) => (
+              <div key={i} style={{ borderBottom: i < FAQS.length - 1 ? `1px solid ${BORDER}` : "none" }}>
+                <button
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  style={{
+                    width: "100%", padding: "22px 28px", fontSize: 15, fontWeight: 700,
+                    cursor: "pointer", display: "flex", justifyContent: "space-between",
+                    alignItems: "center", gap: 16, background: openFaq === i ? CARD : "transparent",
+                    border: "none", textAlign: "left" as const, fontFamily: "inherit", color: TEXT,
+                  }}
+                >
+                  {faq.q}
+                  <span style={{ fontSize: 20, fontWeight: 300, color: openFaq === i ? PURPLE : MUTED, transition: "transform 0.2s", transform: openFaq === i ? "rotate(45deg)" : "none", flexShrink: 0 }}>+</span>
+                </button>
+                {openFaq === i && (
+                  <div style={{ padding: "0 28px 22px", fontSize: 15, color: MUTED, lineHeight: 1.7, background: CARD }}>
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* FINAL CTA */}
+      <div style={{ padding: "100px 48px", background: TEXT, color: "#fff", textAlign: "center" }}>
+        <div style={{ maxWidth: 800, margin: "0 auto" }}>
+          <h2 style={{ fontSize: "clamp(40px,6vw,72px)", fontWeight: 900, letterSpacing: "-0.03em", lineHeight: 0.95, marginBottom: 24 }}>
+            Find out where AI<br />ranks your brand.
+          </h2>
+          <p style={{ fontSize: 18, color: "#888", marginBottom: 44 }}>
+            Free audit. 60 seconds. No credit card.
+          </p>
+          <button onClick={scrollToInput} style={{
+            background: PURPLE, color: "#fff", padding: "18px 40px", borderRadius: 8,
+            fontSize: 16, fontWeight: 700, border: "none", cursor: "pointer",
+            fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 10,
+          }}>
+            Get my free AI audit
           </button>
         </div>
-      </section>
+      </div>
 
       <Footer />
     </div>
