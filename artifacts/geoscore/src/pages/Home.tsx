@@ -7,7 +7,7 @@ import { PricingCards } from "@/components/pricing/PricingCards";
 const PRIMARY = "#4F46E5";
 const PRIMARY_HOVER = "#4338CA";
 
-const SYNE: React.CSSProperties = { fontFamily: "'Syne', sans-serif" };
+const SYNE: React.CSSProperties = { fontFamily: "'Sora', sans-serif", letterSpacing: "-0.02em", lineHeight: 1.15 };
 
 const FEATURES = [
   {
@@ -489,13 +489,13 @@ export default function Home() {
       <section style={{ padding: "96px 24px" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 64 }}>
-            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 800, lineHeight: 1.15, margin: "0 0 4px", color: "#0A0A0A" }}>
+            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 700, lineHeight: 1.15, margin: "0 0 4px", color: "#0A0A0A" }}>
               Your customers ask AI.
             </h2>
-            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 800, lineHeight: 1.15, margin: "0 0 4px", color: "#0A0A0A" }}>
+            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 700, lineHeight: 1.15, margin: "0 0 4px", color: "#0A0A0A" }}>
               AI recommends your competitor.
             </h2>
-            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 800, lineHeight: 1.15, margin: "0 0 24px", color: "#059669" }}>
+            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 700, lineHeight: 1.15, margin: "0 0 24px", color: "#4F46E5" }}>
               GeoIQ makes sure that changes.
             </h2>
             <p style={{ fontSize: 18, color: "#6B7280", maxWidth: 520, margin: "0 auto", lineHeight: 1.6 }}>
@@ -556,7 +556,7 @@ export default function Home() {
             <div style={{ fontSize: 12, fontWeight: 600, color: PRIMARY, letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 12 }}>
               WHAT YOU GET
             </div>
-            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 3.5vw, 40px)", fontWeight: 800, color: "#0A0A0A", marginBottom: 12 }}>
+            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 3.5vw, 40px)", fontWeight: 700, color: "#0A0A0A", marginBottom: 12 }}>
               Everything you need to get recommended by AI
             </h2>
           </div>
@@ -633,7 +633,7 @@ export default function Home() {
             <div style={{ fontSize: 12, fontWeight: 600, color: PRIMARY, letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 12 }}>
               REAL AUDIT RESULTS
             </div>
-            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 3.5vw, 40px)", fontWeight: 800, color: "#0A0A0A", marginBottom: 12 }}>
+            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 3.5vw, 40px)", fontWeight: 700, color: "#0A0A0A", marginBottom: 12 }}>
               Even well-known brands are mostly invisible
             </h2>
             <p style={{ fontSize: 18, color: "#6B7280", maxWidth: 560, margin: "0 auto", lineHeight: 1.6 }}>
@@ -705,7 +705,7 @@ export default function Home() {
       {/* ── SOCIAL PROOF DARK ── */}
       <section style={{ background: "#0A0A0A", padding: "80px 24px" }}>
         <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-          <h2 style={{ ...SYNE, fontSize: "clamp(28px, 3.5vw, 36px)", fontWeight: 800, color: "white", textAlign: "center", marginBottom: 48 }}>
+          <h2 style={{ ...SYNE, fontSize: "clamp(28px, 3.5vw, 36px)", fontWeight: 700, color: "white", textAlign: "center", marginBottom: 48 }}>
             Trusted by founders who take AI search seriously
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -735,7 +735,7 @@ export default function Home() {
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 56 }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: PRIMARY, letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 12 }}>HOW IT WORKS</div>
-            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 3.5vw, 40px)", fontWeight: 800, color: "#0A0A0A" }}>Your GEO IQ in 60 seconds</h2>
+            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 3.5vw, 40px)", fontWeight: 700, color: "#0A0A0A" }}>Your GEO IQ in 60 seconds</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
@@ -760,7 +760,7 @@ export default function Home() {
         <div style={{ maxWidth: 1000, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 48 }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: PRIMARY, letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 12 }}>PRICING</div>
-            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 3.5vw, 40px)", fontWeight: 800, color: "#0A0A0A", marginBottom: 8 }}>Start getting found by AI today</h2>
+            <h2 style={{ ...SYNE, fontSize: "clamp(28px, 3.5vw, 40px)", fontWeight: 700, color: "#0A0A0A", marginBottom: 8 }}>Start getting found by AI today</h2>
             <p style={{ fontSize: 18, color: "#6B7280" }}>Free audit to see where you stand. Paid plan to fix it.</p>
           </div>
           <PricingCards />
@@ -770,7 +770,7 @@ export default function Home() {
       {/* ── CTA ── */}
       <section style={{ background: "#0A0A0A", padding: "80px 24px", textAlign: "center" }}>
         <div style={{ maxWidth: 600, margin: "0 auto" }}>
-          <h2 style={{ ...SYNE, fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 800, color: "white", marginBottom: 16 }}>
+          <h2 style={{ ...SYNE, fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 700, color: "white", marginBottom: 16 }}>
             Start getting recommended by AI
           </h2>
           <p style={{ fontSize: 18, color: "#6B7280", marginBottom: 32, lineHeight: 1.6 }}>
