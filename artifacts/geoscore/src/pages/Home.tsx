@@ -540,7 +540,7 @@ export default function Home() {
                   e.currentTarget.style.transform = "translateY(0)";
                 }}
               >
-                <div style={{ ...SYNE, fontSize: 40, fontWeight: 800, color: "#F3F4F6", lineHeight: 1, marginBottom: 20 }}>{card.num}</div>
+                <div style={{ ...SYNE, fontSize: 40, fontWeight: 700, color: "#C7D2FE", lineHeight: 1, marginBottom: 20 }}>{card.num}</div>
                 <h3 style={{ fontSize: 17, fontWeight: 600, color: "#111827", marginBottom: 8 }}>{card.title}</h3>
                 <p style={{ fontSize: 14, color: "#6B7280", lineHeight: 1.6, margin: 0 }}>{card.body}</p>
               </div>

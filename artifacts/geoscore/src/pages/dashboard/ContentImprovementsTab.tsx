@@ -254,7 +254,7 @@ function ReadinessHeader({ result }: { result: AnalysisResult }) {
           <div style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>
             AI Search Readiness
           </div>
-          <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 64, fontWeight: 800, lineHeight: 1, color: scoreColor }}>
+          <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 64, fontWeight: 800, lineHeight: 1, color: scoreColor }}>
             {readinessScore}<span style={{ fontSize: 20, color: "#CBD5E1", fontWeight: 400 }}>%</span>
           </div>
           <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 4 }}>
@@ -354,7 +354,7 @@ export function ContentImprovementsTab({ brand }: Props) {
       {/* Page header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, gap: 12, flexWrap: "wrap" }}>
         <div>
-          <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>
+          <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: 22, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>
             Content Improvements
           </h2>
           <p style={{ fontSize: 14, color: "#64748B", margin: 0, lineHeight: 1.5 }}>

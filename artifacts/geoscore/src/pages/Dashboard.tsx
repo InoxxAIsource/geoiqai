@@ -909,7 +909,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", fontFamily: "Inter, sans-serif", position: "relative" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", fontFamily: "'Sora', sans-serif", position: "relative" }}>
 
       {/* Set password banner */}
       {showPasswordBanner && (
@@ -1051,7 +1051,7 @@ export default function Dashboard() {
       <div style={{ width: 240, background: "#0F172A", display: isMobile ? "none" : "flex", flexDirection: "column", flexShrink: 0 }}>
         {/* Logo area */}
         <div style={{ height: 64, padding: "0 20px", display: "flex", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-          <span style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 18, color: "white", letterSpacing: "-0.01em" }}>GeoIQ</span>
+          <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 18, color: "white", letterSpacing: "-0.01em" }}>GeoIQ</span>
         </div>
 
         {/* Brand selector */}
@@ -1336,7 +1336,7 @@ export default function Dashboard() {
                       {/* Left: big score */}
                       <div style={{ minWidth: 140 }}>
                         <div style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", letterSpacing: "0.08em", textTransform: "uppercase" as const, marginBottom: 4 }}>GEO IQ Score</div>
-                        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 72, fontWeight: 800, lineHeight: 1, color: activeScore >= 67 ? "#059669" : activeScore >= 34 ? "#D97706" : activeScore > 0 ? "#DC2626" : "#94A3B8" }}>
+                        <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 72, fontWeight: 800, lineHeight: 1, color: activeScore >= 67 ? "#059669" : activeScore >= 34 ? "#D97706" : activeScore > 0 ? "#DC2626" : "#94A3B8" }}>
                           {activeScore}<span style={{ fontSize: 24, color: "#CBD5E1", fontWeight: 400 }}>/100</span>
                         </div>
                         {weekChange !== null && (
@@ -1347,11 +1347,11 @@ export default function Dashboard() {
                         <div style={{ marginTop: 12, display: "flex", gap: 16, flexWrap: "wrap" }}>
                           <div>
                             <div style={{ fontSize: 11, color: "#94A3B8" }}>AI systems visible</div>
-                            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 700, color: "#0F172A" }}>{visibleCount}<span style={{ fontSize: 13, color: "#94A3B8", fontWeight: 400 }}>/5</span></div>
+                            <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 20, fontWeight: 700, color: "#0F172A" }}>{visibleCount}<span style={{ fontSize: 13, color: "#94A3B8", fontWeight: 400 }}>/5</span></div>
                           </div>
                           <div>
                             <div style={{ fontSize: 11, color: "#94A3B8" }}>Prompts tracked</div>
-                            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 700, color: "#0F172A" }}>{promptList.length}</div>
+                            <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 20, fontWeight: 700, color: "#0F172A" }}>{promptList.length}</div>
                           </div>
                         </div>
                       </div>
@@ -1396,7 +1396,7 @@ export default function Dashboard() {
                     ].map((card, i) => (
                       <div key={i} style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 12, padding: "14px 18px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
                         <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 6, fontWeight: 500 }}>{card.label}</div>
-                        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 26, fontWeight: 800, color: card.color }}>{card.value}</div>
+                        <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 26, fontWeight: 800, color: card.color }}>{card.value}</div>
                       </div>
                     ))}
                   </div>
@@ -2473,12 +2473,12 @@ export default function Dashboard() {
                                 {/* Overall score */}
                                 <div style={{ flex: 1, background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: "14px 16px", display: "flex", alignItems: "center", gap: 14 }}>
                                   <div style={{ textAlign: "center" }}>
-                                    <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 42, fontWeight: 800, lineHeight: 1, color: gradeColor }}>{s}</div>
+                                    <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 42, fontWeight: 800, lineHeight: 1, color: gradeColor }}>{s}</div>
                                     <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>/ 100</div>
                                   </div>
                                   <div style={{ width: "0.5px", background: "#e5e7eb", alignSelf: "stretch" }} />
                                   <div>
-                                    <div style={{ display: "inline-block", background: gradeBg, color: gradeColor, borderRadius: 8, padding: "3px 10px", fontSize: 20, fontWeight: 800, fontFamily: "'Syne', sans-serif", marginBottom: 4 }}>{grade}</div>
+                                    <div style={{ display: "inline-block", background: gradeBg, color: gradeColor, borderRadius: 8, padding: "3px 10px", fontSize: 20, fontWeight: 800, fontFamily: "'Sora', sans-serif", marginBottom: 4 }}>{grade}</div>
                                     <div style={{ fontSize: 12, fontWeight: 500, color: "#374151" }}>
                                       {s >= 80 ? "Healthy site" : s >= 55 ? "Needs attention" : "Critical issues"}
                                     </div>
@@ -2498,7 +2498,7 @@ export default function Dashboard() {
                                       borderRadius: 8, padding: "10px 12px",
                                     }}>
                                       <div style={{ fontSize: 10, fontWeight: 600, color: "#6b7280", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 3 }}>TTFB</div>
-                                      <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800, color: perf.ttfbMs < 800 ? "#059669" : perf.ttfbMs < 1800 ? "#D97706" : "#DC2626", lineHeight: 1 }}>
+                                      <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 18, fontWeight: 800, color: perf.ttfbMs < 800 ? "#059669" : perf.ttfbMs < 1800 ? "#D97706" : "#DC2626", lineHeight: 1 }}>
                                         {perf.ttfbMs}ms
                                       </div>
                                       <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>
@@ -2513,7 +2513,7 @@ export default function Dashboard() {
                                         borderRadius: 8, padding: "10px 12px",
                                       }}>
                                         <div style={{ fontSize: 10, fontWeight: 600, color: "#6b7280", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 3 }}>PageSpeed</div>
-                                        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800, color: perf.pageSpeedScore >= 90 ? "#059669" : perf.pageSpeedScore >= 50 ? "#D97706" : "#DC2626", lineHeight: 1 }}>
+                                        <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 18, fontWeight: 800, color: perf.pageSpeedScore >= 90 ? "#059669" : perf.pageSpeedScore >= 50 ? "#D97706" : "#DC2626", lineHeight: 1 }}>
                                           {perf.pageSpeedScore}
                                         </div>
                                         <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>Mobile score</div>
@@ -2529,21 +2529,21 @@ export default function Dashboard() {
                                   {perf.lcp != null && (
                                     <div style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "10px 12px" }}>
                                       <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 4 }}>LCP</div>
-                                      <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: perf.lcp <= 2.5 ? "#059669" : perf.lcp <= 4.0 ? "#D97706" : "#DC2626" }}>{perf.lcp}s</div>
+                                      <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 16, fontWeight: 700, color: perf.lcp <= 2.5 ? "#059669" : perf.lcp <= 4.0 ? "#D97706" : "#DC2626" }}>{perf.lcp}s</div>
                                       <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>{perf.lcp <= 2.5 ? "Good" : perf.lcp <= 4.0 ? "Needs work" : "Poor"}</div>
                                     </div>
                                   )}
                                   {perf.fcp != null && (
                                     <div style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "10px 12px" }}>
                                       <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 4 }}>FCP</div>
-                                      <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: perf.fcp <= 1.8 ? "#059669" : perf.fcp <= 3.0 ? "#D97706" : "#DC2626" }}>{perf.fcp}s</div>
+                                      <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 16, fontWeight: 700, color: perf.fcp <= 1.8 ? "#059669" : perf.fcp <= 3.0 ? "#D97706" : "#DC2626" }}>{perf.fcp}s</div>
                                       <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>{perf.fcp <= 1.8 ? "Good" : perf.fcp <= 3.0 ? "Needs work" : "Poor"}</div>
                                     </div>
                                   )}
                                   {perf.cls != null && (
                                     <div style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "10px 12px" }}>
                                       <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 4 }}>CLS</div>
-                                      <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: perf.cls <= 0.1 ? "#059669" : perf.cls <= 0.25 ? "#D97706" : "#DC2626" }}>{perf.cls}</div>
+                                      <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 16, fontWeight: 700, color: perf.cls <= 0.1 ? "#059669" : perf.cls <= 0.25 ? "#D97706" : "#DC2626" }}>{perf.cls}</div>
                                       <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>{perf.cls <= 0.1 ? "Good" : perf.cls <= 0.25 ? "Needs work" : "Poor"}</div>
                                     </div>
                                   )}
