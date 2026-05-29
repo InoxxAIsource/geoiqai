@@ -5,6 +5,7 @@
  * GEOscore API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { TechnicalCheckEntityDescriptions } from './technicalCheckEntityDescriptions';
 import type { TechnicalCheckStatus } from './technicalCheckStatus';
 
 export interface TechnicalCheck {
@@ -13,4 +14,5 @@ export interface TechnicalCheck {
   score: number;
   status: TechnicalCheckStatus;
   detail: string;
+  entityDescriptions?: TechnicalCheckEntityDescriptions;
 }

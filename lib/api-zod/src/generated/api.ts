@@ -110,7 +110,14 @@ export const RunAuditResponse = zod.object({
   "name": zod.string(),
   "score": zod.number(),
   "status": zod.enum(['pass', 'warn', 'fail']),
-  "detail": zod.string()
+  "detail": zod.string(),
+  "entityDescriptions": zod.object({
+  "titleTag": zod.string().nullish(),
+  "metaDescription": zod.string().nullish(),
+  "llmsTxtDescription": zod.string().nullish(),
+  "schemaDescription": zod.string().nullish(),
+  "fragmentationDetected": zod.boolean().optional()
+}).optional()
 })),
   "overallScore": zod.number(),
   "socialLinks": zod.array(zod.string()),
@@ -187,7 +194,14 @@ export const GetAuditResponse = zod.object({
   "name": zod.string(),
   "score": zod.number(),
   "status": zod.enum(['pass', 'warn', 'fail']),
-  "detail": zod.string()
+  "detail": zod.string(),
+  "entityDescriptions": zod.object({
+  "titleTag": zod.string().nullish(),
+  "metaDescription": zod.string().nullish(),
+  "llmsTxtDescription": zod.string().nullish(),
+  "schemaDescription": zod.string().nullish(),
+  "fragmentationDetected": zod.boolean().optional()
+}).optional()
 })),
   "overallScore": zod.number(),
   "socialLinks": zod.array(zod.string()),

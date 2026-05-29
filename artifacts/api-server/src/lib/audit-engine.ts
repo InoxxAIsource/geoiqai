@@ -32,12 +32,21 @@ export interface AuditQueryResult {
   simulated?: boolean;
 }
 
+export interface EntityDescriptions {
+  titleTag: string | null;
+  metaDescription: string | null;
+  llmsTxtDescription: string | null;
+  schemaDescription: string | null;
+  fragmentationDetected: boolean;
+}
+
 export interface TechnicalCheck {
   id: string;
   name: string;
   score: number;
   status: "pass" | "warn" | "fail";
   detail: string;
+  entityDescriptions?: EntityDescriptions;
 }
 
 export interface TechnicalAuditResult {
@@ -299,7 +308,56 @@ function checkContentStructure(rawHtml: string, bodyText: string): TechnicalChec
   return { id: "content", name: "Content Structure", score: 5, status: "fail", detail: "Content is extremely thin. AI engines have almost nothing to cite or quote meaningfully." };
 }
 
-function checkEntityConsistency(rawHtml: string): { check: TechnicalCheck; socialLinks: string[]; contactEmail: string | null } {
+function extractSchemaDescription(rawHtml: string): string | null {
+  const jsonLdBlocks = rawHtml.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) ?? [];
+  for (const block of jsonLdBlocks) {
+    try {
+      const json = JSON.parse(block.replace(/<script[^>]*>|<\/script>/gi, "").trim());
+      const schemas: unknown[] = Array.isArray(json) ? json : [json];
+      for (const schema of schemas) {
+        const s = schema as Record<string, unknown>;
+        const t = s?.["@type"];
+        if (
+          typeof t === "string" &&
+          (t === "Organization" || t === "WebSite" || t === "SoftwareApplication" || t === "Product") &&
+          typeof s.description === "string" && s.description.trim().length > 10
+        ) {
+          return s.description.trim();
+        }
+      }
+    } catch { /* skip malformed JSON-LD */ }
+  }
+  return null;
+}
+
+function extractLlmsTxtDescription(llmsTxt: string | null): string | null {
+  if (!llmsTxt) return null;
+  const lines = llmsTxt.split("\n").map((l) => l.trim()).filter(Boolean);
+  for (const line of lines) {
+    if (/^#?\s*description\s*:/i.test(line)) {
+      return line.replace(/^#?\s*description\s*:\s*/i, "").trim() || null;
+    }
+    if (/^>\s+/.test(line)) {
+      return line.replace(/^>\s+/, "").trim() || null;
+    }
+  }
+  const nonHeadings = lines.filter((l) => !l.startsWith("#") && l.length > 20);
+  return nonHeadings[0] ?? null;
+}
+
+function wordOverlap(a: string, b: string): number {
+  const STOP = new Set(["the","and","for","your","that","this","with","from","have","will","are","not","been","into","more","our","all","its","can","you","how","also","any","via","per","new","was","has","get","lets","make","help","use","lets","about"]);
+  const words = (s: string) => new Set(
+    s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter((w) => w.length >= 4 && !STOP.has(w))
+  );
+  const setA = words(a);
+  const setB = words(b);
+  if (setA.size === 0 || setB.size === 0) return 0;
+  const shared = [...setA].filter((w) => setB.has(w)).length;
+  return shared / Math.min(setA.size, setB.size);
+}
+
+function checkEntityConsistency(rawHtml: string, llmsTxt: string | null): { check: TechnicalCheck; socialLinks: string[]; contactEmail: string | null } {
   const socialPatterns = [
     /https?:\/\/(www\.)?(twitter|x)\.com\/[a-zA-Z0-9_]{1,50}/gi,
     /https?:\/\/(www\.)?linkedin\.com\/(company|in)\/[a-zA-Z0-9-]{1,50}/gi,
@@ -334,15 +392,65 @@ function checkEntityConsistency(rawHtml: string): { check: TechnicalCheck; socia
   const emailMatch = rawHtml.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
   const contactEmail = emailMatch ? emailMatch[0]! : null;
 
-  let check: TechnicalCheck;
-  if (socialLinks.length >= 3) {
-    check = { id: "entity", name: "Entity Consistency", score: 100, status: "pass", detail: `${socialLinks.length} social profile links found. AI engines can verify your entity identity.` };
-  } else if (socialLinks.length >= 1) {
-    check = { id: "entity", name: "Entity Consistency", score: 50, status: "warn", detail: `${socialLinks.length} social profile link(s) found. Add more to strengthen entity signals.` };
-  } else {
-    check = { id: "entity", name: "Entity Consistency", score: 0, status: "fail", detail: "No social profile links found. AI engines use social signals to verify entity identity." };
+  // Extract the 4 description signals
+  const titleMatch = rawHtml.match(/<title[^>]*>([^<]{3,200})<\/title>/i);
+  const titleTag = titleMatch ? titleMatch[1]!.trim() : null;
+
+  const metaMatch =
+    rawHtml.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']{10,500})["']/i) ??
+    rawHtml.match(/<meta[^>]+content=["']([^"']{10,500})["'][^>]+name=["']description["']/i);
+  const metaDescription = metaMatch ? metaMatch[1]!.trim() : null;
+
+  const llmsTxtDescription = extractLlmsTxtDescription(llmsTxt);
+  const schemaDescription = extractSchemaDescription(rawHtml);
+
+  // Determine fragmentation: compare all pairs of available non-null descriptions
+  const available = [titleTag, metaDescription, llmsTxtDescription, schemaDescription].filter((d): d is string => !!d && d.length > 10);
+  let fragmentationDetected = false;
+  if (available.length >= 2) {
+    const pairs: number[] = [];
+    for (let i = 0; i < available.length; i++) {
+      for (let j = i + 1; j < available.length; j++) {
+        pairs.push(wordOverlap(available[i]!, available[j]!));
+      }
+    }
+    const avgOverlap = pairs.reduce((s, v) => s + v, 0) / pairs.length;
+    fragmentationDetected = avgOverlap < 0.12;
   }
 
+  const entityDescriptions: EntityDescriptions = {
+    titleTag,
+    metaDescription,
+    llmsTxtDescription,
+    schemaDescription,
+    fragmentationDetected,
+  };
+
+  // Score: social links (60%) + description consistency (40%)
+  const socialScore = socialLinks.length >= 3 ? 60 : socialLinks.length >= 1 ? 30 : 0;
+  const consistencyScore = available.length < 2 ? 10 : fragmentationDetected ? 10 : 40;
+  const score = socialScore + consistencyScore;
+
+  let status: "pass" | "warn" | "fail";
+  let detail: string;
+
+  if (fragmentationDetected) {
+    status = "warn";
+    detail = `Entity fragmentation detected across ${available.length} description sources. Inconsistent wording reduces AI citation confidence.`;
+  } else if (score >= 80) {
+    status = "pass";
+    detail = `${socialLinks.length} social profile link(s) found. Descriptions are consistent across sources.`;
+  } else if (score >= 30) {
+    status = "warn";
+    detail = socialLinks.length === 0
+      ? "No social profile links found. Add LinkedIn, X, or GitHub to strengthen entity signals."
+      : `${socialLinks.length} social profile link(s) found. Add more to strengthen entity verification.`;
+  } else {
+    status = "fail";
+    detail = "No social profile links and descriptions are missing or fragmented. AI engines cannot reliably verify your entity.";
+  }
+
+  const check: TechnicalCheck = { id: "entity", name: "Entity Consistency", score, status, detail, entityDescriptions };
   return { check, socialLinks: [...new Set(socialLinks)], contactEmail };
 }
 
@@ -357,7 +465,7 @@ export async function runTechnicalAudit(domain: string, rawHtml: string, bodyTex
   const llmsCheck = checkLlmsTxt(llmsTxt);
   const schemaCheck = checkSchemaMarkup(rawHtml);
   const contentCheck = checkContentStructure(rawHtml, bodyText);
-  const { check: entityCheck, socialLinks, contactEmail } = checkEntityConsistency(rawHtml);
+  const { check: entityCheck, socialLinks, contactEmail } = checkEntityConsistency(rawHtml, llmsTxt);
 
   const checks = [crawlerCheck, llmsCheck, schemaCheck, contentCheck, entityCheck];
   const overallScore = Math.round(checks.reduce((sum, c) => sum + c.score, 0) / checks.length);

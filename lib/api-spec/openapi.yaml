@@ -413,6 +413,19 @@ components:
           enum: [pass, warn, fail]
         detail:
           type: string
+        entityDescriptions:
+          type: object
+          properties:
+            titleTag:
+              type: ["string", "null"]
+            metaDescription:
+              type: ["string", "null"]
+            llmsTxtDescription:
+              type: ["string", "null"]
+            schemaDescription:
+              type: ["string", "null"]
+            fragmentationDetected:
+              type: boolean
 
     TechnicalAuditResult:
       type: object

@@ -550,38 +550,105 @@ function UpgradeBox({ domain }: { domain: string }) {
   );
 }
 
-function TechCheckCard({ check, hideDetail = false }: { check: { id: string; name: string; score: number; status: string; detail: string }; hideDetail?: boolean }) {
+interface EntityDescriptions {
+  titleTag: string | null;
+  metaDescription: string | null;
+  llmsTxtDescription: string | null;
+  schemaDescription: string | null;
+  fragmentationDetected: boolean;
+}
+
+interface TechCheck {
+  id: string;
+  name: string;
+  score: number;
+  status: string;
+  detail: string;
+  entityDescriptions?: EntityDescriptions;
+}
+
+function TechCheckCard({ check, hideDetail = false }: { check: TechCheck; hideDetail?: boolean }) {
+  const [expanded, setExpanded] = useState(false);
   const statusConfig = {
-    pass: { bg: "#ecfdf5", border: "#6ee7b7", icon: <CheckCircle2 style={{ width: 16, height: 16, color: "#059669" }} />, badgeBg: "#dcfce7", badgeColor: "#15803d", label: "Pass" },
-    warn: { bg: "#fffbeb", border: "#fde68a", icon: <AlertTriangle style={{ width: 16, height: 16, color: "#D97706" }} />, badgeBg: "#fef9c3", badgeColor: "#854d0e", label: "Warn" },
-    fail: { bg: "#fef2f2", border: "#fca5a5", icon: <XCircle style={{ width: 16, height: 16, color: "#DC2626" }} />, badgeBg: "#fee2e2", badgeColor: "#991b1b", label: "Fail" },
+    pass: { icon: <CheckCircle2 style={{ width: 16, height: 16, color: "#059669" }} />, badgeBg: "#dcfce7", badgeColor: "#15803d", label: "Pass" },
+    warn: { icon: <AlertTriangle style={{ width: 16, height: 16, color: "#D97706" }} />, badgeBg: "#fef9c3", badgeColor: "#854d0e", label: "Warn" },
+    fail: { icon: <XCircle style={{ width: 16, height: 16, color: "#DC2626" }} />, badgeBg: "#fee2e2", badgeColor: "#991b1b", label: "Fail" },
   };
   const cfg = statusConfig[check.status as "pass" | "warn" | "fail"] ?? statusConfig.fail;
+  const ed = check.entityDescriptions;
+  const hasDescriptions = ed && (ed.titleTag || ed.metaDescription || ed.llmsTxtDescription || ed.schemaDescription);
+
+  const descRows: { label: string; value: string | null }[] = ed ? [
+    { label: "Homepage title", value: ed.titleTag },
+    { label: "Meta description", value: ed.metaDescription },
+    { label: "llms.txt description", value: ed.llmsTxtDescription },
+    { label: "Schema description", value: ed.schemaDescription },
+  ] : [];
 
   return (
     <div style={{
-      background: "white", border: `0.5px solid #e5e7eb`,
+      background: "white", border: "0.5px solid #e5e7eb",
       borderLeft: `3px solid ${check.status === "pass" ? "#10b981" : check.status === "warn" ? "#f59e0b" : "#ef4444"}`,
-      borderRadius: 10, padding: "14px 16px", marginBottom: 10,
+      borderRadius: 10, marginBottom: 10, overflow: "hidden",
     }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {cfg.icon}
-          <span style={{ fontWeight: 500, fontSize: 14, color: "#111827" }}>{check.name}</span>
+      <div style={{ padding: "14px 16px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {cfg.icon}
+            <span style={{ fontWeight: 500, fontSize: 14, color: "#111827" }}>{check.name}</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: check.score >= 70 ? "#059669" : check.score >= 40 ? "#D97706" : "#DC2626" }}>
+              {check.score}/100
+            </span>
+            <span style={{ background: cfg.badgeBg, color: cfg.badgeColor, borderRadius: 9999, padding: "2px 8px", fontSize: 11, fontWeight: 600 }}>
+              {cfg.label}
+            </span>
+            {!hideDetail && check.id === "entity" && hasDescriptions && (
+              <button
+                onClick={() => setExpanded(!expanded)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", padding: 2, display: "flex", alignItems: "center" }}
+              >
+                {expanded ? <ChevronUp style={{ width: 15, height: 15 }} /> : <ChevronDown style={{ width: 15, height: 15 }} />}
+              </button>
+            )}
+          </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: check.score >= 70 ? "#059669" : check.score >= 40 ? "#D97706" : "#DC2626" }}>
-            {check.score}/100
-          </span>
-          <span style={{
-            background: cfg.badgeBg, color: cfg.badgeColor,
-            borderRadius: 9999, padding: "2px 8px", fontSize: 11, fontWeight: 600,
-          }}>
-            {cfg.label}
-          </span>
-        </div>
+        {!hideDetail && <p style={{ fontSize: 12, color: "#6b7280", margin: 0, lineHeight: 1.5 }}>{check.detail}</p>}
       </div>
-      {!hideDetail && <p style={{ fontSize: 12, color: "#6b7280", margin: 0, lineHeight: 1.5 }}>{check.detail}</p>}
+
+      {!hideDetail && check.id === "entity" && expanded && ed && (
+        <div style={{ borderTop: "0.5px solid #f3f4f6", padding: "14px 16px 16px" }}>
+          <p style={{ fontSize: 12, color: "#374151", lineHeight: 1.6, margin: "0 0 14px", background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 7, padding: "10px 12px" }}>
+            AI systems consolidate your brand into a single entity node. Inconsistent descriptions across platforms fragment this signal and reduce citation confidence.
+          </p>
+
+          {ed.fragmentationDetected && hasDescriptions && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#fffbeb", border: "0.5px solid #fde68a", borderRadius: 7, padding: "8px 12px", marginBottom: 14 }}>
+              <AlertTriangle style={{ width: 14, height: 14, color: "#D97706", flexShrink: 0 }} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: "#92400e" }}>Entity fragmentation detected - descriptions vary significantly across sources</span>
+            </div>
+          )}
+          {!ed.fragmentationDetected && hasDescriptions && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#ecfdf5", border: "0.5px solid #6ee7b7", borderRadius: 7, padding: "8px 12px", marginBottom: 14 }}>
+              <CheckCircle2 style={{ width: 14, height: 14, color: "#059669", flexShrink: 0 }} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: "#15803d" }}>Descriptions are consistent across sources</span>
+            </div>
+          )}
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {descRows.map((row) => (
+              <div key={row.label} style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "10px 12px" }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" as const, color: "#9ca3af", marginBottom: 6 }}>{row.label}</div>
+                {row.value
+                  ? <p style={{ fontSize: 12, color: "#111827", lineHeight: 1.55, margin: 0 }}>{row.value}</p>
+                  : <p style={{ fontSize: 12, color: "#d1d5db", fontStyle: "italic", margin: 0 }}>Not found</p>
+                }
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

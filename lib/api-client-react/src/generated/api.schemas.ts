@@ -30,12 +30,25 @@ export const TechnicalCheckStatus = {
   fail: 'fail',
 } as const;
 
+export type TechnicalCheckEntityDescriptions = {
+  /** @nullable */
+  titleTag?: string | null;
+  /** @nullable */
+  metaDescription?: string | null;
+  /** @nullable */
+  llmsTxtDescription?: string | null;
+  /** @nullable */
+  schemaDescription?: string | null;
+  fragmentationDetected?: boolean;
+};
+
 export interface TechnicalCheck {
   id: string;
   name: string;
   score: number;
   status: TechnicalCheckStatus;
   detail: string;
+  entityDescriptions?: TechnicalCheckEntityDescriptions;
 }
 
 export interface TechnicalAuditResult {
