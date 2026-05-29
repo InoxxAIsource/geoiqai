@@ -272,16 +272,18 @@ export default function Home() {
           </div>
 
           <h1 style={{
-            ...SYNE,
-            fontSize: "clamp(36px, 6vw, 64px)",
-            fontWeight: 800,
-            lineHeight: 1.05,
+            fontFamily: "'Sora', sans-serif",
+            fontSize: "clamp(1.95rem, 5vw, 3.5rem)",
+            fontWeight: 700,
+            lineHeight: 1.15,
             marginBottom: 20,
             color: "#0A0A0A",
-            letterSpacing: "-0.02em",
+            letterSpacing: "-0.025em",
+            wordBreak: "break-word",
+            overflowWrap: "break-word",
           }}>
             Get your brand<br />
-            <span style={{ color: PRIMARY }}>recommended by AI</span>
+            <span style={{ color: "#4F46E5", fontWeight: 800 }}>recommended by AI</span>
           </h1>
 
           <p style={{
@@ -354,14 +356,78 @@ export default function Home() {
             Free audit · No signup · 60 seconds
           </div>
 
-          {/* Proof points - clean single line */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, marginTop: 24 }}>
-            {["5 AI systems", "4-week roadmap", "GEO Agent included"].map((label, i) => (
-              <span key={label} style={{ display: "flex", alignItems: "center" }}>
-                {i > 0 && <span style={{ color: "#D1D5DB", margin: "0 16px", fontSize: 16 }}>·</span>}
-                <span style={{ fontSize: 13, color: "#6B7280" }}>{label}</span>
-              </span>
-            ))}
+          {/* AI system logo grid */}
+          <div style={{ borderTop: "1px solid #F3F4F6", padding: "20px 12px", background: "#FAFAFA", marginTop: 24, borderRadius: "0 0 16px 16px" }}>
+            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "#9CA3AF", textAlign: "center", margin: "0 0 16px" }}>
+              Tracks 6 AI systems
+            </p>
+            <div style={{ display: "flex", justifyContent: "space-around", alignItems: "flex-start", gap: 4 }}>
+              {/* ChatGPT */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#000", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", flexShrink: 0 }}>
+                  <svg width="20" height="20" viewBox="0 0 41 41" fill="none">
+                    <path d="M37.532 16.87a9.963 9.963 0 0 0-.856-8.184 10.078 10.078 0 0 0-10.855-4.835 9.964 9.964 0 0 0-6.479-3.559 10.079 10.079 0 0 0-10.698 4.975 9.967 9.967 0 0 0-6.589 4.798 10.08 10.08 0 0 0 1.713 11.655 9.965 9.965 0 0 0 .856 8.185 10.079 10.079 0 0 0 10.855 4.835 9.965 9.965 0 0 0 6.479 3.559 10.078 10.078 0 0 0 10.698-4.975 9.967 9.967 0 0 0 6.589-4.798 10.079 10.079 0 0 0-1.713-11.655Zm-15.811 22.088a7.473 7.473 0 0 1-4.799-1.735c.061-.033.168-.091.237-.134l7.964-4.6a1.294 1.294 0 0 0 .655-1.134V19.054l3.366 1.944a.12.12 0 0 1 .066.092v9.299a7.505 7.505 0 0 1-7.49 7.569zm-16.252-6.88a7.469 7.469 0 0 1-.894-5.023c.06.036.162.099.237.141l7.964 4.6a1.297 1.297 0 0 0 1.308 0l9.724-5.614v3.888a.12.12 0 0 1-.048.103l-8.051 4.649a7.504 7.504 0 0 1-10.24-2.744zm-2.127-17.512a7.474 7.474 0 0 1 3.908-3.285c0 .068-.004.19-.004.274v9.201a1.294 1.294 0 0 0 .654 1.132l9.723 5.614-3.366 1.944a.12.12 0 0 1-.114.012L7.89 23.783a7.505 7.505 0 0 1-.548-9.217zm27.658 6.437l-9.724-5.615 3.367-1.943a.121.121 0 0 1 .114-.012l8.048 4.648a7.498 7.498 0 0 1-1.158 13.528v-9.476a1.293 1.293 0 0 0-.647-1.13zm3.35-5.043c-.059-.037-.162-.099-.236-.141l-7.965-4.6a1.298 1.298 0 0 0-1.308 0l-9.723 5.614v-3.888a.12.12 0 0 1 .048-.103l8.05-4.645a7.497 7.497 0 0 1 11.135 7.763zm-21.063 6.929l-3.367-1.944a.12.12 0 0 1-.065-.092v-9.299a7.497 7.497 0 0 1 12.293-5.756 6.94 6.94 0 0 0-.236.134l-7.965 4.6a1.294 1.294 0 0 0-.654 1.132l-.006 11.225zm1.829-3.943l4.33-2.501 4.332 2.5v4.999l-4.331 2.5-4.331-2.5V18.967z" fill="white" />
+                  </svg>
+                </div>
+                <span style={{ fontSize: 9, fontWeight: 600, color: "#6B7280", textAlign: "center" }}>ChatGPT</span>
+              </div>
+              {/* Gemini */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "white", border: "1px solid #E5E7EB", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", flexShrink: 0 }}>
+                  <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+                    <path d="M14 28C14 26.0633 13.6267 24.2433 12.88 22.54C12.1567 20.8367 11.165 19.355 9.905 18.095C8.645 16.835 7.16333 15.8433 5.46 15.12C3.75667 14.3733 1.93667 14 0 14C1.93667 14 3.75667 13.6383 5.46 12.915C7.16333 12.1683 8.645 11.165 9.905 9.905C11.165 8.645 12.1567 7.16333 12.88 5.46C13.6267 3.75667 14 1.93667 14 0C14 1.93667 14.3617 3.75667 15.085 5.46C15.8317 7.16333 16.835 8.645 18.095 9.905C19.355 11.165 20.8367 12.1683 22.54 12.915C24.2433 13.6383 26.0633 14 28 14C26.0633 14 24.2433 14.3733 22.54 15.12C20.8367 15.8433 19.355 16.835 18.095 18.095C16.835 19.355 15.8317 20.8367 15.085 22.54C14.3617 24.2433 14 26.0633 14 28Z" fill="url(#gg)" />
+                    <defs>
+                      <linearGradient id="gg" x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+                        <stop stopColor="#4285F4" />
+                        <stop offset="0.5" stopColor="#9B72CB" />
+                        <stop offset="1" stopColor="#D96570" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                </div>
+                <span style={{ fontSize: 9, fontWeight: 600, color: "#6B7280", textAlign: "center" }}>Gemini</span>
+              </div>
+              {/* Perplexity */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#000", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", flexShrink: 0 }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M22 12.25h-9.25V3.93l-1.5 1.32V12.25H2v1.5h9.25v6.32l1.5 1.32v-7.64H22v-1.5z" fill="white" />
+                    <path d="M11.25 3L3 9.5v11h1.5V10.24L11.25 4.9l6.75 5.34V20.5H19.5v-11L11.25 3z" fill="white" />
+                  </svg>
+                </div>
+                <span style={{ fontSize: 9, fontWeight: 600, color: "#6B7280", textAlign: "center" }}>Perplexity</span>
+              </div>
+              {/* Claude */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#D97757", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", flexShrink: 0 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                    <path d="M14.5 2h-5L4 12l5.5 10h5L20 12z" />
+                  </svg>
+                </div>
+                <span style={{ fontSize: 9, fontWeight: 600, color: "#6B7280", textAlign: "center" }}>Claude</span>
+              </div>
+              {/* Grok */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#000", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", flexShrink: 0 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                  </svg>
+                </div>
+                <span style={{ fontSize: 9, fontWeight: 600, color: "#6B7280", textAlign: "center" }}>Grok</span>
+              </div>
+              {/* Google AI */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "white", border: "1px solid #E5E7EB", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", flexShrink: 0 }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                  </svg>
+                </div>
+                <span style={{ fontSize: 9, fontWeight: 600, color: "#6B7280", textAlign: "center" }}>Google AI</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -381,7 +447,7 @@ export default function Home() {
         }}>
           {[
             { number: "500+", label: "Audits Run" },
-            { number: "5", label: "AI Systems" },
+            { number: "6", label: "AI Systems" },
             { number: "Free", label: "Forever" },
             { number: "60s", label: "Results" },
           ].map((stat, i) => (
@@ -645,7 +711,7 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { number: "500+", label: "Audits run" },
-              { number: "5", label: "AI systems tracked" },
+              { number: "6", label: "AI systems tracked" },
               { number: "0", label: "Signups needed" },
               { number: "60s", label: "Average audit time" },
             ].map((stat) => (
