@@ -75,7 +75,7 @@ function AuditLoadingCard({
       background: "#fff",
       borderRadius: 12,
       border: "1px solid #E5E7EB",
-      borderLeft: "4px solid #4F46E5",
+      borderLeft: "4px solid #5B3FEA",
       boxShadow: "0 4px 24px rgba(0,0,0,0.07)",
       padding: 24,
     }}>
@@ -93,10 +93,10 @@ function AuditLoadingCard({
           <span style={{ fontSize: 12, color: "#6B7280", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const, maxWidth: "75%" }}>
             {url}
           </span>
-          <span style={{ fontSize: 12, color: "#4F46E5", fontWeight: 600 }}>{progress}%</span>
+          <span style={{ fontSize: 12, color: "#5B3FEA", fontWeight: 600 }}>{progress}%</span>
         </div>
-        <div style={{ height: 6, background: "#EEF2FF", borderRadius: 4, overflow: "hidden" }}>
-          <div style={{ height: "100%", background: "linear-gradient(90deg, #4F46E5, #7C3AED)", borderRadius: 4, width: `${progress}%`, transition: "width 1.6s ease" }} />
+        <div style={{ height: 6, background: "#EDE9FE", borderRadius: 4, overflow: "hidden" }}>
+          <div style={{ height: "100%", background: "linear-gradient(90deg, #5B3FEA, #7C3AED)", borderRadius: 4, width: `${progress}%`, transition: "width 1.6s ease" }} />
         </div>
       </div>
 
@@ -104,7 +104,7 @@ function AuditLoadingCard({
         <span style={{ fontSize: 13, color: "#6B7280" }}>
           <strong style={{ color: "#111827" }}>{signalsChecked}</strong> / {TOTAL_SIGNALS} signals checked
         </span>
-        <span style={{ fontSize: 28, fontWeight: 800, color: "#4F46E5", lineHeight: 1 }}>
+        <span style={{ fontSize: 28, fontWeight: 800, color: "#5B3FEA", lineHeight: 1 }}>
           {progress}%
         </span>
       </div>
@@ -122,18 +122,18 @@ function AuditLoadingCard({
               borderBottom: i < LOADING_STEPS.length - 1 ? "1px solid #F3F4F6" : "none",
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: isDone ? "#10b981" : isCurrent ? "#4F46E5" : "#E5E7EB", transition: "background 0.35s" }}>
+                <div style={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: isDone ? "#10b981" : isCurrent ? "#5B3FEA" : "#E5E7EB", transition: "background 0.35s" }}>
                   {isDone
                     ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                     : isCurrent
                       ? <Loader2 style={{ width: 11, height: 11, color: "white", animation: "spin 1s linear infinite" }} />
                       : null}
                 </div>
-                <span style={{ fontSize: 13, color: isDone ? "#111827" : isCurrent ? "#4F46E5" : "#9CA3AF", fontWeight: isCurrent ? 500 : 400 }}>
+                <span style={{ fontSize: 13, color: isDone ? "#111827" : isCurrent ? "#5B3FEA" : "#9CA3AF", fontWeight: isCurrent ? 500 : 400 }}>
                   {step.label}
                 </span>
               </div>
-              <span style={{ fontFamily: "monospace", fontSize: 11, color: isDone ? "#10b981" : isCurrent ? "#4F46E5" : "#D1D5DB", fontWeight: 500, whiteSpace: "nowrap" as const, marginLeft: 8 }}>
+              <span style={{ fontFamily: "monospace", fontSize: 11, color: isDone ? "#10b981" : isCurrent ? "#5B3FEA" : "#D1D5DB", fontWeight: 500, whiteSpace: "nowrap" as const, marginLeft: 8 }}>
                 {step.signals} sig
               </span>
             </div>
@@ -146,8 +146,8 @@ function AuditLoadingCard({
           <div style={{ fontSize: 28, fontWeight: 800, color: "#111827", lineHeight: 1 }}>{aiSystemsChecked}</div>
           <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#9CA3AF", marginTop: 4 }}>AI Systems Checked</div>
         </div>
-        <div style={{ background: "#EEF2FF", borderRadius: 8, padding: "12px 14px", textAlign: "center" as const }}>
-          <div style={{ fontSize: 28, fontWeight: 800, color: "#4F46E5", lineHeight: 1 }}>{issuesFound}</div>
+        <div style={{ background: "#EDE9FE", borderRadius: 8, padding: "12px 14px", textAlign: "center" as const }}>
+          <div style={{ fontSize: 28, fontWeight: 800, color: "#5B3FEA", lineHeight: 1 }}>{issuesFound}</div>
           <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#9CA3AF", marginTop: 4 }}>Issues Found</div>
         </div>
       </div>
@@ -218,8 +218,8 @@ function AiExplainerBox({ aiMemoryScore, liveWebScore }: { aiMemoryScore: number
         style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Info style={{ width: 14, height: 14, color: "#4F46E5", flexShrink: 0 }} />
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#4F46E5" }}>How AI systems see your brand</span>
+          <Info style={{ width: 14, height: 14, color: "#5B3FEA", flexShrink: 0 }} />
+          <span style={{ fontSize: 12, fontWeight: 600, color: "#5B3FEA" }}>How AI systems see your brand</span>
         </div>
         {open ? <ChevronUp style={{ width: 13, height: 13, color: "#6366f1" }} /> : <ChevronDown style={{ width: 13, height: 13, color: "#6366f1" }} />}
       </button>
@@ -227,7 +227,7 @@ function AiExplainerBox({ aiMemoryScore, liveWebScore }: { aiMemoryScore: number
         <div style={{ padding: "0 14px 14px", borderTop: "0.5px solid #c7d2fe" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12, marginBottom: 12 }}>
             <div style={{ background: "white", border: "0.5px solid #c7d2fe", borderRadius: 8, padding: "10px 12px" }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#4F46E5", marginBottom: 4 }}>AI Memory Score: {aiMemoryScore}/50</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#5B3FEA", marginBottom: 4 }}>AI Memory Score: {aiMemoryScore}/50</div>
               <div style={{ fontSize: 12, fontWeight: 600, color: "#111827", marginBottom: 4 }}>ChatGPT + Gemini</div>
               <div style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.5 }}>
                 These answer from training data, like a snapshot of the internet taken in 2023-2024. If your brand is newer than that, or lacks citations in sources they were trained on, they won't know you exist yet.
@@ -243,7 +243,7 @@ function AiExplainerBox({ aiMemoryScore, liveWebScore }: { aiMemoryScore: number
               <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 6 }}>To improve: fix technical issues, add content, get web mentions. Impact within days.</div>
             </div>
           </div>
-          <div style={{ fontSize: 11, color: "#4F46E5", fontWeight: 500 }}>
+          <div style={{ fontSize: 11, color: "#5B3FEA", fontWeight: 500 }}>
             Two different problems, two different timelines. Your roadmap below covers both.
           </div>
         </div>
@@ -261,7 +261,7 @@ function SystemCard({
   const [expanded, setExpanded] = useState(false);
   const understanding = getUnderstandingLabel(score, isLiveWeb);
   const scaledScore = Math.round((score / 33) * 100);
-  const cfg = ENGINE_CONFIG[system] ?? { color: "#4F46E5", barColor: "linear-gradient(90deg,#4F46E5,#7C3AED)", label: `${system} says:` };
+  const cfg = ENGINE_CONFIG[system] ?? { color: "#5B3FEA", barColor: "linear-gradient(90deg,#5B3FEA,#7C3AED)", label: `${system} says:` };
 
   return (
     <div style={{
@@ -381,14 +381,14 @@ function LockedSection({ title, linkText = "See plans →", children }: { title:
         alignItems: "center", justifyContent: "center",
         gap: 10, borderRadius: 12,
       }}>
-        <div style={{ background: "#4F46E5", borderRadius: 8, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ background: "#5B3FEA", borderRadius: 8, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
         </div>
         <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", textAlign: "center" as const, maxWidth: 280 }}>{title}</div>
-        <a href="/pricing" style={{ fontSize: 12, fontWeight: 600, color: "#4F46E5", textDecoration: "none" }}>{linkText}</a>
+        <a href="/pricing" style={{ fontSize: 12, fontWeight: 600, color: "#5B3FEA", textDecoration: "none" }}>{linkText}</a>
       </div>
     </div>
   );
@@ -415,7 +415,7 @@ function LockWall({ remaining, domain }: { remaining: number; domain: string }) 
       <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 24 }}>
         Most brands reach 50+ GEO IQ in 30 days
       </div>
-      <a href="/pricing" style={{ display: "inline-block", background: "#4F46E5", color: "white", borderRadius: 8, padding: "13px 32px", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
+      <a href="/pricing" style={{ display: "inline-block", background: "#5B3FEA", color: "white", borderRadius: 8, padding: "13px 32px", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
         Unlock full report - $69/mo
       </a>
       <div style={{ fontSize: 11, color: "#64748B", marginTop: 12 }}>7-day free trial · cancel anytime</div>
@@ -473,7 +473,7 @@ function UpgradeBox({ domain }: { domain: string }) {
         subscription_id: sub.subscription_id,
         name: "GeoIQ",
         description: sub.plan_name,
-        theme: { color: "#4F46E5" },
+        theme: { color: "#5B3FEA" },
         prefill: { email: trimmed },
         handler: async (r: { razorpay_payment_id: string; razorpay_subscription_id: string; razorpay_signature: string }) => {
           const v = await fetch("/api/payment/verify", {
@@ -505,7 +505,7 @@ function UpgradeBox({ domain }: { domain: string }) {
   }
 
   return (
-    <div style={{ background: "#0f172a", border: "1px solid #4F46E5", borderRadius: 12, padding: "24px", textAlign: "center" }}>
+    <div style={{ background: "#0f172a", border: "1px solid #5B3FEA", borderRadius: 12, padding: "24px", textAlign: "center" }}>
       <div style={{ fontSize: 18, fontWeight: 600, color: "white", marginBottom: 8 }}>
         Unlock your complete execution roadmap
       </div>
@@ -518,7 +518,7 @@ function UpgradeBox({ domain }: { domain: string }) {
       {!showForm ? (
         <button
           onClick={() => setShowForm(true)}
-          style={{ background: "#4F46E5", color: "white", border: "none", borderRadius: 8, padding: "12px 32px", fontSize: 15, fontWeight: 600, cursor: "pointer", width: "100%", maxWidth: 400 }}
+          style={{ background: "#5B3FEA", color: "white", border: "none", borderRadius: 8, padding: "12px 32px", fontSize: 15, fontWeight: 600, cursor: "pointer", width: "100%", maxWidth: 400 }}
         >
           Unlock full roadmap - $69/mo
         </button>
@@ -537,7 +537,7 @@ function UpgradeBox({ domain }: { domain: string }) {
           <button
             onClick={() => { void handlePay(); }}
             disabled={loading}
-            style={{ width: "100%", background: "#4F46E5", color: "white", border: "none", borderRadius: 8, padding: "12px", fontSize: 15, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+            style={{ width: "100%", background: "#5B3FEA", color: "white", border: "none", borderRadius: 8, padding: "12px", fontSize: 15, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
           >
             {loading
               ? <><Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} /> Opening payment...</>
@@ -911,7 +911,7 @@ export default function Audit() {
   const liveWebScore = Math.round((auditResult?.scorePerplexity ?? 0) / 33 * 50);
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#f9fafb" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#F2F0EB" }}>
       <style>{LOADING_CSS}</style>
       <Navbar />
 
@@ -969,7 +969,7 @@ export default function Audit() {
                         </FormItem>
                       )}
                     />
-                    <Button type="submit" disabled={subscribeMutation.isPending} style={{ background: "#4F46E5", color: "white" }}>
+                    <Button type="submit" disabled={subscribeMutation.isPending} style={{ background: "#5B3FEA", color: "white" }}>
                       {subscribeMutation.isPending ? "Sending..." : "Get my audit results"}
                     </Button>
                   </form>
@@ -979,7 +979,7 @@ export default function Audit() {
                 </p>
                 <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid #f3f4f6" }}>
                   <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 12 }}>Want unlimited audits and daily monitoring?</p>
-                  <Button variant="outline" size="sm" onClick={() => setLocation("/pricing")} style={{ borderColor: "#4F46E5", color: "#4F46E5" }}>
+                  <Button variant="outline" size="sm" onClick={() => setLocation("/pricing")} style={{ borderColor: "#5B3FEA", color: "#5B3FEA" }}>
                     See pricing
                   </Button>
                 </div>
@@ -999,7 +999,7 @@ export default function Audit() {
                   </p>
                 )}
                 <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-                  <Button onClick={() => setLocation("/pricing")} style={{ background: "#4F46E5", color: "white" }}>
+                  <Button onClick={() => setLocation("/pricing")} style={{ background: "#5B3FEA", color: "white" }}>
                     Upgrade for $69/mo
                   </Button>
                   <Button variant="outline" onClick={() => setLocation("/")}>
@@ -1036,7 +1036,7 @@ export default function Audit() {
                     : `These results are from ${auditResult.cachedHoursAgo} hour${auditResult.cachedHoursAgo !== 1 ? "s" : ""} ago. Fixed your issues? Run a fresh audit to see your updated score.`
                   }
                 </span>
-                <button onClick={runFreshAudit} style={{ fontSize: 12, color: "#4F46E5", border: "1px solid #4F46E5", background: "none", borderRadius: 6, padding: "3px 10px", cursor: "pointer", whiteSpace: "nowrap", fontWeight: 500 }}>
+                <button onClick={runFreshAudit} style={{ fontSize: 12, color: "#5B3FEA", border: "1px solid #5B3FEA", background: "none", borderRadius: 6, padding: "3px 10px", cursor: "pointer", whiteSpace: "nowrap", fontWeight: 500 }}>
                   Run fresh audit
                 </button>
               </div>
@@ -1046,7 +1046,7 @@ export default function Audit() {
                 <span style={{ fontSize: 13, color: "#1e40af" }}>
                   Last checked {auditResult.cachedHoursAgo} hours ago. Made changes to your site? Run a fresh audit.
                 </span>
-                <button onClick={runFreshAudit} style={{ fontSize: 12, color: "#4F46E5", border: "1px solid #4F46E5", background: "none", borderRadius: 6, padding: "3px 10px", cursor: "pointer", whiteSpace: "nowrap", fontWeight: 500 }}>
+                <button onClick={runFreshAudit} style={{ fontSize: 12, color: "#5B3FEA", border: "1px solid #5B3FEA", background: "none", borderRadius: 6, padding: "3px 10px", cursor: "pointer", whiteSpace: "nowrap", fontWeight: 500 }}>
                   Run now
                 </button>
               </div>
@@ -1061,7 +1061,7 @@ export default function Audit() {
                     ? <>
                         AI visibility audit, {auditResult.cachedHoursAgo === 0 ? "just now" : `${auditResult.cachedHoursAgo}h ago`},{" "}
                         {auditResult.category ?? "saas tool"}, {auditResult.market ?? "India"}
-                        <button onClick={runFreshAudit} style={{ fontSize: 11, color: "#4F46E5", border: "none", background: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontWeight: 500 }}>
+                        <button onClick={runFreshAudit} style={{ fontSize: 11, color: "#5B3FEA", border: "none", background: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontWeight: 500 }}>
                           Refresh
                         </button>
                       </>
@@ -1083,7 +1083,7 @@ export default function Audit() {
                   </span>
                 ); })()}
                 <div style={{ fontSize: 11, color: "#6b7280", marginTop: 5, textAlign: "right", lineHeight: 1.6 }}>
-                  <span style={{ color: "#4F46E5", display: "block" }}>AI Memory: {aiMemoryScore}/50 (ChatGPT + Gemini)</span>
+                  <span style={{ color: "#5B3FEA", display: "block" }}>AI Memory: {aiMemoryScore}/50 (ChatGPT + Gemini)</span>
                   <span style={{ color: "#9333ea", display: "block" }}>Live Web: {liveWebScore}/50 (Perplexity)</span>
                 </div>
               </div>
@@ -1092,13 +1092,13 @@ export default function Audit() {
             {/* Score Bar - split between AI Memory and Live Web */}
             <div style={{ height: 8, background: "#f3f4f6", borderRadius: 4, overflow: "hidden", marginBottom: 8 }}>
               <div style={{ height: "100%", display: "flex", borderRadius: 4, overflow: "hidden" }}>
-                <div style={{ width: `${aiMemoryScore}%`, background: "#4F46E5", transition: "width 0.8s ease" }} />
+                <div style={{ width: `${aiMemoryScore}%`, background: "#5B3FEA", transition: "width 0.8s ease" }} />
                 <div style={{ width: `${liveWebScore}%`, background: "#9333ea", transition: "width 0.8s ease" }} />
               </div>
             </div>
             <div style={{ display: "flex", gap: 16, marginBottom: 20 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#6b7280" }}>
-                <span style={{ width: 8, height: 8, background: "#4F46E5", borderRadius: 2, flexShrink: 0 }} />
+                <span style={{ width: 8, height: 8, background: "#5B3FEA", borderRadius: 2, flexShrink: 0 }} />
                 AI Memory ({aiMemoryScore}/50) - ChatGPT + Gemini
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#6b7280" }}>
@@ -1361,7 +1361,7 @@ export default function Audit() {
                     <div style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>Site Health Snapshot</div>
                     <div style={{ fontSize: 11, color: "#6b7280", marginTop: 1 }}>TTFB, security headers, tech stack</div>
                   </div>
-                  {siteHealthLoading && <div style={{ width: 18, height: 18, border: "2px solid #e5e7eb", borderTopColor: "#4F46E5", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />}
+                  {siteHealthLoading && <div style={{ width: 18, height: 18, border: "2px solid #e5e7eb", borderTopColor: "#5B3FEA", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />}
                 </div>
 
                 {siteHealth && (
@@ -1448,7 +1448,7 @@ export default function Audit() {
                       <div style={{ fontSize: 12, color: "#374151" }}>
                         Get the full audit with PageSpeed score, LCP, CLS, and 20+ checks in the dashboard.
                       </div>
-                      <a href="/pricing" style={{ flexShrink: 0, fontSize: 12, fontWeight: 600, color: "#4F46E5", textDecoration: "none", whiteSpace: "nowrap" as const }}>
+                      <a href="/pricing" style={{ flexShrink: 0, fontSize: 12, fontWeight: 600, color: "#5B3FEA", textDecoration: "none", whiteSpace: "nowrap" as const }}>
                         See plans
                       </a>
                     </div>
@@ -1563,7 +1563,7 @@ export default function Audit() {
                   </div>
                   <a
                     href="/pricing"
-                    style={{ display: "block", background: "#4F46E5", color: "white", borderRadius: 8, padding: "11px", fontSize: 13, fontWeight: 600, textDecoration: "none", textAlign: "center" as const }}
+                    style={{ display: "block", background: "#5B3FEA", color: "white", borderRadius: 8, padding: "11px", fontSize: 13, fontWeight: 600, textDecoration: "none", textAlign: "center" as const }}
                   >
                     Unlock all fixes →
                   </a>

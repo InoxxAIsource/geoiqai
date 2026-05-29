@@ -199,7 +199,7 @@ function getCitationData(category: string | null | undefined, domain: string) {
   const yourTotal = yourEntry?.times ?? 0;
   const socialTotal = Math.round((competitorTotal + authorityTotal) * 0.1);
   const donut = [
-    { name: "Your brand", value: yourTotal, color: "#4F46E5" },
+    { name: "Your brand", value: yourTotal, color: "#5B3FEA" },
     { name: "Competitors", value: competitorTotal, color: "#DC2626" },
     { name: "Authority sites", value: authorityTotal, color: "#D97706" },
     { name: "Social", value: socialTotal, color: "#059669" },
@@ -822,7 +822,7 @@ export default function Dashboard() {
     return {
       topDomains,
       donut: [
-        { name: "Your brand", value: yourTotal, color: "#4F46E5" },
+        { name: "Your brand", value: yourTotal, color: "#5B3FEA" },
         { name: "Competitors", value: competitorTotal, color: "#DC2626" },
         { name: "Authority sites", value: authorityTotal, color: "#D97706" },
         { name: "Social", value: socialTotal, color: "#059669" },
@@ -909,17 +909,17 @@ export default function Dashboard() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", fontFamily: "'Sora', sans-serif", position: "relative" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", fontFamily: "'Inter', sans-serif", position: "relative" }}>
 
       {/* Set password banner */}
       {showPasswordBanner && (
-        <div style={{ background: "#EEF2FF", borderBottom: "1px solid #C7D2FE", padding: "8px 16px", display: "flex", alignItems: "center", gap: 12, flexShrink: 0, zIndex: 10 }}>
+        <div style={{ background: "#EDE9FE", borderBottom: "1px solid #C7D2FE", padding: "8px 16px", display: "flex", alignItems: "center", gap: 12, flexShrink: 0, zIndex: 10 }}>
           <span style={{ fontSize: 13, color: "#3730A3", flex: 1 }}>
             You signed up via magic link. Add a password so you can sign in directly.
           </span>
           <button
             onClick={() => setShowSetPasswordModal(true)}
-            style={{ fontSize: 12, fontWeight: 600, color: "#4F46E5", background: "white", border: "1px solid #C7D2FE", borderRadius: 6, padding: "4px 12px", cursor: "pointer" }}
+            style={{ fontSize: 12, fontWeight: 600, color: "#5B3FEA", background: "white", border: "1px solid #C7D2FE", borderRadius: 6, padding: "4px 12px", cursor: "pointer" }}
           >
             Set password
           </button>
@@ -974,7 +974,7 @@ export default function Dashboard() {
               <button
                 onClick={handleSetPassword}
                 disabled={settingPassword}
-                style={{ flex: 1, padding: "9px 0", border: "none", borderRadius: 7, background: "#4F46E5", color: "white", fontSize: 14, fontWeight: 500, cursor: "pointer" }}
+                style={{ flex: 1, padding: "9px 0", border: "none", borderRadius: 7, background: "#5B3FEA", color: "white", fontSize: 14, fontWeight: 500, cursor: "pointer" }}
               >
                 {settingPassword ? "Saving..." : "Save password"}
               </button>
@@ -989,7 +989,7 @@ export default function Dashboard() {
       {isMobile && mobileDrawerOpen && (
         <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex" }}>
           <div style={{ width: 220, background: "white", display: "flex", flexDirection: "column", flexShrink: 0, boxShadow: "4px 0 24px rgba(0,0,0,0.12)" }}>
-            <div style={{ padding: "14px 16px 10px", fontWeight: 700, fontSize: 14, color: "#4F46E5", borderBottom: "0.5px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ padding: "14px 16px 10px", fontWeight: 700, fontSize: 14, color: "#5B3FEA", borderBottom: "0.5px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               GeoIQ
               <button onClick={() => setMobileDrawerOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2, color: "#9ca3af" }}>
                 <X size={16} />
@@ -1007,14 +1007,14 @@ export default function Dashboard() {
                     style={{
                       width: "100%", height: 42, padding: "0 16px", display: "flex", alignItems: "center", gap: 10,
                       fontSize: 13, cursor: "pointer",
-                      background: isActive ? "#EEF2FF" : "transparent",
-                      color: isActive ? "#4F46E5" : "#6b7280",
+                      background: isActive ? "#EDE9FE" : "transparent",
+                      color: isActive ? "#5B3FEA" : "#6b7280",
                       fontWeight: isActive ? 600 : 400,
-                      borderRight: isActive ? "2.5px solid #4F46E5" : "2.5px solid transparent",
+                      borderRight: isActive ? "2.5px solid #5B3FEA" : "2.5px solid transparent",
                       border: "none", textAlign: "left",
                     }}
                   >
-                    <Icon size={15} color={isActive ? "#4F46E5" : "#9ca3af"} />
+                    <Icon size={15} color={isActive ? "#5B3FEA" : "#9ca3af"} />
                     <span style={{ flex: 1 }}>{label}</span>
                     {isGeoAgent && (
                       <span style={{
@@ -1035,7 +1035,7 @@ export default function Dashboard() {
             </nav>
             <div style={{ padding: "10px 14px", borderTop: "0.5px solid #f3f4f6", fontSize: 11, color: "#9ca3af" }}>
               {user?.plan === "free" ? (
-                <button onClick={() => window.location.href = "/pricing"} style={{ width: "100%", background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "7px 0", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
+                <button onClick={() => window.location.href = "/pricing"} style={{ width: "100%", background: "#5B3FEA", color: "white", border: "none", borderRadius: 6, padding: "7px 0", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                   Upgrade - $69/mo
                 </button>
               ) : (
@@ -1057,7 +1057,7 @@ export default function Dashboard() {
         {/* Brand selector */}
         {selectedBrand && (
           <div style={{ background: "#1E293B", borderRadius: 8, margin: "12px 12px 4px", padding: "10px 12px", display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 20, height: 20, borderRadius: 4, background: "#4F46E5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "white", fontWeight: 700, flexShrink: 0 }}>
+            <div style={{ width: 20, height: 20, borderRadius: 4, background: "#5B3FEA", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "white", fontWeight: 700, flexShrink: 0 }}>
               {selectedBrand.domain.charAt(0).toUpperCase()}
             </div>
             <span style={{ fontSize: 13, color: "white", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{selectedBrand.domain}</span>
@@ -1077,7 +1077,7 @@ export default function Dashboard() {
                 style={{
                   width: "100%", height: 36, padding: "0 12px", display: "flex", alignItems: "center", gap: 10,
                   fontSize: 13, fontWeight: 500, cursor: "pointer",
-                  background: isActive ? "#4F46E5" : "transparent",
+                  background: isActive ? "#5B3FEA" : "transparent",
                   color: isActive ? "white" : "#94A3B8",
                   borderRadius: 6, border: "none", textAlign: "left",
                   transition: "background 0.1s, color 0.1s",
@@ -1107,7 +1107,7 @@ export default function Dashboard() {
                 style={{
                   width: "100%", height: 36, padding: "0 12px", display: "flex", alignItems: "center", gap: 10,
                   fontSize: 13, fontWeight: 500, cursor: "pointer",
-                  background: isActive ? "#4F46E5" : "transparent",
+                  background: isActive ? "#5B3FEA" : "transparent",
                   color: isActive ? "white" : "#94A3B8",
                   borderRadius: 6, border: "none", textAlign: "left",
                   transition: "background 0.1s, color 0.1s",
@@ -1146,7 +1146,7 @@ export default function Dashboard() {
         {/* Bottom user area */}
         <div style={{ padding: "12px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
           {user?.plan === "free" ? (
-            <button onClick={() => window.location.href = "/pricing"} style={{ width: "100%", background: "#4F46E5", color: "white", border: "none", borderRadius: 8, padding: "9px 0", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+            <button onClick={() => window.location.href = "/pricing"} style={{ width: "100%", background: "#5B3FEA", color: "white", border: "none", borderRadius: 8, padding: "9px 0", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
               Upgrade - $69/mo
             </button>
           ) : (
@@ -1157,7 +1157,7 @@ export default function Dashboard() {
       </div>
 
       {/* Main area */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#f9fafb", overflow: "hidden", position: "relative" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#F2F0EB", overflow: "hidden", position: "relative" }}>
 
         {/* Scan overlay */}
         {isScanning && (
@@ -1189,7 +1189,7 @@ export default function Dashboard() {
               <div style={{ background: "#1E293B", borderRadius: 8, padding: "12px 16px", marginTop: 8 }}>
                 <div style={{ fontSize: 11, color: "#64748B", marginBottom: 6 }}>Progress</div>
                 <div style={{ height: 6, background: "#334155", borderRadius: 9999, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${Math.round((scanStep / SCAN_STEPS.length) * 100)}%`, background: "#4F46E5", borderRadius: 9999, transition: "width 0.8s ease" }} />
+                  <div style={{ height: "100%", width: `${Math.round((scanStep / SCAN_STEPS.length) * 100)}%`, background: "#5B3FEA", borderRadius: 9999, transition: "width 0.8s ease" }} />
                 </div>
                 <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 6 }}>
                   Running full AI audit across ChatGPT, Gemini, and Perplexity. This takes about 20-30 seconds.
@@ -1221,7 +1221,7 @@ export default function Dashboard() {
                 <button
                   onClick={() => selectedBrandId && handleScanBrand(selectedBrandId)}
                   style={{ display: "flex", alignItems: "center", gap: 6, background: "white", border: "1px solid #E2E8F0", borderRadius: 8, padding: "6px 14px", fontSize: 13, color: "#374151", cursor: "pointer", transition: "border-color 150ms" }}
-                  onMouseEnter={e => (e.currentTarget.style.borderColor = "#4F46E5")}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = "#5B3FEA")}
                   onMouseLeave={e => (e.currentTarget.style.borderColor = "#E2E8F0")}
                 >
                   <RefreshCw size={13} /> Rescan
@@ -1236,7 +1236,7 @@ export default function Dashboard() {
         <div style={{ flex: 1, overflowY: "auto", padding: 18 }}>
           {isLoading ? (
             <div style={{ display: "flex", justifyContent: "center", paddingTop: 60 }}>
-              <Loader2 size={26} color="#4F46E5" style={{ animation: "spin 1s linear infinite" }} />
+              <Loader2 size={26} color="#5B3FEA" style={{ animation: "spin 1s linear infinite" }} />
             </div>
           ) : brands?.length === 0 ? (
             <div style={{ textAlign: "center", paddingTop: 60, border: "1.5px dashed #e5e7eb", borderRadius: 12, padding: 48 }}>
@@ -1251,7 +1251,7 @@ export default function Dashboard() {
                   <button
                     key={b.id}
                     onClick={() => { setSelectedBrandId(b.id); setFixActionsInitialized(false); setExpandedPromptIdx(null); }}
-                    style={{ padding: "3px 12px", borderRadius: 9999, fontSize: 12, fontWeight: 500, cursor: "pointer", background: selectedBrandId === b.id ? "#4F46E5" : "white", color: selectedBrandId === b.id ? "white" : "#6b7280", border: "0.5px solid", borderColor: selectedBrandId === b.id ? "#4F46E5" : "#e5e7eb" }}
+                    style={{ padding: "3px 12px", borderRadius: 9999, fontSize: 12, fontWeight: 500, cursor: "pointer", background: selectedBrandId === b.id ? "#5B3FEA" : "white", color: selectedBrandId === b.id ? "white" : "#6b7280", border: "0.5px solid", borderColor: selectedBrandId === b.id ? "#5B3FEA" : "#e5e7eb" }}
                   >
                     {b.domain}
                     {b.latestScore === null && <span style={{ marginLeft: 5, fontSize: 10, opacity: 0.7 }}>not scanned</span>}
@@ -1412,7 +1412,7 @@ export default function Dashboard() {
                             <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: "#9ca3af" }} />
                             <Tooltip contentStyle={{ borderRadius: 8, border: "0.5px solid #e5e7eb", fontSize: 11 }} />
                             <Bar dataKey="score" radius={[3, 3, 0, 0]}>
-                              {chartData.map((entry, i) => <Cell key={i} fill={entry.isLast ? "#4F46E5" : "#EEF2FF"} />)}
+                              {chartData.map((entry, i) => <Cell key={i} fill={entry.isLast ? "#5B3FEA" : "#EDE9FE"} />)}
                             </Bar>
                           </BarChart>
                         </ResponsiveContainer>
@@ -1492,7 +1492,7 @@ export default function Dashboard() {
                         {!citationData.isInTop5 && (
                           <div style={{ background: "#FEF2F2", borderRadius: 8, padding: "10px 12px", marginTop: 8 }}>
                             <div style={{ fontSize: 12, color: "#991B1B", marginBottom: 4 }}>You are not in the top 5 cited sources for your category.</div>
-                            <button onClick={() => setActiveTab("Citations")} style={{ background: "none", border: "none", padding: 0, fontSize: 12, color: "#4F46E5", cursor: "pointer", fontWeight: 500 }}>
+                            <button onClick={() => setActiveTab("Citations")} style={{ background: "none", border: "none", padding: 0, fontSize: 12, color: "#5B3FEA", cursor: "pointer", fontWeight: 500 }}>
                               See how to get there <ChevronRight size={11} style={{ display: "inline" }} />
                             </button>
                           </div>
@@ -1516,7 +1516,7 @@ export default function Dashboard() {
                           <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: "#9ca3af" }} />
                           <Tooltip contentStyle={{ borderRadius: 8, border: "0.5px solid #e5e7eb", fontSize: 11 }} />
                           <Legend wrapperStyle={{ fontSize: 11 }} />
-                          <Line type="monotone" dataKey="yours" name="Your brand" stroke="#4F46E5" strokeWidth={2} dot={false} />
+                          <Line type="monotone" dataKey="yours" name="Your brand" stroke="#5B3FEA" strokeWidth={2} dot={false} />
                           <Line type="monotone" dataKey="competitor" name={competitorDisplayName} stroke="#DC2626" strokeWidth={2} dot={false} strokeDasharray="4 2" />
                         </LineChart>
                       </ResponsiveContainer>
@@ -1543,7 +1543,7 @@ export default function Dashboard() {
                       <button
                         key={f}
                         onClick={() => setVisibilityFilter(f)}
-                        style={{ padding: "5px 12px", borderRadius: 6, fontSize: 12, cursor: "pointer", background: visibilityFilter === f ? "#4F46E5" : "white", color: visibilityFilter === f ? "white" : "#6b7280", border: "0.5px solid", borderColor: visibilityFilter === f ? "#4F46E5" : "#e5e7eb", fontWeight: visibilityFilter === f ? 500 : 400 }}
+                        style={{ padding: "5px 12px", borderRadius: 6, fontSize: 12, cursor: "pointer", background: visibilityFilter === f ? "#5B3FEA" : "white", color: visibilityFilter === f ? "white" : "#6b7280", border: "0.5px solid", borderColor: visibilityFilter === f ? "#5B3FEA" : "#e5e7eb", fontWeight: visibilityFilter === f ? 500 : 400 }}
                       >
                         {f}
                       </button>
@@ -1560,7 +1560,7 @@ export default function Dashboard() {
                     <button
                       onClick={() => selectedBrandId && handleScanBrand(selectedBrandId)}
                       disabled={isScanning}
-                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 6, fontSize: 12, cursor: "pointer", background: "#4F46E5", color: "white", border: "none", fontWeight: 500 }}
+                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 6, fontSize: 12, cursor: "pointer", background: "#5B3FEA", color: "white", border: "none", fontWeight: 500 }}
                     >
                       <RefreshCw size={12} /> Refresh scores
                     </button>
@@ -1654,7 +1654,7 @@ export default function Dashboard() {
                                 </div>
                                 <button
                                   onClick={() => setActiveTab("Fix Actions")}
-                                  style={{ background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}
+                                  style={{ background: "#5B3FEA", color: "white", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}
                                 >
                                   Improve this prompt score <ChevronRight size={11} />
                                 </button>
@@ -1747,7 +1747,7 @@ export default function Dashboard() {
                               <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 3fr 100px", gap: 8, padding: "9px 16px", borderBottom: i < chatgptScraper.allSources.slice(0, 12).length - 1 ? "0.5px solid #f9fafb" : "none", alignItems: "center", background: isYours ? "#F0FDF4" : "white" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                                   {isYours && <span style={{ background: "#DCFCE7", color: "#15803D", borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 600 }}>YOU</span>}
-                                  <a href={`https://${src.domain}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "#4F46E5", textDecoration: "none", fontWeight: isYours ? 600 : 400 }}>{src.domain}</a>
+                                  <a href={`https://${src.domain}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "#5B3FEA", textDecoration: "none", fontWeight: isYours ? 600 : 400 }}>{src.domain}</a>
                                 </div>
                                 <div style={{ fontSize: 11, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{src.title}</div>
                                 <div style={{ fontSize: 11, color: "#9ca3af", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{src.sourceName ?? "-"}</div>
@@ -1820,7 +1820,7 @@ export default function Dashboard() {
                               <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 3fr 100px", gap: 8, padding: "9px 16px", borderBottom: i < geminiScraper.allSources.slice(0, 12).length - 1 ? "0.5px solid #f9fafb" : "none", alignItems: "center", background: isYours ? "#F0FDF4" : "white" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                                   {isYours && <span style={{ background: "#DCFCE7", color: "#15803D", borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 600 }}>YOU</span>}
-                                  <a href={`https://${src.domain}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "#4F46E5", textDecoration: "none", fontWeight: isYours ? 600 : 400 }}>{src.domain}</a>
+                                  <a href={`https://${src.domain}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "#5B3FEA", textDecoration: "none", fontWeight: isYours ? 600 : 400 }}>{src.domain}</a>
                                 </div>
                                 <div style={{ fontSize: 11, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{src.title}</div>
                                 <div style={{ fontSize: 11, color: "#9ca3af", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{src.sourceName ?? "-"}</div>
@@ -1869,7 +1869,7 @@ export default function Dashboard() {
                         return (
                           <div key={src.domain} style={{ display: "grid", gridTemplateColumns: "2fr 60px 100px 100px 90px 50px 130px", gap: 8, padding: "10px 16px", borderBottom: i < allSources.length - 1 ? "0.5px solid #f9fafb" : "none", alignItems: "center" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                              <div style={{ width: 16, height: 16, borderRadius: 3, background: "#E0E7FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 9, fontWeight: 700, color: "#4F46E5", lineHeight: 1 }}>
+                              <div style={{ width: 16, height: 16, borderRadius: 3, background: "#E0E7FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 9, fontWeight: 700, color: "#5B3FEA", lineHeight: 1 }}>
                                 {src.domain[0].toUpperCase()}
                               </div>
                               <span style={{ fontSize: 12, color: "#374151", fontWeight: src.type === "yours" ? 600 : 400 }}>{src.domain}</span>
@@ -1910,14 +1910,14 @@ export default function Dashboard() {
                     <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 12 }}>
                       <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 14 }}>Your citation gap</div>
                       {[
-                        { name: "Your brand", citations: yourCitations, color: "#4F46E5", isYours: true },
+                        { name: "Your brand", citations: yourCitations, color: "#5B3FEA", isYours: true },
                         { name: competitorDisplayName, citations: topCompetitorCitations, color: "#DC2626", isYours: false },
                         { name: "Competitor B", citations: 12, color: "#D97706", isYours: false },
                       ].sort((a, b) => b.citations - a.citations).map(row => (
                         <div key={row.name} style={{ marginBottom: 12 }}>
                           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 5 }}>
                             <span style={{ color: row.isYours ? "#111827" : "#6b7280", fontWeight: row.isYours ? 600 : 400 }}>{row.name}</span>
-                            <span style={{ color: row.isYours ? "#4F46E5" : "#9ca3af", fontWeight: row.isYours ? 600 : 400 }}>{row.citations} citations</span>
+                            <span style={{ color: row.isYours ? "#5B3FEA" : "#9ca3af", fontWeight: row.isYours ? 600 : 400 }}>{row.citations} citations</span>
                           </div>
                           <div style={{ height: 12, background: "#f3f4f6", borderRadius: 9999, overflow: "hidden" }}>
                             <div style={{ height: "100%", width: `${Math.round((row.citations / (topCompetitorCitations + 2)) * 100)}%`, background: row.color, borderRadius: 9999, transition: "width 0.8s ease" }} />
@@ -1930,7 +1930,7 @@ export default function Dashboard() {
                         ) : (
                           <>You match or exceed {competitorDisplayName} on citations. </>
                         )}
-                        <button onClick={() => setActiveTab("Competition")} style={{ background: "none", border: "none", padding: 0, fontSize: 12, color: "#4F46E5", cursor: "pointer", fontWeight: 500 }}>
+                        <button onClick={() => setActiveTab("Competition")} style={{ background: "none", border: "none", padding: 0, fontSize: 12, color: "#5B3FEA", cursor: "pointer", fontWeight: 500 }}>
                           See which sites to target <ChevronRight size={11} style={{ display: "inline" }} />
                         </button>
                       </div>
@@ -1954,7 +1954,7 @@ export default function Dashboard() {
               {activeTab === "Prompts" && (() => {
                 const PROMPT_TAGS = ["All", "Brand", "Category", "Competitor", "Needs attention", "Recently improved"];
                 const TAG_COLORS: Record<string, { bg: string; text: string }> = {
-                  Brand: { bg: "#EEF2FF", text: "#4F46E5" },
+                  Brand: { bg: "#EDE9FE", text: "#5B3FEA" },
                   Category: { bg: "#F0FDF4", text: "#15803D" },
                   Competitor: { bg: "#FEF2F2", text: "#991B1B" },
                   Custom: { bg: "#FFFBEB", text: "#92400E" },
@@ -2000,11 +2000,11 @@ export default function Dashboard() {
                         <button
                           onClick={handleFetchAiVolume}
                           disabled={aiVolumeLoading}
-                          style={{ background: aiVolumeLoading ? "#f3f4f6" : "white", color: aiVolumeLoading ? "#9ca3af" : "#4F46E5", border: "0.5px solid", borderColor: aiVolumeLoading ? "#e5e7eb" : "#4F46E5", borderRadius: 6, padding: "7px 12px", fontSize: 12, fontWeight: 500, cursor: aiVolumeLoading ? "not-allowed" : "pointer" }}
+                          style={{ background: aiVolumeLoading ? "#f3f4f6" : "white", color: aiVolumeLoading ? "#9ca3af" : "#5B3FEA", border: "0.5px solid", borderColor: aiVolumeLoading ? "#e5e7eb" : "#5B3FEA", borderRadius: 6, padding: "7px 12px", fontSize: 12, fontWeight: 500, cursor: aiVolumeLoading ? "not-allowed" : "pointer" }}
                         >
                           {aiVolumeLoading ? "Fetching..." : Object.keys(aiVolume).length > 0 && aiVolumeBrandId === selectedBrand?.id ? "Refresh AI volume" : "Check AI search volume"}
                         </button>
-                        <button onClick={() => setAddPromptModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
+                        <button onClick={() => setAddPromptModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, background: "#5B3FEA", color: "white", border: "none", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                           + Add custom prompt
                         </button>
                       </div>
@@ -2029,7 +2029,7 @@ export default function Dashboard() {
                       </div>
                       <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>
                         {PROMPT_TAGS.map(tag => (
-                          <button key={tag} onClick={() => setPromptFilter(tag)} style={{ padding: "4px 11px", borderRadius: 9999, fontSize: 11, cursor: "pointer", background: promptFilter === tag ? "#4F46E5" : "white", color: promptFilter === tag ? "white" : "#6b7280", border: "0.5px solid", borderColor: promptFilter === tag ? "#4F46E5" : "#e5e7eb", fontWeight: promptFilter === tag ? 500 : 400, whiteSpace: "nowrap", flexShrink: 0 }}>
+                          <button key={tag} onClick={() => setPromptFilter(tag)} style={{ padding: "4px 11px", borderRadius: 9999, fontSize: 11, cursor: "pointer", background: promptFilter === tag ? "#5B3FEA" : "white", color: promptFilter === tag ? "white" : "#6b7280", border: "0.5px solid", borderColor: promptFilter === tag ? "#5B3FEA" : "#e5e7eb", fontWeight: promptFilter === tag ? 500 : 400, whiteSpace: "nowrap", flexShrink: 0 }}>
                             {tag}
                           </button>
                         ))}
@@ -2056,7 +2056,7 @@ export default function Dashboard() {
                                 <span style={{ background: tagStyle.bg, color: tagStyle.text, borderRadius: 4, padding: "1px 7px", fontSize: 10, fontWeight: 500 }}>{p.tag}</span>
                                 <span style={{ fontSize: 11, color: "#9ca3af" }}>Last checked: {p.lastChecked}</span>
                                 {aiVolumeBrandId === selectedBrand?.id && aiVolume[p.keyword] !== undefined && (
-                                  <span style={{ background: "#EEF2FF", color: "#4F46E5", borderRadius: 4, padding: "1px 7px", fontSize: 10, fontWeight: 500 }}>
+                                  <span style={{ background: "#EDE9FE", color: "#5B3FEA", borderRadius: 4, padding: "1px 7px", fontSize: 10, fontWeight: 500 }}>
                                     {aiVolume[p.keyword] > 0 ? `${aiVolume[p.keyword].toLocaleString()} AI searches/mo` : "No AI volume"}
                                   </span>
                                 )}
@@ -2073,7 +2073,7 @@ export default function Dashboard() {
                                 <div style={{ fontSize: 16, fontWeight: 700, color: trendColor, marginLeft: 4 }}>{trendIcon}</div>
                               </div>
                               <div style={{ display: "flex", gap: 6 }}>
-                                <button onClick={() => { setActiveTab("Visibility"); setExpandedPromptIdx(i); }} style={{ background: "transparent", border: "0.5px solid #e5e7eb", borderRadius: 5, padding: "3px 9px", fontSize: 11, color: "#4F46E5", cursor: "pointer" }}>
+                                <button onClick={() => { setActiveTab("Visibility"); setExpandedPromptIdx(i); }} style={{ background: "transparent", border: "0.5px solid #e5e7eb", borderRadius: 5, padding: "3px 9px", fontSize: 11, color: "#5B3FEA", cursor: "pointer" }}>
                                   Deep dive
                                 </button>
                               </div>
@@ -2098,7 +2098,7 @@ export default function Dashboard() {
                           <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 8 }}>Tag this prompt:</div>
                           <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
                             {["Brand", "Category", "Competitor", "Custom"].map(tag => (
-                              <button key={tag} onClick={() => setNewPromptTag(tag)} style={{ padding: "4px 11px", borderRadius: 9999, fontSize: 11, cursor: "pointer", background: newPromptTag === tag ? "#4F46E5" : "white", color: newPromptTag === tag ? "white" : "#6b7280", border: "0.5px solid", borderColor: newPromptTag === tag ? "#4F46E5" : "#e5e7eb" }}>
+                              <button key={tag} onClick={() => setNewPromptTag(tag)} style={{ padding: "4px 11px", borderRadius: 9999, fontSize: 11, cursor: "pointer", background: newPromptTag === tag ? "#5B3FEA" : "white", color: newPromptTag === tag ? "white" : "#6b7280", border: "0.5px solid", borderColor: newPromptTag === tag ? "#5B3FEA" : "#e5e7eb" }}>
                                 {tag}
                               </button>
                             ))}
@@ -2108,7 +2108,7 @@ export default function Dashboard() {
                           </div>
                           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                             <button onClick={() => setAddPromptModal(false)} style={{ background: "transparent", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "7px 16px", fontSize: 13, color: "#6b7280", cursor: "pointer" }}>Cancel</button>
-                            <button onClick={handleAddPrompt} disabled={!newPromptText.trim()} style={{ background: newPromptText.trim() ? "#4F46E5" : "#c7d2fe", color: "white", border: "none", borderRadius: 6, padding: "7px 16px", fontSize: 13, fontWeight: 500, cursor: newPromptText.trim() ? "pointer" : "default" }}>
+                            <button onClick={handleAddPrompt} disabled={!newPromptText.trim()} style={{ background: newPromptText.trim() ? "#5B3FEA" : "#c7d2fe", color: "white", border: "none", borderRadius: 6, padding: "7px 16px", fontSize: 13, fontWeight: 500, cursor: newPromptText.trim() ? "pointer" : "default" }}>
                               Add prompt
                             </button>
                           </div>
@@ -2219,7 +2219,7 @@ export default function Dashboard() {
                           <button
                             onClick={handleFetchLlmCrossAgg}
                             disabled={llmCrossAggLoading}
-                            style={{ background: "transparent", border: "0.5px solid #4F46E5", borderRadius: 6, padding: "4px 12px", fontSize: 11, color: "#4F46E5", cursor: llmCrossAggLoading ? "not-allowed" : "pointer", fontWeight: 500, opacity: llmCrossAggLoading ? 0.6 : 1 }}
+                            style={{ background: "transparent", border: "0.5px solid #5B3FEA", borderRadius: 6, padding: "4px 12px", fontSize: 11, color: "#5B3FEA", cursor: llmCrossAggLoading ? "not-allowed" : "pointer", fontWeight: 500, opacity: llmCrossAggLoading ? 0.6 : 1 }}
                           >
                             {llmCrossAggLoading ? "Fetching..." : "Fetch real mention rates"}
                           </button>
@@ -2230,12 +2230,12 @@ export default function Dashboard() {
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, marginBottom: 5 }}>
                             <span style={{ fontWeight: row.isYours ? 700 : 400, color: row.isYours ? "#111827" : "#6b7280", display: "flex", alignItems: "center", gap: 5 }}>
                               {row.name}
-                              {row.isYours && <span style={{ background: "#EEF2FF", color: "#4F46E5", borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 500 }}>you</span>}
+                              {row.isYours && <span style={{ background: "#EDE9FE", color: "#5B3FEA", borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 500 }}>you</span>}
                             </span>
-                            <span style={{ color: row.isYours ? "#4F46E5" : "#9ca3af", fontWeight: row.isYours ? 700 : 400 }}>{row.pct}%</span>
+                            <span style={{ color: row.isYours ? "#5B3FEA" : "#9ca3af", fontWeight: row.isYours ? 700 : 400 }}>{row.pct}%</span>
                           </div>
                           <div style={{ height: 14, background: "#f3f4f6", borderRadius: 9999, overflow: "hidden", position: "relative" }}>
-                            <div style={{ position: "absolute", height: "100%", width: `${row.pct}%`, background: row.isYours ? "#4F46E5" : "#E5E7EB", borderRadius: 9999, transition: "width 1s ease" }} />
+                            <div style={{ position: "absolute", height: "100%", width: `${row.pct}%`, background: row.isYours ? "#5B3FEA" : "#E5E7EB", borderRadius: 9999, transition: "width 1s ease" }} />
                             {!row.isYours && (
                               <div style={{ position: "absolute", height: "100%", width: `${row.pct}%`, display: "flex", alignItems: "center", paddingLeft: 6 }}>
                                 <span style={{ fontSize: 9, color: "#6b7280", fontWeight: 500 }}>{row.name}</span>
@@ -2288,7 +2288,7 @@ export default function Dashboard() {
                     <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 12 }}>
                       <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 8 }}>Insights</div>
                       <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.6, marginBottom: 12 }}>{insight}</div>
-                      <button onClick={() => setActiveTab("Fix Actions")} style={{ display: "flex", alignItems: "center", gap: 5, background: "transparent", border: "0.5px solid #4F46E5", borderRadius: 6, padding: "6px 14px", fontSize: 12, color: "#4F46E5", cursor: "pointer", fontWeight: 500 }}>
+                      <button onClick={() => setActiveTab("Fix Actions")} style={{ display: "flex", alignItems: "center", gap: 5, background: "transparent", border: "0.5px solid #5B3FEA", borderRadius: 6, padding: "6px 14px", fontSize: 12, color: "#5B3FEA", cursor: "pointer", fontWeight: 500 }}>
                         View fix plan for this gap <ChevronRight size={11} />
                       </button>
                     </div>
@@ -2304,7 +2304,7 @@ export default function Dashboard() {
                           <button
                             onClick={handleFetchBacklinks}
                             disabled={backlinkLoading}
-                            style={{ flexShrink: 0, background: backlinkLoading ? "#f3f4f6" : "#4F46E5", color: backlinkLoading ? "#9ca3af" : "white", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 500, cursor: backlinkLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}
+                            style={{ flexShrink: 0, background: backlinkLoading ? "#f3f4f6" : "#5B3FEA", color: backlinkLoading ? "#9ca3af" : "white", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 500, cursor: backlinkLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}
                           >
                             {backlinkLoading ? "Fetching..." : "Fetch backlink data"}
                           </button>
@@ -2339,7 +2339,7 @@ export default function Dashboard() {
                               <button
                                 onClick={handleFetchCitationGaps}
                                 disabled={citationGapsLoading}
-                                style={{ background: "transparent", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "4px 12px", fontSize: 11, color: "#4F46E5", cursor: citationGapsLoading ? "not-allowed" : "pointer", fontWeight: 500 }}
+                                style={{ background: "transparent", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "4px 12px", fontSize: 11, color: "#5B3FEA", cursor: citationGapsLoading ? "not-allowed" : "pointer", fontWeight: 500 }}
                               >
                                 {citationGapsLoading ? "Scanning..." : "Find sites linking to competitors"}
                               </button>
@@ -2360,7 +2360,7 @@ export default function Dashboard() {
                                 </div>
                               ))}
                               <div style={{ marginTop: 8 }}>
-                                <button onClick={() => setActiveTab("Fix Actions")} style={{ display: "flex", alignItems: "center", gap: 5, background: "transparent", border: "0.5px solid #4F46E5", borderRadius: 6, padding: "5px 12px", fontSize: 11, color: "#4F46E5", cursor: "pointer", fontWeight: 500 }}>
+                                <button onClick={() => setActiveTab("Fix Actions")} style={{ display: "flex", alignItems: "center", gap: 5, background: "transparent", border: "0.5px solid #5B3FEA", borderRadius: 6, padding: "5px 12px", fontSize: 11, color: "#5B3FEA", cursor: "pointer", fontWeight: 500 }}>
                                   View outreach plan in Fix Actions <ChevronRight size={10} />
                                 </button>
                               </div>
@@ -2373,7 +2373,7 @@ export default function Dashboard() {
                         <div style={{ background: "#FEF2F2", border: "0.5px solid #FECACA", borderRadius: 8, padding: "10px 14px" }}>
                           <div style={{ fontSize: 13, color: "#991B1B", marginBottom: backlinkError.includes("paid plan") ? 8 : 0 }}>{backlinkError}</div>
                           {backlinkError.includes("paid plan") && (
-                            <a href="/pricing" style={{ fontSize: 12, color: "#4F46E5", fontWeight: 500, textDecoration: "none" }}>View plans →</a>
+                            <a href="/pricing" style={{ fontSize: 12, color: "#5B3FEA", fontWeight: 500, textDecoration: "none" }}>View plans →</a>
                           )}
                         </div>
                       ) : !backlinkLoading ? (
@@ -2394,7 +2394,7 @@ export default function Dashboard() {
                           onChange={e => setCompetitorInput(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAddCompetitor()}
                           style={{ flex: 1, border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "7px 12px", fontSize: 13, color: "#374151", outline: "none" }}
                         />
-                        <button onClick={handleAddCompetitor} style={{ background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "7px 16px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>Track</button>
+                        <button onClick={handleAddCompetitor} style={{ background: "#5B3FEA", color: "white", border: "none", borderRadius: 6, padding: "7px 16px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>Track</button>
                       </div>
                       {trackedCompetitors.length === 0 ? (
                         <div style={{ fontSize: 12, color: "#9ca3af", textAlign: "center", padding: "12px 0" }}>No additional competitors tracked. The chart above uses category defaults.</div>
@@ -2424,7 +2424,7 @@ export default function Dashboard() {
                         <button
                           onClick={() => selectedBrandId && handleScanBrand(selectedBrandId)}
                           disabled={isScanning}
-                          style={{ display: "flex", alignItems: "center", gap: 6, background: "#4F46E5", color: "white", border: "none", borderRadius: 7, padding: "7px 14px", fontSize: 12, fontWeight: 500, cursor: isScanning ? "not-allowed" : "pointer", opacity: isScanning ? 0.7 : 1 }}
+                          style={{ display: "flex", alignItems: "center", gap: 6, background: "#5B3FEA", color: "white", border: "none", borderRadius: 7, padding: "7px 14px", fontSize: 12, fontWeight: 500, cursor: isScanning ? "not-allowed" : "pointer", opacity: isScanning ? 0.7 : 1 }}
                         >
                           <RefreshCw size={12} /> Rescan
                         </button>
@@ -2443,7 +2443,7 @@ export default function Dashboard() {
                             <button
                               onClick={handleRunOnPageAudit}
                               disabled={onPageLoading}
-                              style={{ background: onPageLoading ? "#f3f4f6" : "#4F46E5", color: onPageLoading ? "#9ca3af" : "white", border: "none", borderRadius: 7, padding: "7px 16px", fontSize: 12, fontWeight: 500, cursor: onPageLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}
+                              style={{ background: onPageLoading ? "#f3f4f6" : "#5B3FEA", color: onPageLoading ? "#9ca3af" : "white", border: "none", borderRadius: 7, padding: "7px 16px", fontSize: 12, fontWeight: 500, cursor: onPageLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}
                             >
                               {onPageLoading ? "Scanning..." : "Run audit"}
                             </button>
@@ -2553,7 +2553,7 @@ export default function Dashboard() {
                               {/* Tech stack pills */}
                               {stack && (stack.cms || stack.framework || stack.cdn || stack.analytics.length > 0 || stack.server) && (
                                 <div style={{ background: "#f0f4ff", border: "0.5px solid #c7d2fe", borderRadius: 8, padding: "10px 12px", marginBottom: 14 }}>
-                                  <div style={{ fontSize: 10, fontWeight: 700, color: "#4F46E5", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 8 }}>Tech Stack Detected</div>
+                                  <div style={{ fontSize: 10, fontWeight: 700, color: "#5B3FEA", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 8 }}>Tech Stack Detected</div>
                                   <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6 }}>
                                     {stack.cms && (
                                       <span style={{ background: "#e0e7ff", color: "#3730a3", borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 600 }}>
@@ -2610,7 +2610,7 @@ export default function Dashboard() {
                               {onPageResult.categories.map(cat => (
                                 <div key={cat.name} style={{ marginBottom: 20 }}>
                                   <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                                    <span style={{ width: 3, height: 14, borderRadius: 99, background: "#4F46E5", display: "inline-block" }} />
+                                    <span style={{ width: 3, height: 14, borderRadius: 99, background: "#5B3FEA", display: "inline-block" }} />
                                     {cat.name}
                                   </div>
                                   <div style={{ display: "flex", flexDirection: "column" as const, gap: 4 }}>
@@ -2639,7 +2639,7 @@ export default function Dashboard() {
                                         </div>
                                         {check.status !== "pass" && check.fix && (
                                           <div style={{ margin: "0 12px 10px 30px", background: "white", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "8px 10px" }}>
-                                            <div style={{ fontSize: 10, fontWeight: 700, color: "#4F46E5", marginBottom: 3, textTransform: "uppercase" as const, letterSpacing: "0.04em" }}>How to fix</div>
+                                            <div style={{ fontSize: 10, fontWeight: 700, color: "#5B3FEA", marginBottom: 3, textTransform: "uppercase" as const, letterSpacing: "0.04em" }}>How to fix</div>
                                             <div style={{ fontSize: 11, color: "#374151", lineHeight: 1.6 }}>{check.fix}</div>
                                           </div>
                                         )}
@@ -2652,7 +2652,7 @@ export default function Dashboard() {
                           );
                         })() : onPageLoading ? (
                           <div style={{ padding: "40px 16px", textAlign: "center" }}>
-                            <div style={{ width: 36, height: 36, border: "3px solid #e5e7eb", borderTopColor: "#4F46E5", borderRadius: "50%", margin: "0 auto 14px", animation: "spin 0.8s linear infinite" }} />
+                            <div style={{ width: 36, height: 36, border: "3px solid #e5e7eb", borderTopColor: "#5B3FEA", borderRadius: "50%", margin: "0 auto 14px", animation: "spin 0.8s linear infinite" }} />
                             <div style={{ fontSize: 13, color: "#374151", fontWeight: 500, marginBottom: 4 }}>Scanning your site...</div>
                             <div style={{ fontSize: 11, color: "#9ca3af" }}>Crawling page, fetching PageSpeed data, detecting tech stack. Usually takes 20-35 seconds.</div>
                           </div>
@@ -2660,7 +2660,7 @@ export default function Dashboard() {
                           <div style={{ padding: "32px 16px", textAlign: "center" }}>
                             <div style={{ fontSize: 13, color: "#374151", fontWeight: 500, marginBottom: 6 }}>Get your full site health score</div>
                             <div style={{ fontSize: 11, color: "#9ca3af", maxWidth: 320, margin: "0 auto 16px" }}>Checks performance (TTFB, Core Web Vitals), security headers (HSTS, CSP), tech stack, content quality, and 20+ signals in one scan.</div>
-                            <button onClick={handleRunOnPageAudit} style={{ background: "#4F46E5", color: "white", border: "none", borderRadius: 7, padding: "8px 20px", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
+                            <button onClick={handleRunOnPageAudit} style={{ background: "#5B3FEA", color: "white", border: "none", borderRadius: 7, padding: "8px 20px", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                               Run audit
                             </button>
                           </div>
@@ -2675,7 +2675,7 @@ export default function Dashboard() {
                       <button
                         onClick={() => selectedBrandId && handleScanBrand(selectedBrandId)}
                         disabled={isScanning}
-                        style={{ background: "#4F46E5", color: "white", border: "none", borderRadius: 7, padding: "10px 24px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}
+                        style={{ background: "#5B3FEA", color: "white", border: "none", borderRadius: 7, padding: "10px 24px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}
                       >
                         Run first scan
                       </button>
@@ -2814,7 +2814,7 @@ export default function Dashboard() {
                         <button
                           onClick={handleSaveSettings}
                           disabled={settingsSaving}
-                          style={{ alignSelf: "flex-start", background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "8px 20px", fontSize: 13, fontWeight: 500, cursor: settingsSaving ? "not-allowed" : "pointer", opacity: settingsSaving ? 0.7 : 1 }}
+                          style={{ alignSelf: "flex-start", background: "#5B3FEA", color: "white", border: "none", borderRadius: 6, padding: "8px 20px", fontSize: 13, fontWeight: 500, cursor: settingsSaving ? "not-allowed" : "pointer", opacity: settingsSaving ? 0.7 : 1 }}
                         >
                           {settingsSaving ? "Saving..." : "Save changes"}
                         </button>
@@ -2826,11 +2826,11 @@ export default function Dashboard() {
                   <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 20 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "#111827", marginBottom: 14 }}>Account</div>
                     <div style={{ fontSize: 13, color: "#374151", marginBottom: 6 }}>Email: <span style={{ color: "#6b7280" }}>{user?.email ?? "-"}</span></div>
-                    <div style={{ fontSize: 13, color: "#374151", marginBottom: 16 }}>Plan: <span style={{ color: "#4F46E5", fontWeight: 500, textTransform: "capitalize" }}>{user?.plan ?? "free"}</span></div>
+                    <div style={{ fontSize: 13, color: "#374151", marginBottom: 16 }}>Plan: <span style={{ color: "#5B3FEA", fontWeight: 500, textTransform: "capitalize" }}>{user?.plan ?? "free"}</span></div>
                     {user?.plan === "free" && (
                       <button
                         onClick={() => window.location.href = "/pricing"}
-                        style={{ background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "8px 18px", fontSize: 13, fontWeight: 500, cursor: "pointer", marginBottom: 12 }}
+                        style={{ background: "#5B3FEA", color: "white", border: "none", borderRadius: 6, padding: "8px 18px", fontSize: 13, fontWeight: 500, cursor: "pointer", marginBottom: 12 }}
                       >
                         Upgrade to Starter - $69/mo
                       </button>
@@ -2900,7 +2900,7 @@ export default function Dashboard() {
                   {socialPostLink && (() => {
                     let displayUrl = socialPostLink;
                     try { displayUrl = new URL(socialPostLink).href; } catch { displayUrl = socialPostLink; }
-                    const platformColor = citationModal.domain.includes("reddit") ? "#FF4500" : citationModal.domain.includes("twitter") || citationModal.domain.includes("x.com") ? "#1DA1F2" : citationModal.domain.includes("linkedin") ? "#0A66C2" : citationModal.domain.includes("producthunt") ? "#DA552F" : "#4F46E5";
+                    const platformColor = citationModal.domain.includes("reddit") ? "#FF4500" : citationModal.domain.includes("twitter") || citationModal.domain.includes("x.com") ? "#1DA1F2" : citationModal.domain.includes("linkedin") ? "#0A66C2" : citationModal.domain.includes("producthunt") ? "#DA552F" : "#5B3FEA";
                     const platformLabel = citationModal.domain.includes("reddit") ? "Reddit" : citationModal.domain.includes("twitter") || citationModal.domain.includes("x.com") ? "X (Twitter)" : citationModal.domain.includes("linkedin") ? "LinkedIn" : citationModal.domain.includes("producthunt") ? "Product Hunt" : citationModal.domain;
                     return (
                       <div style={{ border: `0.5px solid ${platformColor}33`, borderRadius: 8, overflow: "hidden", marginBottom: 14 }}>
@@ -2930,9 +2930,9 @@ export default function Dashboard() {
                 <>
                   <div style={{ fontSize: 12, fontWeight: 500, color: "#374151", marginBottom: 8 }}>Submission URL:</div>
                   <div style={{ background: "#F9FAFB", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "8px 12px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                    <span style={{ fontSize: 12, color: "#4F46E5", wordBreak: "break-all" }}>{info.url}</span>
+                    <span style={{ fontSize: 12, color: "#5B3FEA", wordBreak: "break-all" }}>{info.url}</span>
                     <a href={info.url} target="_blank" rel="noreferrer" style={{ flexShrink: 0 }}>
-                      <ExternalLink size={13} color="#4F46E5" />
+                      <ExternalLink size={13} color="#5B3FEA" />
                     </a>
                   </div>
                   <div style={{ fontSize: 12, fontWeight: 500, color: "#374151", marginBottom: 8 }}>Pre-written pitch (copy and adapt):</div>
@@ -2949,7 +2949,7 @@ export default function Dashboard() {
               )}
 
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button onClick={() => setCitationModal(null)} style={{ background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "7px 18px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
+                <button onClick={() => setCitationModal(null)} style={{ background: "#5B3FEA", color: "white", border: "none", borderRadius: 6, padding: "7px 18px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
                   Close
                 </button>
               </div>
