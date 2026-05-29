@@ -40,6 +40,8 @@ const LOADING_CSS = `
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
+.audit-sidebar { display: block; }
+@media (max-width: 900px) { .audit-sidebar { display: none; } }
 `;
 
 function AuditLoadingCard({
@@ -354,6 +356,42 @@ function SystemCard({
           )}
         </>
       )}
+    </div>
+  );
+}
+
+function getVerdict(score: number): { label: string; color: string; bg: string } {
+  if (score <= 20) return { label: "INVISIBLE", color: "#DC2626", bg: "#FEF2F2" };
+  if (score <= 40) return { label: "WEAK", color: "#EA580C", bg: "#FFF7ED" };
+  if (score <= 60) return { label: "AVERAGE", color: "#CA8A04", bg: "#FEFCE8" };
+  if (score <= 80) return { label: "GOOD", color: "#2563EB", bg: "#EFF6FF" };
+  return { label: "STRONG", color: "#16A34A", bg: "#F0FDF4" };
+}
+
+function LockWall({ remaining, domain }: { remaining: number; domain: string }) {
+  return (
+    <div style={{ background: "#0f172a", borderRadius: 12, padding: "28px 24px", textAlign: "center", marginTop: 8, marginBottom: 28, position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "relative" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(79,70,229,0.15)", border: "1px solid rgba(79,70,229,0.3)", borderRadius: 99, padding: "4px 14px", marginBottom: 16 }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#818CF8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          <span style={{ fontSize: 11, fontWeight: 600, color: "#818CF8", letterSpacing: "0.06em", textTransform: "uppercase" as const }}>
+            {remaining} more fixes locked
+          </span>
+        </div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: "white", marginBottom: 8 }}>
+          Unlock your full fix list
+        </div>
+        <div style={{ fontSize: 13, color: "#94A3B8", lineHeight: 1.6, maxWidth: 380, margin: "0 auto 20px" }}>
+          Get all {remaining + 3} prioritized fixes, Gemini + Perplexity + Claude + Grok responses, citation gaps, and a 4-week roadmap tailored to {domain}.
+        </div>
+        <a href="/pricing" style={{ display: "inline-block", background: "#4F46E5", color: "white", borderRadius: 8, padding: "12px 28px", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
+          Unlock full report - Rs 3,999/mo →
+        </a>
+        <div style={{ fontSize: 11, color: "#64748B", marginTop: 12 }}>7-day free trial. Cancel anytime.</div>
+      </div>
     </div>
   );
 }
@@ -959,7 +997,8 @@ export default function Audit() {
 
         {/* Results */}
         {auditResult && !runAuditMutation.isPending && !refreshing && !retrying && (
-          <div className="audit-result-anim" style={{ width: "100%", maxWidth: 700 }}>
+          <div className="audit-result-anim" style={{ width: "100%", maxWidth: isPaidUser ? 720 : 1020, display: "flex", gap: 28, alignItems: "flex-start" }}>
+          <div style={{ flex: 1, minWidth: 0, maxWidth: 700 }}>
 
             {/* Cache age banner - show for ANY cached result so users who just fixed their site know to refresh */}
             {auditResult.fromCache && auditResult.cachedHoursAgo < 24 && (
@@ -1011,6 +1050,11 @@ export default function Audit() {
                   <span style={{ fontSize: 16, color: "#6b7280" }}>/100</span>
                 </div>
                 <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>GEO IQ score</div>
+                {(() => { const v = getVerdict(aiMemoryScore + liveWebScore); return (
+                  <span style={{ display: "inline-block", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", color: v.color, background: v.bg, borderRadius: 99, padding: "3px 10px", marginTop: 6 }}>
+                    {v.label}
+                  </span>
+                ); })()}
                 <div style={{ fontSize: 11, color: "#6b7280", marginTop: 5, textAlign: "right", lineHeight: 1.6 }}>
                   <span style={{ color: "#4F46E5", display: "block" }}>AI Memory: {aiMemoryScore}/50 (ChatGPT + Gemini)</span>
                   <span style={{ color: "#9333ea", display: "block" }}>Live Web: {liveWebScore}/50 (Perplexity)</span>
@@ -1072,10 +1116,27 @@ export default function Audit() {
               <AiExplainerBox aiMemoryScore={aiMemoryScore} liveWebScore={liveWebScore} />
 
               <SystemCard system="ChatGPT" found={auditResult.chatgptFound} score={auditResult.scoreChatgpt} detail={auditResult.chatgptDetail} rawResponse={auditResult.chatgptRawResponse} checkedAt={auditResult.createdAt} />
-              <SystemCard system="Gemini" found={auditResult.geminiFound} score={auditResult.scoreGemini} detail={auditResult.geminiDetail} rawResponse={auditResult.geminiRawResponse} checkedAt={auditResult.createdAt} />
-              <SystemCard system="Perplexity" found={auditResult.perplexityFound} score={auditResult.scorePerplexity} detail={auditResult.perplexityDetail} rawResponse={auditResult.perplexityRawResponse} checkedAt={auditResult.createdAt} isLiveWeb />
-              <SystemCard system="Claude" found={auditResult.claudeFound ?? false} score={auditResult.scoreClaude ?? 0} detail={auditResult.claudeDetail} rawResponse={auditResult.claudeRawResponse} checkedAt={auditResult.createdAt} simulated />
-              <SystemCard system="Grok" found={auditResult.grokFound ?? false} score={auditResult.scoreGrok ?? 0} detail={auditResult.grokDetail} rawResponse={auditResult.grokRawResponse} checkedAt={auditResult.createdAt} />
+              {isPaidUser ? (
+                <>
+                  <SystemCard system="Gemini" found={auditResult.geminiFound} score={auditResult.scoreGemini} detail={auditResult.geminiDetail} rawResponse={auditResult.geminiRawResponse} checkedAt={auditResult.createdAt} />
+                  <SystemCard system="Perplexity" found={auditResult.perplexityFound} score={auditResult.scorePerplexity} detail={auditResult.perplexityDetail} rawResponse={auditResult.perplexityRawResponse} checkedAt={auditResult.createdAt} isLiveWeb />
+                  <SystemCard system="Claude" found={auditResult.claudeFound ?? false} score={auditResult.scoreClaude ?? 0} detail={auditResult.claudeDetail} rawResponse={auditResult.claudeRawResponse} checkedAt={auditResult.createdAt} simulated />
+                  <SystemCard system="Grok" found={auditResult.grokFound ?? false} score={auditResult.scoreGrok ?? 0} detail={auditResult.grokDetail} rawResponse={auditResult.grokRawResponse} checkedAt={auditResult.createdAt} />
+                </>
+              ) : (
+                <div style={{ background: "#F9FAFB", border: "0.5px solid #E5E7EB", borderRadius: 10, padding: "14px 20px", display: "flex", alignItems: "center", gap: 14, marginBottom: 4 }}>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
+                    {["Gemini", "Perplexity", "Claude", "Grok"].map(s => (
+                      <span key={s} style={{ background: "#E5E7EB", borderRadius: 6, padding: "4px 10px", fontSize: 12, color: "#9CA3AF", fontWeight: 500 }}>{s}</span>
+                    ))}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>4 more AI systems checked</div>
+                    <div style={{ fontSize: 11, color: "#9CA3AF" }}>Upgrade to see Gemini, Perplexity, Claude and Grok responses</div>
+                  </div>
+                  <a href="/pricing" style={{ fontSize: 12, fontWeight: 600, color: "#4F46E5", textDecoration: "none", whiteSpace: "nowrap" as const }}>Unlock →</a>
+                </div>
+              )}
             </div>
 
             {/* Section 02: Technical GEO Audit */}
@@ -1184,7 +1245,7 @@ export default function Audit() {
                       );
                     })}
                   </div>
-                  {recs.map((rec, i) => {
+                  {recs.slice(0, isPaidUser ? recs.length : 3).map((rec, i) => {
                     const cite = CITE_CONFIG[rec.citeCategory] ?? CITE_CONFIG["C"]!;
                     return (
                       <div key={i} style={{ background: "white", border: "0.5px solid #e5e7eb", borderLeft: `3px solid ${cite.border}`, borderRadius: 10, padding: "14px 16px", marginBottom: 10 }}>
@@ -1205,6 +1266,9 @@ export default function Audit() {
                       </div>
                     );
                   })}
+                  {!isPaidUser && recs.length > 3 && (
+                    <LockWall remaining={recs.length - 3} domain={domain} />
+                  )}
                 </div>
               );
             })()}
@@ -1444,6 +1508,45 @@ export default function Audit() {
                 Check another domain
               </Link>
             </div>
+          </div>
+
+          {/* Sticky sidebar - desktop only, free users only */}
+          {!isPaidUser && auditResult.recommendations && (auditResult.recommendations as unknown[]).length > 0 && (() => {
+            const sidebarRecs = auditResult.recommendations as { action: string; priority: string; effortHours: number; impactScore: number; category: string; citeCategory: string }[];
+            const criticalCount = sidebarRecs.filter((r) => r.priority === "high").length;
+            const topFix = sidebarRecs[0];
+            return (
+              <div className="audit-sidebar" style={{ width: 252, flexShrink: 0, position: "sticky", top: 24 }}>
+                <div style={{ background: "white", border: "0.5px solid #E5E7EB", borderRadius: 12, padding: "20px" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#9CA3AF", marginBottom: 8 }}>
+                    Top Priority Fix
+                  </div>
+                  <p style={{ fontSize: 13, color: "#111827", lineHeight: 1.5, margin: "0 0 16px" }}>
+                    {topFix?.action}
+                  </p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
+                    <div style={{ background: "#F9FAFB", borderRadius: 8, padding: "10px 12px", textAlign: "center" as const }}>
+                      <div style={{ fontSize: 24, fontWeight: 800, color: "#111827", lineHeight: 1 }}>{sidebarRecs.length}</div>
+                      <div style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginTop: 4 }}>Total Issues</div>
+                    </div>
+                    <div style={{ background: "#FEF2F2", borderRadius: 8, padding: "10px 12px", textAlign: "center" as const }}>
+                      <div style={{ fontSize: 24, fontWeight: 800, color: "#DC2626", lineHeight: 1 }}>{criticalCount}</div>
+                      <div style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginTop: 4 }}>Critical</div>
+                    </div>
+                  </div>
+                  <a
+                    href="/pricing"
+                    style={{ display: "block", background: "#4F46E5", color: "white", borderRadius: 8, padding: "11px", fontSize: 13, fontWeight: 600, textDecoration: "none", textAlign: "center" as const }}
+                  >
+                    Unlock all fixes →
+                  </a>
+                  <div style={{ fontSize: 11, color: "#9CA3AF", textAlign: "center" as const, marginTop: 10 }}>
+                    7-day free trial
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
           </div>
         )}
       </main>
