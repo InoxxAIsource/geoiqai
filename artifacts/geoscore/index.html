@@ -25,6 +25,12 @@
     <meta name="twitter:image" content="https://geoiqai.com/opengraph.jpg" />
 
     <link rel="canonical" href="https://geoiqai.com" />
+    <script>
+      (function(){
+        var l=document.querySelector('link[rel="canonical"]');
+        if(l){var p=window.location.pathname.replace(/\/$/,'');l.href='https://geoiqai.com'+(p||'/');}
+      })();
+    </script>
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#4F46E5" />
     <link rel="shortcut icon" href="/favicon.ico" />

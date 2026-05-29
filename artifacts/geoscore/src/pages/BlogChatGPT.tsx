@@ -5,7 +5,11 @@ import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 
 export default function BlogChatGPT() {
-  useEffect(() => { document.title = "Why Your Startup Doesn't Show Up in ChatGPT | GeoIQ Blog"; }, []);
+  useEffect(() => {
+    document.title = "Why Your Startup Doesn't Show Up in ChatGPT | GeoIQ Blog";
+    const cl = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (cl) cl.href = "https://geoiqai.com/blog/why-startup-not-showing-chatgpt";
+  }, []);
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Navbar />

@@ -36,6 +36,8 @@ const SECTIONS = [
 export default function Privacy() {
   useEffect(() => {
     document.title = "Privacy Policy | GeoIQ";
+    const cl = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (cl) cl.href = "https://geoiqai.com/privacy";
   }, []);
 
   return (

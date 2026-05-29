@@ -40,6 +40,8 @@ const SECTIONS = [
 export default function Terms() {
   useEffect(() => {
     document.title = "Terms of Service | GeoIQ";
+    const cl = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (cl) cl.href = "https://geoiqai.com/terms";
   }, []);
 
   return (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 
@@ -7,6 +7,11 @@ const PRIMARY = "#4F46E5";
 type FormState = "idle" | "loading" | "success" | "error";
 
 export default function Contact() {
+  useEffect(() => {
+    document.title = "Contact | GeoIQ";
+    const cl = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (cl) cl.href = "https://geoiqai.com/contact";
+  }, []);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");

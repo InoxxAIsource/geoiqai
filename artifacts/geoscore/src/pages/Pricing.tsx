@@ -27,7 +27,11 @@ function loadRazorpayScript(): Promise<void> {
 }
 
 export default function Pricing() {
-  useEffect(() => { document.title = "Pricing | GeoIQ"; }, []);
+  useEffect(() => {
+    document.title = "Pricing | GeoIQ";
+    const cl = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (cl) cl.href = "https://geoiqai.com/pricing";
+  }, []);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryParams = useQuery();
