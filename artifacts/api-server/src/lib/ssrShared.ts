@@ -147,6 +147,7 @@ function ssrFooter(): string {
           <a href="/how-to-rank-in-chatgpt">How to rank in ChatGPT</a>
           <a href="/geo-tools">GEO Tools 2026</a>
           <a href="/blog">Blog</a>
+          <a href="/faq">FAQ</a>
         </div>
         <div>
           <div class="ssr-footer-heading">Legal</div>

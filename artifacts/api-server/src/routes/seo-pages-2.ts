@@ -1836,4 +1836,271 @@ router.get("/geoiq-vs-semrush", (_req, res) => {
   res.send(geoiqVsSemrushHtml());
 });
 
+// ============================================================
+// FAQ PAGE: /faq
+// ============================================================
+
+function faqHtml(): string {
+  const faqs: Array<{ q: string; a: string; aHtml: string }> = [
+    {
+      q: "What is GeoIQ?",
+      a: "GeoIQ is an AI visibility tool that shows how your brand appears in ChatGPT, Gemini, and Perplexity. You enter a domain, and GeoIQ runs checks across technical access, entity recognition, citation authority, and content structure - then gives you a score from 0 to 100 along with specific fixes to improve it. Think of it as Google Search Console, but for AI search.",
+      aHtml: `GeoIQ is an <a href="/">AI visibility tool</a> that shows how your brand appears in ChatGPT, Gemini, and Perplexity. You enter a domain, and GeoIQ runs checks across technical access, entity recognition, citation authority, and content structure - then gives you a score from 0 to 100 along with specific fixes to improve it. Think of it as Google Search Console, but for AI search.`,
+    },
+    {
+      q: "What is an AI visibility score?",
+      a: "Your AI visibility score (also called a GEO score) measures how likely AI systems are to mention or cite your brand when answering questions in your category. The score runs from 0 to 100 and is made up of four weighted components: technical access (can AI bots read your site?), entity recognition (do AI systems know who you are?), citation authority (is your brand mentioned in third-party sources?), and content structure (is your content formatted for AI consumption?).",
+      aHtml: `Your AI visibility score (also called a GEO score) measures how likely AI systems are to mention or cite your brand when answering questions in your category. The score runs from 0 to 100 and is made up of four weighted components: technical access (can AI bots read your site?), entity recognition (do AI systems know who you are?), citation authority (is your brand mentioned in third-party sources?), and content structure (is your content formatted for AI consumption?).`,
+    },
+    {
+      q: "Which AI platforms does GeoIQ track?",
+      a: "GeoIQ runs checks relevant to ChatGPT (OpenAI), Gemini (Google), and Perplexity. The audit looks at factors that determine visibility across all three: technical access, entity presence in knowledge bases, third-party citations, and structured content. Monitoring plans track your score changes over time across all three platforms.",
+      aHtml: `GeoIQ runs checks relevant to ChatGPT (OpenAI), Gemini (Google), and Perplexity. The audit looks at factors that determine visibility across all three: technical access, entity presence in knowledge bases, third-party citations, and structured content. Monitoring plans track your score changes over time across all three platforms.`,
+    },
+    {
+      q: "How long does a free audit take?",
+      a: "A free audit usually completes in 10 to 20 seconds. GeoIQ runs several checks in parallel: crawling your site, checking your robots.txt, looking for schema markup, and querying AI systems for brand mentions. Results appear on screen as they come in.",
+      aHtml: `A free audit usually completes in 10 to 20 seconds. GeoIQ runs several checks in parallel: crawling your site, checking your robots.txt, looking for schema markup, and querying AI systems for brand mentions. Results appear on screen as they come in.`,
+    },
+    {
+      q: "What do I need to run an audit?",
+      a: "Just a domain name. Enter your domain and hit Analyze. No account is needed for a single free audit. If you want to save results, track changes over time, or monitor multiple brands, you will need to create a free account.",
+      aHtml: `Just a domain name. Enter your domain and hit Analyze. No account is needed for a single free audit. If you want to save results, track changes over time, or monitor multiple brands, you will need to create a free account.`,
+    },
+    {
+      q: "Is GeoIQ free to use?",
+      a: "The public audit is completely free. You can audit any domain and see the full score breakdown with no account required. For ongoing monitoring (daily score tracking, historical trends, alerts), you need a paid plan starting at Rs 3,999 per month. Agency plans at Rs 11,999 per month support unlimited brand monitoring.",
+      aHtml: `The public audit is completely free. You can audit any domain and see the full score breakdown with no account required. For ongoing monitoring (daily score tracking, historical trends, alerts), you need a paid plan starting at Rs 3,999 per month. Agency plans at Rs 11,999 per month support unlimited brand monitoring.`,
+    },
+    {
+      q: "How is the AI visibility score calculated?",
+      a: "The score is weighted across four pillars. Technical checks (robots.txt access, llms.txt presence, schema markup) account for about 35%. Citation authority (Crunchbase listing, G2 profile, press coverage) accounts for about 30%. Entity recognition (Wikipedia/Wikidata presence, consistent brand name usage) accounts for about 20%. Content structure (FAQ schema, structured formatting, crawlable content) accounts for the remaining 15%. Each check produces a pass, partial, or fail result which rolls up into the final 0-100 score.",
+      aHtml: `The score is weighted across four pillars. Technical checks (robots.txt access, llms.txt presence, schema markup) account for about 35%. Citation authority (Crunchbase listing, G2 profile, press coverage) accounts for about 30%. Entity recognition (Wikipedia/Wikidata presence, consistent brand name usage) accounts for about 20%. Content structure (FAQ schema, structured formatting, crawlable content) accounts for the remaining 15%. Each check produces a pass, partial, or fail result which rolls up into the final 0-100 score.`,
+    },
+    {
+      q: "What is an llms.txt file and why does it matter?",
+      a: "An llms.txt file is a plain text file placed at yourdomain.com/llms.txt that tells AI systems what your company does, who your audience is, and what your key pages are. It is the AI equivalent of robots.txt - a direct signal to language models about how to represent your brand. GeoIQ checks for its presence and content quality as part of every audit.",
+      aHtml: `An <a href="/audit">llms.txt file</a> is a plain text file placed at yourdomain.com/llms.txt that tells AI systems what your company does, who your audience is, and what your key pages are. It is the AI equivalent of robots.txt - a direct signal to language models about how to represent your brand. GeoIQ checks for its presence and content quality as part of every audit.`,
+    },
+    {
+      q: "Why does my brand score low even though I rank well on Google?",
+      a: "Google SEO and AI visibility use different signals. Ranking on Google means you have strong keyword relevance and backlinks. AI systems care about different things: whether AI bots can crawl your site (robots.txt settings), whether you are listed on structured databases like Crunchbase, whether publications cite you as an authority, and whether your content answers questions directly. A brand can rank number one on Google for its category and still score 20/100 on AI visibility.",
+      aHtml: `Google SEO and AI visibility use different signals. Ranking on Google means you have strong keyword relevance and backlinks. AI systems care about different things: whether AI bots can crawl your site (robots.txt settings), whether you are listed on structured databases like Crunchbase, whether publications cite you as an authority, and whether your content answers questions directly. A brand can rank number one on Google for its category and still score 20/100 on AI visibility.`,
+    },
+    {
+      q: "What is a good AI visibility score?",
+      a: "Scores above 60 are strong. Scores between 40 and 60 are average. Below 40 means significant work is needed. Most Indian startups score between 15 and 35 when they first audit. The benchmark for category leaders is 65 to 80. Scores above 80 are rare and typically held by companies that have been actively doing GEO for over a year.",
+      aHtml: `Scores above 60 are strong. Scores between 40 and 60 are average. Below 40 means significant work is needed. Most Indian startups score between 15 and 35 when they first audit. The benchmark for category leaders is 65 to 80. Scores above 80 are rare and typically held by companies that have been actively doing GEO for over a year.`,
+    },
+    {
+      q: "How often should I run an audit?",
+      a: "After implementing fixes, run a fresh audit within 2 to 4 weeks to measure impact. For ongoing tracking, GeoIQ Pro plans run daily checks automatically and alert you when your score changes. The most common trigger for a manual audit is a significant company event: a product launch, a rebrand, a major press mention, or after a content push.",
+      aHtml: `After implementing fixes, run a fresh audit within 2 to 4 weeks to measure impact. For ongoing tracking, GeoIQ Pro plans run daily checks automatically and alert you when your score changes. The most common trigger for a manual audit is a significant company event: a product launch, a rebrand, a major press mention, or after a content push.`,
+    },
+    {
+      q: "Can I monitor competitors?",
+      a: "Yes. Paid plans let you add competitor domains alongside your own brands. You can see how your AI visibility score compares to direct competitors and identify gaps - for example, a competitor might have strong citation authority but weak technical access, which tells you where to invest first. Agency plans support unlimited brand and competitor tracking.",
+      aHtml: `Yes. Paid plans let you add competitor domains alongside your own brands. You can see how your AI visibility score compares to direct competitors and identify gaps - for example, a competitor might have strong citation authority but weak technical access, which tells you where to invest first. Agency plans support unlimited brand and competitor tracking.`,
+    },
+    {
+      q: "What is ChatGPT brand visibility and how do I measure it?",
+      a: "ChatGPT brand visibility is whether ChatGPT mentions your brand when users ask questions in your product category. For example: 'What are the best tools for tracking AI search rankings?' - does ChatGPT name your brand? GeoIQ measures this by running structured queries related to your category and checking for brand mentions. The result feeds into your overall AI visibility score.",
+      aHtml: `ChatGPT brand visibility is whether ChatGPT mentions your brand when users ask questions in your product category. For example: "What are the best tools for tracking AI search rankings?" - does ChatGPT name your brand? GeoIQ measures this by running structured queries related to your category and checking for brand mentions. The result feeds into your overall AI visibility score.`,
+    },
+    {
+      q: "How do I improve my GeoIQ score?",
+      a: "Each audit comes with a prioritized fix list. The highest-impact starting points are usually: (1) unblock AI crawlers in robots.txt - GPTBot, PerplexityBot, ClaudeBot should all be allowed; (2) create an llms.txt file; (3) add FAQ schema markup to your key pages; (4) get listed on Crunchbase and G2; (5) build press citations from indexed publications. The GeoIQ dashboard shows exactly which checks are failing and links to fix guides for each one.",
+      aHtml: `Each audit comes with a prioritized fix list. The highest-impact starting points are usually: (1) unblock AI crawlers in robots.txt - GPTBot, PerplexityBot, ClaudeBot should all be allowed; (2) create an llms.txt file; (3) add FAQ schema markup to your key pages; (4) get listed on Crunchbase and G2; (5) build press citations from indexed publications. The GeoIQ dashboard shows exactly which checks are failing and links to fix guides for each one.`,
+    },
+    {
+      q: "What is the GeoIQ Agent?",
+      a: "The GeoIQ Agent is an AI assistant inside your GeoIQ dashboard that reads your latest audit data and answers questions about your brand's AI visibility in plain English. You can ask it things like 'why is my entity score low?' or 'which AI platform should I prioritize first?' and it gives specific, data-backed answers based on your actual audit results - not generic advice.",
+      aHtml: `The <a href="/dashboard">GeoIQ Agent</a> is an AI assistant inside your GeoIQ dashboard that reads your latest audit data and answers questions about your brand's AI visibility in plain English. You can ask it things like "why is my entity score low?" or "which AI platform should I prioritize first?" and it gives specific, data-backed answers based on your actual audit results - not generic advice.`,
+    },
+    {
+      q: "Do I need technical knowledge to use GeoIQ?",
+      a: "No. The audit and dashboard are built for founders and marketing teams, not developers. Fix recommendations are written in plain language with step-by-step instructions. Some fixes (like editing robots.txt or adding schema markup) require site access, but the instructions explain exactly what to do. If you have a developer, GeoIQ's fix guides are detailed enough to hand directly to them.",
+      aHtml: `No. The audit and dashboard are built for founders and marketing teams, not developers. Fix recommendations are written in plain language with step-by-step instructions. Some fixes (like editing robots.txt or adding schema markup) require site access, but the instructions explain exactly what to do. If you have a developer, GeoIQ's fix guides are detailed enough to hand directly to them.`,
+    },
+    {
+      q: "What is GEO (Generative Engine Optimization)?",
+      a: "GEO stands for Generative Engine Optimization. It is the discipline of making your brand discoverable and citable in AI-generated answers. When someone asks ChatGPT or Perplexity a question in your category, GEO determines whether your brand is included in the answer. GEO includes technical foundations (bot access, structured data), citation building (third-party mentions), and entity establishment (knowledge base presence). GeoIQ measures your GEO performance and tells you what to fix.",
+      aHtml: `GEO stands for Generative Engine Optimization. It is the discipline of making your brand discoverable and citable in AI-generated answers. When someone asks ChatGPT or Perplexity a question in your category, GEO determines whether your brand is included in the answer. GEO includes technical foundations (bot access, structured data), citation building (third-party mentions), and entity establishment (knowledge base presence). GeoIQ measures your GEO performance and tells you what to fix.`,
+    },
+    {
+      q: "How is GeoIQ different from SEMrush or Ahrefs?",
+      a: "SEMrush and Ahrefs are built for traditional SEO - Google rankings, backlink analysis, keyword tracking. GeoIQ is built specifically for AI visibility. It checks whether AI systems can access your site, whether they know who you are, and whether they cite you as a source. These are different signals from Google ranking factors. You might use both tools simultaneously - SEMrush for Google, GeoIQ for ChatGPT, Gemini, and Perplexity.",
+      aHtml: `SEMrush and Ahrefs are built for traditional SEO - Google rankings, backlink analysis, keyword tracking. GeoIQ is built specifically for AI visibility. It checks whether AI systems can access your site, whether they know who you are, and whether they cite you as a source. These are different signals from Google ranking factors. You might use both tools simultaneously - SEMrush for Google, GeoIQ for ChatGPT, Gemini, and Perplexity.`,
+    },
+    {
+      q: "Can I track multiple brands?",
+      a: "Yes. The Starter plan (Rs 3,999/month) supports up to 3 brands. The Agency plan (Rs 11,999/month) supports unlimited brands. Each brand gets its own dashboard with score history, fix recommendations, and competitor comparisons. Agency plan users can also export reports for client presentations.",
+      aHtml: `Yes. The Starter plan (Rs 3,999/month) supports up to 3 brands. The Agency plan (Rs 11,999/month) supports unlimited brands. Each brand gets its own dashboard with score history, fix recommendations, and competitor comparisons. Agency plan users can also export reports for client presentations.`,
+    },
+    {
+      q: "What happens after I sign up?",
+      a: "After creating your free account, you can run unlimited audits and save results. Your first audit takes about 15 seconds. The dashboard shows your score breakdown, a prioritized fix list, and historical tracking from your first audit onward. Paid plan users also get daily monitoring alerts and access to the GeoIQ Agent for AI-assisted analysis.",
+      aHtml: `After creating your free account, you can run unlimited audits and save results. Your first audit takes about 15 seconds. The dashboard shows your score breakdown, a prioritized fix list, and historical tracking from your first audit onward. Paid plan users also get daily monitoring alerts and access to the GeoIQ Agent for AI-assisted analysis.`,
+    },
+    {
+      q: "Is my audit data private?",
+      a: "Yes. Your audit results are private to your account. GeoIQ does not share or sell individual audit data. The only public-facing data is aggregated benchmarks (for example, the average Indian SaaS startup scores 28/100) which do not identify specific companies. You can delete your account and all associated data at any time by contacting support.",
+      aHtml: `Yes. Your audit results are private to your account. GeoIQ does not share or sell individual audit data. The only public-facing data is aggregated benchmarks (for example, the average Indian SaaS startup scores 28/100) which do not identify specific companies. You can delete your account and all associated data at any time by contacting support.`,
+    },
+    {
+      q: "Who is GeoIQ built for?",
+      a: "GeoIQ is built for SaaS founders, growth marketers, and digital agencies who want their brand cited by AI systems. It is especially useful for Indian startups competing in categories where ChatGPT, Gemini, and Perplexity are increasingly where buyers discover products. If your target customers use AI assistants to research software, GeoIQ shows you exactly how visible you are and what to fix.",
+      aHtml: `GeoIQ is built for SaaS founders, growth marketers, and digital agencies who want their brand cited by AI systems. It is especially useful for Indian startups competing in categories where ChatGPT, Gemini, and Perplexity are increasingly where buyers discover products. If your target customers use AI assistants to research software, GeoIQ shows you exactly how visible you are and what to fix.`,
+    },
+  ];
+
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqs.map(f => ({
+      "@type": "Question",
+      "name": f.q,
+      "acceptedAnswer": { "@type": "Answer", "text": f.a },
+    })),
+  };
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://geoiqai.com" },
+      { "@type": "ListItem", "position": 2, "name": "FAQ", "item": "https://geoiqai.com/faq" },
+    ],
+  };
+
+  const accordionItems = faqs
+    .map((f, i) => {
+      const id = `faq-${i + 1}`;
+      const isFirst = i === 0;
+      return `
+    <div class="faq-accordion-item" id="${id}">
+      <button
+        class="faq-acc-btn"
+        onclick="toggleAccordion('${id}')"
+        aria-expanded="${isFirst ? "true" : "false"}"
+      >
+        <h3 class="faq-acc-q">${escHtml(f.q)}</h3>
+        <span class="faq-acc-icon" aria-hidden="true" style="transform:${isFirst ? "rotate(45deg)" : "rotate(0deg)"}">+</span>
+      </button>
+      <div class="faq-acc-body" style="display:${isFirst ? "block" : "none"}">
+        <p>${f.aHtml}</p>
+      </div>
+    </div>`;
+    })
+    .join("");
+
+  const body = `
+    <div class="breadcrumb">
+      <a href="/">Home</a>
+      <span>/</span>
+      <span>FAQ</span>
+    </div>
+
+    <div class="tag-pill">FREQUENTLY ASKED QUESTIONS</div>
+
+    <h1>FAQ - GeoIQ AI Visibility Tool</h1>
+
+    <p style="font-size:17px;color:#6B7280;margin-bottom:40px;line-height:1.7;">Everything you need to know about GeoIQ, AI visibility scores, GEO optimization, and how to get your SaaS brand recommended by ChatGPT, Gemini, and Perplexity.</p>
+
+    <div class="faq-accordion-wrap">
+      ${accordionItems}
+    </div>
+
+    <div class="cta-box" style="margin-top:56px">
+      <h3>Check your AI visibility score</h3>
+      <p>Free audit in under 20 seconds. No account needed.</p>
+      <a href="/" class="cta-btn">Run free audit</a>
+    </div>
+
+    <div class="related-links">
+      <div class="rel-heading">Related guides</div>
+      <a href="/what-is-geo">What is GEO (Generative Engine Optimization)?</a>
+      <a href="/how-to-rank-in-chatgpt">How to rank in ChatGPT</a>
+      <a href="/llms-txt-guide">How to create an llms.txt file</a>
+      <a href="/ai-visibility-score">What is an AI visibility score?</a>
+      <a href="/geo-optimization-checklist">GEO optimization checklist 2026</a>
+    </div>
+
+    <style>
+      .faq-accordion-wrap { border-top: 1px solid #E5E7EB; }
+      .faq-accordion-item { border-bottom: 1px solid #E5E7EB; }
+      .faq-acc-btn {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 20px 0;
+        text-align: left;
+      }
+      .faq-acc-q {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 700;
+        color: #111827;
+        font-family: 'Syne', sans-serif;
+        line-height: 1.4;
+        flex: 1;
+      }
+      .faq-acc-icon {
+        font-size: 22px;
+        font-weight: 300;
+        color: #6B7280;
+        flex-shrink: 0;
+        transition: transform 0.18s ease;
+        line-height: 1;
+      }
+      .faq-acc-body {
+        padding-bottom: 20px;
+      }
+      .faq-acc-body p {
+        margin: 0;
+        font-size: 15px;
+        color: #374151;
+        line-height: 1.85;
+      }
+      .faq-acc-body a { color: #4F46E5; }
+      .faq-acc-body a:hover { text-decoration: underline; }
+      .faq-acc-btn:hover .faq-acc-q { color: #4F46E5; }
+    </style>
+
+    <script>
+      function toggleAccordion(id) {
+        var item = document.getElementById(id);
+        var body = item.querySelector('.faq-acc-body');
+        var icon = item.querySelector('.faq-acc-icon');
+        var btn = item.querySelector('.faq-acc-btn');
+        var isOpen = body.style.display === 'block';
+        body.style.display = isOpen ? 'none' : 'block';
+        icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(45deg)';
+        btn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+      }
+    </script>
+  `;
+
+  return ssrHtmlShell({
+    title: "FAQ - GeoIQ AI Visibility Tool",
+    description: "Everything you need to know about GeoIQ, AI visibility scores, GEO optimization, and how to get your SaaS brand recommended by ChatGPT, Gemini, and Perplexity.",
+    canonical: "https://geoiqai.com/faq",
+    ogTitle: "FAQ - GeoIQ AI Visibility Tool",
+    ogDescription: "Everything you need to know about GeoIQ, AI visibility scores, GEO optimization, and how to get your SaaS brand recommended by ChatGPT, Gemini, and Perplexity.",
+    schemaJson: [faqSchema, breadcrumbSchema],
+    body,
+  });
+}
+
+router.get("/faq", (_req, res) => {
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=86400");
+  res.send(faqHtml());
+});
+
 export default router;

@@ -20,7 +20,8 @@ paths = [
   "/ai-search-optimization",
   "/geoiq-vs-profound",
   "/rankscale-alternative",
-  "/geoiq-vs-semrush"
+  "/geoiq-vs-semrush",
+  "/faq"
 ]
 
 [services.development]

@@ -96,6 +96,7 @@ export function Footer() {
             <FooterLink href="/how-to-rank-in-chatgpt">How to rank in ChatGPT</FooterLink>
             <FooterLink href="/geo-tools">GEO Tools 2026</FooterLink>
             <FooterLink href="/blog">Blog</FooterLink>
+            <FooterLink href="/faq">FAQ</FooterLink>
           </div>
 
           <div>
