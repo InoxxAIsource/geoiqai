@@ -48,10 +48,10 @@ router.post("/dashboard/brands", requirePaidAuth, async (req, res): Promise<void
     return;
   }
 
-  const brandLimit = user.plan === "agency" ? 10 : user.plan === "starter" ? 1 : 0;
+  const brandLimit = user.plan === "agency" ? 999 : user.plan === "starter" ? 1 : 0;
   const [{ value: brandCount }] = await db.select({ value: count() }).from(monitoredBrandsTable).where(eq(monitoredBrandsTable.userId, user.id));
   if (brandCount >= brandLimit) {
-    res.status(403).json({ error: `Your ${user.plan} plan allows ${brandLimit} brand${brandLimit === 1 ? "" : "s"}. Upgrade to Agency to monitor up to 10 brands.` });
+    res.status(403).json({ error: `Your ${user.plan} plan allows ${brandLimit} brand${brandLimit === 1 ? "" : "s"}. Upgrade to Agency to monitor more brands.` });
     return;
   }
 
@@ -59,9 +59,9 @@ router.post("/dashboard/brands", requirePaidAuth, async (req, res): Promise<void
   const domain = raw.domain.trim().replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0]!.toLowerCase();
   const { brandName, category, market, keywords, competitors } = raw;
 
-  const competitorLimit = user.plan === "agency" ? 10 : user.plan === "starter" ? 3 : 0;
+  const competitorLimit = user.plan === "agency" ? 999 : user.plan === "starter" ? 3 : 0;
   if (competitors && competitors.length > competitorLimit) {
-    res.status(403).json({ error: `Your ${user.plan} plan allows tracking ${competitorLimit} competitors. ${user.plan === "starter" ? "Upgrade to Agency for 10." : "Contact us for more."}` });
+    res.status(403).json({ error: `Your ${user.plan} plan allows tracking ${competitorLimit} competitors. ${user.plan === "starter" ? "Upgrade to Agency for more." : "Contact us for more."}` });
     return;
   }
 
