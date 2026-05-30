@@ -165,8 +165,19 @@ const THINKING_SETS: Record<string, string[]> = {
   ],
 };
 
+const SLASH_COMMANDS: { cmd: string; label: string; message: string }[] = [
+  { cmd: "/audit",      label: "/audit",      message: "/audit" },
+  { cmd: "/visibility", label: "/visibility", message: "/visibility" },
+  { cmd: "/authority",  label: "/authority",  message: "/authority" },
+  { cmd: "/brief",      label: "/brief",      message: "/brief" },
+  { cmd: "/watch",      label: "/watch",      message: "/watch" },
+];
+
 function getThinkingKey(msg: string): string {
-  const m = msg.toLowerCase();
+  const m = msg.toLowerCase().trim();
+  if (m === "/audit" || m === "/watch") return "audit";
+  if (m === "/visibility" || m === "/authority") return "technical";
+  if (m === "/brief") return "blog";
   if (
     m.includes("audit") || m.includes("scan") || m.includes("run a check") ||
     m.includes("fresh audit") || m.includes("re-check") || m.includes("re-audit") ||
@@ -678,6 +689,37 @@ export function GeoAgentTab({
         <div style={{ background: "#FEF2F2", border: "0.5px solid #FECACA", borderRadius: 8, padding: "10px 14px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ fontSize: 12, color: "#7F1D1D" }}>You have used your 50 GeoIQ Agent messages this month.</div>
           <a href="/pricing" style={{ background: "#DC2626", color: "white", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 500, textDecoration: "none" }}>Upgrade to Agency</a>
+        </div>
+      )}
+
+      {/* Slash command chips */}
+      {!limitReached && (
+        <div style={{ display: "flex", gap: 6, marginBottom: 6, overflowX: "auto", scrollbarWidth: "none" } as React.CSSProperties}>
+          {SLASH_COMMANDS.map(sc => (
+            <button
+              key={sc.cmd}
+              onClick={() => sendMessage(sc.message)}
+              disabled={loading}
+              style={{
+                flexShrink: 0,
+                background: "white",
+                border: "1px solid #E5E7EB",
+                borderRadius: 6,
+                padding: "4px 10px",
+                fontSize: 11.5,
+                color: loading ? "#c4b5fd" : "#5B21B6",
+                fontFamily: "monospace",
+                fontWeight: 600,
+                cursor: loading ? "not-allowed" : "pointer",
+                letterSpacing: "0.02em",
+                transition: "background 0.12s, border-color 0.12s, color 0.12s",
+              }}
+              onMouseEnter={e => { if (!loading) { e.currentTarget.style.background = "#EDE9FE"; e.currentTarget.style.borderColor = "#7C3AED"; } }}
+              onMouseLeave={e => { e.currentTarget.style.background = "white"; e.currentTarget.style.borderColor = "#E5E7EB"; e.currentTarget.style.color = loading ? "#c4b5fd" : "#5B21B6"; }}
+            >
+              {sc.label}
+            </button>
+          ))}
         </div>
       )}
 
