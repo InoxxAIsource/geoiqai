@@ -417,7 +417,27 @@ router.get("/dashboard/brands/:id/keywords", requirePaidAuth, async (req, res): 
   const [cache] = await db.select().from(keywordCacheTable).where(eq(keywordCacheTable.domain, brand.domain)).limit(1);
 
   if (!cache || cache.keywords.length === 0) {
-    res.json([]);
+    // Fallback: use prompts from the most recent audit for this domain
+    const [latestAudit] = await db
+      .select({ keywordsUsed: auditsTable.keywordsUsed })
+      .from(auditsTable)
+      .where(eq(auditsTable.domain, brand.domain))
+      .orderBy(desc(auditsTable.createdAt))
+      .limit(1);
+
+    if (!latestAudit?.keywordsUsed?.length) {
+      res.json([]);
+      return;
+    }
+
+    res.json(latestAudit.keywordsUsed.map((kw) => ({
+      keyword: kw,
+      volume: 0,
+      competition: null,
+      chatgptVisible,
+      geminiVisible,
+      perplexityVisible,
+    })));
     return;
   }
 

@@ -2745,7 +2745,7 @@ export default function Dashboard() {
                           return (
                             <tr key={kw.keyword}>
                               <td style={{ padding: "9px 12px 9px 0", fontSize: 13, color: "#374151", borderBottom: isLast ? "none" : "0.5px solid #f9fafb" }}>{kw.keyword}</td>
-                              <td style={{ padding: "9px 12px 9px 0", fontSize: 13, color: "#374151", borderBottom: isLast ? "none" : "0.5px solid #f9fafb" }}>{kw.volume.toLocaleString("en-IN")}/mo</td>
+                              <td style={{ padding: "9px 12px 9px 0", fontSize: 13, color: "#374151", borderBottom: isLast ? "none" : "0.5px solid #f9fafb" }}>{kw.volume ? kw.volume.toLocaleString("en-IN") + "/mo" : "-"}</td>
                               <td style={{ padding: "9px 12px 9px 0", borderBottom: isLast ? "none" : "0.5px solid #f9fafb" }}><VBadge visible={kw.chatgptVisible ?? false} /></td>
                               <td style={{ padding: "9px 12px 9px 0", borderBottom: isLast ? "none" : "0.5px solid #f9fafb" }}><VBadge visible={kw.geminiVisible ?? false} /></td>
                               <td style={{ padding: "9px 0", borderBottom: isLast ? "none" : "0.5px solid #f9fafb" }}><VBadge visible={kw.perplexityVisible ?? false} /></td>
