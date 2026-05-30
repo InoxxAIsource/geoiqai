@@ -383,7 +383,7 @@ export function GeoAgentTab({
   weekChange: number | null;
 }) {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState("Run a full audit on my domain and give me the CORE-EEAT and CITE scores");
   const [loading, setLoading] = useState(false);
   const [briefingDone, setBriefingDone] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(plan === "starter" ? STARTER_LIMIT : null);
