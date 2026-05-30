@@ -409,35 +409,16 @@ export function GeoAgentTab({
 
   useEffect(() => {
     if (briefingDone || messages.length > 0) return;
-    const fetchBriefing = async () => {
-      setMessages([{ role: "agent", content: "", isLoading: true, triggerUserMsg: "" }]);
-      try {
-        const token = localStorage.getItem("geoscore_token");
-        const res = await fetch("/api/agent/briefing", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ brandId: brand.id }),
-        });
-        if (!res.ok) throw new Error("Failed to load briefing");
-        const data = (await res.json()) as { briefing: string };
-        setMessages([{
-          role: "agent",
-          content: data.briefing,
-          isStreaming: true,
-          followUpChips: CHIP_SETS.default,
-        }]);
-        setBriefingDone(true);
-      } catch {
-        setMessages([{
-          role: "agent",
-          content: `Hey - I'm your GEO Agent for ${brandName}. Your current score is ${brand.latestScore ?? 0}/100 across ChatGPT, Gemini, and Perplexity. Ask me anything about your AI visibility, or use the chips below to get started.`,
-          isStreaming: true,
-          followUpChips: CHIP_SETS.default,
-        }]);
-        setBriefingDone(true);
-      }
-    };
-    fetchBriefing();
+    const score = brand.latestScore ?? 0;
+    const greeting = score > 0
+      ? `Hey, I'm your GEO Agent for ${brandName}. Your current AI visibility score is ${score}/100 across ChatGPT, Gemini, and Perplexity. Hit Send below to run a full audit with CORE-EEAT and CITE scoring, or use the slash commands to dig into anything specific.`
+      : `Hey, I'm your GEO Agent for ${brandName}. Looks like we don't have audit data yet. Hit Send below to run your first GEO audit, or use /audit above to kick it off right now.`;
+    setMessages([{
+      role: "agent",
+      content: greeting,
+      followUpChips: CHIP_SETS.default,
+    }]);
+    setBriefingDone(true);
   }, [brand.id, briefingDone, messages.length, brandName, brand.latestScore]);
 
   const sendMessage = async (text: string) => {
