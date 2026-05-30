@@ -627,17 +627,21 @@ function CodeBox({ code, label }: { code: string; label?: string }) {
   );
 }
 
-const TECH_TASK_MAP: { taskId: string; keyword: string }[] = [
-  { taskId: "I01", keyword: "robot" },
-  { taskId: "I05", keyword: "llm" },
-  { taskId: "T01", keyword: "schema" },
+const TECH_TASK_MAP: { taskIds: string[]; keyword: string; threshold?: number }[] = [
+  { taskIds: ["I01", "I02", "I03", "I04"], keyword: "robot" },
+  { taskIds: ["I05"], keyword: "llm" },
+  { taskIds: ["T01"], keyword: "schema" },
+  { taskIds: ["E01", "E02", "E03"], keyword: "entity" },
+  { taskIds: ["I09"], keyword: "content" },
 ];
 
 function computeAutoCompleted(checks: TechCheck[]): Set<string> {
   const auto = new Set<string>();
-  for (const { taskId, keyword } of TECH_TASK_MAP) {
+  for (const { taskIds, keyword, threshold = 70 } of TECH_TASK_MAP) {
     const check = checks.find(c => c.name.toLowerCase().includes(keyword));
-    if (check && check.score >= 70) auto.add(taskId);
+    if (check && check.score >= threshold) {
+      for (const id of taskIds) auto.add(id);
+    }
   }
   return auto;
 }
