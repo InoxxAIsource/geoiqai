@@ -207,6 +207,24 @@ function getCitationData(category: string | null | undefined, domain: string) {
   return { topDomains, donut, isInTop5, total: yourTotal + competitorTotal + authorityTotal + socialTotal };
 }
 
+function buildPromptTemplates(
+  keywords: string[],
+  brandName: string,
+  competitor: string,
+  market: string,
+): string[] {
+  if (!keywords.length) return [];
+  const kws = keywords.slice(0, 5);
+  const templates: ((kw: string) => string)[] = [
+    (kw) => `What are the best ${kw} tools available in 2026? List the top options with descriptions.`,
+    (kw) => `What are the top alternatives to ${competitor}? List similar ${kw} tools with brief descriptions.`,
+    (kw) => `Which ${kw} tool do you recommend for ${market} teams? Give the top 5 with pros and cons.`,
+    (kw) => `I need a ${kw} tool. What are the most reputable and widely used options right now?`,
+    (_kw) => `What is ${brandName} and what is it used for? How does it compare to alternatives?`,
+  ];
+  return kws.map((kw, i) => templates[i % templates.length]!(kw));
+}
+
 function getDefaultPrompts(category: string | null | undefined): string[] {
   const cat = (category ?? "").toLowerCase();
   if (cat.includes("health") || cat.includes("diet") || cat.includes("fitness")) {
@@ -874,8 +892,14 @@ export default function Dashboard() {
   const scoreDiff = activeScore - competitorLatest;
 
   const promptList = (() => {
-    const kws = brandKeywords && brandKeywords.length > 0
+    const rawKws = brandKeywords && brandKeywords.length > 0
       ? brandKeywords.map(k => k.keyword)
+      : null;
+    const competitor = (selectedBrand?.competitors as string[] | undefined)?.[0] ?? getCompetitorBase(selectedBrand?.category);
+    const market = selectedBrand?.market ?? "India";
+    const brandLabel = selectedBrand?.brandName ?? selectedBrand?.domain ?? "your brand";
+    const kws = rawKws
+      ? buildPromptTemplates(rawKws, brandLabel, competitor, market)
       : getDefaultPrompts(selectedBrand?.category);
     const cgBase = selectedBrand?.latestScoreChatgpt ?? 8;
     const gmBase = selectedBrand?.latestScoreGemini ?? 6;

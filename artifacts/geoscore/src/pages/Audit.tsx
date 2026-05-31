@@ -976,6 +976,7 @@ export default function Audit() {
     ((auditResult?.scoreChatgpt ?? 0) + (auditResult?.scoreGemini ?? 0)) / 66 * 50
   );
   const liveWebScore = Math.round((auditResult?.scorePerplexity ?? 0) / 33 * 50);
+  const overallScore = auditResult?.scoreTotal ?? (aiMemoryScore + liveWebScore);
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#F2F0EB" }}>
@@ -1091,7 +1092,7 @@ export default function Audit() {
 
         {/* Results */}
         {auditResult && !runAuditMutation.isPending && !refreshing && !retrying && (
-          <div className="audit-result-anim" style={{ width: "100%", maxWidth: isPaidUser ? 720 : 1020, display: "flex", gap: 28, alignItems: "flex-start" }}>
+          <div className="audit-result-anim" style={{ width: "100%", maxWidth: 1020, display: "flex", gap: 24, alignItems: "flex-start" }}>
           <div style={{ flex: 1, minWidth: 0, maxWidth: 700 }}>
 
             {/* Cache age banner - show for ANY cached result so users who just fixed their site know to refresh */}
@@ -1120,39 +1121,19 @@ export default function Audit() {
             )}
 
             {/* Header */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, flexWrap: "wrap", gap: 16 }}>
-              <div>
-                <div style={{ fontWeight: 500, fontSize: 18, color: "#111827" }}>{auditResult.domain}</div>
-                <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                  {auditResult.fromCache && auditResult.cachedHoursAgo != null
-                    ? <>
-                        AI visibility audit, {auditResult.cachedHoursAgo === 0 ? "just now" : `${auditResult.cachedHoursAgo}h ago`},{" "}
-                        {auditResult.category ?? "saas tool"}, {auditResult.market ?? "India"}
-                        <button onClick={runFreshAudit} style={{ fontSize: 11, color: "#5B3FEA", border: "none", background: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontWeight: 500 }}>
-                          Refresh
-                        </button>
-                      </>
-                    : <>AI visibility audit, just now, {auditResult.category ?? "saas tool"}, {auditResult.market ?? "India"}</>
-                  }
-                </div>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 4, justifyContent: "flex-end" }}>
-                  <span style={{ fontSize: 40, fontWeight: 500, color: getScoreColor(aiMemoryScore + liveWebScore), lineHeight: 1 }}>
-                    {aiMemoryScore + liveWebScore}
-                  </span>
-                  <span style={{ fontSize: 16, color: "#6b7280" }}>/100</span>
-                </div>
-                <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>GEO IQ score</div>
-                {(() => { const v = getVerdict(aiMemoryScore + liveWebScore); return (
-                  <span style={{ display: "inline-block", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", color: v.color, background: v.bg, borderRadius: 99, padding: "3px 10px", marginTop: 6 }}>
-                    {v.label}
-                  </span>
-                ); })()}
-                <div style={{ fontSize: 11, color: "#6b7280", marginTop: 5, textAlign: "right", lineHeight: 1.6 }}>
-                  <span style={{ color: "#5B3FEA", display: "block" }}>AI Memory: {aiMemoryScore}/50 (ChatGPT + Gemini)</span>
-                  <span style={{ color: "#9333ea", display: "block" }}>Live Web: {liveWebScore}/50 (Perplexity)</span>
-                </div>
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontWeight: 500, fontSize: 18, color: "#111827" }}>{auditResult.domain}</div>
+              <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                {auditResult.fromCache && auditResult.cachedHoursAgo != null
+                  ? <>
+                      AI visibility audit, {auditResult.cachedHoursAgo === 0 ? "just now" : `${auditResult.cachedHoursAgo}h ago`},{" "}
+                      {auditResult.category ?? "saas tool"}, {auditResult.market ?? "India"}
+                      <button onClick={runFreshAudit} style={{ fontSize: 11, color: "#5B3FEA", border: "none", background: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontWeight: 500 }}>
+                        Refresh
+                      </button>
+                    </>
+                  : <>AI visibility audit, just now, {auditResult.category ?? "saas tool"}, {auditResult.market ?? "India"}</>
+                }
               </div>
             </div>
 
@@ -1637,43 +1618,137 @@ export default function Audit() {
             </div>
           </div>
 
-          {/* Sticky sidebar - desktop only, free users only */}
-          {!isPaidUser && auditResult.recommendations && (auditResult.recommendations as unknown[]).length > 0 && (() => {
-            const sidebarRecs = auditResult.recommendations as { action: string; priority: string; effortHours: number; impactScore: number; category: string; citeCategory: string }[];
-            const criticalCount = sidebarRecs.filter((r) => r.priority === "high").length;
-            const topFix = sidebarRecs[0];
-            return (
-              <div className="audit-sidebar" style={{ width: 252, flexShrink: 0, position: "sticky", top: 24 }}>
-                <div style={{ background: "white", border: "0.5px solid #E5E7EB", borderRadius: 12, padding: "20px" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#9CA3AF", marginBottom: 8 }}>
-                    Top Priority Fix
+          {/* Right sticky panel - score visualization + optional CTA */}
+          <div className="audit-sidebar" style={{ width: 240, flexShrink: 0, position: "sticky", top: 24, display: "flex", flexDirection: "column", gap: 12 }}>
+
+            {/* Score card with circular charts */}
+            <div style={{ background: "white", border: "0.5px solid #E5E7EB", borderRadius: 12, padding: "20px" }}>
+              {/* Main score circle */}
+              {(() => {
+                const radius = 52;
+                const circ = 2 * Math.PI * radius;
+                const pct = Math.min(1, overallScore / 100);
+                const offset = circ * (1 - pct);
+                const color = overallScore >= 70 ? "#16A34A" : overallScore >= 40 ? "#2563EB" : "#DC2626";
+                return (
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 16 }}>
+                    <svg width="140" height="140" viewBox="0 0 140 140" style={{ display: "block" }}>
+                      <circle cx="70" cy="70" r={radius} fill="none" stroke="#F3F4F6" strokeWidth="14" />
+                      <circle cx="70" cy="70" r={radius} fill="none" stroke={color} strokeWidth="14"
+                        strokeDasharray={circ} strokeDashoffset={offset}
+                        strokeLinecap="round" transform="rotate(-90 70 70)"
+                        style={{ transition: "stroke-dashoffset 1s ease" }} />
+                      <text x="70" y="62" textAnchor="middle" dominantBaseline="middle"
+                        fontSize="32" fontWeight="800" fill="#0F172A" fontFamily="inherit">{overallScore}</text>
+                      <text x="70" y="82" textAnchor="middle" dominantBaseline="middle"
+                        fontSize="12" fill="#9CA3AF" fontFamily="inherit">/100</text>
+                    </svg>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "#374151", marginTop: 4, letterSpacing: "0.05em", textTransform: "uppercase" }}>GEO IQ Score</div>
+                    {(() => { const v = getVerdict(overallScore); return (
+                      <span style={{ display: "inline-block", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", color: v.color, background: v.bg, borderRadius: 99, padding: "3px 10px", marginTop: 6 }}>
+                        {v.label}
+                      </span>
+                    ); })()}
                   </div>
-                  <p style={{ fontSize: 13, color: "#111827", lineHeight: 1.5, margin: "0 0 16px" }}>
-                    {topFix?.action}
-                  </p>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
-                    <div style={{ background: "#F9FAFB", borderRadius: 8, padding: "10px 12px", textAlign: "center" as const }}>
-                      <div style={{ fontSize: 24, fontWeight: 800, color: "#111827", lineHeight: 1 }}>{sidebarRecs.length}</div>
-                      <div style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginTop: 4 }}>Total Issues</div>
+                );
+              })()}
+
+              {/* Two sub-scores */}
+              <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                {[
+                  { score: aiMemoryScore, max: 50, label: "AI Memory", sub: "ChatGPT + Gemini", color: "#5B3FEA" },
+                  { score: liveWebScore, max: 50, label: "Live Web", sub: "Perplexity", color: "#9333ea" },
+                ].map(({ score, max, label, sub, color }) => {
+                  const r = 30, c = 2 * Math.PI * r;
+                  const offset = c * (1 - Math.min(1, score / max));
+                  return (
+                    <div key={label} style={{ flex: 1, textAlign: "center" }}>
+                      <svg width="72" height="72" viewBox="0 0 72 72" style={{ display: "block", margin: "0 auto" }}>
+                        <circle cx="36" cy="36" r={r} fill="none" stroke="#F3F4F6" strokeWidth="9" />
+                        <circle cx="36" cy="36" r={r} fill="none" stroke={color} strokeWidth="9"
+                          strokeDasharray={c} strokeDashoffset={offset}
+                          strokeLinecap="round" transform="rotate(-90 36 36)"
+                          style={{ transition: "stroke-dashoffset 1s ease" }} />
+                        <text x="36" y="33" textAnchor="middle" dominantBaseline="middle"
+                          fontSize="15" fontWeight="700" fill="#0F172A" fontFamily="inherit">{score}</text>
+                        <text x="36" y="46" textAnchor="middle" dominantBaseline="middle"
+                          fontSize="9" fill="#9CA3AF" fontFamily="inherit">/{max}</text>
+                      </svg>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#374151", marginTop: 4 }}>{label}</div>
+                      <div style={{ fontSize: 9, color: "#9CA3AF" }}>{sub}</div>
                     </div>
-                    <div style={{ background: "#FEF2F2", borderRadius: 8, padding: "10px 12px", textAlign: "center" as const }}>
-                      <div style={{ fontSize: 24, fontWeight: 800, color: "#DC2626", lineHeight: 1 }}>{criticalCount}</div>
-                      <div style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginTop: 4 }}>Critical</div>
-                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Technical score bar */}
+              {scoreTechnical !== null && (
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+                    <span style={{ fontSize: 11, color: "#6B7280", fontWeight: 500 }}>Technical GEO</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#0F172A" }}>{scoreTechnical}/100</span>
                   </div>
-                  <a
-                    href="/pricing"
-                    style={{ display: "block", background: "#5B3FEA", color: "white", borderRadius: 8, padding: "11px", fontSize: 13, fontWeight: 600, textDecoration: "none", textAlign: "center" as const }}
-                  >
-                    Unlock all fixes →
-                  </a>
-                  <div style={{ fontSize: 11, color: "#9CA3AF", textAlign: "center" as const, marginTop: 10 }}>
-                    7-day free trial
+                  <div style={{ height: 6, background: "#F3F4F6", borderRadius: 3, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${scoreTechnical}%`, background: "#0EA5E9", borderRadius: 3, transition: "width 1s ease" }} />
                   </div>
                 </div>
+              )}
+
+              {/* Per-engine status */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "#9CA3AF", marginBottom: 2 }}>Engine coverage</div>
+                {[
+                  { name: "ChatGPT", found: auditResult.chatgptFound, simulated: false, color: "#10a37f" },
+                  { name: "Gemini", found: auditResult.geminiFound, simulated: false, color: "#4285f4" },
+                  { name: "Perplexity", found: auditResult.perplexityFound, simulated: false, color: "#22d3ee" },
+                  { name: "Claude", found: auditResult.claudeFound ?? false, simulated: true, color: "#D97706" },
+                  { name: "Grok", found: auditResult.grokFound ?? false, simulated: false, color: "#7C3AED" },
+                ].map(e => (
+                  <div key={e.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ width: 7, height: 7, borderRadius: "50%", background: e.color, flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, color: "#374151" }}>{e.name}</span>
+                      {e.simulated && <span style={{ fontSize: 9, color: "#9CA3AF", background: "#F3F4F6", borderRadius: 4, padding: "1px 4px" }}>sim</span>}
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: e.found ? "#16A34A" : "#DC2626" }}>
+                      {e.found ? "Found" : "Not found"}
+                    </span>
+                  </div>
+                ))}
               </div>
-            );
-          })()}
+            </div>
+
+            {/* Free user: top fix CTA */}
+            {!isPaidUser && auditResult.recommendations && (auditResult.recommendations as unknown[]).length > 0 && (() => {
+              const sidebarRecs = auditResult.recommendations as { action: string; priority: string }[];
+              const criticalCount = sidebarRecs.filter((r) => r.priority === "high").length;
+              const topFix = sidebarRecs[0];
+              return (
+                <div style={{ background: "white", border: "0.5px solid #E5E7EB", borderRadius: 12, padding: "16px" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#9CA3AF", marginBottom: 8 }}>
+                    Top Fix
+                  </div>
+                  <p style={{ fontSize: 12, color: "#111827", lineHeight: 1.5, margin: "0 0 12px" }}>
+                    {topFix?.action}
+                  </p>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                    <div style={{ flex: 1, background: "#F9FAFB", borderRadius: 8, padding: "8px", textAlign: "center" as const }}>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: "#111827" }}>{sidebarRecs.length}</div>
+                      <div style={{ fontSize: 9, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase" as const }}>Issues</div>
+                    </div>
+                    <div style={{ flex: 1, background: "#FEF2F2", borderRadius: 8, padding: "8px", textAlign: "center" as const }}>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: "#DC2626" }}>{criticalCount}</div>
+                      <div style={{ fontSize: 9, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase" as const }}>Critical</div>
+                    </div>
+                  </div>
+                  <a href="/pricing" style={{ display: "block", background: "#5B3FEA", color: "white", borderRadius: 8, padding: "10px", fontSize: 13, fontWeight: 600, textDecoration: "none", textAlign: "center" as const }}>
+                    Unlock all fixes →
+                  </a>
+                  <div style={{ fontSize: 11, color: "#9CA3AF", textAlign: "center" as const, marginTop: 8 }}>7-day free trial</div>
+                </div>
+              );
+            })()}
+          </div>
           </div>
         )}
       </main>

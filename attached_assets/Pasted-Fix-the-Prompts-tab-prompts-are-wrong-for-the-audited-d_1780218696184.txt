@@ -1,0 +1,72 @@
+Fix the Prompts tab — prompts are wrong 
+for the audited domain.
+
+PROBLEM:
+For ahrefs.com, GeoIQ is generating generic 
+"SaaS tools and cloud software" prompts.
+Also generating "AI detector" prompts 
+which are completely irrelevant to Ahrefs.
+
+ROOT CAUSE:
+The prompt generator uses broad category 
+labels ("SaaS tool") instead of the actual 
+product keywords from DataForSEO.
+
+FIX — 2 step prompt generation:
+
+STEP 1: Get actual ranked keywords
+Use DataForSEO ranked keywords for the domain.
+For ahrefs.com this returns:
+"backlink checker", "keyword research tool",
+"site audit", "ahrefs", "seo tool"
+
+STEP 2: Generate prompts FROM these keywords
+Convert top 5 keywords into 5 prompt templates:
+
+Template A — Category discovery:
+"What are the best [keyword] tools available 
+in 2026? List the top options with descriptions."
+
+Template B — Comparison:
+"What are the top alternatives to [competitor]? 
+List similar [keyword] tools with brief descriptions."
+
+Template C — Recommendation:
+"Which [keyword] tool do you recommend for 
+[market]? Give the top 5 with pros and cons."
+
+Template D — Best in class:
+"I need a [keyword] tool. What are the most 
+reputable and widely used options right now?"
+
+Template E — Brand-specific:
+"What is [brand name] and what is it used for? 
+How does it compare to alternatives?"
+
+For ahrefs.com this generates:
+- "What are the best backlink checker tools 
+  available in 2026?"
+- "What are the top alternatives to Semrush? 
+  List similar SEO tools."
+- "Which keyword research tool do you 
+  recommend for global teams?"
+- "I need an SEO site audit tool. What are 
+  the most reputable options?"
+- "What is Ahrefs and what is it used for?"
+
+NEVER generate prompts about unrelated 
+categories like "AI detector" for an SEO tool.
+
+VALIDATION:
+Before saving prompts, check that each 
+prompt contains at least one keyword from 
+the domain's actual ranked keywords list.
+If not — regenerate.
+
+Show in UI:
+"Prompts generated from your top ranked 
+keywords: backlink checker, keyword research, 
+site audit"
+
+Add "Regenerate prompts" button that 
+re-runs this process.
