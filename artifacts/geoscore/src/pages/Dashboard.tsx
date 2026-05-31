@@ -798,7 +798,20 @@ export default function Dashboard() {
 
   const citationData = (() => {
     const raw = getCitationData(selectedBrand?.category, selectedBrand?.domain ?? "");
-    if (!llmTopDomains || llmTopDomains.length === 0) return raw;
+    if (llmTopDomains === null) return raw;
+    if (llmTopDomains.length === 0) {
+      return {
+        topDomains: [{ domain: selectedBrand?.domain ?? "", times: 0, type: "yours" as const }],
+        donut: [
+          { name: "Your brand", value: 0, color: "#5B3FEA" },
+          { name: "Competitors", value: 0, color: "#DC2626" },
+          { name: "Authority sites", value: 0, color: "#D97706" },
+          { name: "Social", value: 0, color: "#059669" },
+        ],
+        isInTop5: false,
+        total: 0,
+      };
+    }
     const myDomain = (selectedBrand?.domain ?? "").replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? "";
     const myRoot = myDomain.split(".")[0] ?? "";
     const competitorSet = new Set(
@@ -1686,10 +1699,10 @@ export default function Dashboard() {
                     {/* 4 metric cards */}
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
                       {[
-                        { label: "Total citations found", value: String(citationData.total) },
-                        { label: "Your brand cited", value: String(yourCitations) + " times" },
-                        { label: "Competitors cited", value: String(competitorCitations) + " times" },
-                        { label: "New this week", value: "+3" },
+                        { label: "Total citations found", value: llmTopDomainsLoading ? "..." : llmTopDomains === null ? "-" : String(citationData.total) },
+                        { label: "Your brand cited", value: llmTopDomainsLoading ? "..." : llmTopDomains === null ? "-" : yourCitations + " times" },
+                        { label: "Competitors cited", value: llmTopDomainsLoading ? "..." : llmTopDomains === null ? "-" : competitorCitations + " times" },
+                        { label: "Sources tracked", value: llmTopDomainsLoading ? "..." : llmTopDomains === null ? "-" : String(citationData.topDomains.length) },
                       ].map((c, i) => (
                         <div key={i} style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "12px 16px" }}>
                           <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 4 }}>{c.label}</div>
