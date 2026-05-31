@@ -1761,3 +1761,39 @@ export async function getLlmCrossAggregated(
     return empty;
   }
 }
+
+// ─── Site keyword helpers ───────────────────────────────────────────────────────
+
+/**
+ * Filter ranked keywords to exclude brand-name terms.
+ * For ahrefs.com, removes any keyword containing "ahrefs",
+ * leaving category-generic terms like "best seo tool", "backlink checker".
+ */
+export function filterRankedKeywords(keywords: KeywordData[], domain: string, limit = 5): string[] {
+  const bare = domain
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .split("/")[0] ?? "";
+  const brandSlug = (bare.split(".")[0] ?? "").toLowerCase();
+  const brandParts = brandSlug.split(/[-_]/).filter(p => p.length > 2);
+
+  return keywords
+    .filter(kw => {
+      const kl = kw.keyword.toLowerCase();
+      return !brandParts.some(part => kl.includes(part));
+    })
+    .slice(0, limit)
+    .map(k => k.keyword);
+}
+
+/**
+ * Build fallback prompts from a category string when no ranked keywords exist.
+ */
+export function buildCategoryFallbackKeywords(category: string | null | undefined): string[] {
+  const cat = ((category ?? "").toLowerCase().trim()) || "software";
+  return [
+    `best ${cat} tool`,
+    `${cat} software`,
+    `${cat} for startups`,
+  ];
+}

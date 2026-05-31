@@ -12,6 +12,8 @@ import {
   getChatGptScraper,
   getGeminiScraper,
   getAiKeywordVolume,
+  filterRankedKeywords,
+  buildCategoryFallbackKeywords,
 } from "../lib/dataforseo";
 import { db, citationsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
@@ -454,6 +456,28 @@ router.post("/dataforseo/ai-keyword-volume", requireAuth, async (req, res): Prom
   const result = await getAiKeywordVolume(keywords, locationCode);
   req.log.info({ keywords: keywords.length, cost: result.estimatedCostUsd, cached: result.cached }, "ai-keyword-volume done");
   res.json(result);
+});
+
+// Site-specific keywords - ranked keywords filtered to remove brand-name terms
+router.post("/dataforseo/site-keywords", requireAuth, async (req, res): Promise<void> => {
+  const { domain, category } = req.body as { domain?: string; category?: string };
+  if (!domain) {
+    res.status(400).json({ error: "domain is required" });
+    return;
+  }
+
+  const rawKeywords = await getDomainKeywords(domain);
+  const filtered = filterRankedKeywords(rawKeywords, domain, 5);
+
+  if (filtered.length >= 1) {
+    req.log.info({ domain, count: filtered.length }, "site-keywords: ranked");
+    res.json({ keywords: filtered.slice(0, 3), source: "ranked" });
+    return;
+  }
+
+  const fallback = buildCategoryFallbackKeywords(category);
+  req.log.info({ domain, category }, "site-keywords: fallback");
+  res.json({ keywords: fallback, source: "fallback" });
 });
 
 void requirePaid;

@@ -380,6 +380,12 @@ export default function Dashboard() {
   const [llmTopDomains, setLlmTopDomains] = useState<Array<{ domain: string; mentions: number; mentionRate: number }> | null>(null);
   const [llmTopDomainsLoading, setLlmTopDomainsLoading] = useState(false);
   const [llmTopDomainsBrandId, setLlmTopDomainsBrandId] = useState<string | null>(null);
+  const [scraperKeywords, setScraperKeywords] = useState<string[]>([]);
+  const [scraperKeywordsLoading, setScraperKeywordsLoading] = useState(false);
+  const [scraperKeywordsBrandId, setScraperKeywordsBrandId] = useState<string | null>(null);
+  const [scraperKeywordsSource, setScraperKeywordsSource] = useState<"ranked" | "fallback" | null>(null);
+  const [editingKeywords, setEditingKeywords] = useState(false);
+  const [keywordDraft, setKeywordDraft] = useState("");
   const [llmCrossAgg, setLlmCrossAgg] = useState<Array<{ domain: string; mentionCount: number; mentionRate: number }> | null>(null);
   const [llmCrossAggLoading, setLlmCrossAggLoading] = useState(false);
   const [llmCrossAggBrandId, setLlmCrossAggBrandId] = useState<string | null>(null);
@@ -455,30 +461,52 @@ export default function Dashboard() {
   }, [selectedBrand?.id]);
 
 
-  // Fetch LLM top cited domains when Citations tab opens
+  // Fetch site-specific keywords, then LLM top domains, when Citations tab opens
   useEffect(() => {
     if (activeTab !== "Citations" || !selectedBrand?.id || !selectedBrand.domain) return;
     if (llmTopDomainsBrandId === selectedBrand.id) return;
     const token = getToken();
+    const domain = selectedBrand.domain;
+    const brandId = selectedBrand.id;
+    const category = selectedBrand.category ?? undefined;
+
+    setScraperKeywordsLoading(true);
     setLlmTopDomainsLoading(true);
-    const kws = brandKeywords && brandKeywords.length > 0
-      ? brandKeywords.slice(0, 5).map(k => k.keyword)
-      : undefined;
-    fetch("/api/dataforseo/llm-top-domains", {
+
+    // Step 1: get brand-specific, non-branded keywords from DataForSEO ranked_keywords
+    fetch("/api/dataforseo/site-keywords", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token ?? ""}` },
-      body: JSON.stringify({ domain: selectedBrand.domain, keywords: kws }),
+      body: JSON.stringify({ domain, category }),
     })
       .then(r => r.ok ? r.json() : null)
-      .then((data: { domains: Array<{ domain: string; mentions: number; mentionRate: number }> } | null) => {
-        if (data && data.domains.length > 0) {
-          setLlmTopDomains(data.domains);
-          setLlmTopDomainsBrandId(selectedBrand.id);
+      .then((kwData: { keywords: string[]; source: "ranked" | "fallback" } | null) => {
+        const kws = kwData?.keywords ?? [];
+        if (scraperKeywordsBrandId !== brandId) {
+          setScraperKeywords(kws);
+          setScraperKeywordsSource(kwData?.source ?? null);
+          setScraperKeywordsBrandId(brandId);
         }
+        setScraperKeywordsLoading(false);
+
+        // Step 2: use those keywords for LLM top domains
+        return fetch("/api/dataforseo/llm-top-domains", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token ?? ""}` },
+          body: JSON.stringify({ domain, keywords: kws.length > 0 ? kws : undefined }),
+        });
       })
-      .catch(() => { /* non-fatal */ })
+      .then(r => r && r.ok ? r.json() : null)
+      .then((data: { domains: Array<{ domain: string; mentions: number; mentionRate: number }> } | null) => {
+        setLlmTopDomains(data?.domains ?? []);
+        setLlmTopDomainsBrandId(brandId);
+      })
+      .catch(() => {
+        setLlmTopDomains([]);
+        setScraperKeywordsLoading(false);
+      })
       .finally(() => setLlmTopDomainsLoading(false));
-  }, [activeTab, selectedBrand?.id, selectedBrand?.domain, llmTopDomainsBrandId, brandKeywords]);
+  }, [activeTab, selectedBrand?.id, selectedBrand?.domain, selectedBrand?.category, llmTopDomainsBrandId, scraperKeywordsBrandId]);
 
   const handleScanBrand = useCallback(async (brandId: string) => {
     setIsScanningBrandId(brandId);
@@ -687,9 +715,7 @@ export default function Dashboard() {
     setChatgptScraperLoading(true);
     setChatgptScraperBrandId(selectedBrand.id);
     const token = getToken();
-    const kws = brandKeywords && brandKeywords.length > 0
-      ? brandKeywords.slice(0, 3).map(k => k.keyword)
-      : undefined;
+    const kws = scraperKeywords.length > 0 ? scraperKeywords.slice(0, 3) : undefined;
     try {
       const resp = await fetch("/api/dataforseo/chatgpt-scraper", {
         method: "POST",
@@ -707,9 +733,7 @@ export default function Dashboard() {
     setGeminiScraperLoading(true);
     setGeminiScraperBrandId(selectedBrand.id);
     const token = getToken();
-    const kws = brandKeywords && brandKeywords.length > 0
-      ? brandKeywords.slice(0, 3).map(k => k.keyword)
-      : undefined;
+    const kws = scraperKeywords.length > 0 ? scraperKeywords.slice(0, 3) : undefined;
     try {
       const resp = await fetch("/api/dataforseo/gemini-scraper", {
         method: "POST",
@@ -1709,6 +1733,76 @@ export default function Dashboard() {
                           <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>{c.value}</div>
                         </div>
                       ))}
+                    </div>
+
+                    {/* Scraper keywords - show which queries were used */}
+                    <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: "12px 16px", marginBottom: 12 }}>
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: editingKeywords ? 10 : 8 }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>Queries analyzed</div>
+                          <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
+                            {scraperKeywordsLoading
+                              ? "Fetching relevant keywords for this domain..."
+                              : scraperKeywordsSource === "ranked"
+                                ? "Based on your top organic search rankings"
+                                : scraperKeywordsSource === "fallback"
+                                  ? "Category-based queries (no ranking data found for this domain)"
+                                  : "Keywords used when querying ChatGPT and Gemini"}
+                          </div>
+                        </div>
+                        {!scraperKeywordsLoading && (
+                          <button
+                            onClick={() => {
+                              setEditingKeywords(v => !v);
+                              setKeywordDraft(scraperKeywords.join("\n"));
+                            }}
+                            style={{ fontSize: 12, color: "#6D28D9", background: "none", border: "none", cursor: "pointer", fontWeight: 500, whiteSpace: "nowrap", marginLeft: 12, paddingTop: 2 }}
+                          >
+                            {editingKeywords ? "Cancel" : "Edit keywords"}
+                          </button>
+                        )}
+                      </div>
+                      {editingKeywords ? (
+                        <div>
+                          <textarea
+                            value={keywordDraft}
+                            onChange={e => setKeywordDraft(e.target.value)}
+                            placeholder={"One keyword per line\nbest seo tool\nbacklink checker\nkeyword research tool"}
+                            style={{ width: "100%", minHeight: 80, fontSize: 13, padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: 6, resize: "vertical", fontFamily: "inherit", color: "#111827", boxSizing: "border-box" }}
+                          />
+                          <div style={{ marginTop: 6, display: "flex", gap: 8 }}>
+                            <button
+                              onClick={() => {
+                                const kws = keywordDraft.split("\n").map(k => k.trim()).filter(Boolean).slice(0, 5);
+                                if (kws.length > 0) {
+                                  setScraperKeywords(kws);
+                                  setScraperKeywordsSource(null);
+                                  setChatgptScraper(null);
+                                  setChatgptScraperBrandId(null);
+                                  setGeminiScraper(null);
+                                  setGeminiScraperBrandId(null);
+                                  setLlmTopDomains(null);
+                                  setLlmTopDomainsBrandId(null);
+                                }
+                                setEditingKeywords(false);
+                              }}
+                              style={{ background: "#4F46E5", color: "white", border: "none", borderRadius: 6, padding: "5px 14px", fontSize: 12, fontWeight: 500, cursor: "pointer" }}
+                            >
+                              Save and refresh
+                            </button>
+                          </div>
+                        </div>
+                      ) : scraperKeywordsLoading ? (
+                        <div style={{ color: "#9ca3af", fontSize: 12 }}>...</div>
+                      ) : (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          {scraperKeywords.length === 0 ? (
+                            <span style={{ color: "#9ca3af", fontSize: 12 }}>No keywords - click Edit keywords to add some</span>
+                          ) : scraperKeywords.map((kw, i) => (
+                            <span key={i} style={{ background: "#F5F3FF", color: "#6D28D9", fontSize: 12, fontWeight: 500, borderRadius: 5, padding: "3px 10px" }}>{kw}</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* ChatGPT Live Sources card */}
