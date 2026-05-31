@@ -1217,6 +1217,16 @@ export interface ChatGptScraperSource {
   publicationDate: string | null;
 }
 
+export interface ChatGptAd {
+  title: string;
+  snippet: string | null;
+  url: string;
+  domain: string;
+  imageUrl: string | null;
+  advertiserName: string | null;
+  advertiserUrl: string | null;
+}
+
 export interface ChatGptScraperKwResult {
   keyword: string;
   mentioned: boolean;
@@ -1227,6 +1237,7 @@ export interface ChatGptScraperKwResult {
 export interface ChatGptScraperResult {
   keywords: ChatGptScraperKwResult[];
   allSources: ChatGptScraperSource[];
+  ads: ChatGptAd[];
   domainCited: boolean;
   mentionCount: number;
   estimatedCostUsd: number;
@@ -1245,6 +1256,7 @@ export async function getChatGptScraper(
   const empty: ChatGptScraperResult = {
     keywords: top3.map(kw => ({ keyword: kw, mentioned: false, sources: [], snippet: null })),
     allSources: [],
+    ads: [],
     domainCited: false,
     mentionCount: 0,
     estimatedCostUsd: 0,
@@ -1291,6 +1303,7 @@ export async function getChatGptScraper(
 
     const kwResults: ChatGptScraperKwResult[] = [];
     const sourceMap = new Map<string, ChatGptScraperSource>();
+    const adMap = new Map<string, ChatGptAd>();
     let mentionCount = 0;
     let model: string | null = null;
 
@@ -1304,6 +1317,7 @@ export async function getChatGptScraper(
 
       if (!model) model = String(result.model ?? "");
 
+      // Parse organic sources
       const rawSources = (result.sources as Array<Record<string, unknown>>) ?? [];
       const kwSources: ChatGptScraperSource[] = rawSources.map(s => ({
         domain: String(s.domain ?? "").replace(/^www\./, ""),
@@ -1315,6 +1329,27 @@ export async function getChatGptScraper(
 
       for (const src of kwSources) {
         if (!sourceMap.has(src.domain)) sourceMap.set(src.domain, src);
+      }
+
+      // Parse ChatGPT ad items
+      const rawItems = (result.items as Array<Record<string, unknown>>) ?? [];
+      for (const item of rawItems) {
+        if (String(item.type ?? "") !== "chat_gpt_ad") continue;
+        const adUrl = String(item.url ?? "");
+        if (!adUrl || adMap.has(adUrl)) continue;
+        const advertiser = item.advertiser as Record<string, unknown> | null;
+        const adDomain = String(item.domain ?? "").replace(/^www\./, "") || (() => {
+          try { return new URL(adUrl).hostname.replace(/^www\./, ""); } catch { return ""; }
+        })();
+        adMap.set(adUrl, {
+          title: String(item.title ?? ""),
+          snippet: item.snippet ? String(item.snippet) : null,
+          url: adUrl,
+          domain: adDomain,
+          imageUrl: item.image_url ? String(item.image_url) : null,
+          advertiserName: advertiser?.name ? String(advertiser.name) : null,
+          advertiserUrl: advertiser?.url ? String(advertiser.url) : null,
+        });
       }
 
       const markdown = String(result.markdown ?? "");
@@ -1355,6 +1390,7 @@ export async function getChatGptScraper(
     const result: ChatGptScraperResult = {
       keywords: kwResults,
       allSources,
+      ads: Array.from(adMap.values()),
       domainCited,
       mentionCount,
       estimatedCostUsd: totalCost,
@@ -1382,6 +1418,7 @@ export async function getGeminiScraper(
   const empty: ChatGptScraperResult = {
     keywords: top3.map(kw => ({ keyword: kw, mentioned: false, sources: [], snippet: null })),
     allSources: [],
+    ads: [],
     domainCited: false,
     mentionCount: 0,
     estimatedCostUsd: 0,
@@ -1490,6 +1527,7 @@ export async function getGeminiScraper(
     const result: ChatGptScraperResult = {
       keywords: kwResults,
       allSources,
+      ads: [],
       domainCited,
       mentionCount,
       estimatedCostUsd: totalCost,

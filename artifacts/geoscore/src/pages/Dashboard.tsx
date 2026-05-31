@@ -386,6 +386,7 @@ export default function Dashboard() {
   const [chatgptScraper, setChatgptScraper] = useState<{
     keywords: Array<{ keyword: string; mentioned: boolean; sources: Array<{ domain: string; url: string; title: string; sourceName: string | null }>; snippet: string | null }>;
     allSources: Array<{ domain: string; url: string; title: string; sourceName: string | null }>;
+    ads: Array<{ title: string; snippet: string | null; url: string; domain: string; imageUrl: string | null; advertiserName: string | null; advertiserUrl: string | null }>;
     domainCited: boolean; mentionCount: number; estimatedCostUsd: number; cached: boolean; model: string | null;
   } | null>(null);
   const [chatgptScraperLoading, setChatgptScraperLoading] = useState(false);
@@ -1771,6 +1772,69 @@ export default function Dashboard() {
                         </div>
                       )}
                     </div>
+
+                    {/* ChatGPT Sponsored Results card */}
+                    {chatgptScraper && (
+                      <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+                        <div style={{ padding: "12px 16px", borderBottom: "0.5px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", display: "flex", alignItems: "center", gap: 7 }}>
+                              ChatGPT sponsored results
+                              <span style={{ background: "#FEF2F2", color: "#991B1B", fontSize: 10, fontWeight: 600, borderRadius: 4, padding: "1px 6px", letterSpacing: "0.02em" }}>NEW</span>
+                            </div>
+                            <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>Paid placements appearing in ChatGPT for your tracked keywords</div>
+                          </div>
+                          <div style={{ fontSize: 11, color: "#9ca3af" }}>
+                            {chatgptScraper.ads.length} ad{chatgptScraper.ads.length !== 1 ? "s" : ""} detected
+                          </div>
+                        </div>
+
+                        {chatgptScraper.ads.length > 0 ? (
+                          <div>
+                            {/* Warning banner */}
+                            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", background: "#FEF2F2", borderBottom: "0.5px solid #FECACA" }}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                              </svg>
+                              <span style={{ fontSize: 12, fontWeight: 500, color: "#991B1B" }}>Competitors are running paid ads in ChatGPT for your keywords</span>
+                            </div>
+                            {/* Ad cards */}
+                            {chatgptScraper.ads.map((ad, i) => {
+                              const faviconUrl = `https://www.google.com/s2/favicons?domain=${ad.domain}&sz=16`;
+                              return (
+                                <div key={i} style={{ padding: "12px 16px", borderBottom: i < chatgptScraper.ads.length - 1 ? "0.5px solid #f9fafb" : "none" }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                                    <img src={faviconUrl} alt="" width={14} height={14} style={{ borderRadius: 2, flexShrink: 0 }} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: "#111827" }}>
+                                      {ad.advertiserName || ad.domain}
+                                    </span>
+                                    <span style={{ background: "#FEE2E2", color: "#DC2626", fontSize: 10, fontWeight: 700, borderRadius: 4, padding: "1px 6px", letterSpacing: "0.02em", marginLeft: "auto", flexShrink: 0 }}>
+                                      Paid placement
+                                    </span>
+                                  </div>
+                                  <a href={ad.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, fontWeight: 500, color: "#1D4ED8", textDecoration: "none", display: "block", marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    {ad.title || ad.url}
+                                  </a>
+                                  {ad.snippet && (
+                                    <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const, overflow: "hidden" }}>
+                                      {ad.snippet}
+                                    </div>
+                                  )}
+                                  <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>{ad.domain}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div style={{ padding: "18px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                              <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            <span style={{ fontSize: 12, color: "#374151" }}>No sponsored results detected for your keywords - organic citations only</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Gemini Live Sources card */}
                     <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>

@@ -1526,6 +1526,39 @@ export default function Audit() {
               return isPaidUser ? siteHealthEl : <LockedSection title="Full technical audit in dashboard">{siteHealthEl}</LockedSection>;
             })()}
 
+            {/* ChatGPT Ads teaser - free users */}
+            {!isPaidUser && (
+              <div style={{ marginBottom: 28, background: "white", border: "0.5px solid #FECACA", borderRadius: 12, overflow: "hidden" }}>
+                <div style={{ padding: "12px 16px", borderBottom: "0.5px solid #FEE2E2", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#FFF5F5" }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", display: "flex", alignItems: "center", gap: 7 }}>
+                      ChatGPT sponsored results
+                      <span style={{ background: "#FEE2E2", color: "#DC2626", fontSize: 10, fontWeight: 700, borderRadius: 4, padding: "1px 6px" }}>NEW</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>OpenAI launched paid placements in ChatGPT in May 2026</div>
+                  </div>
+                </div>
+                <div style={{ padding: "14px 16px", display: "flex", alignItems: "center", gap: 14 }}>
+                  <div style={{ width: 32, height: 32, background: "#FEE2E2", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, color: "#111827", fontWeight: 500, marginBottom: 3 }}>
+                      Are competitors buying ads for your category in ChatGPT?
+                    </div>
+                    <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.5 }}>
+                      GeoIQ's paid dashboard detects ChatGPT sponsored placements in real time for your tracked keywords - so you know who is spending to appear where you should be showing up organically.
+                    </div>
+                  </div>
+                  <a href="/pricing" style={{ background: "#4F46E5", color: "white", borderRadius: 7, padding: "8px 14px", fontSize: 12, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>
+                    See paid plan
+                  </a>
+                </div>
+              </div>
+            )}
+
             {/* Section 04: GEO IQ Roadmap */}
             {(() => {
               const MILESTONES = [
