@@ -126,9 +126,11 @@ router.post("/dashboard/brands/:id/scan", requirePaidAuth, async (req, res): Pro
       technicalAudit,
     } = engineResult;
 
-    // Same scoring formula as the homepage audit
-    const rawAiTotal = chatgpt.score + gemini.score + perplexity.score + claude.score + grok.score;
-    const aiVisibilityScore = Math.min(Math.round(rawAiTotal * 100 / (5 * 33)), 100);
+    // AI visibility is based on the 3 primary engines (ChatGPT, Gemini, Perplexity).
+    // Claude and Grok are supplemental - omitting them from the denominator prevents
+    // simulated/absent engines from dragging the score down.
+    const rawAiTotal = chatgpt.score + gemini.score + perplexity.score;
+    const aiVisibilityScore = Math.min(Math.round(rawAiTotal * 100 / (3 * 33)), 100);
     const scoreTechnical = technicalAudit.overallScore;
     const scoreTotal = Math.round(aiVisibilityScore * 0.6 + scoreTechnical * 0.4);
 

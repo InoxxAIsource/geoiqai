@@ -466,18 +466,29 @@ router.post("/dataforseo/site-keywords", requireAuth, async (req, res): Promise<
     return;
   }
 
+  // Transform a short generic keyword into buyer-intent question format so LLMs
+  // are more likely to run web search and return citation sources.
+  // "keyword research" -> "best keyword research tool 2026"
+  function toIntentKeyword(kw: string): string {
+    const words = kw.trim().split(/\s+/);
+    if (words.length <= 3) {
+      return `best ${kw.toLowerCase()} tool 2026`;
+    }
+    return kw;
+  }
+
   const rawKeywords = await getDomainKeywords(domain);
   const filtered = filterRankedKeywords(rawKeywords, domain, 5);
 
   if (filtered.length >= 1) {
     req.log.info({ domain, count: filtered.length }, "site-keywords: ranked");
-    res.json({ keywords: filtered.slice(0, 3), source: "ranked" });
+    res.json({ keywords: filtered.slice(0, 3).map(toIntentKeyword), source: "ranked" });
     return;
   }
 
   const fallback = buildCategoryFallbackKeywords(category);
   req.log.info({ domain, category }, "site-keywords: fallback");
-  res.json({ keywords: fallback, source: "fallback" });
+  res.json({ keywords: fallback.map(toIntentKeyword), source: "fallback" });
 });
 
 void requirePaid;

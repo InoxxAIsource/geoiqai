@@ -1238,12 +1238,24 @@ export async function runAuditEngine(
   const claude = calculateSystemScore(brandName, domain, claudeResponses, claudeSimulated);
   const grok = calculateSystemScore(brandName, domain, grokResponses, grokSimulated);
 
+  // Strip markdown formatting characters from AI response text before storing or displaying.
+  // Some models (especially when simulated) wrap brand names in **bold** or use # headers.
+  function stripMarkdown(text: string): string {
+    return text
+      .replace(/\*\*([^*]+)\*\*/g, "$1")   // **bold** -> bold
+      .replace(/\*([^*]+)\*/g, "$1")        // *italic* -> italic
+      .replace(/^#+\s+/gm, "")             // # heading -> heading
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // [text](url) -> text
+      .replace(/`([^`]+)`/g, "$1")         // `code` -> code
+      .trim();
+  }
+
   // Use direct brand responses for display — these show what each AI actually knows about the brand
-  const rawChatgptResponse = directChatgpt.trim() || chatgptTexts.filter((t) => t.trim())[0] || "";
-  const rawGeminiResponse = directGemini.text.trim() || geminiResults.map((r) => r.text).filter((t) => t.trim())[0] || "";
-  const rawPerplexityResponse = directPerplexity.text.trim() || perplexityResults.map((r) => r.text).filter((t) => t.trim())[0] || "";
-  const rawClaudeResponse = directClaude.text.trim() || claudeResults.map((r) => r.text).filter((t) => t.trim())[0] || "";
-  const rawGrokResponse = directGrok.text.trim() || grokResults.map((r) => r.text).filter((t) => t.trim())[0] || "";
+  const rawChatgptResponse = stripMarkdown(directChatgpt.trim() || chatgptTexts.filter((t) => t.trim())[0] || "");
+  const rawGeminiResponse = stripMarkdown(directGemini.text.trim() || geminiResults.map((r) => r.text).filter((t) => t.trim())[0] || "");
+  const rawPerplexityResponse = stripMarkdown(directPerplexity.text.trim() || perplexityResults.map((r) => r.text).filter((t) => t.trim())[0] || "");
+  const rawClaudeResponse = stripMarkdown(directClaude.text.trim() || claudeResults.map((r) => r.text).filter((t) => t.trim())[0] || "");
+  const rawGrokResponse = stripMarkdown(directGrok.text.trim() || grokResults.map((r) => r.text).filter((t) => t.trim())[0] || "");
 
   return {
     brandName,

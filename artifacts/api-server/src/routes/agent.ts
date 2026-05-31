@@ -119,8 +119,8 @@ async function runAuditTool(rawDomain: string): Promise<unknown> {
     keywordsFromDataforseo, keywordsFilteredOut,
   } = engineResult;
 
-  const rawAiTotal = chatgpt.score + gemini.score + perplexity.score + claude.score + grok.score;
-  const aiVisibilityScore = Math.min(Math.round(rawAiTotal * 100 / (5 * 33)), 100);
+  const rawAiTotal = chatgpt.score + gemini.score + perplexity.score;
+  const aiVisibilityScore = Math.min(Math.round(rawAiTotal * 100 / (3 * 33)), 100);
   const scoreTechnical = technicalAudit.overallScore;
   const scoreTotal = Math.round(aiVisibilityScore * 0.6 + scoreTechnical * 0.4);
   const allCompetitors = [...new Set([
