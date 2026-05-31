@@ -1,0 +1,309 @@
+Build 2 new SSR pages. Same technical setup 
+as all previous pages — Express SSR routes,
+complete HTML on first fetch, Googlebot gets
+full content immediately.
+
+Article + FAQPage + BreadcrumbList JSON-LD
+Author: Tauheed
+Date: 2026-05-30
+Canonical, OG, Twitter meta on every page
+Indigo summary box with quick answer
+Internal links to /, /geo-optimization-checklist,
+/generative-engine-optimization, /pricing
+CTA block linking to free audit
+No em dashes, no emojis
+
+=== PAGE 1: /ai-search-ranking-factors ===
+
+Title tag (60 chars):
+"AI Search Ranking Factors 2026: 
+Complete Guide | GeoIQ"
+
+Meta description (155 chars):
+"The top ranking factors that determine 
+visibility in ChatGPT, Gemini and Perplexity 
+in 2026. Data from 15,000+ AI responses. 
+Free visibility check included."
+
+H1: AI Search Ranking Factors 2026: 
+What Actually Gets You Cited
+
+Summary box (indigo bg):
+"AI search ranking factors are completely 
+different from Google SEO signals. 
+Only 2% of cited URLs appear across all 
+three major AI engines simultaneously. 
+90% of brands have zero AI search mentions. 
+The 7 factors below determine whether you 
+appear in AI-generated answers."
+
+H2: Why AI ranking factors differ from Google
+
+Key stat: 91% of citations appear in only 
+one AI engine — meaning ChatGPT, Gemini 
+and Perplexity each use different signals.
+
+Traditional SEO vs AI ranking:
+Comparison table:
+| Signal | Google SEO | AI Search |
+|--------|-----------|-----------|
+| Primary factor | Backlinks + keywords | Citation frequency |
+| Content goal | Rank a page | Cite a brand |
+| Success metric | Position 1-10 | Mentioned or not |
+| Speed | Weeks-months | Days (Perplexity) |
+| Key platforms | Google | ChatGPT, Gemini, Perplexity |
+
+H2: The 7 AI Search Ranking Factors in 2026
+
+Factor 1: Citation Velocity
+How frequently and recently your brand 
+has been cited by authoritative sources.
+AI training data prioritizes brands with 
+consistent citation history, not one-off mentions.
+Score impact: +20 points
+Fix: G2 reviews, Crunchbase, ProductHunt,
+industry publication features
+
+Factor 2: Entity Consistency
+Same brand name, description, and category
+across all platforms — Crunchbase, LinkedIn,
+llms.txt, homepage, G2.
+If descriptions conflict, AI systems fragment
+your entity signal and reduce citation confidence.
+Score impact: +15 points
+Fix: One canonical 2-sentence brand description
+pasted identically everywhere
+
+Factor 3: Semantic Completeness
+Content scoring 8.5/10+ on semantic completeness
+is 4.2x more likely to be cited in AI Overviews.
+Cover all related concepts, not just keywords.
+Score impact: +15 points
+Fix: Answer-first content, FAQ sections,
+related concept coverage
+
+Factor 4: Technical AI Crawler Access
+GPTBot, PerplexityBot, ClaudeBot, Bingbot
+must be allowed in robots.txt.
+Less than 30% of websites have this correctly
+configured.
+Score impact: +10 points
+Fix: robots.txt update (10 minutes)
+
+Factor 5: llms.txt File
+Plain text file at yourdomain.com/llms.txt
+gives AI systems structured context about
+your brand before parsing individual pages.
+Under 5% of websites have one.
+Score impact: +10 points
+Fix: Create llms.txt (15 minutes)
+
+Factor 6: Structured Data (Schema)
+Organization schema, Article schema, FAQPage
+schema signal structured trustworthy content
+to AI extraction models.
+Score impact: +10 points
+Fix: Add JSON-LD schema to homepage and pages
+
+Factor 7: Third-Party Citation Authority
+Quality of sites that mention your brand.
+LinkedIn is the #1 most-cited domain for
+professional queries (Profound research 2026).
+Crunchbase, G2, ProductHunt all heavily
+indexed by AI training pipelines.
+Score impact: +20 points
+Fix: Submit to all major directories,
+get publication features
+
+H2: Platform-specific ranking factors
+
+ChatGPT ranking factors:
+- Training data coverage before cutoff
+- Citation frequency across authoritative sources
+- Brand entity consistency
+- Crunchbase and G2 presence
+
+Gemini ranking factors:
+- Google knowledge graph presence
+- Organization schema on homepage
+- Coverage in Google-indexed publications
+- YourStory, Inc42 for Indian brands
+
+Perplexity ranking factors:
+- PerplexityBot crawler access (most critical)
+- Answer-first content in first 150 words
+- Live web indexing via Bing
+- Real-time content freshness
+
+H2: How to check your AI ranking factors
+
+CTA: "GeoIQ audits all 7 ranking factors 
+in 60 seconds. Free check, no signup."
+[Check my AI visibility score →]
+
+H2: FAQ (10 questions)
+"What are AI search ranking factors?"
+"How are AI ranking factors different from Google?"
+"What is the most important AI ranking factor?"
+"How long does it take to improve AI rankings?"
+"Do backlinks help AI search rankings?"
+"What is citation velocity?"
+"What is entity consistency?"
+"Does robots.txt affect AI search rankings?"
+"How do I check my AI search ranking?"
+"Which AI search engine is easiest to rank in?"
+
+Target: 2500+ words
+Priority in sitemap: 0.9
+
+=== PAGE 2: /best-ai-visibility-tools ===
+
+Title tag (60 chars):
+"Best AI Visibility Tools 2026: 
+Honest Comparison | GeoIQ"
+
+Meta description (155 chars):
+"Compared: GeoIQ, Profound, Rankscale, 
+SE Ranking, Ahrefs Brand Radar and more. 
+Pricing, features, and which tool fits 
+your budget. Free option included."
+
+Note at top:
+"This comparison is written by the GeoIQ team.
+We have tried to be accurate about competitors.
+Verify pricing on each vendor's site — 
+this category moves fast."
+
+H1: Best AI Visibility Tools 2026: 
+Honest Comparison for Every Budget
+
+Summary box:
+"AI visibility tools track how often your 
+brand appears in ChatGPT, Gemini, Perplexity 
+and other AI search engines. Pricing ranges 
+from $0 (GeoIQ free audit) to $745/month 
+(Semrush AI Toolkit). The right tool depends 
+on your team size, budget, and whether you 
+need to track or fix your AI visibility."
+
+H2: The complete comparison table
+
+| Tool | Price | AI Systems | Fix Actions | Free Tier | Best For |
+|------|-------|-----------|-------------|-----------|---------|
+| GeoIQ | $69/mo | 6 | Yes (4-week roadmap) | Yes, no signup | Founders, SMBs |
+| Rankscale | Higher | 17 | No | Trial only | Enterprise |
+| Profound | $499/mo | 10+ | No | No | Enterprise PR teams |
+| SE Ranking | $119/mo | 3 | No | Limited | SEO agencies |
+| Ahrefs Brand Radar | $699/mo | 3 | No | No | Enterprise SEO |
+| Semrush AI Toolkit | $745/mo | Limited | No | No | Enterprise |
+| Otterly.ai | $79/mo | 4 | No | Yes | Small teams |
+| Peec AI | $99/mo | 4 | No | Limited | Agencies |
+
+H2: Tool-by-tool breakdown
+
+GeoIQ ($69/month):
+- 6 AI systems: ChatGPT, Gemini, Perplexity, 
+  Claude, Grok, Google AI Overview
+- Free audit: no signup, instant results
+- GEO Agent: Claude-powered AI in dashboard
+- Fix Actions: 4-week roadmap with tasks
+- India pricing: INR via Razorpay
+- Best for: Founders and small teams who 
+  want to fix not just track
+
+Profound ($499/month Lite):
+- 10+ AI engines tracked
+- Strong enterprise analytics
+- No fix recommendations
+- No free audit
+- Best for: Enterprise PR teams with budget
+- Raised $58.5M Series B, $1B valuation
+
+SE Ranking AI Visibility ($119/month):
+- Layers AI tracking onto existing SEO suite
+- Brand Visibility Index
+- Competitive benchmarking module
+- Best for: SEO agencies already on SE Ranking
+
+Ahrefs Brand Radar ($699/month):
+- 3 AI engines
+- Strong for teams already using Ahrefs
+- Best for: Enterprise SEO teams
+
+Semrush AI Toolkit (~$745/month):
+- Integrates with existing Semrush suite
+- Best for: Organizations on Semrush already
+
+Rankscale:
+- 17 AI systems — broadest coverage
+- Enterprise pricing
+- No fix roadmap
+- Best for: Enterprise teams needing breadth
+
+H2: How to choose the right tool
+
+Choose GeoIQ if:
+- Budget under $100/month
+- Founder or small team
+- Want fix recommendations not just tracking
+- Need India pricing
+- Want a free audit with no signup
+
+Choose Profound if:
+- Enterprise PR or brand team
+- Budget $499+/month
+- Need 10+ AI engine coverage
+- Have analyst capacity for the data
+
+Choose SE Ranking if:
+- Already using SE Ranking for SEO
+- Agency with multiple clients
+- Need AI + traditional SEO in one tool
+
+Choose Ahrefs Brand Radar if:
+- Already using Ahrefs
+- Enterprise SEO team
+- Budget not a constraint
+
+H2: What to look for in an AI visibility tool
+
+5 key criteria:
+1. AI systems covered — more is better
+2. Fix recommendations — tracking alone is not enough
+3. Free audit or trial — test before paying
+4. Update frequency — daily vs weekly monitoring
+5. Price per brand — some tools charge per domain
+
+H2: Start with the free audit
+CTA: "GeoIQ's free audit checks 6 AI systems 
+in 60 seconds. No signup, no credit card."
+[Check my brand free →]
+
+H2: FAQ (10 questions)
+"What is an AI visibility tool?"
+"How much do AI visibility tools cost?"
+"What is the best free AI visibility tool?"
+"How is GeoIQ different from Profound?"
+"Which tool tracks the most AI engines?"
+"Do I need an AI visibility tool if I have Semrush?"
+"How often should I check my AI visibility?"
+"Can AI visibility tools improve my score?"
+"What AI engines should I track?"
+"Is Profound worth $499/month?"
+
+Target: 2500+ words
+Priority in sitemap: 0.9
+
+=== UPDATE SITEMAP ===
+
+Add both URLs:
+/ai-search-ranking-factors — priority 0.9
+/best-ai-visibility-tools — priority 0.9
+lastmod: 2026-05-30
+
+=== AFTER BUILDING ===
+
+Submit both to Google Search Console
+Send IndexNow ping for both URLs
+Confirm SSR returning full HTML
+Show word count for each page

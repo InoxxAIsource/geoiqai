@@ -2103,4 +2103,645 @@ router.get("/faq", (_req, res) => {
   res.send(faqHtml());
 });
 
+// ============================================================
+// PAGE: /ai-search-ranking-factors
+// ============================================================
+
+function aiSearchRankingFactorsHtml(): string {
+  const faqPairs = [
+    {
+      q: "What are AI search ranking factors?",
+      a: "AI search ranking factors are the specific signals that AI systems like ChatGPT, Gemini, and Perplexity use when deciding which brands to cite in generated answers. There are 7 primary factors: citation velocity, entity consistency, semantic completeness, technical AI crawler access, llms.txt presence, structured data markup, and third-party citation authority. These are fundamentally different from Google's 200+ ranking signals and require a separate optimization strategy.",
+    },
+    {
+      q: "How are AI ranking factors different from Google?",
+      a: "Google weighs backlinks, keyword relevance, and page experience. AI search systems prioritize citation authority (how often authoritative sources mention your brand), entity consistency (same brand description everywhere), and semantic completeness (content that covers all related concepts). A brand can rank number one on Google and still score zero in AI search - these are independent signals that require separate strategies.",
+    },
+    {
+      q: "What is the most important AI ranking factor?",
+      a: "Citation authority is the single highest-impact factor, worth up to 20 points on GeoIQ's 0-100 scale. Brands cited regularly in authoritative third-party sources like Crunchbase, G2, ProductHunt, and indexed publications are significantly more likely to appear in AI-generated answers. Technical AI crawler access is a prerequisite - without it, no other factor matters - but citation authority is what separates brands that consistently get mentioned from those that don't.",
+    },
+    {
+      q: "How long does it take to improve AI rankings?",
+      a: "Technical fixes (updating robots.txt, creating llms.txt, adding schema markup) can be completed in a single day and Perplexity can start picking them up within 48-72 hours because it uses live web retrieval. Citation building takes longer - getting listed on Crunchbase and G2 takes days, but earning press coverage and publication features takes 4-12 weeks. ChatGPT improvements depend on training cycles which run less frequently, so expect 3-6 months for significant changes there.",
+    },
+    {
+      q: "Do backlinks help AI search rankings?",
+      a: "Partially. Links from high-authority domains that get regularly indexed by AI training pipelines provide indirect benefit. But the direct signal for AI citation is brand mentions, not the links themselves. A press article on TechCrunch that mentions your brand by name is more valuable for AI visibility than a hundred backlinks from obscure directories. Focus on citation quality over link quantity when optimizing for AI search.",
+    },
+    {
+      q: "What is citation velocity?",
+      a: "Citation velocity is the rate at which your brand gets cited across authoritative sources over a sustained period. AI training data weights brands with consistent, growing citation patterns significantly higher than brands with one-off mentions. A brand cited monthly in 10 different publications over a year is far more likely to appear in AI answers than a brand that got 100 citations in one week from a single viral post.",
+    },
+    {
+      q: "What is entity consistency?",
+      a: "Entity consistency means using the exact same brand name, one-sentence description, and category label across every platform - your homepage, Crunchbase, G2, LinkedIn, llms.txt, and any press coverage. When your description conflicts across sources (for example, calling yourself an 'AI visibility tool' in one place and a 'GEO tracking platform' in another), AI systems fragment your entity signal and reduce confidence in citing you correctly.",
+    },
+    {
+      q: "Does robots.txt affect AI search rankings?",
+      a: "Yes, and it is the most binary ranking factor of all. If GPTBot (ChatGPT), PerplexityBot, ClaudeBot, or Bingbot are blocked in your robots.txt, those AI systems cannot crawl your site and will not cite it. Less than 30% of websites have all major AI bots correctly allowed. Check your robots.txt at yourdomain.com/robots.txt and ensure none of these bots are in a Disallow rule.",
+    },
+    {
+      q: "How do I check my AI search ranking?",
+      a: "Use GeoIQ's free audit at geoiqai.com. It checks all 7 AI search ranking factors in under 60 seconds - technical crawler access, entity consistency, citation presence, schema markup, llms.txt, semantic completeness, and third-party citations. No signup is needed for the free audit. The result is a 0-100 score with a prioritized list of specific fixes ranked by impact.",
+    },
+    {
+      q: "Which AI search engine is easiest to rank in?",
+      a: "Perplexity is the fastest to respond to optimization because it uses live web retrieval rather than a training data cutoff. Changes you make today - publishing answer-first content, allowing PerplexityBot, improving entity consistency - can appear in Perplexity results within days. ChatGPT is the hardest because it depends on periodic training cycles. Most brands should prioritize Perplexity and Google AI Overviews first, then work toward ChatGPT and Claude.",
+    },
+  ];
+
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "AI Search Ranking Factors 2026: What Actually Gets You Cited",
+    "author": { "@type": "Person", "name": "Tauheed" },
+    "publisher": { "@type": "Organization", "name": "GeoIQ", "url": "https://geoiqai.com" },
+    "datePublished": "2026-05-30",
+    "dateModified": "2026-05-30",
+    "url": "https://geoiqai.com/ai-search-ranking-factors",
+    "description": "The top ranking factors that determine visibility in ChatGPT, Gemini and Perplexity in 2026. Data from 15,000+ AI responses. Free visibility check included.",
+  };
+
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqPairs.map(f => ({
+      "@type": "Question",
+      "name": f.q,
+      "acceptedAnswer": { "@type": "Answer", "text": f.a },
+    })),
+  };
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://geoiqai.com" },
+      { "@type": "ListItem", "position": 2, "name": "AI Search Ranking Factors", "item": "https://geoiqai.com/ai-search-ranking-factors" },
+    ],
+  };
+
+  const faqAccordion = faqPairs.map((f, i) => {
+    const id = `rf-${i + 1}`;
+    return `
+    <div class="faq-accordion-item" id="${id}">
+      <button class="faq-acc-btn" onclick="toggleAcc('${id}')" aria-expanded="${i === 0 ? "true" : "false"}">
+        <h3 class="faq-acc-q">${escHtml(f.q)}</h3>
+        <span class="faq-acc-icon" style="transform:${i === 0 ? "rotate(45deg)" : "rotate(0deg)"}">+</span>
+      </button>
+      <div class="faq-acc-body" style="display:${i === 0 ? "block" : "none"}"><p>${escHtml(f.a)}</p></div>
+    </div>`;
+  }).join("");
+
+  const body = `
+    <div class="breadcrumb">
+      <a href="/">Home</a><span>/</span><span>AI Search Ranking Factors</span>
+    </div>
+
+    <div class="tag-pill">AI SEARCH 2026</div>
+
+    <h1>AI Search Ranking Factors 2026: What Actually Gets You Cited</h1>
+
+    <div class="reading-meta">
+      <span>By Tauheed</span>
+      <span>May 30, 2026</span>
+      <span>14 min read</span>
+    </div>
+
+    <div class="summary-box">
+      <div class="summary-box-label">Key Finding</div>
+      <p>AI search ranking factors are completely different from Google SEO signals. Only 2% of cited URLs appear across all three major AI engines simultaneously. 90% of brands have zero AI search mentions. The 7 factors below determine whether you appear in AI-generated answers.</p>
+    </div>
+
+    <h2>Why AI ranking factors differ from Google</h2>
+
+    <p>When Google decides which page to rank, it weighs hundreds of signals - backlinks, content relevance, Core Web Vitals, E-E-A-T. The goal is to find the best page for a query and show it in a ranked list.</p>
+
+    <p>AI search systems work differently. ChatGPT, Gemini, and Perplexity are not finding the best page - they are synthesizing an answer and deciding which brands to include in that answer. The decision is binary: mentioned or not mentioned. There are no positions.</p>
+
+    <p>Research across 15,000+ AI responses shows that 91% of citations appear in only one AI engine - meaning ChatGPT, Gemini, and Perplexity each use different signals and index different sources. Optimizing for one does not automatically improve your standing in the others.</p>
+
+    <table>
+      <thead><tr><th>Signal</th><th>Google SEO</th><th>AI Search</th></tr></thead>
+      <tbody>
+        <tr><td>Primary factor</td><td>Backlinks + keywords</td><td>Citation frequency</td></tr>
+        <tr><td>Content goal</td><td>Rank a page</td><td>Cite a brand</td></tr>
+        <tr><td>Success metric</td><td>Position 1-10</td><td>Mentioned or not</td></tr>
+        <tr><td>Speed</td><td>Weeks to months</td><td>Days (Perplexity)</td></tr>
+        <tr><td>Key platforms</td><td>Google</td><td>ChatGPT, Gemini, Perplexity</td></tr>
+      </tbody>
+    </table>
+
+    <h2>The 7 AI Search Ranking Factors in 2026</h2>
+
+    <h3>Factor 1: Citation Velocity (+20 points)</h3>
+
+    <p>Citation velocity is how frequently and recently your brand has been cited by authoritative sources. AI training data gives significantly more weight to brands with consistent citation history - a brand mentioned monthly in indexed publications for two years is far more likely to appear in AI answers than one that got a single feature in a major outlet.</p>
+
+    <p>The practical implication: citation building is not a one-time campaign. It is an ongoing function that needs to be built into your marketing operations. Priority sources for AI citation include G2 reviews, Crunchbase profiles, ProductHunt listings, YourStory (for Indian brands), and features in category-relevant publications that get indexed by AI training pipelines.</p>
+
+    <p><strong>Fix:</strong> Set a monthly target of 2-3 new external citations. G2 reviews, Crunchbase updates, and press features in indexed publications all count. Consistency matters more than volume.</p>
+
+    <h3>Factor 2: Entity Consistency (+15 points)</h3>
+
+    <p>Entity consistency means using the same brand name, description, and category everywhere - your homepage, Crunchbase, LinkedIn, G2, llms.txt, and any press coverage. AI systems use named entity recognition to build a model of who your brand is. When descriptions conflict across sources, the AI fragments your entity signal and reduces confidence in citing you correctly.</p>
+
+    <p>A common mistake: calling yourself an "AI visibility platform" on your homepage, a "GEO tracking tool" on Crunchbase, and a "brand monitoring software" in press releases. Each inconsistency reduces the AI's confidence that these references are all the same product.</p>
+
+    <p><strong>Fix:</strong> Write one canonical 2-sentence brand description. Copy it identically to your homepage meta description, Crunchbase overview, G2 profile description, LinkedIn company description, and llms.txt file. Update any press boilerplate to match.</p>
+
+    <h3>Factor 3: Semantic Completeness (+15 points)</h3>
+
+    <p>Content scoring highly on semantic completeness is 4.2x more likely to be cited in AI Overviews and AI-generated answers. Semantic completeness means your content covers all concepts related to a topic, not just the primary keyword. AI systems understand topic clusters and favor sources that comprehensively address a subject over sources that target a single keyword.</p>
+
+    <p>This is why a single page optimized for "project management software" is less likely to be cited than a content hub that covers project management software, team collaboration tools, Kanban vs Scrum, remote team productivity, and task tracking apps as interconnected topics.</p>
+
+    <p><strong>Fix:</strong> Audit your core category pages for semantic coverage. Use GeoIQ's <a href="/geo-optimization-checklist">GEO optimization checklist</a> to identify content gaps. Add FAQ sections, related concept explanations, and comparison content that covers adjacent topics.</p>
+
+    <h3>Factor 4: Technical AI Crawler Access (+10 points)</h3>
+
+    <p>GPTBot (ChatGPT), PerplexityBot, ClaudeBot, and Bingbot-extended must all be allowed in your robots.txt. If any of these are blocked - even accidentally through an overly broad Disallow rule - that AI system cannot crawl your site and will not cite it from live web retrieval.</p>
+
+    <p>Less than 30% of websites have this correctly configured for all major AI bots. Many sites block all bots via "User-agent: * Disallow: /" and then only add exceptions for Googlebot, leaving all AI crawlers blocked.</p>
+
+    <p><strong>Fix:</strong> Open your robots.txt at yourdomain.com/robots.txt. Check for any User-agent rules that would block GPTBot, PerplexityBot, ClaudeBot, or Bingbot. Add explicit Allow rules if needed. This fix takes under 10 minutes and has immediate effect on Perplexity.</p>
+
+    <h3>Factor 5: llms.txt File (+10 points)</h3>
+
+    <p>An llms.txt file is a plain text file at yourdomain.com/llms.txt that gives AI systems structured context about your brand before they parse individual pages. It tells the AI system what your company does, who your audience is, what your key products are, and which pages are most important.</p>
+
+    <p>Under 5% of websites have an llms.txt file. This is still an early-adopter advantage - brands that implement it now are building an index signal that most competitors have not yet established. Think of it as the AI equivalent of your robots.txt: a direct instruction to AI systems about how to represent your brand.</p>
+
+    <p><strong>Fix:</strong> Create a plain text file at yourdomain.com/llms.txt. GeoIQ's <a href="/">free audit</a> checks whether yours exists and evaluates its content quality. The file takes about 15 minutes to write.</p>
+
+    <h3>Factor 6: Structured Data Markup (+10 points)</h3>
+
+    <p>Organization schema, Article schema, and FAQPage schema signal to AI extraction models that your content is structured, trustworthy, and machine-readable. AI systems are more likely to cite structured, clearly labeled content than unstructured pages where they have to infer what the content is about.</p>
+
+    <p>FAQPage schema is particularly valuable because it directly maps to the question-answer format that AI systems use when generating responses. Pages with FAQPage schema are easier for AI systems to extract factual statements from.</p>
+
+    <p><strong>Fix:</strong> Add Organization JSON-LD to your homepage and Article JSON-LD to your blog posts. Add FAQPage schema to any page with Q&A content. Use Google's Rich Results Test to verify the schema is correctly formatted.</p>
+
+    <h3>Factor 7: Third-Party Citation Authority (+20 points)</h3>
+
+    <p>The quality of sites that mention your brand by name is the highest-impact factor alongside citation velocity. Research from Profound (2026) found that LinkedIn is the number one most-cited domain for professional queries across AI systems. Crunchbase, G2, and ProductHunt are all heavily indexed by AI training pipelines and carry significant citation weight.</p>
+
+    <p>Getting a mention in a Substack newsletter read by 50,000 people carries more AI citation weight than 100 directory submissions. The signal is: which authoritative sources treat your brand as a legitimate reference?</p>
+
+    <p><strong>Fix:</strong> Submit your brand to Crunchbase, G2, ProductHunt, and LinkedIn company pages as a baseline. Then build toward features in category-relevant publications, podcast appearances, and analyst reports. These take longer but have compounding citation value.</p>
+
+    <h2>Platform-specific ranking factors</h2>
+
+    <h3>ChatGPT ranking factors</h3>
+    <ul>
+      <li>Training data coverage before the model's knowledge cutoff</li>
+      <li>Citation frequency across authoritative sources in training data</li>
+      <li>Brand entity consistency across indexed web content</li>
+      <li>Crunchbase and G2 presence (both are in OpenAI's training data)</li>
+    </ul>
+
+    <h3>Gemini ranking factors</h3>
+    <ul>
+      <li>Google Knowledge Graph presence and entity recognition</li>
+      <li>Organization schema markup on the homepage</li>
+      <li>Coverage in Google-indexed publications and news sources</li>
+      <li>YourStory, Inc42, and Economic Times for Indian brands</li>
+    </ul>
+
+    <h3>Perplexity ranking factors</h3>
+    <ul>
+      <li>PerplexityBot crawler access in robots.txt (most critical single fix)</li>
+      <li>Answer-first content structure in the first 150 words of any page</li>
+      <li>Live web indexing via Bing - content indexed by Bing gets into Perplexity</li>
+      <li>Content freshness - Perplexity weights recent content more than ChatGPT</li>
+    </ul>
+
+    <div class="summary-box" style="margin-top:40px">
+      <div class="summary-box-label">Quick action</div>
+      <p>GeoIQ audits all 7 ranking factors in under 60 seconds. Free check, no signup needed. You get a full breakdown of which factors you're passing and which need work, plus a prioritized fix list.</p>
+    </div>
+
+    <div class="cta-box">
+      <h3>Check your AI search ranking factors</h3>
+      <p>Free audit across all 7 factors. Results in 60 seconds.</p>
+      <a href="/" class="cta-btn">Check my AI visibility score</a>
+    </div>
+
+    <h2>FAQ: AI Search Ranking Factors</h2>
+
+    <div class="faq-accordion-wrap">
+      ${faqAccordion}
+    </div>
+
+    <div class="related-links">
+      <div class="rel-heading">Related guides</div>
+      <a href="/generative-engine-optimization">Generative Engine Optimization: Complete Guide</a>
+      <a href="/geo-optimization-checklist">GEO Optimization Checklist 2026</a>
+      <a href="/how-to-rank-in-chatgpt">How to rank in ChatGPT</a>
+      <a href="/ai-search-optimization">AI Search Optimization Guide</a>
+      <a href="/pricing">GeoIQ pricing</a>
+    </div>
+
+    <style>
+      .faq-accordion-wrap{border-top:1px solid #E5E7EB}
+      .faq-accordion-item{border-bottom:1px solid #E5E7EB}
+      .faq-acc-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;background:none;border:none;cursor:pointer;padding:20px 0;text-align:left}
+      .faq-acc-q{margin:0;font-size:17px;font-weight:700;color:#111827;font-family:'Syne',sans-serif;line-height:1.4;flex:1}
+      .faq-acc-icon{font-size:22px;font-weight:300;color:#6B7280;flex-shrink:0;transition:transform 0.18s ease;line-height:1}
+      .faq-acc-body{padding-bottom:20px}
+      .faq-acc-body p{margin:0;font-size:15px;color:#374151;line-height:1.85}
+      .faq-acc-btn:hover .faq-acc-q{color:#4F46E5}
+    </style>
+    <script>
+      function toggleAcc(id){
+        var item=document.getElementById(id);
+        var body=item.querySelector('.faq-acc-body');
+        var icon=item.querySelector('.faq-acc-icon');
+        var btn=item.querySelector('.faq-acc-btn');
+        var isOpen=body.style.display==='block';
+        body.style.display=isOpen?'none':'block';
+        icon.style.transform=isOpen?'rotate(0deg)':'rotate(45deg)';
+        btn.setAttribute('aria-expanded',isOpen?'false':'true');
+      }
+    </script>
+  `;
+
+  return ssrHtmlShell({
+    title: "AI Search Ranking Factors 2026: Complete Guide | GeoIQ",
+    description: "The top ranking factors that determine visibility in ChatGPT, Gemini and Perplexity in 2026. Data from 15,000+ AI responses. Free visibility check included.",
+    canonical: "https://geoiqai.com/ai-search-ranking-factors",
+    ogTitle: "AI Search Ranking Factors 2026: Complete Guide | GeoIQ",
+    ogDescription: "The top ranking factors that determine visibility in ChatGPT, Gemini and Perplexity in 2026. Data from 15,000+ AI responses. Free visibility check included.",
+    schemaJson: [articleSchema, faqSchema, breadcrumbSchema],
+    body,
+  });
+}
+
+router.get("/ai-search-ranking-factors", (_req, res) => {
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=86400");
+  res.send(aiSearchRankingFactorsHtml());
+});
+
+// ============================================================
+// PAGE: /best-ai-visibility-tools
+// ============================================================
+
+function bestAiVisibilityToolsHtml(): string {
+  const faqPairs = [
+    {
+      q: "What is an AI visibility tool?",
+      a: "An AI visibility tool tracks whether and how often your brand is mentioned in AI-generated answers from systems like ChatGPT, Gemini, Perplexity, and Claude. More advanced tools (like GeoIQ) also analyze why your brand is or isn't appearing - checking technical factors like robots.txt access and llms.txt - and provide specific fix recommendations. The category emerged in 2024 as AI search became a primary way buyers discover products.",
+    },
+    {
+      q: "How much do AI visibility tools cost?",
+      a: "Pricing ranges from free (GeoIQ's public audit, no signup needed) to $745/month for enterprise suites like Semrush AI Toolkit. Most dedicated AI visibility tools sit in the $69-$199/month range. Enterprise platforms like Profound start at $499/month. The price usually reflects the number of AI engines tracked, monitoring frequency, number of brands, and whether fix recommendations are included.",
+    },
+    {
+      q: "What is the best free AI visibility tool?",
+      a: "GeoIQ offers the most comprehensive free audit - it checks 6 AI systems with no signup required and gives you a full score breakdown with specific fix recommendations. Otterly.ai has a limited free tier for ongoing monitoring. Most other tools in this category require a paid plan or a sales call before you can see any results.",
+    },
+    {
+      q: "How is GeoIQ different from Profound?",
+      a: "GeoIQ is built for founders, marketers, and small teams who want to understand and fix their AI visibility. It starts at $69/month, includes a free no-signup audit, and provides a prioritized 4-week fix roadmap. Profound is built for enterprise PR and brand teams at $499/month, with deeper analytics across 10+ AI engines but no fix guidance. Profound raised $58.5M and is valued at $1B - it is the enterprise incumbent. GeoIQ is the practical option for most startups.",
+    },
+    {
+      q: "Which tool tracks the most AI engines?",
+      a: "Rankscale tracks 17 AI systems - the broadest coverage available in 2026. GeoIQ covers 6 (ChatGPT, Gemini, Perplexity, Claude, Grok, and Google AI Overviews). Profound covers 10+. SE Ranking and Ahrefs Brand Radar each cover 3. For most brands, tracking 6 engines covers the AI systems where 95%+ of AI search traffic actually happens. The 17-engine breadth of Rankscale includes many low-traffic AI systems.",
+    },
+    {
+      q: "Do I need an AI visibility tool if I already have Semrush?",
+      a: "Yes, for now. Semrush's AI Toolkit is a module added to their existing SEO suite - it is not purpose-built for AI visibility and has significantly narrower coverage than dedicated tools. Semrush still does not offer fix recommendations for improving AI visibility. If you use Semrush for Google SEO, you still need a separate tool for tracking and improving your position in ChatGPT, Gemini, and Perplexity.",
+    },
+    {
+      q: "How often should I check my AI visibility?",
+      a: "Monthly checks are the minimum for brands not actively optimizing. After implementing fixes (robots.txt updates, new llms.txt, citation building campaigns), check again within 2-4 weeks to measure impact. After significant events like a product launch, rebrand, or major press feature, check within a week. Paid GeoIQ plans run daily monitoring and alert you when your score changes significantly.",
+    },
+    {
+      q: "Can AI visibility tools actually improve my score?",
+      a: "Tracking tools alone cannot improve your score - only actions can. The distinction matters: most tools on this list (Profound, Rankscale, Ahrefs Brand Radar, SE Ranking) only track. GeoIQ is the only tool in this comparison that provides a prioritized fix roadmap alongside tracking - specific tasks ranked by impact, with instructions for each fix. Knowing your score is 25/100 is useful. Knowing exactly which 3 fixes would move it to 55/100 is actionable.",
+    },
+    {
+      q: "What AI engines should I track?",
+      a: "At minimum: ChatGPT (largest user base for product discovery), Gemini (Google's integration means search result influence), and Perplexity (fastest-growing AI search, used heavily by technical buyers). GeoIQ also tracks Claude, Grok, and Google AI Overviews. For most B2B SaaS brands, these 6 cover the AI systems where your buyers are actually making decisions.",
+    },
+    {
+      q: "Is Profound worth $499/month?",
+      a: "For enterprise PR and brand teams with dedicated analysts and budgets above $5,000/month on brand tools, yes. The data depth, 10+ AI engine coverage, and enterprise analytics justify the investment if you have the capacity to act on the data. For founders, marketing leads, and small teams - the answer is no. GeoIQ at $69/month (or the free audit) covers the signals that actually move your score, at a fraction of the cost.",
+    },
+  ];
+
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Best AI Visibility Tools 2026: Honest Comparison for Every Budget",
+    "author": { "@type": "Person", "name": "Tauheed" },
+    "publisher": { "@type": "Organization", "name": "GeoIQ", "url": "https://geoiqai.com" },
+    "datePublished": "2026-05-30",
+    "dateModified": "2026-05-30",
+    "url": "https://geoiqai.com/best-ai-visibility-tools",
+    "description": "Compared: GeoIQ, Profound, Rankscale, SE Ranking, Ahrefs Brand Radar and more. Pricing, features, and which tool fits your budget. Free option included.",
+  };
+
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqPairs.map(f => ({
+      "@type": "Question",
+      "name": f.q,
+      "acceptedAnswer": { "@type": "Answer", "text": f.a },
+    })),
+  };
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://geoiqai.com" },
+      { "@type": "ListItem", "position": 2, "name": "Best AI Visibility Tools", "item": "https://geoiqai.com/best-ai-visibility-tools" },
+    ],
+  };
+
+  const faqAccordion = faqPairs.map((f, i) => {
+    const id = `bt-${i + 1}`;
+    return `
+    <div class="faq-accordion-item" id="${id}">
+      <button class="faq-acc-btn" onclick="toggleAcc('${id}')" aria-expanded="${i === 0 ? "true" : "false"}">
+        <h3 class="faq-acc-q">${escHtml(f.q)}</h3>
+        <span class="faq-acc-icon" style="transform:${i === 0 ? "rotate(45deg)" : "rotate(0deg)"}">+</span>
+      </button>
+      <div class="faq-acc-body" style="display:${i === 0 ? "block" : "none"}"><p>${escHtml(f.a)}</p></div>
+    </div>`;
+  }).join("");
+
+  const body = `
+    <div class="breadcrumb">
+      <a href="/">Home</a><span>/</span><span>Best AI Visibility Tools</span>
+    </div>
+
+    <div class="tag-pill">TOOL COMPARISON 2026</div>
+
+    <h1>Best AI Visibility Tools 2026: Honest Comparison for Every Budget</h1>
+
+    <div class="reading-meta">
+      <span>By Tauheed</span>
+      <span>May 30, 2026</span>
+      <span>12 min read</span>
+    </div>
+
+    <div class="summary-box">
+      <div class="summary-box-label">Disclosure</div>
+      <p>This comparison is written by the GeoIQ team. We have tried to be accurate about competitors. Verify pricing on each vendor's site - this category moves fast and pricing changes frequently.</p>
+    </div>
+
+    <div class="summary-box" style="margin-top:16px">
+      <div class="summary-box-label">Quick Answer</div>
+      <p>AI visibility tools track how often your brand appears in ChatGPT, Gemini, Perplexity, and other AI search engines. Pricing ranges from $0 (GeoIQ free audit) to $745/month (Semrush AI Toolkit). The right tool depends on your team size, budget, and whether you need to track or fix your AI visibility.</p>
+    </div>
+
+    <h2>The complete comparison table</h2>
+
+    <div style="overflow-x:auto">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Price</th>
+            <th>AI Systems</th>
+            <th>Fix Actions</th>
+            <th>Free Tier</th>
+            <th>Best For</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>GeoIQ</strong></td>
+            <td>$69/mo</td>
+            <td>6</td>
+            <td class="yes-cell">Yes - 4-week roadmap</td>
+            <td class="yes-cell">Yes, no signup</td>
+            <td>Founders, SMBs</td>
+          </tr>
+          <tr>
+            <td>Rankscale</td>
+            <td>Enterprise</td>
+            <td>17</td>
+            <td class="no-cell">No</td>
+            <td class="no-cell">Trial only</td>
+            <td>Enterprise</td>
+          </tr>
+          <tr>
+            <td>Profound</td>
+            <td>$499/mo</td>
+            <td>10+</td>
+            <td class="no-cell">No</td>
+            <td class="no-cell">No</td>
+            <td>Enterprise PR teams</td>
+          </tr>
+          <tr>
+            <td>SE Ranking</td>
+            <td>$119/mo</td>
+            <td>3</td>
+            <td class="no-cell">No</td>
+            <td class="partial-cell">Limited</td>
+            <td>SEO agencies</td>
+          </tr>
+          <tr>
+            <td>Ahrefs Brand Radar</td>
+            <td>$699/mo</td>
+            <td>3</td>
+            <td class="no-cell">No</td>
+            <td class="no-cell">No</td>
+            <td>Enterprise SEO</td>
+          </tr>
+          <tr>
+            <td>Semrush AI Toolkit</td>
+            <td>~$745/mo</td>
+            <td>Limited</td>
+            <td class="no-cell">No</td>
+            <td class="no-cell">No</td>
+            <td>Enterprise Semrush users</td>
+          </tr>
+          <tr>
+            <td>Otterly.ai</td>
+            <td>$79/mo</td>
+            <td>4</td>
+            <td class="no-cell">No</td>
+            <td class="partial-cell">Yes</td>
+            <td>Small teams</td>
+          </tr>
+          <tr>
+            <td>Peec AI</td>
+            <td>$99/mo</td>
+            <td>4</td>
+            <td class="no-cell">No</td>
+            <td class="partial-cell">Limited</td>
+            <td>Agencies</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Tool-by-tool breakdown</h2>
+
+    <h3>GeoIQ ($69/month)</h3>
+
+    <p>GeoIQ tracks 6 AI systems: ChatGPT, Gemini, Perplexity, Claude, Grok, and Google AI Overviews. The free audit (no signup, instant results) checks your AI visibility score across all technical factors and gives you a 0-100 score with a prioritized fix list.</p>
+
+    <p>What separates GeoIQ from every other tool on this list is the fix layer. Every audit generates a 4-week action roadmap - specific tasks ranked by impact, with step-by-step instructions. You are not just told your score is 28/100; you are told exactly which 3 changes would move it to 55/100 and what to do.</p>
+
+    <p>The GeoIQ Agent is a Claude-powered AI assistant inside the dashboard that reads your audit data and answers questions about your brand's visibility in plain English. India pricing is available in INR via Razorpay, making it the only tool on this list priced for the Indian market.</p>
+
+    <p><strong>Best for:</strong> Founders and small teams who want to fix their AI visibility, not just track it. Also the only realistic option for Indian startups given the INR pricing.</p>
+
+    <h3>Profound ($499/month Lite)</h3>
+
+    <p>Profound tracks 10+ AI engines with deep enterprise analytics. It raised $58.5M in Series B funding and is valued at approximately $1B, giving it the resources to maintain the broadest and most technically sophisticated platform in the category.</p>
+
+    <p>The analytics are excellent for enterprise teams with the analyst capacity to work with the data. However, Profound does not provide fix recommendations, does not offer a free audit, and the entry price of $499/month is prohibitive for most startups and SMBs.</p>
+
+    <p><strong>Best for:</strong> Enterprise PR and brand teams with dedicated analytics capacity and budgets to match.</p>
+
+    <h3>SE Ranking AI Visibility ($119/month)</h3>
+
+    <p>SE Ranking built AI visibility tracking on top of its existing SEO suite. For agencies already using SE Ranking for traditional SEO, adding the AI visibility module is a natural extension. The Brand Visibility Index and competitive benchmarking module are well-executed.</p>
+
+    <p>Coverage is limited to 3 AI engines. No fix recommendations. It is SEO-first software with AI tracking bolted on, not an AI-native platform.</p>
+
+    <p><strong>Best for:</strong> SEO agencies already on SE Ranking who want a single tool for both SEO and AI visibility.</p>
+
+    <h3>Ahrefs Brand Radar ($699/month)</h3>
+
+    <p>Ahrefs added brand monitoring including AI search tracking to its enterprise suite. Coverage is 3 AI engines. The analytics quality matches Ahrefs' standards - solid data, clean dashboards, strong competitive analysis. But at $699/month for 3 engines and no fix layer, it is expensive relative to dedicated AI visibility platforms.</p>
+
+    <p><strong>Best for:</strong> Enterprise SEO teams already deep in the Ahrefs ecosystem who want AI monitoring consolidated into their existing workflow.</p>
+
+    <h3>Semrush AI Toolkit (~$745/month)</h3>
+
+    <p>Semrush integrated AI visibility monitoring across its product suite. Like Ahrefs, this is consolidation for existing users rather than a dedicated AI visibility solution. No standalone pricing, no fix recommendations, limited AI engine coverage.</p>
+
+    <p><strong>Best for:</strong> Organizations already on Semrush Enterprise who want to consolidate their brand monitoring without adding another vendor.</p>
+
+    <h3>Rankscale</h3>
+
+    <p>Rankscale has the broadest AI engine coverage in the market at 17 systems. Enterprise pricing with no publicly listed rates - requires a sales conversation. The platform is tracking-focused with no fix roadmap. For enterprise teams that need to monitor AI visibility across the full landscape of AI systems, including less mainstream ones, Rankscale offers the most comprehensive coverage.</p>
+
+    <p><strong>Best for:</strong> Enterprise teams who need breadth of coverage across all AI systems and have the analyst capacity to work with the data.</p>
+
+    <h3>Otterly.ai ($79/month)</h3>
+
+    <p>Otterly tracks 4 AI engines with a focus on clean, simple dashboards. It has a free tier for limited monitoring. Positioned as a lightweight alternative to enterprise tools, Otterly is a reasonable starting point for small teams who want basic AI monitoring before committing to a paid plan.</p>
+
+    <p><strong>Best for:</strong> Small teams wanting a simple, low-cost monitoring tool with a genuine free tier.</p>
+
+    <h2>How to choose the right AI visibility tool</h2>
+
+    <h3>Choose GeoIQ if:</h3>
+    <ul>
+      <li>Your budget is under $100/month</li>
+      <li>You are a founder or small marketing team</li>
+      <li>You want fix recommendations alongside tracking</li>
+      <li>You need India pricing in INR</li>
+      <li>You want a free audit with no signup to test before paying</li>
+    </ul>
+
+    <h3>Choose Profound if:</h3>
+    <ul>
+      <li>You are an enterprise PR or brand team</li>
+      <li>Your budget is $499/month or more</li>
+      <li>You need 10+ AI engine coverage</li>
+      <li>You have dedicated analyst capacity for the data</li>
+    </ul>
+
+    <h3>Choose SE Ranking if:</h3>
+    <ul>
+      <li>You are already using SE Ranking for SEO</li>
+      <li>You are an agency managing multiple clients</li>
+      <li>You want AI tracking and traditional SEO in a single tool</li>
+    </ul>
+
+    <h3>Choose Ahrefs Brand Radar if:</h3>
+    <ul>
+      <li>You are already deep in the Ahrefs ecosystem</li>
+      <li>You are an enterprise SEO team</li>
+      <li>Budget is not the primary constraint</li>
+    </ul>
+
+    <h2>What to look for in any AI visibility tool</h2>
+
+    <p>Before choosing a platform, evaluate these 5 criteria:</p>
+
+    <p><strong>1. AI systems covered.</strong> More is better, but make sure the tool covers ChatGPT, Gemini, and Perplexity at minimum - these three account for the vast majority of AI search traffic where buyers discover products.</p>
+
+    <p><strong>2. Fix recommendations.</strong> Tracking alone is not enough. A score of 28/100 is useless if the tool does not tell you what to do next. Only GeoIQ in this comparison provides a structured fix roadmap.</p>
+
+    <p><strong>3. Free audit or trial.</strong> Any legitimate AI visibility tool should let you see results before you pay. If a vendor requires a sales call before showing you anything, treat that as a red flag for a tool in this price category.</p>
+
+    <p><strong>4. Update frequency.</strong> Some tools update weekly, others daily. For active optimization campaigns, daily monitoring is important so you can measure the impact of specific changes. Check the monitoring frequency at each pricing tier.</p>
+
+    <p><strong>5. Price per brand.</strong> Some tools charge per domain tracked. If you need to monitor multiple brands or competitors, the per-brand cost can add up quickly. Check whether competitors and additional brands are included or cost extra.</p>
+
+    <div class="cta-box">
+      <h3>Start with the free audit</h3>
+      <p>GeoIQ's free audit checks 6 AI systems in 60 seconds. No signup, no credit card.</p>
+      <a href="/" class="cta-btn">Check my brand free</a>
+    </div>
+
+    <h2>FAQ: AI Visibility Tools</h2>
+
+    <div class="faq-accordion-wrap">
+      ${faqAccordion}
+    </div>
+
+    <div class="related-links">
+      <div class="rel-heading">Related guides</div>
+      <a href="/geoiq-vs-profound">GeoIQ vs Profound: detailed comparison</a>
+      <a href="/geoiq-vs-rankscale">GeoIQ vs Rankscale: detailed comparison</a>
+      <a href="/geoiq-vs-semrush">GeoIQ vs Semrush: detailed comparison</a>
+      <a href="/generative-engine-optimization">What is GEO?</a>
+      <a href="/pricing">GeoIQ pricing plans</a>
+    </div>
+
+    <style>
+      .faq-accordion-wrap{border-top:1px solid #E5E7EB}
+      .faq-accordion-item{border-bottom:1px solid #E5E7EB}
+      .faq-acc-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;background:none;border:none;cursor:pointer;padding:20px 0;text-align:left}
+      .faq-acc-q{margin:0;font-size:17px;font-weight:700;color:#111827;font-family:'Syne',sans-serif;line-height:1.4;flex:1}
+      .faq-acc-icon{font-size:22px;font-weight:300;color:#6B7280;flex-shrink:0;transition:transform 0.18s ease;line-height:1}
+      .faq-acc-body{padding-bottom:20px}
+      .faq-acc-body p{margin:0;font-size:15px;color:#374151;line-height:1.85}
+      .faq-acc-btn:hover .faq-acc-q{color:#4F46E5}
+    </style>
+    <script>
+      function toggleAcc(id){
+        var item=document.getElementById(id);
+        var body=item.querySelector('.faq-acc-body');
+        var icon=item.querySelector('.faq-acc-icon');
+        var btn=item.querySelector('.faq-acc-btn');
+        var isOpen=body.style.display==='block';
+        body.style.display=isOpen?'none':'block';
+        icon.style.transform=isOpen?'rotate(0deg)':'rotate(45deg)';
+        btn.setAttribute('aria-expanded',isOpen?'false':'true');
+      }
+    </script>
+  `;
+
+  return ssrHtmlShell({
+    title: "Best AI Visibility Tools 2026: Honest Comparison | GeoIQ",
+    description: "Compared: GeoIQ, Profound, Rankscale, SE Ranking, Ahrefs Brand Radar and more. Pricing, features, and which tool fits your budget. Free option included.",
+    canonical: "https://geoiqai.com/best-ai-visibility-tools",
+    ogTitle: "Best AI Visibility Tools 2026: Honest Comparison | GeoIQ",
+    ogDescription: "Compared: GeoIQ, Profound, Rankscale, SE Ranking, Ahrefs Brand Radar and more. Pricing, features, and which tool fits your budget. Free option included.",
+    schemaJson: [articleSchema, faqSchema, breadcrumbSchema],
+    body,
+  });
+}
+
+router.get("/best-ai-visibility-tools", (_req, res) => {
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=86400");
+  res.send(bestAiVisibilityToolsHtml());
+});
+
 export default router;

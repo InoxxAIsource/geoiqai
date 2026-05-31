@@ -118,3 +118,5 @@ Sitemap URL: https://geoiqai.com/sitemap.xml
 | https://geoiqai.com/geoiq-vs-profound | 27 May 2026 |
 | https://geoiqai.com/rankscale-alternative | 27 May 2026 |
 | https://geoiqai.com/faq | 30 May 2026 |
+| https://geoiqai.com/ai-search-ranking-factors | 30 May 2026 |
+| https://geoiqai.com/best-ai-visibility-tools | 30 May 2026 |

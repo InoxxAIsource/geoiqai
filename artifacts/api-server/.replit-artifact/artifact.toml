@@ -21,7 +21,9 @@ paths = [
   "/geoiq-vs-profound",
   "/rankscale-alternative",
   "/geoiq-vs-semrush",
-  "/faq"
+  "/faq",
+  "/ai-search-ranking-factors",
+  "/best-ai-visibility-tools"
 ]
 
 [services.development]
