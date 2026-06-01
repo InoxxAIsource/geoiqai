@@ -34,6 +34,7 @@ import BlogRobotsTxt from "@/pages/BlogRobotsTxt";
 import BlogWhatIsGeoScore from "@/pages/BlogWhatIsGeoScore";
 import BlogGeoVsSeo from "@/pages/BlogGeoVsSeo";
 import GeoIQVsSemrush from "@/pages/GeoIQVsSemrush";
+import Faq from "@/pages/Faq";
 import DevLogin from "@/pages/DevLogin";
 
 const queryClient = new QueryClient({
@@ -88,6 +89,7 @@ function Router() {
         <Route path="/blog/what-is-geo-score" component={BlogWhatIsGeoScore} />
         <Route path="/blog/geo-vs-seo-2026" component={BlogGeoVsSeo} />
         <Route path="/geoiq-vs-semrush" component={GeoIQVsSemrush} />
+        <Route path="/faq" component={Faq} />
         <Route component={NotFound} />
       </Switch>
     </>
