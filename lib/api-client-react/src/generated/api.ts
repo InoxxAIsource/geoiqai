@@ -40,6 +40,7 @@ import type {
   SubscriptionCreated,
   SubscriptionInput,
   SubscriptionVerifyInput,
+  TrackKeywordInput,
   User
 } from './api.schemas';
 
@@ -950,6 +951,78 @@ export function useGetBrandKeywords<TData = Awaited<ReturnType<typeof getBrandKe
 
 
 
+
+export const getAddBrandKeywordUrl = (id: string,) => {
+
+
+
+
+  return `/api/dashboard/brands/${id}/keywords`
+}
+
+/**
+ * @summary Add a custom keyword to track for a monitored brand
+ */
+export const addBrandKeyword = async (id: string,
+    trackKeywordInput: TrackKeywordInput, options?: RequestInit): Promise<KeywordVisibility> => {
+
+  return customFetch<KeywordVisibility>(getAddBrandKeywordUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      trackKeywordInput,)
+  }
+);}
+
+
+
+
+export const getAddBrandKeywordMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addBrandKeyword>>, TError,{id: string;data: BodyType<TrackKeywordInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addBrandKeyword>>, TError,{id: string;data: BodyType<TrackKeywordInput>}, TContext> => {
+
+const mutationKey = ['addBrandKeyword'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addBrandKeyword>>, {id: string;data: BodyType<TrackKeywordInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  addBrandKeyword(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddBrandKeywordMutationResult = NonNullable<Awaited<ReturnType<typeof addBrandKeyword>>>
+    export type AddBrandKeywordMutationBody = BodyType<TrackKeywordInput>
+    export type AddBrandKeywordMutationError = ErrorType<void>
+
+    /**
+ * @summary Add a custom keyword to track for a monitored brand
+ */
+export const useAddBrandKeyword = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addBrandKeyword>>, TError,{id: string;data: BodyType<TrackKeywordInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addBrandKeyword>>,
+        TError,
+        {id: string;data: BodyType<TrackKeywordInput>},
+        TContext
+      > => {
+      return useMutation(getAddBrandKeywordMutationOptions(options));
+    }
 
 export const getRegenerateBrandPromptsUrl = (id: string,) => {
 

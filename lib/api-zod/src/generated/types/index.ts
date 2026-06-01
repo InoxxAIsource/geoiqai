@@ -42,5 +42,6 @@ export * from './technicalAuditResult';
 export * from './technicalCheck';
 export * from './technicalCheckEntityDescriptions';
 export * from './technicalCheckStatus';
+export * from './trackKeywordInput';
 export * from './user';
 export * from './userPlan';

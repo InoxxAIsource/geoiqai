@@ -260,6 +260,33 @@ paths:
                   $ref: "#/components/schemas/KeywordVisibility"
         "404":
           description: Brand not found
+    post:
+      operationId: addBrandKeyword
+      tags: [dashboard]
+      summary: Add a custom keyword to track for a monitored brand
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrackKeywordInput"
+      responses:
+        "200":
+          description: Keyword checked and added to tracking list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KeywordVisibility"
+        "400":
+          description: Invalid keyword
+        "404":
+          description: Brand not found
 
   /dashboard/brands/{id}/regenerate-prompts:
     post:
@@ -734,6 +761,13 @@ components:
           type: array
           items:
             type: string
+
+    TrackKeywordInput:
+      type: object
+      required: [keyword]
+      properties:
+        keyword:
+          type: string
 
     KeywordVisibility:
       type: object

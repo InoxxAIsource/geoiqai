@@ -194,21 +194,27 @@ async function generateKeywordsWithLLM(
         content: "You are a keyword research expert. Return ONLY a valid JSON array of strings. No explanation, no markdown, no code blocks.",
       }, {
         role: "user",
-        content: `You run a keyword research firm. A startup needs real Google search queries their target customers type when looking for a product like theirs.
+        content: `You run a keyword research firm. A founder built a tool in this category: "${niche}".
 
-Product category: "${niche}"
 Brand: ${brandName} (${domain})
 
-Generate 10 natural search queries. Think about what someone would actually type, not what a marketer would write.
+The tool specifically helps with:
+- Checking if a brand appears in AI search responses (ChatGPT, Gemini, Perplexity)
+- Generative Engine Optimization (GEO)
+- Tracking AI citations and brand mentions in AI answers
+- Improving how a brand ranks in AI-generated search results
+
+Generate 10 natural search queries a founder or marketer would type into Google when looking for this kind of tool.
 
 Rules:
 - 2-5 words per keyword (short, natural phrasing)
-- Mix: product-finding queries ("best X tool"), comparison ("X vs Y"), job-to-be-done ("how to track X"), feature-specific ("X with Y feature")
-- Do NOT repeat the exact phrase "${niche}" in every keyword - vary the angle and vocabulary
-- No brand names, no "free", no generic AI system names alone (chatgpt, gemini, etc.) without a specific product context
-- Each keyword should be something a real person would type, not a formal category label
+- AI system names (chatgpt, gemini, perplexity) are ALLOWED when combined with a product action - e.g. "track brand in chatgpt", "brand visibility chatgpt gemini"
+- Mix angles: product-finding, comparison, how-to, feature-specific
+- Do NOT repeat the same phrase in every keyword - vary vocabulary and angle
+- No brand names, no "free", no generic standalone AI names with no context
 
-Return ONLY a JSON array of 10 strings. Example format: ["track brand in ai search", "ai citation monitoring tool", "seo for ai answers"]`,
+Return ONLY a JSON array of 10 strings.
+Example output: ["track brand in chatgpt", "geo optimization tool", "ai search ranking tracker", "brand visibility chatgpt gemini", "generative engine optimization tool", "check brand ai visibility", "ai citation tracker", "seo for ai search", "brand mentions in ai answers", "ai search visibility software"]`,
       }],
       temperature: 0.3,
       max_tokens: 300,

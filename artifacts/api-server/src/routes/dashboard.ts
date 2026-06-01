@@ -3,7 +3,7 @@ import { db, monitoredBrandsTable, dailyScoresTable, auditsTable, keywordCacheTa
 import { eq, desc, and, count } from "drizzle-orm";
 import { AddMonitoredBrandBody, RemoveMonitoredBrandParams } from "@workspace/api-zod";
 import { requirePaidAuth, type AuthRequest } from "../lib/auth";
-import { runAuditEngine, generateRecommendations, detectBrandSubcategory } from "../lib/audit-engine";
+import { runAuditEngine, generateRecommendations, detectBrandSubcategory, checkKeywordVisibility } from "../lib/audit-engine";
 import { getDomainKeywords, isGenericAiOnly, getLocationCode } from "../lib/dataforseo";
 
 const router: IRouter = Router();
@@ -517,6 +517,61 @@ router.get("/dashboard/brands/:id/keywords", requirePaidAuth, async (req, res): 
     geminiVisible,
     perplexityVisible,
   })));
+});
+
+router.post("/dashboard/brands/:id/keywords", requirePaidAuth, async (req, res): Promise<void> => {
+  const user = (req as AuthRequest).user;
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const { keyword } = req.body as { keyword?: string };
+
+  if (!keyword?.trim()) {
+    res.status(400).json({ error: "Keyword is required" });
+    return;
+  }
+
+  const kw = keyword.trim().toLowerCase();
+
+  const [brand] = await db
+    .select()
+    .from(monitoredBrandsTable)
+    .where(and(eq(monitoredBrandsTable.id, rawId!), eq(monitoredBrandsTable.userId, user.id)))
+    .limit(1);
+
+  if (!brand) {
+    res.status(404).json({ error: "Brand not found" });
+    return;
+  }
+
+  req.log.info({ domain: brand.domain, keyword: kw }, "keywords: checking manual keyword");
+
+  const visibility = await checkKeywordVisibility(kw, brand.brandName ?? brand.domain, brand.domain);
+
+  // Merge into keyword cache so it persists alongside DataForSEO keywords
+  const [existing] = await db.select().from(keywordCacheTable).where(eq(keywordCacheTable.domain, brand.domain)).limit(1);
+  const newEntry = { keyword: kw, volume: 0, competition: 0 };
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  if (existing) {
+    const prev = (existing.keywords ?? []).filter((k) => k.keyword !== kw);
+    await db.update(keywordCacheTable)
+      .set({ keywords: [...prev, newEntry], cachedAt: now, expiresAt })
+      .where(eq(keywordCacheTable.domain, brand.domain))
+      .catch(() => {});
+  } else {
+    await db.insert(keywordCacheTable)
+      .values({ domain: brand.domain, keywords: [newEntry], locationCode: getLocationCode(brand.domain), cachedAt: now, expiresAt })
+      .catch(() => {});
+  }
+
+  res.json({
+    keyword: kw,
+    volume: 0,
+    competition: 0,
+    chatgptVisible: visibility.chatgptVisible,
+    geminiVisible: visibility.geminiVisible,
+    perplexityVisible: visibility.perplexityVisible,
+  });
 });
 
 router.post("/dashboard/brands/:id/regenerate-prompts", requirePaidAuth, async (req, res): Promise<void> => {

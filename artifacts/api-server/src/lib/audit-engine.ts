@@ -1394,6 +1394,38 @@ const DEFAULT_EEAT: EeatScore = {
   weaknesses: "Weak on Experience — add case studies or customer stories. Weak on Authoritativeness — get listed on authoritative directories.",
 };
 
+/**
+ * Check whether a brand is mentioned by ChatGPT, Gemini, and Perplexity
+ * when asked about a specific keyword/search query.
+ * Used for the manual keyword tracking feature in the dashboard.
+ */
+export async function checkKeywordVisibility(
+  keyword: string,
+  brandName: string,
+  domain: string,
+): Promise<{ chatgptVisible: boolean; geminiVisible: boolean; perplexityVisible: boolean }> {
+  const prompt = `What are the best tools or platforms for "${keyword}"? List the top options with a brief description of each.`;
+
+  const [chatgptText, geminiResult, perplexityResult] = await Promise.all([
+    queryOpenAIChatGPT(prompt),
+    queryGemini(prompt),
+    queryPerplexity(prompt),
+  ]);
+
+  const variations = getBrandVariations(brandName, domain);
+  function mentionsBrand(text: string): boolean {
+    if (!text) return false;
+    const tl = text.toLowerCase();
+    return variations.some((v) => tl.includes(v));
+  }
+
+  return {
+    chatgptVisible: mentionsBrand(chatgptText),
+    geminiVisible: mentionsBrand(geminiResult.text),
+    perplexityVisible: mentionsBrand(perplexityResult.text),
+  };
+}
+
 export async function generateRecommendations(
   brandName: string,
   domain: string,

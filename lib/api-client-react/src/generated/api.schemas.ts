@@ -244,6 +244,10 @@ export interface RegeneratePromptsResponse {
   prompts: string[];
 }
 
+export interface TrackKeywordInput {
+  keyword: string;
+}
+
 export interface KeywordVisibility {
   keyword: string;
   volume: number;

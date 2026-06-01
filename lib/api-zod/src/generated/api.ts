@@ -348,6 +348,27 @@ export const GetBrandKeywordsResponse = zod.array(GetBrandKeywordsResponseItem)
 
 
 /**
+ * @summary Add a custom keyword to track for a monitored brand
+ */
+export const AddBrandKeywordParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const AddBrandKeywordBody = zod.object({
+  "keyword": zod.string()
+})
+
+export const AddBrandKeywordResponse = zod.object({
+  "keyword": zod.string(),
+  "volume": zod.number(),
+  "competition": zod.number().optional(),
+  "chatgptVisible": zod.boolean().optional(),
+  "geminiVisible": zod.boolean().optional(),
+  "perplexityVisible": zod.boolean().optional()
+})
+
+
+/**
  * @summary Re-detect subcategory and regenerate prompts for a monitored brand
  */
 export const RegenerateBrandPromptsParams = zod.object({

@@ -9,9 +9,11 @@ import {
   useGetBrandKeywords,
   useGetMe,
   useRemoveMonitoredBrand,
+  useAddBrandKeyword,
   getGetMonitoredBrandsQueryKey,
   getGetDashboardSummaryQueryKey,
   getGetBrandKeywordsQueryKey,
+  type KeywordVisibility,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AddBrandModal } from "@/components/dashboard/AddBrandModal";
@@ -349,6 +351,9 @@ export default function Dashboard() {
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [settingPassword, setSettingPassword] = useState(false);
+  const [newKeyword, setNewKeyword] = useState("");
+  const [addingKeyword, setAddingKeyword] = useState(false);
+  const [manualKeywords, setManualKeywords] = useState<KeywordVisibility[]>([]);
   const [bannerDismissed, setBannerDismissed] = useState(
     localStorage.getItem("geoiq_pw_banner_dismissed") === "true"
   );
@@ -447,6 +452,25 @@ export default function Dashboard() {
   });
 
   const removeBrandMutation = useRemoveMonitoredBrand();
+  const addKeywordMutation = useAddBrandKeyword();
+
+  const handleAddKeyword = async () => {
+    const kw = newKeyword.trim();
+    if (!kw || !selectedBrandId || addingKeyword) return;
+    setAddingKeyword(true);
+    try {
+      const result = await addKeywordMutation.mutateAsync({ id: selectedBrandId, data: { keyword: kw } });
+      setManualKeywords(prev => {
+        const without = prev.filter(k => k.keyword !== result.keyword);
+        return [...without, result];
+      });
+      setNewKeyword("");
+    } catch {
+      // ignore — user can retry
+    } finally {
+      setAddingKeyword(false);
+    }
+  };
 
   useEffect(() => {
     if (!isScanningBrandId) { setScanStep(0); return; }
@@ -3067,11 +3091,31 @@ export default function Dashboard() {
                     <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 3 }}>Keywords we are monitoring</div>
                     <div style={{ fontSize: 12, color: "#6b7280" }}>Real search queries your audience types, and whether your brand appears when those queries are asked.</div>
                   </div>
-                  {!brandKeywords || brandKeywords.length === 0 ? (
+
+                  {/* Add keyword input */}
+                  <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                    <input
+                      type="text"
+                      value={newKeyword}
+                      onChange={e => setNewKeyword(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") handleAddKeyword(); }}
+                      placeholder="Add a keyword to track (e.g. geo optimization tool)"
+                      style={{ flex: 1, border: "0.5px solid #d1d5db", borderRadius: 7, padding: "8px 11px", fontSize: 13, color: "#111827", outline: "none", background: "#fafafa" }}
+                    />
+                    <button
+                      onClick={handleAddKeyword}
+                      disabled={!newKeyword.trim() || addingKeyword}
+                      style={{ background: addingKeyword ? "#e0e0e0" : "#4F46E5", color: addingKeyword ? "#888" : "white", border: "none", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 500, cursor: addingKeyword || !newKeyword.trim() ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}
+                    >
+                      {addingKeyword ? "Checking..." : "+ Add"}
+                    </button>
+                  </div>
+
+                  {(!brandKeywords || brandKeywords.length === 0) && manualKeywords.length === 0 ? (
                     <div style={{ textAlign: "center", padding: "32px 0", color: "#9ca3af", fontSize: 13 }}>
                       <Target size={28} style={{ margin: "0 auto 10px", opacity: 0.3, display: "block" }} />
                       <div style={{ fontWeight: 500, color: "#374151", marginBottom: 4 }}>No keyword data yet</div>
-                      <div style={{ fontSize: 12 }}>Keyword data is fetched automatically when your next audit runs.</div>
+                      <div style={{ fontSize: 12 }}>Add a keyword above, or wait for your next audit to populate this automatically.</div>
                     </div>
                   ) : (
                     <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -3079,15 +3123,18 @@ export default function Dashboard() {
                         <tr>{["Keyword", "Monthly searches", "ChatGPT", "Gemini", "Perplexity"].map(h => <th key={h} style={{ textAlign: "left", fontSize: 11, color: "#9ca3af", fontWeight: 500, padding: "0 12px 8px 0", borderBottom: "0.5px solid #f3f4f6" }}>{h}</th>)}</tr>
                       </thead>
                       <tbody>
-                        {brandKeywords.map((kw, i) => {
-                          const isLast = i === brandKeywords.length - 1;
+                        {[...(brandKeywords ?? []), ...manualKeywords.filter(mk => !(brandKeywords ?? []).some(bk => bk.keyword === mk.keyword))].map((kw, i, arr) => {
+                          const isLast = i === arr.length - 1;
                           const VBadge = ({ visible }: { visible: boolean }) => (
                             <span style={{ background: visible ? "#E1F5EE" : "#FCEBEB", color: visible ? "#085041" : "#791F1F", borderRadius: 9999, padding: "2px 8px", fontSize: 11, fontWeight: 500 }}>{visible ? "Visible" : "Not found"}</span>
                           );
+                          const volumeCell = kw.volume
+                            ? kw.volume.toLocaleString("en-IN") + "/mo"
+                            : <span title="This keyword is too new for search volume data. Volume will appear as the category grows." style={{ cursor: "help", borderBottom: "1px dashed #d1d5db", color: "#6b7280" }}>{"< 100/mo"}</span>;
                           return (
                             <tr key={kw.keyword}>
                               <td style={{ padding: "9px 12px 9px 0", fontSize: 13, color: "#374151", borderBottom: isLast ? "none" : "0.5px solid #f9fafb" }}>{kw.keyword}</td>
-                              <td style={{ padding: "9px 12px 9px 0", fontSize: 13, color: "#374151", borderBottom: isLast ? "none" : "0.5px solid #f9fafb" }}>{kw.volume ? kw.volume.toLocaleString("en-IN") + "/mo" : "-"}</td>
+                              <td style={{ padding: "9px 12px 9px 0", fontSize: 13, color: "#374151", borderBottom: isLast ? "none" : "0.5px solid #f9fafb" }}>{volumeCell}</td>
                               <td style={{ padding: "9px 12px 9px 0", borderBottom: isLast ? "none" : "0.5px solid #f9fafb" }}><VBadge visible={kw.chatgptVisible ?? false} /></td>
                               <td style={{ padding: "9px 12px 9px 0", borderBottom: isLast ? "none" : "0.5px solid #f9fafb" }}><VBadge visible={kw.geminiVisible ?? false} /></td>
                               <td style={{ padding: "9px 0", borderBottom: isLast ? "none" : "0.5px solid #f9fafb" }}><VBadge visible={kw.perplexityVisible ?? false} /></td>
