@@ -1,0 +1,286 @@
+Fix the Citation landscape section completely.
+This is a critical trust issue — fake hardcoded 
+data is showing for every domain.
+
+CURRENT PROBLEM:
+producthunt.com 19 citations
+techcrunch.com 15 citations
+crunchbase.com 11 citations
+g2.com 9 citations
+
+These exact same numbers appear for EVERY 
+domain. This is hardcoded fake data inside 
+the system — NOT from DataForSEO.
+
+The visibility trend line is also fake —
+showing a flat line from May 26 as if 
+daily tracking was running when it was not.
+
+This must be fixed before any paid user 
+sees it. A user who discovers fake data 
+will never return.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WHERE THE REAL DATA COMES FROM:
+
+DataForSEO LLM Scraper already returns 
+real citation data in every API response.
+
+The response contains:
+
+{
+  "items": [
+    {
+      "type": "organic",
+      "search_results": [
+        {
+          "url": "https://producthunt.com/...",
+          "title": "...",
+          "domain": "producthunt.com"
+        },
+        {
+          "url": "https://techcrunch.com/...",
+          "title": "...", 
+          "domain": "techcrunch.com"
+        }
+      ],
+      "sources": [
+        {
+          "domain": "producthunt.com",
+          "title": "...",
+          "url": "..."
+        }
+      ],
+      "brand_entities": ["GeoIQ", "Profound"],
+      "fan_out_queries": ["best AI visibility tool"]
+    }
+  ]
+}
+
+search_results = URLs ChatGPT actually visited
+sources = URLs ChatGPT actually cited
+brand_entities = brands mentioned in response
+
+This data is already being returned.
+It is just not being stored or displayed.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FIX 1 — Store real citation data from 
+DataForSEO LLM Scraper response
+
+After every LLM Scraper API call, 
+parse and store the results in Supabase.
+
+Create a new Supabase table called 
+citation_sources with these columns:
+
+id: uuid primary key
+user_id: uuid (current user)
+audited_domain: text (domain being audited)
+source_url: text (full URL from search_results)
+source_domain: text (domain extracted from URL)
+citation_type: text (authority/social/brand/competitor)
+prompt_used: text (which prompt triggered this)
+ai_system: text (chatgpt/perplexity/gemini)
+appeared_in_response: boolean (was brand mentioned)
+timestamp: timestamptz
+
+After every LLM Scraper call:
+
+const items = response.tasks[0].result[0].items
+
+for (const item of items) {
+  
+  // Store search_results
+  if (item.search_results) {
+    for (const result of item.search_results) {
+      await supabase
+        .from('citation_sources')
+        .insert({
+          user_id: currentUserId,
+          audited_domain: domain,
+          source_url: result.url,
+          source_domain: extractDomain(result.url),
+          citation_type: classifyDomain(result.url),
+          prompt_used: currentPrompt,
+          ai_system: 'chatgpt',
+          appeared_in_response: 
+            item.brand_entities?.includes(brandName),
+          timestamp: new Date().toISOString()
+        })
+    }
+  }
+
+  // Store sources separately
+  if (item.sources) {
+    for (const source of item.sources) {
+      await supabase
+        .from('citation_sources')
+        .insert({
+          user_id: currentUserId,
+          audited_domain: domain,
+          source_url: source.url,
+          source_domain: source.domain,
+          citation_type: classifyDomain(source.url),
+          prompt_used: currentPrompt,
+          ai_system: 'chatgpt',
+          appeared_in_response: 
+            item.brand_entities?.includes(brandName),
+          timestamp: new Date().toISOString()
+        })
+    }
+  }
+}
+
+classifyDomain() function:
+social domains (twitter, linkedin, 
+facebook, instagram) → "social"
+brand's own domain → "brand"  
+competitor domains → "competitor"
+everything else → "authority"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FIX 2 — Display real citation landscape
+
+Replace the hardcoded citation landscape 
+with a real query from Supabase.
+
+Query to get top cited domains:
+
+const { data } = await supabase
+  .from('citation_sources')
+  .select('source_domain, citation_type')
+  .eq('audited_domain', domain)
+  .eq('user_id', currentUserId)
+
+Then count occurrences of each 
+source_domain and sort by count descending.
+
+Show top 10 real domains with real counts.
+
+For the donut chart calculate:
+- Your brand count: rows where 
+  source_domain = audited_domain
+- Competitors count: rows where 
+  citation_type = competitor
+- Authority sites: rows where 
+  citation_type = authority
+- Social: rows where 
+  citation_type = social
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FIX 3 — Fix visibility trend line
+
+Only plot real data points from 
+actual scan dates stored in Supabase.
+
+Query scan history:
+
+const { data: scans } = await supabase
+  .from('audit_history')
+  .select('score, created_at')
+  .eq('domain', domain)
+  .eq('user_id', currentUserId)
+  .order('created_at', { ascending: true })
+
+Plot only these real data points.
+
+If only 1 scan exists — show 1 dot 
+with this message below chart:
+"Rescan weekly to build your trend line."
+
+If 0 scans — show empty chart with:
+"Run your first scan to start tracking."
+
+NEVER interpolate or generate fake 
+historical data between scan dates.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FIX 4 — Your brand citation count
+
+Count only rows where:
+source_domain = audited_domain
+OR
+appeared_in_response = true
+
+If 0 — show 0. Do not fabricate.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FIX 5 — Honest empty states
+
+When citation_sources table has 
+no rows for this domain show:
+
+Citation landscape empty state:
+"No citation data yet.
+
+GeoIQ builds this from real ChatGPT 
+search results as your prompts run.
+
+Fix your tracked prompts first, 
+then click Refresh citations."
+
+Trend empty state:
+"Your trend line appears after 
+2 or more weekly scans.
+
+Rescan weekly to track your 
+score over time."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FIX 6 — Remove ALL hardcoded data
+
+Search entire codebase for these 
+hardcoded values and delete them:
+
+"producthunt.com" with any fixed count
+"techcrunch.com" with any fixed count
+"crunchbase.com" with any fixed count
+"g2.com" with any fixed count
+Any array of citation sources that 
+is not coming from Supabase query
+
+Replace every instance with real 
+Supabase queries.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+VERIFICATION AFTER FIX:
+
+Test with 3 different domains:
+
+1. geoiqai.com
+Run audit → check Citations tab
+Citation landscape must show DIFFERENT 
+domains than ahrefs.com results
+If same domains appear → fix not complete
+
+2. ahrefs.com  
+Run audit → check Citations tab
+Should show SEO-related citation sources
+NOT the same as geoiqai.com
+
+3. razorpay.com
+Run audit → check Citations tab
+Should show fintech/payment related sources
+NOT the same as above two
+
+All 3 must show completely different 
+citation landscapes based on their 
+actual LLM Scraper results.
+
+If any two domains show identical 
+citation data → hardcoded data 
+is still present somewhere.
+
+This fix is complete only when 
+each domain shows unique real 
+citation data from its own 
+DataForSEO LLM Scraper responses.

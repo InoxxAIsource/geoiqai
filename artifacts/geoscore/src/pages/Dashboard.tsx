@@ -23,7 +23,7 @@ import { IntegrationsTab } from "./dashboard/IntegrationsTab";
 import { ContentImprovementsTab } from "./dashboard/ContentImprovementsTab";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
-  PieChart, Pie, LineChart, Line, Legend,
+  PieChart, Pie, LineChart, Line,
 } from "recharts";
 import {
   Loader2, Bell, Settings, BarChart2, Bot, Lightbulb, Users, Plug,
@@ -156,57 +156,6 @@ function ScorePill({ score, max = 33 }: { score: number; max?: number }) {
   );
 }
 
-function getCitationData(category: string | null | undefined, domain: string) {
-  const cat = (category ?? "").toLowerCase();
-  let topDomains: { domain: string; times: number; type: "yours" | "competitor" | "authority" | "social" }[] = [];
-  if (cat.includes("health") || cat.includes("diet") || cat.includes("medical") || cat.includes("fitness")) {
-    topDomains = [
-      { domain: "healthifyme.com", times: 23, type: "competitor" },
-      { domain: "sugarfit.com", times: 18, type: "competitor" },
-      { domain: "practo.com", times: 14, type: "authority" },
-      { domain: domain, times: 2, type: "yours" },
-      { domain: "1mg.com", times: 11, type: "authority" },
-    ];
-  } else if (cat.includes("fintech") || cat.includes("finance") || cat.includes("payment")) {
-    topDomains = [
-      { domain: "razorpay.com", times: 31, type: "competitor" },
-      { domain: "paytm.com", times: 24, type: "competitor" },
-      { domain: "inc42.com", times: 19, type: "authority" },
-      { domain: domain, times: 3, type: "yours" },
-      { domain: "entrackr.com", times: 10, type: "authority" },
-    ];
-  } else if (cat.includes("saas") || cat.includes("tool") || cat.includes("software")) {
-    topDomains = [
-      { domain: "g2.com", times: 28, type: "authority" },
-      { domain: "capterra.com", times: 21, type: "authority" },
-      { domain: "producthunt.com", times: 16, type: "authority" },
-      { domain: domain, times: 2, type: "yours" },
-      { domain: "techcrunch.com", times: 9, type: "authority" },
-    ];
-  } else {
-    topDomains = [
-      { domain: "producthunt.com", times: 19, type: "authority" },
-      { domain: "techcrunch.com", times: 15, type: "authority" },
-      { domain: "crunchbase.com", times: 11, type: "authority" },
-      { domain: domain, times: 2, type: "yours" },
-      { domain: "g2.com", times: 9, type: "authority" },
-    ];
-  }
-  topDomains.sort((a, b) => b.times - a.times);
-  const yourEntry = topDomains.find(d => d.type === "yours");
-  const isInTop5 = !!yourEntry;
-  const competitorTotal = topDomains.filter(d => d.type === "competitor").reduce((s, d) => s + d.times, 0);
-  const authorityTotal = topDomains.filter(d => d.type === "authority").reduce((s, d) => s + d.times, 0);
-  const yourTotal = yourEntry?.times ?? 0;
-  const socialTotal = Math.round((competitorTotal + authorityTotal) * 0.1);
-  const donut = [
-    { name: "Your brand", value: yourTotal, color: "#5B3FEA" },
-    { name: "Competitors", value: competitorTotal, color: "#DC2626" },
-    { name: "Authority sites", value: authorityTotal, color: "#D97706" },
-    { name: "Social", value: socialTotal, color: "#059669" },
-  ];
-  return { topDomains, donut, isInTop5, total: yourTotal + competitorTotal + authorityTotal + socialTotal };
-}
 
 // Returns true when a string is a full prompt sentence rather than a raw keyword phrase.
 // Full sentences come from audits.keywords_used or keyword_cache after regeneration.
@@ -512,9 +461,9 @@ export default function Dashboard() {
   }, [selectedBrand?.id]);
 
 
-  // Fetch site-specific keywords, then LLM top domains, when Citations tab opens
+  // Fetch site-specific keywords, then LLM top domains, when Citations or Overview tab opens
   useEffect(() => {
-    if (activeTab !== "Citations" || !selectedBrand?.id || !selectedBrand.domain) return;
+    if ((activeTab !== "Citations" && activeTab !== "Overview") || !selectedBrand?.id || !selectedBrand.domain) return;
     if (llmTopDomainsBrandId === selectedBrand.id) return;
     const token = getToken();
     const domain = selectedBrand.domain;
@@ -868,11 +817,9 @@ export default function Dashboard() {
 
   const lineChartData = (() => {
     if (!scores || scores.length === 0) return [];
-    const competitorBase = Math.min(100, (selectedBrand?.latestScore ?? 30) + 22);
-    return [...scores].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(-30).map((s, i) => ({
+    return [...scores].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(-30).map((s) => ({
       date: new Date(s.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }),
       yours: s.scoreTotal ?? 0,
-      competitor: Math.min(100, Math.max(0, competitorBase + (hashStr(String(i)) % 10) - 5)),
     }));
   })();
 
@@ -894,8 +841,18 @@ export default function Dashboard() {
   const visibleCount = systemStatuses.filter(s => s.found).length;
 
   const citationData = (() => {
-    const raw = getCitationData(selectedBrand?.category, selectedBrand?.domain ?? "");
-    if (llmTopDomains === null) return raw;
+    const emptyState = {
+      topDomains: [] as { domain: string; times: number; type: "yours" | "competitor" | "authority" | "social" }[],
+      donut: [
+        { name: "Your brand", value: 0, color: "#5B3FEA" },
+        { name: "Competitors", value: 0, color: "#DC2626" },
+        { name: "Authority sites", value: 0, color: "#D97706" },
+        { name: "Social", value: 0, color: "#059669" },
+      ],
+      isInTop5: false,
+      total: 0,
+    };
+    if (llmTopDomains === null) return emptyState;
     if (llmTopDomains.length === 0) {
       return {
         topDomains: [{ domain: selectedBrand?.domain ?? "", times: 0, type: "yours" as const }],
@@ -944,7 +901,6 @@ export default function Dashboard() {
   })();
   const competitorDisplayName = getCompetitorBase(selectedBrand?.category);
   const competitorLatest = Math.min(100, activeScore + 22);
-  const scoreDiff = activeScore - competitorLatest;
 
   const promptList = (() => {
     const competitor = (selectedBrand?.competitors as string[] | undefined)?.[0] ?? getCompetitorBase(selectedBrand?.category);
@@ -1579,76 +1535,94 @@ export default function Dashboard() {
                         <span style={{ background: "#ECFDF5", color: "#065F46", borderRadius: 9999, padding: "2px 8px", fontSize: 10, fontWeight: 500 }}>Live data</span>
                       ) : null}
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: 24, alignItems: "flex-start" }}>
-                      {/* Donut chart */}
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                        <div style={{ position: "relative", width: 140, height: 140 }}>
-                          <PieChart width={140} height={140}>
-                            <Pie data={citationData.donut} cx={65} cy={65} innerRadius={42} outerRadius={60} dataKey="value" strokeWidth={0}>
-                              {citationData.donut.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                            </Pie>
-                          </PieChart>
-                          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-                            <div style={{ fontSize: 19, fontWeight: 700, color: "#111827" }}>{citationData.total}</div>
-                            <div style={{ fontSize: 9, color: "#9ca3af", textAlign: "center" }}>total</div>
+                    {llmTopDomainsLoading || llmTopDomains === null ? (
+                      <div style={{ height: 100, display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af", fontSize: 12 }}>
+                        Analyzing citations...
+                      </div>
+                    ) : citationData.topDomains.length === 0 ? (
+                      <div style={{ height: 80, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                        <div style={{ fontSize: 12, color: "#6b7280", textAlign: "center" }}>No citation data found for your keywords yet.</div>
+                        <button onClick={() => setActiveTab("Citations")} style={{ background: "none", border: "none", padding: 0, fontSize: 12, color: "#5B3FEA", cursor: "pointer", fontWeight: 500 }}>
+                          Open Citations tab to fetch live data <ChevronRight size={11} style={{ display: "inline" }} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: 24, alignItems: "flex-start" }}>
+                        {/* Donut chart */}
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                          <div style={{ position: "relative", width: 140, height: 140 }}>
+                            <PieChart width={140} height={140}>
+                              <Pie data={citationData.donut} cx={65} cy={65} innerRadius={42} outerRadius={60} dataKey="value" strokeWidth={0}>
+                                {citationData.donut.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                              </Pie>
+                            </PieChart>
+                            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+                              <div style={{ fontSize: 19, fontWeight: 700, color: "#111827" }}>{citationData.total}</div>
+                              <div style={{ fontSize: 9, color: "#9ca3af", textAlign: "center" }}>total</div>
+                            </div>
+                          </div>
+                          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 3, width: "100%" }}>
+                            {citationData.donut.map(d => (
+                              <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "#6b7280" }}>
+                                <span style={{ width: 8, height: 8, borderRadius: 2, background: d.color, display: "inline-block", flexShrink: 0 }} />
+                                {d.name}: {d.value}
+                              </div>
+                            ))}
                           </div>
                         </div>
-                        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 3, width: "100%" }}>
-                          {citationData.donut.map(d => (
-                            <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "#6b7280" }}>
-                              <span style={{ width: 8, height: 8, borderRadius: 2, background: d.color, display: "inline-block", flexShrink: 0 }} />
-                              {d.name}: {d.value}
+                        {/* Top cited domains */}
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 500, color: "#6b7280", marginBottom: 8 }}>Top cited in your category</div>
+                          {citationData.topDomains.map((d, i) => {
+                            const typeBg = d.type === "yours" ? "#ECFDF5" : d.type === "competitor" ? "#FEF2F2" : d.type === "authority" ? "#FFFBEB" : "#EFF6FF";
+                            const typeColor = d.type === "yours" ? "#065F46" : d.type === "competitor" ? "#991B1B" : d.type === "authority" ? "#92400E" : "#1D4ED8";
+                            const typeLabel = d.type === "yours" ? "Your brand" : d.type === "competitor" ? "Competitor" : d.type === "authority" ? "Authority" : "Social";
+                            return (
+                              <div key={d.domain} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 6, marginBottom: 3, background: d.type === "yours" ? "#ECFDF5" : "transparent" }}>
+                                <span style={{ fontSize: 11, color: "#9ca3af", width: 14, textAlign: "right" }}>{i + 1}</span>
+                                <span style={{ fontSize: 12, color: "#111827", flex: 1, fontWeight: d.type === "yours" ? 600 : 400 }}>{d.domain}</span>
+                                <span style={{ fontSize: 11, color: "#6b7280" }}>{d.times} citations</span>
+                                <span style={{ background: typeBg, color: typeColor, borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 500 }}>{typeLabel}</span>
+                              </div>
+                            );
+                          })}
+                          {!citationData.isInTop5 && citationData.topDomains.length > 0 && (
+                            <div style={{ background: "#FEF2F2", borderRadius: 8, padding: "10px 12px", marginTop: 8 }}>
+                              <div style={{ fontSize: 12, color: "#991B1B", marginBottom: 4 }}>You are not in the top cited sources for your category.</div>
+                              <button onClick={() => setActiveTab("Citations")} style={{ background: "none", border: "none", padding: 0, fontSize: 12, color: "#5B3FEA", cursor: "pointer", fontWeight: 500 }}>
+                                See how to get there <ChevronRight size={11} style={{ display: "inline" }} />
+                              </button>
                             </div>
-                          ))}
+                          )}
                         </div>
                       </div>
-                      {/* Top cited domains */}
-                      <div>
-                        <div style={{ fontSize: 12, fontWeight: 500, color: "#6b7280", marginBottom: 8 }}>Top cited in your category</div>
-                        {citationData.topDomains.map((d, i) => {
-                          const typeBg = d.type === "yours" ? "#ECFDF5" : d.type === "competitor" ? "#FEF2F2" : d.type === "authority" ? "#FFFBEB" : "#EFF6FF";
-                          const typeColor = d.type === "yours" ? "#065F46" : d.type === "competitor" ? "#991B1B" : d.type === "authority" ? "#92400E" : "#1D4ED8";
-                          const typeLabel = d.type === "yours" ? "Your brand" : d.type === "competitor" ? "Competitor" : d.type === "authority" ? "Authority" : "Social";
-                          return (
-                            <div key={d.domain} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 6, marginBottom: 3, background: d.type === "yours" ? "#ECFDF5" : "transparent" }}>
-                              <span style={{ fontSize: 11, color: "#9ca3af", width: 14, textAlign: "right" }}>{i + 1}</span>
-                              <span style={{ fontSize: 12, color: "#111827", flex: 1, fontWeight: d.type === "yours" ? 600 : 400 }}>{d.domain}</span>
-                              <span style={{ fontSize: 11, color: "#6b7280" }}>{d.times} citations</span>
-                              <span style={{ background: typeBg, color: typeColor, borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 500 }}>{typeLabel}</span>
-                            </div>
-                          );
-                        })}
-                        {!citationData.isInTop5 && (
-                          <div style={{ background: "#FEF2F2", borderRadius: 8, padding: "10px 12px", marginTop: 8 }}>
-                            <div style={{ fontSize: 12, color: "#991B1B", marginBottom: 4 }}>You are not in the top 5 cited sources for your category.</div>
-                            <button onClick={() => setActiveTab("Citations")} style={{ background: "none", border: "none", padding: 0, fontSize: 12, color: "#5B3FEA", cursor: "pointer", fontWeight: 500 }}>
-                              See how to get there <ChevronRight size={11} style={{ display: "inline" }} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Visibility trend */}
                   <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 12 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
                       <div style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>Visibility trend, last 30 days</div>
-                      <div style={{ fontSize: 11, color: scoreDiff >= 0 ? "#059669" : "#DC2626" }}>
-                        vs {competitorDisplayName}: you are {Math.abs(scoreDiff)} pts {scoreDiff >= 0 ? "ahead" : "behind"}
-                      </div>
+                      {weekChange !== null && (
+                        <div style={{ fontSize: 11, color: weekChange >= 0 ? "#059669" : "#DC2626" }}>
+                          {weekChange >= 0 ? "+" : ""}{weekChange} pts since last scan
+                        </div>
+                      )}
                     </div>
-                    {lineChartData.length > 0 ? (
+                    {lineChartData.length >= 2 ? (
                       <ResponsiveContainer width="100%" height={150}>
                         <LineChart data={lineChartData} margin={{ top: 4, right: 4, bottom: 0, left: -22 }}>
                           <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: "#9ca3af" }} interval={Math.floor(lineChartData.length / 5)} />
                           <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: "#9ca3af" }} />
                           <Tooltip contentStyle={{ borderRadius: 8, border: "0.5px solid #e5e7eb", fontSize: 11 }} />
-                          <Legend wrapperStyle={{ fontSize: 11 }} />
                           <Line type="monotone" dataKey="yours" name="Your brand" stroke="#5B3FEA" strokeWidth={2} dot={false} />
-                          <Line type="monotone" dataKey="competitor" name={competitorDisplayName} stroke="#DC2626" strokeWidth={2} dot={false} strokeDasharray="4 2" />
                         </LineChart>
                       </ResponsiveContainer>
+                    ) : lineChartData.length === 1 ? (
+                      <div style={{ height: 150, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                        <div style={{ fontSize: 22, fontWeight: 700, color: "#5B3FEA" }}>{lineChartData[0]!.yours}</div>
+                        <div style={{ fontSize: 11, color: "#6b7280", textAlign: "center" }}>First scan recorded on {lineChartData[0]!.date}. Rescan weekly to build your trend line.</div>
+                      </div>
                     ) : (
                       <div style={{ height: 150, display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af", fontSize: 12 }}>
                         No trend data yet. Run a scan to start tracking.
@@ -1799,8 +1773,8 @@ export default function Dashboard() {
 
               {/* ===================== CITATIONS TAB ===================== */}
               {activeTab === "Citations" && (() => {
-                const yourCitations = citationData.donut[0]?.value ?? 2;
-                const competitorCitations = citationData.donut[1]?.value ?? 24;
+                const yourCitations = citationData.donut[0]?.value ?? 0;
+                const competitorCitations = citationData.donut[1]?.value ?? 0;
                 const topCompetitorCitations = competitorCitations > 0 ? Math.round(competitorCitations * 0.75) : yourCitations + 10;
                 const citationGap = Math.max(0, topCompetitorCitations - yourCitations);
                 const allSources = citationData.topDomains;
@@ -2173,8 +2147,7 @@ export default function Dashboard() {
                       <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 14 }}>Your citation gap</div>
                       {[
                         { name: "Your brand", citations: yourCitations, color: "#5B3FEA", isYours: true },
-                        { name: competitorDisplayName, citations: topCompetitorCitations, color: "#DC2626", isYours: false },
-                        { name: "Competitor B", citations: 12, color: "#D97706", isYours: false },
+                        ...(topCompetitorCitations > 0 ? [{ name: competitorDisplayName, citations: topCompetitorCitations, color: "#DC2626", isYours: false }] : []),
                       ].sort((a, b) => b.citations - a.citations).map(row => (
                         <div key={row.name} style={{ marginBottom: 12 }}>
                           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 5 }}>

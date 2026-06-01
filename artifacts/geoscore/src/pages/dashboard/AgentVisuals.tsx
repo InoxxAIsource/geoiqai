@@ -323,17 +323,12 @@ function TrendChart({ lineChartData, weekChange, brand, competitorDisplayName }:
               <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: "#9ca3af" }} />
               <Tooltip contentStyle={{ fontSize: 11, borderRadius: 6 }} />
               <Line type="monotone" dataKey="yours" name={brand.brandName ?? brand.domain} stroke="#4F46E5" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="competitor" name={competitorDisplayName} stroke="#DC2626" strokeWidth={2} dot={false} strokeDasharray="4 2" />
             </LineChart>
           </ResponsiveContainer>
           <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12 }}>
               <div style={{ width: 12, height: 2, background: "#4F46E5" }} />
               <span style={{ color: "#374151" }}>{brand.brandName ?? brand.domain}</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12 }}>
-              <div style={{ width: 12, height: 2, borderTop: "2px dashed #DC2626" }} />
-              <span style={{ color: "#374151" }}>{competitorDisplayName}</span>
             </div>
             {weekChange !== null && (
               <div style={{ marginLeft: "auto", fontSize: 12, fontWeight: 600, color: weekChange >= 0 ? "#16A34A" : "#DC2626" }}>

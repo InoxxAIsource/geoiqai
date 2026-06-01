@@ -14,7 +14,7 @@ export interface Brand {
 export interface TrendPoint {
   date: string;
   yours: number;
-  competitor: number;
+  competitor?: number;
 }
 
 export interface KeywordEntry {
