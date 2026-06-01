@@ -388,7 +388,7 @@ function LockedSection({ title, linkText = "See plans →", children }: { title:
           </svg>
         </div>
         <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", textAlign: "center" as const, maxWidth: 280 }}>{title}</div>
-        <a href="/pricing" style={{ fontSize: 12, fontWeight: 600, color: "#5B3FEA", textDecoration: "none" }}>{linkText}</a>
+        <Link to="/pricing" style={{ fontSize: 12, fontWeight: 600, color: "#5B3FEA", textDecoration: "none" }}>{linkText}</Link>
       </div>
     </div>
   );
@@ -415,9 +415,9 @@ function LockWall({ remaining, domain }: { remaining: number; domain: string }) 
       <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 24 }}>
         Most brands reach 50+ GEO IQ in 30 days
       </div>
-      <a href="/pricing" style={{ display: "inline-block", background: "#5B3FEA", color: "white", borderRadius: 8, padding: "13px 32px", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
+      <Link to="/pricing" style={{ display: "inline-block", background: "#5B3FEA", color: "white", borderRadius: 8, padding: "13px 32px", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
         Unlock full report - $69/mo
-      </a>
+      </Link>
       <div style={{ fontSize: 11, color: "#64748B", marginTop: 12 }}>7-day free trial · cancel anytime</div>
     </div>
   );
@@ -759,7 +759,7 @@ export default function Audit() {
   const subscribeMutation = useEmailSubscribe();
 
   const meQuery = useGetMe();
-  const isPaidUser = (meQuery.data as any)?.plan && (meQuery.data as any).plan !== "free";
+  const isPaidUser = !meQuery.isPending && !!(meQuery.data as any)?.plan && (meQuery.data as any).plan !== "free";
 
   // Guard against the effect firing multiple times for the same URL
   // (can happen due to React re-renders or route remounts)
@@ -1496,9 +1496,9 @@ export default function Audit() {
                       <div style={{ fontSize: 12, color: "#374151" }}>
                         Get the full audit with PageSpeed score, LCP, CLS, and 20+ checks in the dashboard.
                       </div>
-                      <a href="/pricing" style={{ flexShrink: 0, fontSize: 12, fontWeight: 600, color: "#5B3FEA", textDecoration: "none", whiteSpace: "nowrap" as const }}>
+                      <Link to="/pricing" style={{ flexShrink: 0, fontSize: 12, fontWeight: 600, color: "#5B3FEA", textDecoration: "none", whiteSpace: "nowrap" as const }}>
                         See plans
-                      </a>
+                      </Link>
                     </div>
                   </div>
                 )}
@@ -1533,9 +1533,9 @@ export default function Audit() {
                       GeoIQ's paid dashboard detects ChatGPT sponsored placements in real time for your tracked keywords - so you know who is spending to appear where you should be showing up organically.
                     </div>
                   </div>
-                  <a href="/pricing" style={{ background: "#4F46E5", color: "white", borderRadius: 7, padding: "8px 14px", fontSize: 12, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>
+                  <Link to="/pricing" style={{ background: "#4F46E5", color: "white", borderRadius: 7, padding: "8px 14px", fontSize: 12, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>
                     See paid plan
-                  </a>
+                  </Link>
                 </div>
               </div>
             )}
@@ -1741,9 +1741,9 @@ export default function Audit() {
                       <div style={{ fontSize: 9, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase" as const }}>Critical</div>
                     </div>
                   </div>
-                  <a href="/pricing" style={{ display: "block", background: "#5B3FEA", color: "white", borderRadius: 8, padding: "10px", fontSize: 13, fontWeight: 600, textDecoration: "none", textAlign: "center" as const }}>
+                  <Link to="/pricing" style={{ display: "block", background: "#5B3FEA", color: "white", borderRadius: 8, padding: "10px", fontSize: 13, fontWeight: 600, textDecoration: "none", textAlign: "center" as const }}>
                     Unlock all fixes →
-                  </a>
+                  </Link>
                   <div style={{ fontSize: 11, color: "#9CA3AF", textAlign: "center" as const, marginTop: 8 }}>7-day free trial</div>
                 </div>
               );

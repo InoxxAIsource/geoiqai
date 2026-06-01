@@ -15,8 +15,10 @@ const router: IRouter = Router();
 
 function serializeAudit(
   audit: typeof auditsTable.$inferSelect,
-  extra?: { fromCache: boolean; cachedHoursAgo?: number },
+  extra?: { fromCache: boolean; cachedHoursAgo?: number; isPaidUser?: boolean },
 ) {
+  // Default true so existing call sites (GET /audit/:id) are unaffected
+  const isPaid = extra?.isPaidUser ?? true;
   const raw = (audit.rawResults ?? {}) as Record<string, unknown>;
   const aiVisibilityScore = typeof raw.scoreAiVisibility === "number" ? raw.scoreAiVisibility : Math.min(audit.scoreChatgpt + audit.scoreGemini + audit.scorePerplexity, 100);
   const scoreTechnical = typeof raw.scoreTechnical === "number" ? raw.scoreTechnical : 0;
@@ -47,17 +49,18 @@ function serializeAudit(
     claudeDetail: typeof raw.claudeDetail === "string" ? raw.claudeDetail : null,
     grokDetail: typeof raw.grokDetail === "string" ? raw.grokDetail : null,
     chatgptRawResponse: typeof raw.chatgptRawResponse === "string" ? raw.chatgptRawResponse : null,
-    geminiRawResponse: typeof raw.geminiRawResponse === "string" ? raw.geminiRawResponse : null,
-    perplexityRawResponse: typeof raw.perplexityRawResponse === "string" ? raw.perplexityRawResponse : null,
-    claudeRawResponse: typeof raw.claudeRawResponse === "string" ? raw.claudeRawResponse : null,
-    grokRawResponse: typeof raw.grokRawResponse === "string" ? raw.grokRawResponse : null,
+    // Strip full AI responses for free/anonymous users - these are the paid-only sections
+    geminiRawResponse: isPaid && typeof raw.geminiRawResponse === "string" ? raw.geminiRawResponse : null,
+    perplexityRawResponse: isPaid && typeof raw.perplexityRawResponse === "string" ? raw.perplexityRawResponse : null,
+    claudeRawResponse: isPaid && typeof raw.claudeRawResponse === "string" ? raw.claudeRawResponse : null,
+    grokRawResponse: isPaid && typeof raw.grokRawResponse === "string" ? raw.grokRawResponse : null,
     technicalAudit: (raw.technicalAudit ?? null) as TechnicalAuditResult | null,
     competitorsFound: audit.competitorsFound,
     keywordsUsed: audit.keywordsUsed,
     keywordsFromDataforseo: typeof raw.keywordsFromDataforseo === "number" ? raw.keywordsFromDataforseo : 0,
     keywordsFilteredOut: typeof raw.keywordsFilteredOut === "number" ? raw.keywordsFilteredOut : 0,
     recommendations: audit.recommendations,
-    eeatScore,
+    eeatScore: isPaid ? eeatScore : null,
     createdAt: audit.createdAt.toISOString(),
     fromCache: extra?.fromCache ?? false,
     cachedHoursAgo: extra?.cachedHoursAgo,
@@ -77,6 +80,20 @@ router.post("/audit", async (req, res): Promise<void> => {
   const subscriberEmail = (req.headers["x-subscriber-email"] as string)?.trim() ?? "";
 
   try {
+    // Layer 1: Check for paid user via optional bearer token (checked first so cached results
+    // are also gated correctly - free users get stripped data even from cache)
+    let isPaidUser = false;
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith("Bearer ")) {
+      const userId = verifyToken(authHeader.substring(7));
+      if (userId) {
+        const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+        if (user && user.plan !== "free") {
+          isPaidUser = true;
+        }
+      }
+    }
+
     // Layer 0: Cache check - 24h, never counts against rate limit (skipped when force=true)
     if (!force) {
       const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -90,24 +107,11 @@ router.post("/audit", async (req, res): Promise<void> => {
       if (cachedAudit) {
         const hoursAgo = Math.floor((Date.now() - cachedAudit.createdAt.getTime()) / (60 * 60 * 1000));
         req.log.info({ domain, hoursAgo }, `${domain} - returning cached audit`);
-        res.json(serializeAudit(cachedAudit, { fromCache: true, cachedHoursAgo: hoursAgo }));
+        res.json(serializeAudit(cachedAudit, { fromCache: true, cachedHoursAgo: hoursAgo, isPaidUser }));
         return;
       }
     } else {
       req.log.info({ domain }, `${domain} - force refresh requested, skipping cache`);
-    }
-
-    // Layer 1: Check for paid user via optional bearer token - skip all limits
-    let isPaidUser = false;
-    const authHeader = req.headers.authorization;
-    if (authHeader?.startsWith("Bearer ")) {
-      const userId = verifyToken(authHeader.substring(7));
-      if (userId) {
-        const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
-        if (user && user.plan !== "free") {
-          isPaidUser = true;
-        }
-      }
     }
 
     if (!isPaidUser) {
@@ -241,7 +245,7 @@ router.post("/audit", async (req, res): Promise<void> => {
       }
     }
 
-    res.json({ ...serializeAudit(audit!), recommendations, eeatScore, fromCache: false });
+    res.json({ ...serializeAudit(audit!, { fromCache: false, isPaidUser }), recommendations: isPaidUser ? recommendations : (recommendations ?? []).slice(0, 1), eeatScore: isPaidUser ? eeatScore : null });
   } catch (err) {
     req.log.error({ err }, "Audit failed");
     res.status(500).json({ error: "Audit failed" });
