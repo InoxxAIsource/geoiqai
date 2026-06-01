@@ -2,6 +2,16 @@ import { db, keywordCacheTable, dataforseoCacheTable } from "@workspace/db";
 import { eq, gt } from "drizzle-orm";
 import type { KeywordData } from "@workspace/db";
 import { logger } from "./logger";
+import OpenAI from "openai";
+
+// Lightweight OpenAI client used only for keyword generation fallback.
+// Uses Replit AI Integrations proxy when available.
+const kgOpenai = new OpenAI({
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "https://api.openai.com/v1",
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY ?? "no-key",
+  timeout: 20000,
+  maxRetries: 0,
+});
 
 const DATAFORSEO_BASE = "https://api.dataforseo.com";
 
@@ -84,10 +94,10 @@ export function isGenericAiOnly(keyword: string): boolean {
   // Deliberately excludes: app, free, ask, check, agency, pro, plus, download, login, sign, etc.
   const PRODUCT_MODIFIERS = [
     "tool", "tracker", "checker", "monitor", "audit", "score",
-    "rank", "ranking", "analytic", "alternative", "platform",
+    "rank", "ranking", "analytic", "analysis", "alternative", "platform",
     "software", "integration", "plugin", "extension",
     "visibility", "optimization", "brand", "citation",
-    "geo", "seo", "search", "performance", "insight",
+    "geo", "seo", "search", "performance", "insight", "intelligence",
     "marketing", "saas", "crm", "dashboard", "report",
     "detect", "detection",
   ];
@@ -103,19 +113,16 @@ export function isGenericAiOnly(keyword: string): boolean {
  *
  * Priority chain:
  *   1. DB cache (7-day TTL), with generic-AI filter applied
- *   2. DataForSEO Labs ranked_keywords/live (actual organic rankings - most specific)
- *   3. DataForSEO keyword_suggestions/live with specific niche (for new/young domains)
- *      Uses multi-seed retry: niche -> "niche tool" -> "best niche" until >=5 good keywords
- *   4. Google Ads keywords_for_site/live (last resort - tends to return broad terms)
- *   5. Returns [] if nothing found
+ *   2. DataForSEO Labs ranked_keywords/live (actual organic rankings)
+ *   3. Google Ads keywords_for_site/live (ad-relevance; great for established domains)
+ *   4. LLM-generated keywords + DataForSEO volume lookup (for new domains with no coverage)
  *
- * isGenericAiOnly() is applied at every step to strip broad AI terms
- * (e.g. "ask ai", "free ai", "chatgpt app", "ai agency") that have no buyer intent
- * for any specific product.
+ * isGenericAiOnly() strips broad AI terms at every step so only product-specific
+ * buyer-intent keywords reach the caller.
  *
  * Never throws — any error returns an empty array.
  */
-export async function getDomainKeywords(domain: string, niche?: string): Promise<KeywordData[]> {
+export async function getDomainKeywords(domain: string, niche?: string, brandName?: string): Promise<KeywordData[]> {
   const login = process.env.DATAFORSEO_LOGIN ?? "";
   const password = process.env.DATAFORSEO_PASSWORD ?? "";
 
@@ -124,15 +131,18 @@ export async function getDomainKeywords(domain: string, niche?: string): Promise
   if (cached) {
     const goodCached = cached.filter(k => !isGenericAiOnly(k.keyword));
     if (goodCached.length >= 3) return goodCached;
-    // Cache is mostly generic AI terms - fall through to re-fetch if we have creds
     if (!login || !password) return goodCached;
   } else if (!login || !password) {
+    // No DataForSEO creds — try LLM if we have a niche
+    if (niche) {
+      return generateKeywordsWithLLM(niche, brandName ?? domain, domain, getLocationCode(domain));
+    }
     return [];
   }
 
   const locationCode = getLocationCode(domain);
 
-  // Step 1: ranked_keywords - actual organic rankings (domain-specific, highest signal)
+  // Step 1: ranked_keywords — actual organic rankings, highest relevance signal
   const rankedResult = await fetchRankedKeywords(domain, locationCode);
   const filteredRanked = rankedResult.filter(k => !isGenericAiOnly(k.keyword));
   if (filteredRanked.length >= 3) {
@@ -140,42 +150,131 @@ export async function getDomainKeywords(domain: string, niche?: string): Promise
     return filteredRanked;
   }
 
-  // Step 2: keyword_suggestions with specific niche (better than google_ads for new domains
-  // because we control the seed and get niche-specific results instead of broad AI terms)
-  if (niche) {
-    const seeds = [niche, `${niche} tool`, `best ${niche}`];
-    const seen = new Set<string>();
-    const nicheKeywords: KeywordData[] = [];
-
-    for (const seed of seeds) {
-      if (nicheKeywords.length >= 5) break;
-      const suggestions = await fetchKeywordSuggestions(seed, locationCode);
-      for (const k of suggestions) {
-        if (!isGenericAiOnly(k.keyword) && !seen.has(k.keyword)) {
-          seen.add(k.keyword);
-          nicheKeywords.push(k);
-        }
-      }
-    }
-
-    if (nicheKeywords.length >= 3) {
-      await cacheKeywords(domain, nicheKeywords, locationCode);
-      return nicheKeywords;
-    }
-  }
-
-  // Step 3: Google Ads keywords_for_site (last resort - broad but sometimes useful for
-  // established domains; aggressively filtered to remove generic AI terms)
+  // Step 2: keywords_for_site — ad-relevance signal; excellent for established domains
+  // (ahrefs.com: returns "seo tools", "backlink checker" etc.)
+  // For new AI-niche domains the results are generic and get filtered to 0.
   const googleAdsResult = await fetchKeywordsForSiteGoogleAds(domain, locationCode);
   const filteredAds = googleAdsResult.filter(k => !isGenericAiOnly(k.keyword));
-  if (filteredAds.length >= 1) {
+  if (filteredAds.length >= 3) {
     await cacheKeywords(domain, filteredAds, locationCode);
     return filteredAds;
   }
 
-  // Return whatever ranked keywords survived filtering
-  if (filteredRanked.length > 0) await cacheKeywords(domain, filteredRanked, locationCode);
-  return filteredRanked;
+  // Step 3: LLM-generated keywords — for new/niche domains where DataForSEO has no coverage.
+  // (geoiqai.com: no ranked keywords, keywords_for_site returns only generic AI terms)
+  if (niche) {
+    const llmKeywords = await generateKeywordsWithLLM(niche, brandName ?? domain, domain, locationCode);
+    if (llmKeywords.length > 0) {
+      await cacheKeywords(domain, llmKeywords, locationCode);
+      return llmKeywords;
+    }
+  }
+
+  // Return whatever survived filtering even if sparse
+  const combined = [...filteredRanked, ...filteredAds];
+  if (combined.length > 0) await cacheKeywords(domain, combined, locationCode);
+  return combined;
+}
+
+/**
+ * Generate buyer-intent keywords using the LLM when DataForSEO has no coverage for the domain.
+ * Generates candidate keywords from the niche description, then enriches with real search volumes.
+ */
+async function generateKeywordsWithLLM(
+  niche: string,
+  brandName: string,
+  domain: string,
+  locationCode: number,
+): Promise<KeywordData[]> {
+  try {
+    const resp = await kgOpenai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{
+        role: "system",
+        content: "You are a keyword research expert. Return ONLY a valid JSON array of strings. No explanation, no markdown, no code blocks.",
+      }, {
+        role: "user",
+        content: `You run a keyword research firm. A startup needs real Google search queries their target customers type when looking for a product like theirs.
+
+Product category: "${niche}"
+Brand: ${brandName} (${domain})
+
+Generate 10 natural search queries. Think about what someone would actually type, not what a marketer would write.
+
+Rules:
+- 2-5 words per keyword (short, natural phrasing)
+- Mix: product-finding queries ("best X tool"), comparison ("X vs Y"), job-to-be-done ("how to track X"), feature-specific ("X with Y feature")
+- Do NOT repeat the exact phrase "${niche}" in every keyword - vary the angle and vocabulary
+- No brand names, no "free", no generic AI system names alone (chatgpt, gemini, etc.) without a specific product context
+- Each keyword should be something a real person would type, not a formal category label
+
+Return ONLY a JSON array of 10 strings. Example format: ["track brand in ai search", "ai citation monitoring tool", "seo for ai answers"]`,
+      }],
+      temperature: 0.3,
+      max_tokens: 300,
+    });
+
+    const raw = resp.choices[0]?.message?.content?.trim() ?? "[]";
+    // Strip any accidental markdown code fences
+    const clean = raw.replace(/^```[a-z]*\n?/i, "").replace(/\n?```$/i, "").trim();
+    const candidates = JSON.parse(clean) as string[];
+    if (!Array.isArray(candidates) || candidates.length === 0) return [];
+
+    // Keep only strings, remove any that slipped through the generic filter
+    const good = candidates
+      .filter(k => typeof k === "string" && k.length > 0 && !isGenericAiOnly(k))
+      .slice(0, 10);
+
+    if (good.length === 0) return [];
+
+    // Enrich with real search volumes from DataForSEO
+    const volumes = await fetchKeywordVolumes(good, locationCode);
+    logger.info({ niche, count: good.length }, "[Keywords] LLM-generated keywords");
+
+    return good.map(kw => ({ keyword: kw, volume: volumes[kw] ?? 0, competition: 0 }));
+  } catch (err) {
+    logger.warn({ err, niche }, "[Keywords] LLM generation failed");
+    return [];
+  }
+}
+
+/**
+ * Fetch search volumes for a list of known keywords using DataForSEO Google Ads search_volume.
+ * Returns a map of keyword -> monthly search volume.
+ */
+async function fetchKeywordVolumes(keywords: string[], locationCode: number): Promise<Record<string, number>> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+
+    const resp = await fetch(`${DATAFORSEO_BASE}/v3/keywords_data/google_ads/search_volume/live`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: getAuthHeader(),
+      body: JSON.stringify([{
+        keywords,
+        location_code: locationCode,
+        language_code: "en",
+      }]),
+    });
+    clearTimeout(timeout);
+
+    if (!resp.ok) return {};
+
+    const data = (await resp.json()) as Record<string, unknown>;
+    const tasks = (data.tasks as Array<Record<string, unknown>>) ?? [];
+    const items = (tasks[0]?.result as Array<Record<string, unknown>>) ?? [];
+
+    const result: Record<string, number> = {};
+    for (const item of items) {
+      const kw = String(item.keyword ?? "");
+      const vol = Number(item.search_volume ?? 0);
+      if (kw) result[kw] = vol;
+    }
+    return result;
+  } catch {
+    return {};
+  }
 }
 
 /**

@@ -467,8 +467,8 @@ router.get("/dashboard/brands/:id/keywords", requirePaidAuth, async (req, res): 
   }
 
   // Cache is empty, expired, or had only generic AI terms — fetch fresh keywords.
-  // getDomainKeywords: ranked_keywords -> keyword_suggestions(niche) -> keywords_for_site
-  const freshKeywords = await getDomainKeywords(brand.domain, niche);
+  // getDomainKeywords: ranked_keywords -> keywords_for_site -> LLM fallback
+  const freshKeywords = await getDomainKeywords(brand.domain, niche, brand.brandName ?? undefined);
 
   if (freshKeywords.length >= 1) {
     // Update cache with the clean keywords so future loads are fast
