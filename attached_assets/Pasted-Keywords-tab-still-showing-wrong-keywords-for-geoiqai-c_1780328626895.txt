@@ -1,0 +1,145 @@
+Keywords tab still showing wrong keywords 
+for geoiqai.com after previous fix.
+
+Currently showing:
+"ai check" 27M/mo — WRONG
+"chatgpt app" 3.6M/mo — WRONG
+"ask ai" 2.4M/mo — WRONG
+"free ai" 1.1M/mo — WRONG
+"ai agency" 60K/mo — WRONG
+"ai app" 49K/mo — WRONG
+
+These are all generic AI keywords.
+Nobody searching these wants GeoIQ.
+
+THE PROBLEM IS THE DATAFORSEO QUERY.
+
+You are fetching keywords using a 
+broad seed keyword like "ai" or 
+"ai tool" from DataForSEO.
+
+This returns millions of generic 
+AI-related keywords.
+
+CORRECT DATAFORSEO QUERY FOR KEYWORDS:
+
+Stop using broad seed keywords.
+Use the domain's own ranked keywords first.
+
+STEP 1 — Try ranked keywords for domain:
+
+POST /v3/dataforseo_labs/google/
+ranked_keywords/live
+
+Body:
+{
+  "target": "geoiqai.com",
+  "location_code": 2840,
+  "language_code": "en",
+  "limit": 15,
+  "order_by": [
+    "keyword_data.keyword_info.search_volume,desc"
+  ]
+}
+
+If this returns results — use them.
+These are keywords the site actually 
+ranks for — always relevant.
+
+STEP 2 — If domain is new and has 
+no ranked keywords yet:
+
+Use keyword_suggestions with the 
+SPECIFIC niche not broad category.
+
+For geoiqai.com detected niche is
+"AI visibility tracking":
+
+POST /v3/dataforseo_labs/google/
+keyword_suggestions/live
+
+Body:
+{
+  "keyword": "AI visibility tracking",
+  "location_code": 2840,
+  "language_code": "en",
+  "limit": 15,
+  "order_by": [
+    "keyword_data.keyword_info.search_volume,desc"
+  ]
+}
+
+This returns keywords like:
+"AI visibility tool"
+"track brand in ChatGPT"
+"GEO optimization"
+"AI search visibility"
+"brand monitoring AI"
+
+NOT "ai check" or "chatgpt app"
+
+STEP 3 — Hard filter before saving:
+
+After fetching keywords from DataForSEO
+apply this filter to remove irrelevant ones:
+
+REMOVE keyword if ALL of these are true:
+- keyword does NOT contain any word 
+  from the specific niche
+AND
+- keyword is a generic AI system name
+  (chatgpt, gemini, claude, grok, 
+  perplexity, openai, anthropic)
+  without a product modifier
+
+Product modifier words that make 
+a keyword relevant:
+tool, tracker, checker, monitor, audit,
+visibility, ranking, optimization, score,
+brand, citation, GEO, search
+
+Example filter logic:
+"chatgpt app" → no product modifier → REMOVE
+"chatgpt brand visibility" → has modifier → KEEP
+"ai check" → no modifier → REMOVE
+"ai visibility checker" → has modifier → KEEP
+"free ai" → no modifier → REMOVE
+"free AI visibility audit" → has modifier → KEEP
+
+STEP 4 — Validate minimum 5 keywords
+
+After filtering if less than 5 keywords 
+remain go back to Step 2 and try a 
+different seed keyword from the niche.
+
+Try these seeds in order until 
+5+ relevant keywords found:
+1. "[niche]" (e.g. "AI visibility tracking")
+2. "[niche] tool" 
+3. "best [niche]"
+4. "[primary product feature]"
+
+STEP 5 — Show correct keywords
+
+For geoiqai.com final keywords must 
+include words related to:
+AI visibility, GEO optimization, 
+brand tracking, ChatGPT visibility,
+AI search ranking
+
+If any keyword in the final list 
+contains only generic AI system names
+without product context — the fix 
+is not complete. Keep fixing.
+
+TEST AFTER IMPLEMENTING:
+
+Show keywords tab for geoiqai.com.
+Every keyword must be relevant to 
+AI visibility tracking product.
+Zero generic "ai app" or "ask ai" 
+keywords allowed in final result.
+
+Also test with ahrefs.com.
+Must show backlink/SEO keywords.
+Zero generic results allowed.

@@ -62,9 +62,17 @@ async function cacheKeywords(domain: string, keywords: KeywordData[], locationCo
 }
 
 /**
- * Returns true if a keyword is just a generic AI system name with no product-specific modifier.
- * Example: "gemini ai" -> true, "ai visibility tool" -> false, "chatgpt alternative" -> false.
- * Used to prevent showing irrelevant keywords like "claude ai" on an AI-visibility-tracking domain.
+ * Returns true if a keyword is a generic AI phrase with no product-specific buyer intent.
+ *
+ * Two cases covered:
+ *   1. Specific AI system names (chatgpt, gemini, claude...) without a product modifier
+ *      e.g. "chatgpt app" -> generic, "chatgpt alternative" -> NOT generic (keep)
+ *   2. Generic "ai" word without a meaningful product modifier
+ *      e.g. "ask ai", "free ai", "ai check", "ai app" -> all generic (remove)
+ *      e.g. "ai visibility tool", "ai search ranking" -> NOT generic (keep)
+ *
+ * Product modifiers are genuine buyer-intent terms that indicate a specific product category,
+ * NOT general usage words like "app", "free", "ask", "check".
  */
 export function isGenericAiOnly(keyword: string): boolean {
   const kl = keyword.toLowerCase().trim();
@@ -72,15 +80,20 @@ export function isGenericAiOnly(keyword: string): boolean {
     "chatgpt", "gemini", "claude", "grok", "perplexity", "openai",
     "bard", "copilot", "llama", "mistral", "deepseek", "meta ai",
   ];
+  // Only genuine product-category words count as modifiers.
+  // Deliberately excludes: app, free, ask, check, agency, pro, plus, download, login, sign, etc.
   const PRODUCT_MODIFIERS = [
-    "tool", "tracker", "checker", "monitor", "audit", "score", "rank",
-    "analytic", "alternative", "vs", "platform", "software", "app",
-    "api", "integration", "plugin", "extension", "pricing", "review",
-    "compare", "comparison", "free", "pro", "plus", "enterprise",
-    "login", "sign", "prompt", "jailbreak", "detector",
+    "tool", "tracker", "checker", "monitor", "audit", "score",
+    "rank", "ranking", "analytic", "alternative", "platform",
+    "software", "integration", "plugin", "extension",
+    "visibility", "optimization", "brand", "citation",
+    "geo", "seo", "search", "performance", "insight",
+    "marketing", "saas", "crm", "dashboard", "report",
+    "detect", "detection",
   ];
-  const hasAiTerm = AI_SYSTEM_NAMES.some(t => kl.includes(t));
-  if (!hasAiTerm) return false;
+  const hasAiSystemName = AI_SYSTEM_NAMES.some(t => kl.includes(t));
+  const hasGenericAi = /\bai\b/.test(kl);
+  if (!hasAiSystemName && !hasGenericAi) return false;
   const hasModifier = PRODUCT_MODIFIERS.some(m => kl.includes(m));
   return !hasModifier;
 }
@@ -89,14 +102,16 @@ export function isGenericAiOnly(keyword: string): boolean {
  * Fetch relevant keywords for a domain.
  *
  * Priority chain:
- *   1. DB cache (7-day TTL), with generic-AI-term filter applied
- *   2. DataForSEO Labs ranked_keywords/live (real rankings for the domain)
- *   3. Google Ads keywords_for_site/live (ad-relevance signal)
- *   4. DataForSEO keyword_suggestions/live with extracted niche (best for new sites)
+ *   1. DB cache (7-day TTL), with generic-AI filter applied
+ *   2. DataForSEO Labs ranked_keywords/live (actual organic rankings - most specific)
+ *   3. DataForSEO keyword_suggestions/live with specific niche (for new/young domains)
+ *      Uses multi-seed retry: niche -> "niche tool" -> "best niche" until >=5 good keywords
+ *   4. Google Ads keywords_for_site/live (last resort - tends to return broad terms)
  *   5. Returns [] if nothing found
  *
- * Generic AI system-name keywords (e.g. "gemini ai", "claude ai") are filtered out at
- * every step so only product-specific buyer-intent keywords reach the caller.
+ * isGenericAiOnly() is applied at every step to strip broad AI terms
+ * (e.g. "ask ai", "free ai", "chatgpt app", "ai agency") that have no buyer intent
+ * for any specific product.
  *
  * Never throws — any error returns an empty array.
  */
@@ -109,7 +124,7 @@ export async function getDomainKeywords(domain: string, niche?: string): Promise
   if (cached) {
     const goodCached = cached.filter(k => !isGenericAiOnly(k.keyword));
     if (goodCached.length >= 3) return goodCached;
-    // Cache exists but is mostly generic AI terms — fall through to re-fetch if we have creds
+    // Cache is mostly generic AI terms - fall through to re-fetch if we have creds
     if (!login || !password) return goodCached;
   } else if (!login || !password) {
     return [];
@@ -117,7 +132,7 @@ export async function getDomainKeywords(domain: string, niche?: string): Promise
 
   const locationCode = getLocationCode(domain);
 
-  // Step 1: ranked_keywords - actual organic rankings (most relevant signal)
+  // Step 1: ranked_keywords - actual organic rankings (domain-specific, highest signal)
   const rankedResult = await fetchRankedKeywords(domain, locationCode);
   const filteredRanked = rankedResult.filter(k => !isGenericAiOnly(k.keyword));
   if (filteredRanked.length >= 3) {
@@ -125,28 +140,42 @@ export async function getDomainKeywords(domain: string, niche?: string): Promise
     return filteredRanked;
   }
 
-  // Step 2: Google Ads keywords_for_site - ad-relevance signal
+  // Step 2: keyword_suggestions with specific niche (better than google_ads for new domains
+  // because we control the seed and get niche-specific results instead of broad AI terms)
+  if (niche) {
+    const seeds = [niche, `${niche} tool`, `best ${niche}`];
+    const seen = new Set<string>();
+    const nicheKeywords: KeywordData[] = [];
+
+    for (const seed of seeds) {
+      if (nicheKeywords.length >= 5) break;
+      const suggestions = await fetchKeywordSuggestions(seed, locationCode);
+      for (const k of suggestions) {
+        if (!isGenericAiOnly(k.keyword) && !seen.has(k.keyword)) {
+          seen.add(k.keyword);
+          nicheKeywords.push(k);
+        }
+      }
+    }
+
+    if (nicheKeywords.length >= 3) {
+      await cacheKeywords(domain, nicheKeywords, locationCode);
+      return nicheKeywords;
+    }
+  }
+
+  // Step 3: Google Ads keywords_for_site (last resort - broad but sometimes useful for
+  // established domains; aggressively filtered to remove generic AI terms)
   const googleAdsResult = await fetchKeywordsForSiteGoogleAds(domain, locationCode);
   const filteredAds = googleAdsResult.filter(k => !isGenericAiOnly(k.keyword));
-  if (filteredAds.length >= 3) {
+  if (filteredAds.length >= 1) {
     await cacheKeywords(domain, filteredAds, locationCode);
     return filteredAds;
   }
 
-  // Step 3: keyword_suggestions with niche (best for new/young domains with no rankings yet)
-  if (niche) {
-    const suggestions = await fetchKeywordSuggestions(niche, locationCode);
-    const filteredSuggestions = suggestions.filter(k => !isGenericAiOnly(k.keyword));
-    if (filteredSuggestions.length > 0) {
-      await cacheKeywords(domain, filteredSuggestions, locationCode);
-      return filteredSuggestions;
-    }
-  }
-
-  // Return whatever is left even if sparse
-  const combined = [...filteredRanked, ...filteredAds];
-  if (combined.length > 0) await cacheKeywords(domain, combined, locationCode);
-  return combined;
+  // Return whatever ranked keywords survived filtering
+  if (filteredRanked.length > 0) await cacheKeywords(domain, filteredRanked, locationCode);
+  return filteredRanked;
 }
 
 /**

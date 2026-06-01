@@ -418,10 +418,7 @@ router.get("/dashboard/brands/:id/keywords", requirePaidAuth, async (req, res): 
   const geminiVisible = (latestScore?.scoreGemini ?? 0) > 0;
   const perplexityVisible = (latestScore?.scorePerplexity ?? 0) > 0;
 
-  // Niche = specific subcategory (e.g. "AI visibility tracking") for new-site keyword suggestions
-  const niche = brand.subcategory ?? brand.category ?? undefined;
-
-  // Check cache — filter out generic AI system keywords before deciding if it's usable
+  // Check cache — filter out generic AI terms before deciding if it's usable
   const [cache] = await db.select().from(keywordCacheTable).where(eq(keywordCacheTable.domain, brand.domain)).limit(1);
   const now = new Date();
   const cacheValid = cache && cache.expiresAt > now;
@@ -441,8 +438,36 @@ router.get("/dashboard/brands/:id/keywords", requirePaidAuth, async (req, res): 
     return;
   }
 
-  // Cache is empty, expired, or had only generic AI terms — fetch fresh keywords
-  // getDomainKeywords handles ranked -> google_ads -> keyword_suggestions(niche) with filtering
+  // Determine the specific product niche for keyword_suggestions seed.
+  // brand.subcategory is set by regenerate-prompts (e.g. "AI visibility tracking").
+  // If not yet set, detect it now by crawling the site — one-time cost, saved for future loads.
+  let niche = brand.subcategory ?? undefined;
+  if (!niche) {
+    try {
+      const { subcategory } = await detectBrandSubcategory(
+        `https://${brand.domain}`,
+        brand.brandName,
+        brand.category,
+        brand.market,
+      );
+      if (subcategory) {
+        niche = subcategory;
+        // Save for future loads so we don't re-crawl on every keyword refresh
+        await db.update(monitoredBrandsTable)
+          .set({ subcategory })
+          .where(eq(monitoredBrandsTable.id, brand.id))
+          .catch(() => {});
+        req.log.info({ domain: brand.domain, subcategory }, "keywords: detected subcategory");
+      }
+    } catch {
+      // Non-fatal — falls back to category or no niche
+    }
+    // Last resort seed: use the broad category if subcategory detection failed
+    niche = niche ?? brand.category ?? undefined;
+  }
+
+  // Cache is empty, expired, or had only generic AI terms — fetch fresh keywords.
+  // getDomainKeywords: ranked_keywords -> keyword_suggestions(niche) -> keywords_for_site
   const freshKeywords = await getDomainKeywords(brand.domain, niche);
 
   if (freshKeywords.length >= 1) {
