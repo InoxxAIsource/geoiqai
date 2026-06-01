@@ -477,11 +477,24 @@ router.post("/dashboard/brands/:id/regenerate-prompts", requirePaidAuth, async (
       brand.market,
     );
 
+    // Persist subcategory on the brand
     await db.update(monitoredBrandsTable)
       .set({ subcategory: subcategory || null })
       .where(eq(monitoredBrandsTable.id, brand.id));
 
-    req.log.info({ domain: brand.domain, subcategory, promptCount: prompts.length }, "Prompts regenerated");
+    // Persist the new prompts into keyword_cache so the /keywords endpoint
+    // returns them immediately on the next load (replaces stale DataForSEO cache).
+    const promptKeywords = prompts.map((p) => ({ keyword: p, volume: 0, competition: 0 }));
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    await db
+      .insert(keywordCacheTable)
+      .values({ domain: brand.domain, keywords: promptKeywords, locationCode: 2356, cachedAt: new Date(), expiresAt })
+      .onConflictDoUpdate({
+        target: keywordCacheTable.domain,
+        set: { keywords: promptKeywords, cachedAt: new Date(), expiresAt },
+      });
+
+    req.log.info({ domain: brand.domain, subcategory, promptCount: prompts.length }, "Prompts regenerated and cached");
     res.json({ subcategory, prompts });
   } catch (err) {
     req.log.error({ err, domain: brand.domain }, "Failed to regenerate prompts");

@@ -11,6 +11,7 @@ import {
   useRemoveMonitoredBrand,
   getGetMonitoredBrandsQueryKey,
   getGetDashboardSummaryQueryKey,
+  getGetBrandKeywordsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AddBrandModal } from "@/components/dashboard/AddBrandModal";
@@ -207,6 +208,15 @@ function getCitationData(category: string | null | undefined, domain: string) {
   return { topDomains, donut, isInTop5, total: yourTotal + competitorTotal + authorityTotal + socialTotal };
 }
 
+// Returns true when a string is a full prompt sentence rather than a raw keyword phrase.
+// Full sentences come from audits.keywords_used or keyword_cache after regeneration.
+// Raw keyword phrases come from DataForSEO and need to be wrapped in templates.
+function isFullPromptSentence(kw: string): boolean {
+  if (kw.length > 60) return true;
+  const lower = kw.toLowerCase();
+  return /^(what|which|how|who|where|when|i need|tell me|list|find|compare|give me|show me)/.test(lower);
+}
+
 function buildPromptTemplates(
   keywords: string[],
   brandName: string,
@@ -214,10 +224,13 @@ function buildPromptTemplates(
   market: string,
 ): string[] {
   if (!keywords.length) return [];
+  // If the first keyword is a full sentence, the whole list is already full prompts - use as-is.
+  if (isFullPromptSentence(keywords[0]!)) return keywords;
+  // Raw DataForSEO keyword phrases - wrap in templates.
   const kws = keywords.slice(0, 5);
   const templates: ((kw: string) => string)[] = [
     (kw) => `What are the best ${kw} tools available in 2026? List the top options with descriptions.`,
-    (kw) => `What are the top alternatives to ${competitor}? List similar ${kw} tools with brief descriptions.`,
+    (kw) => `What are the top alternatives to ${competitor} for ${kw}? List similar tools with brief descriptions.`,
     (kw) => `Which ${kw} tool do you recommend for ${market} teams? Give the top 5 with pros and cons.`,
     (kw) => `I need a ${kw} tool. What are the most reputable and widely used options right now?`,
     (_kw) => `What is ${brandName} and what is it used for? How does it compare to alternatives?`,
@@ -225,18 +238,29 @@ function buildPromptTemplates(
   return kws.map((kw, i) => templates[i % templates.length]!(kw));
 }
 
-function getDefaultPrompts(category: string | null | undefined): string[] {
+function getDefaultPrompts(category: string | null | undefined, subcategory?: string | null): string[] {
+  // If we have a specific subcategory, generate niche-specific prompts immediately
+  // rather than returning generic keyword phrases.
+  if (subcategory && subcategory.trim().length > 0) {
+    const noun = subcategory.trim();
+    return [
+      `What are the best ${noun} tools available in 2026? List the top options with descriptions.`,
+      `I need a ${noun} tool. What are the most reputable and widely used options right now?`,
+      `Which ${noun} tool do you recommend for India? Give the top 5 with pros and cons.`,
+      `What are the leading ${noun} platforms used by businesses today? What makes each one stand out?`,
+    ];
+  }
   const cat = (category ?? "").toLowerCase();
   if (cat.includes("health") || cat.includes("diet") || cat.includes("fitness")) {
-    return ["best health app India", "AI diet tracker app", "diabetes management app", "nutrition tracker India", "weight loss app India", "fitness app for Indians"];
+    return ["best health app India", "AI diet tracker app", "diabetes management app", "nutrition tracker India", "weight loss app India"];
   }
   if (cat.includes("fintech") || cat.includes("finance")) {
-    return ["best fintech app India", "personal finance tracker", "expense management app", "investment app India", "money management tool"];
+    return ["best fintech app India", "personal finance tracker", "expense management app", "investment app India"];
   }
   if (cat.includes("saas") || cat.includes("tool") || cat.includes("software")) {
-    return ["best SaaS tools for startups", "project management software India", "team collaboration tool", "productivity app founders", "startup software stack"];
+    return ["best SaaS tools for startups", "project management software India", "team collaboration tool", "productivity app founders"];
   }
-  return ["best AI tools 2024", "AI tools for startups", "productivity tools India", "software for founders", "startup tools comparison"];
+  return ["best AI tools 2026", "AI tools for startups", "productivity tools India", "software for founders"];
 }
 
 function getCompetitorBase(category: string | null | undefined): string {
@@ -428,6 +452,12 @@ export default function Dashboard() {
   const [regenPromptsLoading, setRegenPromptsLoading] = useState(false);
   const [regenPromptsResult, setRegenPromptsResult] = useState<{ subcategory: string; prompts: string[] } | null>(null);
   const [regenPromptsBrandId, setRegenPromptsBrandId] = useState<string | null>(null);
+  const [nicheEditing, setNicheEditing] = useState(false);
+  const [nicheDraft, setNicheDraft] = useState("");
+  const [nicheOverrides, setNicheOverrides] = useState<Record<string, string>>({});
+  const [editingPromptIdx, setEditingPromptIdx] = useState<number | null>(null);
+  const [editingPromptText, setEditingPromptText] = useState("");
+  const [editedPrompts, setEditedPrompts] = useState<Record<string, Record<number, string>>>({}); // brandId -> idx -> text
 
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768);
@@ -808,6 +838,9 @@ export default function Dashboard() {
       if (resp.ok) {
         const data = await resp.json();
         setRegenPromptsResult(data);
+        // Invalidate the brandKeywords cache so the /keywords endpoint picks up
+        // the newly saved prompts on next load.
+        queryClient.invalidateQueries({ queryKey: getGetBrandKeywordsQueryKey(selectedBrand.id) });
       }
     } catch { /* ignore */ } finally {
       setRegenPromptsLoading(false);
@@ -914,15 +947,27 @@ export default function Dashboard() {
   const scoreDiff = activeScore - competitorLatest;
 
   const promptList = (() => {
-    const rawKws = brandKeywords && brandKeywords.length > 0
-      ? brandKeywords.map(k => k.keyword)
-      : null;
     const competitor = (selectedBrand?.competitors as string[] | undefined)?.[0] ?? getCompetitorBase(selectedBrand?.category);
     const market = selectedBrand?.market ?? "India";
     const brandLabel = selectedBrand?.brandName ?? selectedBrand?.domain ?? "your brand";
+    const brandSubcategory = (selectedBrand as { subcategory?: string | null } | undefined)?.subcategory;
+    // Active niche: override > regen result > brand subcategory
+    const activeNiche = (selectedBrand?.id ? nicheOverrides[selectedBrand.id] : undefined)
+      ?? (regenPromptsBrandId === selectedBrand?.id ? regenPromptsResult?.subcategory : undefined)
+      ?? brandSubcategory
+      ?? null;
+
+    // Priority: regen result > brandKeywords (full sentences) > brandKeywords (raw kws wrapped) > default
+    let rawKws: string[] | null = null;
+    if (regenPromptsBrandId === selectedBrand?.id && regenPromptsResult && regenPromptsResult.prompts.length > 0) {
+      rawKws = regenPromptsResult.prompts;
+    } else if (brandKeywords && brandKeywords.length > 0) {
+      rawKws = brandKeywords.map(k => k.keyword);
+    }
+
     const kws = rawKws
       ? buildPromptTemplates(rawKws, brandLabel, competitor, market)
-      : getDefaultPrompts(selectedBrand?.category);
+      : getDefaultPrompts(selectedBrand?.category, activeNiche);
     const cgBase = selectedBrand?.latestScoreChatgpt ?? 8;
     const gmBase = selectedBrand?.latestScoreGemini ?? 6;
     const pxBase = selectedBrand?.latestScorePerplexity ?? 5;
@@ -2206,9 +2251,12 @@ export default function Dashboard() {
                   setPromptAddedMsg(true);
                   setTimeout(() => setPromptAddedMsg(false), 4000);
                 };
-                const currentSubcategory = (regenPromptsBrandId === selectedBrand?.id && regenPromptsResult?.subcategory)
-                  ? regenPromptsResult.subcategory
-                  : (selectedBrand as { subcategory?: string | null })?.subcategory ?? null;
+                const brandSubcategory = (selectedBrand as { subcategory?: string | null } | undefined)?.subcategory;
+                const currentSubcategory = (selectedBrand?.id ? nicheOverrides[selectedBrand.id] : undefined)
+                  ?? (regenPromptsBrandId === selectedBrand?.id ? regenPromptsResult?.subcategory : undefined)
+                  ?? brandSubcategory
+                  ?? null;
+                const brandEditedPrompts = selectedBrand?.id ? (editedPrompts[selectedBrand.id] ?? {}) : {};
                 return (
                   <div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: currentSubcategory ? 8 : 14 }}>
@@ -2237,13 +2285,56 @@ export default function Dashboard() {
                         </button>
                       </div>
                     </div>
-                    {currentSubcategory && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, padding: "7px 12px", background: "#F5F3FF", borderRadius: 8, border: "0.5px solid #DDD6FE" }}>
-                        <span style={{ fontSize: 11, color: "#7C3AED", fontWeight: 500 }}>Detected niche:</span>
-                        <span style={{ fontSize: 11, color: "#4C1D95", fontWeight: 600 }}>{currentSubcategory}</span>
-                        <span style={{ fontSize: 11, color: "#9CA3AF", marginLeft: "auto" }}>Prompts are scoped to this niche. Run "Regenerate prompts" to refresh.</span>
-                      </div>
-                    )}
+
+                    {/* Detected niche badge with inline edit */}
+                    <div style={{ marginBottom: 14 }}>
+                      {nicheEditing ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", background: "#F5F3FF", borderRadius: 8, border: "0.5px solid #DDD6FE" }}>
+                          <span style={{ fontSize: 11, color: "#7C3AED", fontWeight: 500, whiteSpace: "nowrap" }}>Niche override:</span>
+                          <input
+                            autoFocus
+                            value={nicheDraft}
+                            onChange={e => setNicheDraft(e.target.value)}
+                            placeholder="e.g. AI brand visibility tracking"
+                            style={{ flex: 1, border: "0.5px solid #C4B5FD", borderRadius: 5, padding: "4px 8px", fontSize: 12, color: "#111827", outline: "none" }}
+                            onKeyDown={e => {
+                              if (e.key === "Enter" && selectedBrand?.id) {
+                                setNicheOverrides(prev => ({ ...prev, [selectedBrand.id]: nicheDraft.trim() }));
+                                setNicheEditing(false);
+                              }
+                              if (e.key === "Escape") setNicheEditing(false);
+                            }}
+                          />
+                          <button
+                            onClick={() => { if (selectedBrand?.id && nicheDraft.trim()) { setNicheOverrides(prev => ({ ...prev, [selectedBrand.id]: nicheDraft.trim() })); } setNicheEditing(false); }}
+                            style={{ background: "#5B3FEA", color: "white", border: "none", borderRadius: 5, padding: "4px 10px", fontSize: 11, cursor: "pointer" }}
+                          >Save</button>
+                          <button onClick={() => setNicheEditing(false)} style={{ background: "transparent", color: "#9ca3af", border: "none", fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                        </div>
+                      ) : currentSubcategory ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", background: "#F5F3FF", borderRadius: 8, border: "0.5px solid #DDD6FE" }}>
+                          <span style={{ fontSize: 11, color: "#7C3AED", fontWeight: 500 }}>Detected niche:</span>
+                          <span style={{ fontSize: 11, color: "#4C1D95", fontWeight: 600 }}>{currentSubcategory}</span>
+                          <button
+                            onClick={() => { setNicheDraft(currentSubcategory); setNicheEditing(true); }}
+                            style={{ background: "transparent", border: "none", cursor: "pointer", padding: 2, display: "flex", alignItems: "center", color: "#9CA3AF" }}
+                            title="Edit detected niche"
+                          >
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          </button>
+                          <span style={{ fontSize: 11, color: "#9CA3AF", marginLeft: "auto" }}>Prompts are scoped to this niche.</span>
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "#FFFBEB", borderRadius: 8, border: "0.5px solid #FDE68A" }}>
+                          <span style={{ fontSize: 11, color: "#92400E" }}>No niche detected yet.</span>
+                          <button
+                            onClick={() => { setNicheDraft(""); setNicheEditing(true); }}
+                            style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 11, color: "#D97706", fontWeight: 500, padding: 0 }}
+                          >Set niche manually</button>
+                          <span style={{ fontSize: 11, color: "#92400E" }}>or run "Regenerate prompts" to auto-detect.</span>
+                        </div>
+                      )}
+                    </div>
 
                     {promptAddedMsg && (
                       <div style={{ background: "#ECFDF5", border: "0.5px solid #6EE7B7", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 12, color: "#065F46", display: "flex", alignItems: "center", gap: 7 }}>
@@ -2282,38 +2373,81 @@ export default function Dashboard() {
                       const trendColor = p.trend === "up" ? "#16A34A" : p.trend === "down" ? "#DC2626" : "#9ca3af";
                       const trendIcon = p.trend === "up" ? "↑" : p.trend === "down" ? "↓" : "→";
                       const tagStyle = TAG_COLORS[p.tag] ?? { bg: "#F3F4F6", text: "#6B7280" };
+                      const isEditingThis = editingPromptIdx === i;
+                      const displayKeyword = brandEditedPrompts[i] ?? p.keyword;
                       return (
-                        <div key={i} style={{ background: "white", border: "0.5px solid", borderColor: allZero ? "#FECACA" : "#e5e7eb", borderRadius: 8, padding: "12px 16px", marginBottom: 8, cursor: "default" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: 13, color: "#111827", marginBottom: 5, fontWeight: 500 }}>{p.keyword}</div>
-                              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                                <span style={{ background: tagStyle.bg, color: tagStyle.text, borderRadius: 4, padding: "1px 7px", fontSize: 10, fontWeight: 500 }}>{p.tag}</span>
-                                <span style={{ fontSize: 11, color: "#9ca3af" }}>Last checked: {p.lastChecked}</span>
-                                {aiVolumeBrandId === selectedBrand?.id && aiVolume[p.keyword] !== undefined && (
-                                  <span style={{ background: "#EDE9FE", color: "#5B3FEA", borderRadius: 4, padding: "1px 7px", fontSize: 10, fontWeight: 500 }}>
-                                    {aiVolume[p.keyword] > 0 ? `${aiVolume[p.keyword].toLocaleString()} AI searches/mo` : "No AI volume"}
-                                  </span>
+                        <div key={i} style={{ background: "white", border: "0.5px solid", borderColor: isEditingThis ? "#C4B5FD" : allZero ? "#FECACA" : "#e5e7eb", borderRadius: 8, padding: "12px 16px", marginBottom: 8, cursor: "default" }}>
+                          {isEditingThis ? (
+                            <div>
+                              <div style={{ fontSize: 11, color: "#7C3AED", fontWeight: 500, marginBottom: 6 }}>Edit prompt text</div>
+                              <textarea
+                                autoFocus
+                                value={editingPromptText}
+                                onChange={e => setEditingPromptText(e.target.value)}
+                                rows={3}
+                                style={{ width: "100%", border: "0.5px solid #C4B5FD", borderRadius: 6, padding: "8px 10px", fontSize: 12, color: "#111827", outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }}
+                              />
+                              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                                <button
+                                  onClick={() => {
+                                    if (selectedBrand?.id && editingPromptText.trim()) {
+                                      setEditedPrompts(prev => ({ ...prev, [selectedBrand.id]: { ...(prev[selectedBrand.id] ?? {}), [i]: editingPromptText.trim() } }));
+                                    }
+                                    setEditingPromptIdx(null);
+                                  }}
+                                  style={{ background: "#5B3FEA", color: "white", border: "none", borderRadius: 5, padding: "5px 14px", fontSize: 11, fontWeight: 500, cursor: "pointer" }}
+                                >Save</button>
+                                <button onClick={() => setEditingPromptIdx(null)} style={{ background: "transparent", color: "#9ca3af", border: "0.5px solid #e5e7eb", borderRadius: 5, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                                {brandEditedPrompts[i] && (
+                                  <button
+                                    onClick={() => { setEditedPrompts(prev => { const copy = { ...(prev[selectedBrand?.id ?? ""] ?? {}) }; delete copy[i]; return { ...prev, [selectedBrand?.id ?? ""]: copy }; }); setEditingPromptIdx(null); }}
+                                    style={{ background: "transparent", color: "#DC2626", border: "none", fontSize: 11, cursor: "pointer", marginLeft: "auto" }}
+                                  >Reset to original</button>
                                 )}
                               </div>
                             </div>
-                            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5, flexShrink: 0, marginLeft: 12 }}>
-                              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                                {[{ label: "ChatGPT", score: p.chatgpt, color: "#10a37f" }, { label: "Gemini", score: p.gemini, color: "#4285f4" }, { label: "Perplexity", score: p.perplexity, color: "#22d3ee" }].map(s => (
-                                  <div key={s.label} style={{ textAlign: "center" }}>
-                                    <div style={{ fontSize: 9, color: "#9ca3af", marginBottom: 2 }}>{s.label}</div>
-                                    <ScorePill score={s.score} />
-                                  </div>
-                                ))}
-                                <div style={{ fontSize: 16, fontWeight: 700, color: trendColor, marginLeft: 4 }}>{trendIcon}</div>
+                          ) : (
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+                                  <div style={{ fontSize: 13, color: "#111827", marginBottom: 5, fontWeight: 500, flex: 1 }}>{displayKeyword}</div>
+                                  <button
+                                    onClick={() => { setEditingPromptIdx(i); setEditingPromptText(displayKeyword); }}
+                                    title="Edit this prompt"
+                                    style={{ background: "transparent", border: "none", cursor: "pointer", padding: "2px", color: "#9CA3AF", flexShrink: 0, marginTop: 1 }}
+                                  >
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                  </button>
+                                </div>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                                  <span style={{ background: tagStyle.bg, color: tagStyle.text, borderRadius: 4, padding: "1px 7px", fontSize: 10, fontWeight: 500 }}>{p.tag}</span>
+                                  {brandEditedPrompts[i] && <span style={{ background: "#FEF3C7", color: "#92400E", borderRadius: 4, padding: "1px 7px", fontSize: 10, fontWeight: 500 }}>Edited</span>}
+                                  <span style={{ fontSize: 11, color: "#9ca3af" }}>Last checked: {p.lastChecked}</span>
+                                  {aiVolumeBrandId === selectedBrand?.id && aiVolume[p.keyword] !== undefined && (
+                                    <span style={{ background: "#EDE9FE", color: "#5B3FEA", borderRadius: 4, padding: "1px 7px", fontSize: 10, fontWeight: 500 }}>
+                                      {aiVolume[p.keyword] > 0 ? `${aiVolume[p.keyword].toLocaleString()} AI searches/mo` : "No AI volume"}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                              <div style={{ display: "flex", gap: 6 }}>
-                                <button onClick={() => { setActiveTab("Visibility"); setExpandedPromptIdx(i); }} style={{ background: "transparent", border: "0.5px solid #e5e7eb", borderRadius: 5, padding: "3px 9px", fontSize: 11, color: "#5B3FEA", cursor: "pointer" }}>
-                                  Deep dive
-                                </button>
+                              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5, flexShrink: 0, marginLeft: 12 }}>
+                                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                                  {[{ label: "ChatGPT", score: p.chatgpt, color: "#10a37f" }, { label: "Gemini", score: p.gemini, color: "#4285f4" }, { label: "Perplexity", score: p.perplexity, color: "#22d3ee" }].map(s => (
+                                    <div key={s.label} style={{ textAlign: "center" }}>
+                                      <div style={{ fontSize: 9, color: "#9ca3af", marginBottom: 2 }}>{s.label}</div>
+                                      <ScorePill score={s.score} />
+                                    </div>
+                                  ))}
+                                  <div style={{ fontSize: 16, fontWeight: 700, color: trendColor, marginLeft: 4 }}>{trendIcon}</div>
+                                </div>
+                                <div style={{ display: "flex", gap: 6 }}>
+                                  <button onClick={() => { setActiveTab("Visibility"); setExpandedPromptIdx(i); }} style={{ background: "transparent", border: "0.5px solid #e5e7eb", borderRadius: 5, padding: "3px 9px", fontSize: 11, color: "#5B3FEA", cursor: "pointer" }}>
+                                    Deep dive
+                                  </button>
+                                </div>
                               </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       );
                     })}

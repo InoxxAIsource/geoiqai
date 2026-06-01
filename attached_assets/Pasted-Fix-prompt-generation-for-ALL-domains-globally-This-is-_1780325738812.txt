@@ -1,0 +1,228 @@
+Fix prompt generation for ALL domains 
+globally. This is not a geoiqai.com 
+specific fix — every domain audited 
+must get relevant prompts.
+
+ROOT CAUSE:
+Two separate bugs:
+
+BUG 1 — Regenerate button not deleting 
+old prompts before generating new ones.
+It adds new prompts on top of old ones
+or does not replace them at all.
+
+BUG 2 — Prompt templates are not using 
+the detected niche. They are using 
+generic category labels like "ai tool" 
+or "saas tool" instead of the specific 
+subcategory detected.
+
+
+FIX BUG 1 — Regenerate function:
+
+Find the regeneratePrompts() function.
+
+Current broken flow:
+1. Generate new prompts
+2. Save new prompts
+(old prompts remain)
+
+Fix to this flow:
+1. DELETE all existing prompts for 
+   this domain from Supabase
+2. Read current detected niche
+3. Generate 5 new prompts
+4. Save new prompts
+5. Refresh UI
+
+Add this Supabase delete query 
+before generating:
+
+await supabase
+  .from('prompts')
+  .delete()
+  .eq('domain', currentDomain)
+  .eq('user_id', currentUserId)
+
+Then generate and save fresh prompts.
+
+
+FIX BUG 2 — Niche-specific prompt 
+generation for every domain:
+
+The prompt generator must use the 
+SPECIFIC subcategory not the broad 
+category.
+
+Current wrong behavior:
+ahrefs.com → category: "SEO tool" 
+→ prompt: "best SEO tools" (too broad)
+
+Correct behavior:
+ahrefs.com → niche: "backlink analysis 
+and keyword research tool"
+→ prompt: "best backlink checker tool 2026"
+
+STEP 1 — Extract specific niche
+
+For every domain read these sources 
+in order:
+
+Source A: Homepage H1 tag
+Source B: Meta description
+Source C: First 150 words of body
+Source D: Page title tag
+
+Extract the most specific product 
+descriptor using this logic:
+
+If H1 contains specific product words
+→ use those words as niche
+
+Examples of specific extraction:
+
+ahrefs.com H1: "Everything you need 
+to rank higher and get more traffic"
+Meta: "backlink checker, keyword research, 
+site audit, rank tracker"
+→ Extracted niche: "backlink checker 
+and keyword research"
+
+razorpay.com H1: "Power your finance, 
+grow your business"
+Meta: "payment gateway, payment links, 
+UPI payments India"
+→ Extracted niche: "payment gateway India"
+
+notion.so H1: "The workspace that adapts 
+to you"
+Meta: "notes, docs, tasks, wikis"
+→ Extracted niche: "productivity workspace 
+and notes tool"
+
+freshworks.com: 
+→ Extracted niche: "CRM and customer 
+support software"
+
+geoiqai.com:
+→ Extracted niche: "AI visibility 
+tracking and GEO optimization"
+
+unstop.com:
+→ Extracted niche: "campus hiring 
+and student competitions platform"
+
+zerodha.com:
+→ Extracted niche: "stock trading 
+and investment platform India"
+
+
+STEP 2 — Generate 5 prompts using 
+extracted niche
+
+Use these 5 templates for every domain.
+Replace [niche] with extracted niche.
+Replace [brand] with brand name.
+Replace [market] with detected market.
+Replace [competitor] with top competitor.
+
+Template 1 — Discovery:
+"What are the best [niche] tools 
+available in 2026? List the top options 
+with a description of each."
+
+Template 2 — Need based:
+"I need a [niche] tool. What are the 
+most reputable and widely used options 
+right now?"
+
+Template 3 — Brand specific:
+"What is [brand] and what is it used 
+for? How does it compare to alternatives?"
+
+Template 4 — Alternatives:
+"What are the top alternatives to 
+[competitor] for [niche]? List similar 
+tools with brief descriptions."
+
+Template 5 — Recommendation:
+"Which [niche] tool do you recommend 
+for [market]? Give the top 5 with 
+pros and cons."
+
+
+STEP 3 — Validate every prompt
+
+Before saving each prompt run this check:
+
+Does the prompt contain at least one 
+word from the extracted niche?
+
+If YES → save prompt
+If NO → regenerate using niche keywords
+
+
+STEP 4 — Competitor detection fix
+
+Before using any domain as [competitor] 
+in Template 4:
+
+Check 1: Is it in the user's own 
+brand list in Supabase?
+If yes → skip and use next competitor
+
+Check 2: Is it the same domain 
+being audited?
+If yes → skip
+
+Check 3: Does it resolve to a real 
+website? (basic HTTP check)
+If no → skip
+
+Use the first valid external competitor 
+found in the audit data.
+
+
+MANUAL OVERRIDE UI:
+
+Add these 3 controls to Prompts tab 
+for every domain:
+
+Control 1 — Show detected niche:
+"Detected niche: [X]" 
+with pencil edit icon to correct it
+
+Control 2 — Edit keywords:
+Text input to manually set 
+the 3 keywords used for generation
+
+Control 3 — Individual prompt edit:
+Each prompt row has an edit icon
+User can rewrite any single prompt
+and save it manually
+
+
+TEST AFTER FIXING:
+
+Run regenerate for these 5 domains 
+and show the new prompts generated:
+
+1. geoiqai.com
+Expected: AI visibility tracking prompts
+
+2. ahrefs.com
+Expected: backlink checker and 
+keyword research prompts
+
+3. razorpay.com
+Expected: payment gateway India prompts
+
+4. notion.so
+Expected: productivity workspace prompts
+
+5. freshworks.com
+Expected: CRM customer support prompts
+
+Show before and after for each domain.
+All 5 must have relevant niche-specific 
+prompts before this fix is complete.

@@ -527,22 +527,43 @@ async function detectCategory(scraped: ScrapedData): Promise<CategoryData> {
     const prompt = `Analyze this website and return JSON only, no other text.
 
 Domain: ${domain}
-Title: ${scraped.title}
-Description: ${scraped.metaDescription}
-H1: ${scraped.h1}
-Content preview: ${scraped.bodyText.substring(0, 400)}
+H1 tag: ${scraped.h1}
+Meta description: ${scraped.metaDescription}
+Page title: ${scraped.title}
+Body (first 500 chars): ${scraped.bodyText.substring(0, 500)}
+
+TASK: Extract the most specific product descriptor possible.
+
+Priority order for extraction:
+1. If meta description lists specific product nouns (e.g. "backlink checker, keyword research, rank tracker") — use the most specific 3-5 of those words
+2. If H1 combined with meta description gives a clear product type — combine them
+3. If page title has a clear product descriptor after the brand name — use it
+4. Otherwise use body content
+
+BAD subcategory examples (too broad):
+- "AI tool", "SaaS platform", "productivity app", "software tool", "cloud service"
+
+GOOD subcategory examples (specific):
+- "backlink analysis and keyword research" (ahrefs.com)
+- "AI brand visibility tracking" (geoiqai.com)
+- "payment gateway India" (razorpay.com)
+- "CRM and customer support software" (freshworks.com)
+- "campus hiring and student competitions" (unstop.com)
+- "productivity workspace and notes" (notion.so)
+- "stock trading and investment India" (zerodha.com)
+- "team project management" (asana.com)
+- "short video sharing platform" (tiktok.com)
 
 Rules:
-- Only use the page title, description, h1, and content to classify. Do not infer from the domain name alone.
-- subcategory must describe WHAT THE PRODUCT DOES in 3-6 words. Be specific: "AI brand visibility tracking" not "AI tool", "backlink analysis platform" not "SEO tool", "India payment gateway" not "fintech", "project management for remote teams" not "productivity", "meal planning and nutrition" not "health app", "cricket score tracking" not "sports app".
-- If the page describes a software tool, API, AI product, or online service for businesses or developers, use "saas tool" or "developer tool" for category.
-- Only use "news media" if the page clearly shows a news publication with articles and journalism.
-- Use "personal brand" if the site is primarily about a specific person and not a product or company.
+- subcategory must be 3-7 words, specific to WHAT the product does, not who it is
+- category must reflect the primary domain
+- Only use "news media" if the page clearly shows a news publication
+- Use "personal brand" if the site is about a specific person, not a product
 
 Return exactly this JSON:
 {
   "brand_name": "the product or brand name (short, not the full page title)",
-  "subcategory": "3-6 word specific descriptor of what the product does, e.g. 'AI brand visibility tracking', 'backlink analysis platform', 'India payment gateway', 'project management for teams', 'meal planning app'",
+  "subcategory": "3-7 word specific descriptor of what the product does",
   "category": "one of: social media, video platform, search engine, discussion forum, news media, entertainment, ecommerce, saas tool, health app, fintech, edtech, developer tool, productivity, food delivery, travel, real estate, personal brand, other",
   "market": "one of: India, Global, US, UK",
   "top_competitors": ["competitor1", "competitor2", "competitor3"]
