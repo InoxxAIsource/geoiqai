@@ -62,41 +62,91 @@ async function cacheKeywords(domain: string, keywords: KeywordData[], locationCo
 }
 
 /**
- * Fetch relevant keywords for a domain using Google Ads keywords_for_site.
- * This is much more reliable than ranked_keywords/live which returns modeled/estimated
- * data that can be completely wrong (e.g. returning AI detector keywords for ahrefs.com).
+ * Returns true if a keyword is just a generic AI system name with no product-specific modifier.
+ * Example: "gemini ai" -> true, "ai visibility tool" -> false, "chatgpt alternative" -> false.
+ * Used to prevent showing irrelevant keywords like "claude ai" on an AI-visibility-tracking domain.
+ */
+export function isGenericAiOnly(keyword: string): boolean {
+  const kl = keyword.toLowerCase().trim();
+  const AI_SYSTEM_NAMES = [
+    "chatgpt", "gemini", "claude", "grok", "perplexity", "openai",
+    "bard", "copilot", "llama", "mistral", "deepseek", "meta ai",
+  ];
+  const PRODUCT_MODIFIERS = [
+    "tool", "tracker", "checker", "monitor", "audit", "score", "rank",
+    "analytic", "alternative", "vs", "platform", "software", "app",
+    "api", "integration", "plugin", "extension", "pricing", "review",
+    "compare", "comparison", "free", "pro", "plus", "enterprise",
+    "login", "sign", "prompt", "jailbreak", "detector",
+  ];
+  const hasAiTerm = AI_SYSTEM_NAMES.some(t => kl.includes(t));
+  if (!hasAiTerm) return false;
+  const hasModifier = PRODUCT_MODIFIERS.some(m => kl.includes(m));
+  return !hasModifier;
+}
+
+/**
+ * Fetch relevant keywords for a domain.
  *
- * Fallback chain:
- *   1. DB cache (7-day TTL)
- *   2. Google Ads keywords_for_site/live (based on real ad relevance data)
- *   3. DataForSEO Labs ranked_keywords/live (fallback - less reliable)
- *   4. Returns [] — caller must fall back to category-based prompts
+ * Priority chain:
+ *   1. DB cache (7-day TTL), with generic-AI-term filter applied
+ *   2. DataForSEO Labs ranked_keywords/live (real rankings for the domain)
+ *   3. Google Ads keywords_for_site/live (ad-relevance signal)
+ *   4. DataForSEO keyword_suggestions/live with extracted niche (best for new sites)
+ *   5. Returns [] if nothing found
+ *
+ * Generic AI system-name keywords (e.g. "gemini ai", "claude ai") are filtered out at
+ * every step so only product-specific buyer-intent keywords reach the caller.
  *
  * Never throws — any error returns an empty array.
  */
-export async function getDomainKeywords(domain: string): Promise<KeywordData[]> {
-  const cached = await getCachedKeywords(domain);
-  if (cached) return cached;
-
+export async function getDomainKeywords(domain: string, niche?: string): Promise<KeywordData[]> {
   const login = process.env.DATAFORSEO_LOGIN ?? "";
   const password = process.env.DATAFORSEO_PASSWORD ?? "";
-  if (!login || !password) return [];
+
+  // Check cache first
+  const cached = await getCachedKeywords(domain);
+  if (cached) {
+    const goodCached = cached.filter(k => !isGenericAiOnly(k.keyword));
+    if (goodCached.length >= 3) return goodCached;
+    // Cache exists but is mostly generic AI terms — fall through to re-fetch if we have creds
+    if (!login || !password) return goodCached;
+  } else if (!login || !password) {
+    return [];
+  }
 
   const locationCode = getLocationCode(domain);
 
-  // Primary: Google Ads keywords_for_site - uses real ad relevance signal per domain
-  const googleAdsResult = await fetchKeywordsForSiteGoogleAds(domain, locationCode);
-  if (googleAdsResult.length > 0) {
-    await cacheKeywords(domain, googleAdsResult, locationCode);
-    return googleAdsResult;
+  // Step 1: ranked_keywords - actual organic rankings (most relevant signal)
+  const rankedResult = await fetchRankedKeywords(domain, locationCode);
+  const filteredRanked = rankedResult.filter(k => !isGenericAiOnly(k.keyword));
+  if (filteredRanked.length >= 3) {
+    await cacheKeywords(domain, filteredRanked, locationCode);
+    return filteredRanked;
   }
 
-  // Fallback: DataForSEO Labs ranked_keywords (less reliable for popular domains)
-  const rankedResult = await fetchRankedKeywords(domain, locationCode);
-  if (rankedResult.length > 0) {
-    await cacheKeywords(domain, rankedResult, locationCode);
+  // Step 2: Google Ads keywords_for_site - ad-relevance signal
+  const googleAdsResult = await fetchKeywordsForSiteGoogleAds(domain, locationCode);
+  const filteredAds = googleAdsResult.filter(k => !isGenericAiOnly(k.keyword));
+  if (filteredAds.length >= 3) {
+    await cacheKeywords(domain, filteredAds, locationCode);
+    return filteredAds;
   }
-  return rankedResult;
+
+  // Step 3: keyword_suggestions with niche (best for new/young domains with no rankings yet)
+  if (niche) {
+    const suggestions = await fetchKeywordSuggestions(niche, locationCode);
+    const filteredSuggestions = suggestions.filter(k => !isGenericAiOnly(k.keyword));
+    if (filteredSuggestions.length > 0) {
+      await cacheKeywords(domain, filteredSuggestions, locationCode);
+      return filteredSuggestions;
+    }
+  }
+
+  // Return whatever is left even if sparse
+  const combined = [...filteredRanked, ...filteredAds];
+  if (combined.length > 0) await cacheKeywords(domain, combined, locationCode);
+  return combined;
 }
 
 /**
@@ -190,7 +240,59 @@ async function fetchRankedKeywords(domain: string, locationCode: number): Promis
     }
 
     if (keywords.length > 0) {
-      console.log(`[DataForSEO] ranked_keywords fallback: ${keywords.length} keywords for ${domain}`);
+      logger.info({ count: keywords.length, domain }, "[DataForSEO] ranked_keywords");
+    }
+    return keywords;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * DataForSEO Labs keyword_suggestions/live - returns keyword ideas for a niche phrase.
+ * Used when ranked_keywords and keywords_for_site return too few domain-specific keywords.
+ * Best for new/young domains that do not have meaningful organic rankings yet.
+ */
+async function fetchKeywordSuggestions(niche: string, locationCode: number): Promise<KeywordData[]> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+
+    const resp = await fetch(`${DATAFORSEO_BASE}/v3/dataforseo_labs/google/keyword_suggestions/live`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: getAuthHeader(),
+      body: JSON.stringify([{
+        keyword: niche,
+        location_code: locationCode,
+        language_code: "en",
+        limit: 20,
+        order_by: ["keyword_data.keyword_info.search_volume,desc"],
+        filters: ["keyword_data.keyword_info.search_volume", ">", 50],
+      }]),
+    });
+    clearTimeout(timeout);
+
+    if (!resp.ok) return [];
+
+    const data = (await resp.json()) as Record<string, unknown>;
+    const tasks = (data.tasks as Array<Record<string, unknown>>) ?? [];
+    const result = tasks[0]?.result as Array<Record<string, unknown>> | undefined;
+    const items = (result?.[0]?.items as Array<Record<string, unknown>>) ?? [];
+
+    const keywords: KeywordData[] = [];
+    for (const item of items.slice(0, 20)) {
+      const kwData = (item.keyword_data ?? {}) as Record<string, unknown>;
+      const kwInfo = (kwData.keyword_info ?? {}) as Record<string, unknown>;
+      const keyword = String(kwData.keyword ?? "");
+      const volume = Number(kwInfo.search_volume ?? 0);
+      if (keyword && volume > 0) {
+        keywords.push({ keyword, volume, competition: Number(kwInfo.competition ?? 0) });
+      }
+    }
+
+    if (keywords.length > 0) {
+      logger.info({ niche, count: keywords.length }, "[DataForSEO] keyword_suggestions");
     }
     return keywords;
   } catch {
@@ -1798,9 +1900,9 @@ export async function getLlmCrossAggregated(
 // ─── Site keyword helpers ───────────────────────────────────────────────────────
 
 /**
- * Filter ranked keywords to exclude brand-name terms.
- * For ahrefs.com, removes any keyword containing "ahrefs",
- * leaving category-generic terms like "best seo tool", "backlink checker".
+ * Filter ranked keywords to exclude brand-name terms AND generic AI system-name keywords.
+ * For ahrefs.com: removes "ahrefs" branded terms.
+ * For geoiqai.com: removes "gemini ai", "claude ai", "grok ai" etc.
  */
 export function filterRankedKeywords(keywords: KeywordData[], domain: string, limit = 5): string[] {
   const bare = domain
@@ -1813,7 +1915,9 @@ export function filterRankedKeywords(keywords: KeywordData[], domain: string, li
   return keywords
     .filter(kw => {
       const kl = kw.keyword.toLowerCase();
-      return !brandParts.some(part => kl.includes(part));
+      if (brandParts.some(part => kl.includes(part))) return false;
+      if (isGenericAiOnly(kl)) return false;
+      return true;
     })
     .slice(0, limit)
     .map(k => k.keyword);

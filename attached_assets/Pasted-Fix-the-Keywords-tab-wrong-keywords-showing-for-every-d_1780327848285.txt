@@ -1,0 +1,114 @@
+Fix the Keywords tab — wrong keywords 
+showing for every domain.
+
+SAME ROOT CAUSE as Prompts bug.
+The keyword classifier is too broad.
+
+For geoiqai.com it is showing:
+"gemini ai" 40M/mo
+"claude ai" 18M/mo
+"grok ai" 6M/mo
+
+These are completely wrong. Nobody 
+searching "gemini ai" wants GeoIQ.
+
+The keywords tab should show keywords 
+that real buyers of this product 
+would search — not generic AI keywords.
+
+FIX — Same 3 step detection as Prompts:
+
+STEP 1 — Extract specific product niche
+from H1, meta description, title tag
+Same logic as Prompts fix.
+
+For geoiqai.com:
+Niche = "AI visibility tracking"
+NOT "AI tool"
+
+STEP 2 — Fetch keywords using 
+DataForSEO Keywords for Site endpoint
+for the audited domain first:
+
+POST /v3/dataforseo_labs/google/
+ranked_keywords/live
+
+{
+  "target": "[audited_domain]",
+  "location_code": 2840,
+  "language_code": "en",
+  "limit": 15,
+  "order_by": ["keyword_data.keyword_info
+  .search_volume,desc"]
+}
+
+These are keywords the domain 
+ACTUALLY ranks for — most relevant.
+
+STEP 3 — If domain has no ranked 
+keywords yet (new sites like geoiqai.com)
+use DataForSEO Keywords by niche:
+
+POST /v3/dataforseo_labs/google/
+keyword_suggestions/live
+
+{
+  "keyword": "[extracted niche]",
+  "location_code": 2840,
+  "language_code": "en",
+  "limit": 15
+}
+
+For geoiqai.com this returns:
+"AI visibility tool"
+"GEO optimization"
+"track brand in ChatGPT"
+"generative engine optimization"
+"brand monitoring AI"
+
+STEP 4 — Filter out irrelevant keywords
+
+Before saving keywords run this check:
+Does keyword relate to the specific niche?
+
+For geoiqai.com niche "AI visibility":
+KEEP: "AI visibility tool" ✅
+KEEP: "GEO optimization" ✅  
+REMOVE: "gemini ai" ❌ too generic
+REMOVE: "claude ai" ❌ too generic
+REMOVE: "chatgpt app" ❌ too generic
+
+Filter rule:
+If keyword contains only AI system names
+(chatgpt, gemini, claude, grok, perplexity)
+without a product modifier word
+(tool, tracker, checker, monitor, audit)
+→ REMOVE it
+
+STEP 5 — Check brand visibility 
+for each keyword correctly
+
+For each keyword check if the brand 
+appears when that keyword is asked 
+as a question to ChatGPT, Gemini 
+and Perplexity.
+
+Convert keyword to question format:
+"AI visibility tool" → 
+"What is the best AI visibility tool?"
+
+Then check AI response for brand mention.
+
+APPLY THIS FIX to all domains:
+
+Test with geoiqai.com — must show 
+AI visibility related keywords
+
+Test with ahrefs.com — must show 
+SEO/backlink related keywords
+
+Test with razorpay.com — must show 
+payment gateway related keywords
+
+All 3 must show completely different 
+relevant keywords after fix.

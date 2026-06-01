@@ -4,6 +4,7 @@ import { eq, desc, and, count } from "drizzle-orm";
 import { AddMonitoredBrandBody, RemoveMonitoredBrandParams } from "@workspace/api-zod";
 import { requirePaidAuth, type AuthRequest } from "../lib/auth";
 import { runAuditEngine, generateRecommendations, detectBrandSubcategory } from "../lib/audit-engine";
+import { getDomainKeywords, isGenericAiOnly, getLocationCode } from "../lib/dataforseo";
 
 const router: IRouter = Router();
 
@@ -417,26 +418,22 @@ router.get("/dashboard/brands/:id/keywords", requirePaidAuth, async (req, res): 
   const geminiVisible = (latestScore?.scoreGemini ?? 0) > 0;
   const perplexityVisible = (latestScore?.scorePerplexity ?? 0) > 0;
 
+  // Niche = specific subcategory (e.g. "AI visibility tracking") for new-site keyword suggestions
+  const niche = brand.subcategory ?? brand.category ?? undefined;
+
+  // Check cache — filter out generic AI system keywords before deciding if it's usable
   const [cache] = await db.select().from(keywordCacheTable).where(eq(keywordCacheTable.domain, brand.domain)).limit(1);
+  const now = new Date();
+  const cacheValid = cache && cache.expiresAt > now;
+  const cachedGoodKeywords = cacheValid
+    ? cache.keywords.filter(k => !isGenericAiOnly(k.keyword))
+    : [];
 
-  if (!cache || cache.keywords.length === 0) {
-    // Fallback: use prompts from the most recent audit for this domain
-    const [latestAudit] = await db
-      .select({ keywordsUsed: auditsTable.keywordsUsed })
-      .from(auditsTable)
-      .where(eq(auditsTable.domain, brand.domain))
-      .orderBy(desc(auditsTable.createdAt))
-      .limit(1);
-
-    if (!latestAudit?.keywordsUsed?.length) {
-      res.json([]);
-      return;
-    }
-
-    res.json(latestAudit.keywordsUsed.map((kw) => ({
-      keyword: kw,
-      volume: 0,
-      competition: null,
+  if (cachedGoodKeywords.length >= 3) {
+    res.json(cachedGoodKeywords.slice(0, 15).map((kw) => ({
+      keyword: kw.keyword,
+      volume: kw.volume,
+      competition: kw.competition,
       chatgptVisible,
       geminiVisible,
       perplexityVisible,
@@ -444,10 +441,53 @@ router.get("/dashboard/brands/:id/keywords", requirePaidAuth, async (req, res): 
     return;
   }
 
-  res.json(cache.keywords.map((kw) => ({
-    keyword: kw.keyword,
-    volume: kw.volume,
-    competition: kw.competition,
+  // Cache is empty, expired, or had only generic AI terms — fetch fresh keywords
+  // getDomainKeywords handles ranked -> google_ads -> keyword_suggestions(niche) with filtering
+  const freshKeywords = await getDomainKeywords(brand.domain, niche);
+
+  if (freshKeywords.length >= 1) {
+    // Update cache with the clean keywords so future loads are fast
+    const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const locationCode = getLocationCode(brand.domain);
+    await db
+      .insert(keywordCacheTable)
+      .values({ domain: brand.domain, keywords: freshKeywords, locationCode, cachedAt: now, expiresAt })
+      .onConflictDoUpdate({
+        target: keywordCacheTable.domain,
+        set: { keywords: freshKeywords, cachedAt: now, expiresAt },
+      })
+      .catch(() => {});
+
+    req.log.info({ domain: brand.domain, count: freshKeywords.length, niche }, "keywords: refreshed cache");
+
+    res.json(freshKeywords.slice(0, 15).map((kw) => ({
+      keyword: kw.keyword,
+      volume: kw.volume,
+      competition: kw.competition ?? 0,
+      chatgptVisible,
+      geminiVisible,
+      perplexityVisible,
+    })));
+    return;
+  }
+
+  // Final fallback: use prompts from the most recent audit
+  const [latestAudit] = await db
+    .select({ keywordsUsed: auditsTable.keywordsUsed })
+    .from(auditsTable)
+    .where(eq(auditsTable.domain, brand.domain))
+    .orderBy(desc(auditsTable.createdAt))
+    .limit(1);
+
+  if (!latestAudit?.keywordsUsed?.length) {
+    res.json([]);
+    return;
+  }
+
+  res.json(latestAudit.keywordsUsed.map((kw) => ({
+    keyword: kw,
+    volume: 0,
+    competition: null,
     chatgptVisible,
     geminiVisible,
     perplexityVisible,
