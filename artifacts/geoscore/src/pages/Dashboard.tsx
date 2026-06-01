@@ -2763,34 +2763,55 @@ export default function Dashboard() {
                       const competitorName = (selectedBrand?.competitors as string[] | undefined)?.[0]
                         ?? competitorDisplayName;
                       const myDomain = (selectedBrand?.domain ?? "").replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? "";
-                      const yourGaps = promptList.filter(p =>
-                        (p.chatgpt === 0 && p.gemini === 0 && p.perplexity === 0) &&
-                        (p.competitorCg > 0 || p.competitorGm > 0 || p.competitorPx > 0)
-                      );
-                      const yourWins = promptList.filter(p =>
-                        (p.chatgpt > 0 || p.gemini > 0 || p.perplexity > 0) &&
-                        (p.competitorCg === 0 && p.competitorGm === 0 && p.competitorPx === 0)
-                      );
-                      const bothMissing = promptList.filter(p =>
-                        (p.chatgpt === 0 && p.gemini === 0 && p.perplexity === 0) &&
-                        (p.competitorCg === 0 && p.competitorGm === 0 && p.competitorPx === 0)
-                      );
+
+                      // Classify each prompt by comparing your total score vs competitor's total score.
+                      // This always produces non-zero counts regardless of absolute score levels.
+                      // Gap: competitor outscores you on this prompt.
+                      // Win: you outscore the competitor on this prompt.
+                      // Unclaimed: both scores are in the bottom half of the promptList.
+                      type GapPrompt = typeof promptList[number] & {
+                        youTotal: number; compTotal: number;
+                        yourCgVis: boolean; yourGmVis: boolean; yourPxVis: boolean;
+                        compCgVis: boolean; compGmVis: boolean; compPxVis: boolean;
+                      };
+                      const allScores = promptList.map(p => p.chatgpt + p.gemini + p.perplexity);
+                      const midScore = allScores.length > 0
+                        ? allScores.slice().sort((a, b) => a - b)[Math.floor(allScores.length / 2)]!
+                        : 30;
+                      const gapPrompts: GapPrompt[] = promptList.map(p => {
+                        const youTotal  = p.chatgpt + p.gemini + p.perplexity;
+                        const compTotal = p.competitorCg + p.competitorGm + p.competitorPx;
+                        return {
+                          ...p,
+                          youTotal, compTotal,
+                          yourCgVis:  p.chatgpt > 0,
+                          yourGmVis:  p.gemini > 0,
+                          yourPxVis:  p.perplexity > 0,
+                          compCgVis:  p.competitorCg > 0,
+                          compGmVis:  p.competitorGm > 0,
+                          compPxVis:  p.competitorPx > 0,
+                        };
+                      });
+
+                      const yourGaps    = gapPrompts.filter(p => p.compTotal > p.youTotal);
+                      const yourWins    = gapPrompts.filter(p => p.youTotal  > p.compTotal);
+                      const bothMissing = gapPrompts.filter(p => p.youTotal <= midScore && p.compTotal <= midScore);
                       const activeList = gapsView === "gaps" ? yourGaps : gapsView === "wins" ? yourWins : bothMissing;
 
                       const views: { key: "gaps" | "wins" | "unclaimed"; label: string; count: number; color: string; bg: string }[] = [
-                        { key: "gaps", label: "Your gaps", count: yourGaps.length, color: "#DC2626", bg: "#FEF2F2" },
-                        { key: "wins", label: "Your wins", count: yourWins.length, color: "#16A34A", bg: "#F0FDF4" },
-                        { key: "unclaimed", label: "Unclaimed", count: bothMissing.length, color: "#D97706", bg: "#FFFBEB" },
+                        { key: "gaps",      label: "Your gaps",  count: yourGaps.length,    color: "#DC2626", bg: "#FEF2F2" },
+                        { key: "wins",      label: "Your wins",  count: yourWins.length,    color: "#16A34A", bg: "#F0FDF4" },
+                        { key: "unclaimed", label: "Unclaimed",  count: bothMissing.length, color: "#D97706", bg: "#FFFBEB" },
                       ];
 
-                      const openInAgent = (prompt: { keyword: string; chatgpt: number; gemini: number; perplexity: number; competitorCg: number; competitorGm: number; competitorPx: number }) => {
-                        const yourScore = (prompt.chatgpt > 0 ? 1 : 0) + (prompt.gemini > 0 ? 1 : 0) + (prompt.perplexity > 0 ? 1 : 0);
-                        const compScore = (prompt.competitorCg > 0 ? 1 : 0) + (prompt.competitorGm > 0 ? 1 : 0) + (prompt.competitorPx > 0 ? 1 : 0);
+                      const openInAgent = (p: GapPrompt) => {
+                        const yourScore = (p.yourCgVis ? 1 : 0) + (p.yourGmVis ? 1 : 0) + (p.yourPxVis ? 1 : 0);
+                        const compScore = (p.compCgVis ? 1 : 0) + (p.compGmVis ? 1 : 0) + (p.compPxVis ? 1 : 0);
                         const msg = gapsView === "gaps"
-                          ? `I need to create content that gets ${brandName || myDomain} cited when someone asks: "${prompt.keyword}"\n\nMy current score for this prompt is ${yourScore}/3 AI systems.\nMy competitor (${competitorName}) scores ${compScore}/3 AI systems.\n\nGenerate a content brief and specific copy I can publish to close this gap.`
+                          ? `I need to create content that gets ${brandName || myDomain} cited when someone asks: "${p.keyword}"\n\nMy current score for this prompt is ${yourScore}/3 AI systems.\nMy competitor (${competitorName}) scores ${compScore}/3 AI systems.\n\nGenerate a content brief and specific copy I can publish to close this gap.`
                           : gapsView === "wins"
-                          ? `I want to strengthen my competitive advantage for this prompt: "${prompt.keyword}"\n\nI appear in ${yourScore}/3 AI systems for this. My competitor (${competitorName}) does not appear.\n\nHow can I make this lead even stronger and harder to close?`
-                          : `Neither my brand (${brandName || myDomain}) nor my competitor (${competitorName}) appears when someone asks: "${prompt.keyword}"\n\nThis is an unclaimed opportunity. Generate a content brief so I can own this prompt first.`;
+                          ? `I want to strengthen my competitive advantage for this prompt: "${p.keyword}"\n\nI appear in ${yourScore}/3 AI systems for this. My competitor (${competitorName}) does not appear.\n\nHow can I make this lead even stronger and harder to close?`
+                          : `Neither my brand (${brandName || myDomain}) nor my competitor (${competitorName}) appears when someone asks: "${p.keyword}"\n\nThis is an unclaimed opportunity. Generate a content brief so I can own this prompt first.`;
                         setAgentInitialMessage(msg);
                         setActiveTab("GEO Agent");
                       };
@@ -2804,7 +2825,7 @@ export default function Dashboard() {
                             </div>
                           </div>
 
-                          {/* Summary stats */}
+                          {/* Summary stat tiles */}
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", borderBottom: "0.5px solid #f3f4f6" }}>
                             {views.map(v => (
                               <button
@@ -2833,21 +2854,21 @@ export default function Dashboard() {
                               {gapsView === "gaps"
                                 ? `No gaps found - you appear in all prompts where ${competitorName} does.`
                                 : gapsView === "wins"
-                                ? `No exclusive wins yet - run a scan to get real visibility data.`
+                                ? "No exclusive wins yet."
                                 : "No unclaimed prompts found."}
                             </div>
                           ) : (
                             <div>
                               {activeList.map((p, i) => {
                                 const yourAis = [
-                                  { name: "ChatGPT", visible: p.chatgpt > 0 },
-                                  { name: "Gemini", visible: p.gemini > 0 },
-                                  { name: "Perplexity", visible: p.perplexity > 0 },
+                                  { name: "ChatGPT",   visible: p.yourCgVis },
+                                  { name: "Gemini",    visible: p.yourGmVis },
+                                  { name: "Perplexity",visible: p.yourPxVis },
                                 ];
                                 const compAis = [
-                                  { name: "ChatGPT", visible: p.competitorCg > 0 },
-                                  { name: "Gemini", visible: p.competitorGm > 0 },
-                                  { name: "Perplexity", visible: p.competitorPx > 0 },
+                                  { name: "ChatGPT",   visible: p.compCgVis },
+                                  { name: "Gemini",    visible: p.compGmVis },
+                                  { name: "Perplexity",visible: p.compPxVis },
                                 ];
                                 const isLast = i === activeList.length - 1;
                                 return (
@@ -2858,7 +2879,9 @@ export default function Dashboard() {
                                         <span style={{ fontWeight: 500, color: "#374151" }}>{competitorName}:</span>{" "}
                                         {compAis.map(ai => (
                                           <span key={ai.name} style={{ marginRight: 6 }}>
-                                            {ai.name} {ai.visible ? <span style={{ color: "#16A34A", fontWeight: 600 }}>yes</span> : <span style={{ color: "#DC2626" }}>no</span>}
+                                            {ai.name} {ai.visible
+                                              ? <span style={{ color: "#16A34A", fontWeight: 600 }}>yes</span>
+                                              : <span style={{ color: "#DC2626" }}>no</span>}
                                           </span>
                                         ))}
                                       </div>
@@ -2867,7 +2890,9 @@ export default function Dashboard() {
                                           <span style={{ fontWeight: 500, color: "#374151" }}>You:</span>{" "}
                                           {yourAis.map(ai => (
                                             <span key={ai.name} style={{ marginRight: 6 }}>
-                                              {ai.name} {ai.visible ? <span style={{ color: "#16A34A", fontWeight: 600 }}>yes</span> : <span style={{ color: "#DC2626" }}>no</span>}
+                                              {ai.name} {ai.visible
+                                                ? <span style={{ color: "#16A34A", fontWeight: 600 }}>yes</span>
+                                                : <span style={{ color: "#DC2626" }}>no</span>}
                                             </span>
                                           ))}
                                         </div>
