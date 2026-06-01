@@ -261,6 +261,27 @@ paths:
         "404":
           description: Brand not found
 
+  /dashboard/brands/{id}/regenerate-prompts:
+    post:
+      operationId: regenerateBrandPrompts
+      tags: [dashboard]
+      summary: Re-detect subcategory and regenerate prompts for a monitored brand
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: New subcategory and prompts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegeneratePromptsResponse"
+        "404":
+          description: Brand not found
+
   /dashboard/brands/{id}:
     delete:
       operationId: removeMonitoredBrand
@@ -655,6 +676,8 @@ components:
           type: ["string", "null"]
         category:
           type: ["string", "null"]
+        subcategory:
+          type: ["string", "null"]
         market:
           type: ["string", "null"]
         keywords:
@@ -688,6 +711,8 @@ components:
           type: ["string", "null"]
         category:
           type: ["string", "null"]
+        subcategory:
+          type: ["string", "null"]
         market:
           type: ["string", "null"]
         keywords:
@@ -695,6 +720,17 @@ components:
           items:
             type: string
         competitors:
+          type: array
+          items:
+            type: string
+
+    RegeneratePromptsResponse:
+      type: object
+      required: [subcategory, prompts]
+      properties:
+        subcategory:
+          type: string
+        prompts:
           type: array
           items:
             type: string

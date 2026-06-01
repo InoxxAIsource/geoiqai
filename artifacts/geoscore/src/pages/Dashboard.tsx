@@ -425,6 +425,9 @@ export default function Dashboard() {
   const [aiVolume, setAiVolume] = useState<Record<string, number>>({});
   const [aiVolumeLoading, setAiVolumeLoading] = useState(false);
   const [aiVolumeBrandId, setAiVolumeBrandId] = useState<string | null>(null);
+  const [regenPromptsLoading, setRegenPromptsLoading] = useState(false);
+  const [regenPromptsResult, setRegenPromptsResult] = useState<{ subcategory: string; prompts: string[] } | null>(null);
+  const [regenPromptsBrandId, setRegenPromptsBrandId] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768);
@@ -789,6 +792,25 @@ export default function Dashboard() {
       }
     } catch { /* ignore */ } finally {
       setAiVolumeLoading(false);
+    }
+  };
+
+  const handleRegenPrompts = async () => {
+    if (!selectedBrand?.id) return;
+    setRegenPromptsLoading(true);
+    setRegenPromptsBrandId(selectedBrand.id);
+    const token = getToken();
+    try {
+      const resp = await fetch(`/api/dashboard/brands/${selectedBrand.id}/regenerate-prompts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token ?? ""}` },
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        setRegenPromptsResult(data);
+      }
+    } catch { /* ignore */ } finally {
+      setRegenPromptsLoading(false);
     }
   };
 
@@ -2184,9 +2206,12 @@ export default function Dashboard() {
                   setPromptAddedMsg(true);
                   setTimeout(() => setPromptAddedMsg(false), 4000);
                 };
+                const currentSubcategory = (regenPromptsBrandId === selectedBrand?.id && regenPromptsResult?.subcategory)
+                  ? regenPromptsResult.subcategory
+                  : (selectedBrand as { subcategory?: string | null })?.subcategory ?? null;
                 return (
                   <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: currentSubcategory ? 8 : 14 }}>
                       <div>
                         <div style={{ fontSize: 15, fontWeight: 600, color: "#111827", marginBottom: 3 }}>Tracked prompts</div>
                         <div style={{ fontSize: 12, color: "#6b7280" }}>The queries we run across AI systems to measure your visibility</div>
@@ -2199,11 +2224,26 @@ export default function Dashboard() {
                         >
                           {aiVolumeLoading ? "Fetching..." : Object.keys(aiVolume).length > 0 && aiVolumeBrandId === selectedBrand?.id ? "Refresh AI volume" : "Check AI search volume"}
                         </button>
+                        <button
+                          onClick={handleRegenPrompts}
+                          disabled={regenPromptsLoading}
+                          title="Re-detect your niche and regenerate prompts from scratch"
+                          style={{ background: regenPromptsLoading ? "#f3f4f6" : "white", color: regenPromptsLoading ? "#9ca3af" : "#374151", border: "0.5px solid", borderColor: regenPromptsLoading ? "#e5e7eb" : "#d1d5db", borderRadius: 6, padding: "7px 12px", fontSize: 12, fontWeight: 500, cursor: regenPromptsLoading ? "not-allowed" : "pointer" }}
+                        >
+                          {regenPromptsLoading ? "Regenerating..." : "Regenerate prompts"}
+                        </button>
                         <button onClick={() => setAddPromptModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, background: "#5B3FEA", color: "white", border: "none", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                           + Add custom prompt
                         </button>
                       </div>
                     </div>
+                    {currentSubcategory && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, padding: "7px 12px", background: "#F5F3FF", borderRadius: 8, border: "0.5px solid #DDD6FE" }}>
+                        <span style={{ fontSize: 11, color: "#7C3AED", fontWeight: 500 }}>Detected niche:</span>
+                        <span style={{ fontSize: 11, color: "#4C1D95", fontWeight: 600 }}>{currentSubcategory}</span>
+                        <span style={{ fontSize: 11, color: "#9CA3AF", marginLeft: "auto" }}>Prompts are scoped to this niche. Run "Regenerate prompts" to refresh.</span>
+                      </div>
+                    )}
 
                     {promptAddedMsg && (
                       <div style={{ background: "#ECFDF5", border: "0.5px solid #6EE7B7", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 12, color: "#065F46", display: "flex", alignItems: "center", gap: 7 }}>

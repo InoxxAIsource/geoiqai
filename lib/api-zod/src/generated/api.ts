@@ -301,6 +301,7 @@ export const GetMonitoredBrandsResponseItem = zod.object({
   "domain": zod.string(),
   "brandName": zod.string().nullish(),
   "category": zod.string().nullish(),
+  "subcategory": zod.string().nullish(),
   "market": zod.string().nullish(),
   "keywords": zod.array(zod.string()).optional(),
   "competitors": zod.array(zod.string()).optional(),
@@ -321,6 +322,7 @@ export const AddMonitoredBrandBody = zod.object({
   "domain": zod.string(),
   "brandName": zod.string().nullish(),
   "category": zod.string().nullish(),
+  "subcategory": zod.string().nullish(),
   "market": zod.string().nullish(),
   "keywords": zod.array(zod.string()).optional(),
   "competitors": zod.array(zod.string()).optional()
@@ -343,6 +345,19 @@ export const GetBrandKeywordsResponseItem = zod.object({
   "perplexityVisible": zod.boolean().optional()
 })
 export const GetBrandKeywordsResponse = zod.array(GetBrandKeywordsResponseItem)
+
+
+/**
+ * @summary Re-detect subcategory and regenerate prompts for a monitored brand
+ */
+export const RegenerateBrandPromptsParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const RegenerateBrandPromptsResponse = zod.object({
+  "subcategory": zod.string(),
+  "prompts": zod.array(zod.string())
+})
 
 
 /**

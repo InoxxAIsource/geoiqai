@@ -13,6 +13,8 @@ export interface MonitoredBrandInput {
   /** @nullable */
   category?: string | null;
   /** @nullable */
+  subcategory?: string | null;
+  /** @nullable */
   market?: string | null;
   keywords?: string[];
   competitors?: string[];

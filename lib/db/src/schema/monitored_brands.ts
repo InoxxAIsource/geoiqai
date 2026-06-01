@@ -10,6 +10,7 @@ export const monitoredBrandsTable = pgTable("monitored_brands", {
   brandName: text("brand_name"),
   category: text("category"),
   market: text("market"),
+  subcategory: text("subcategory"),
   keywords: jsonb("keywords").$type<string[]>().notNull().default([]),
   competitors: jsonb("competitors").$type<string[]>().notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

@@ -3,7 +3,7 @@ import { db, monitoredBrandsTable, dailyScoresTable, auditsTable, keywordCacheTa
 import { eq, desc, and, count } from "drizzle-orm";
 import { AddMonitoredBrandBody, RemoveMonitoredBrandParams } from "@workspace/api-zod";
 import { requirePaidAuth, type AuthRequest } from "../lib/auth";
-import { runAuditEngine, generateRecommendations } from "../lib/audit-engine";
+import { runAuditEngine, generateRecommendations, detectBrandSubcategory } from "../lib/audit-engine";
 
 const router: IRouter = Router();
 
@@ -25,6 +25,7 @@ router.get("/dashboard/brands", requirePaidAuth, async (req, res): Promise<void>
       domain: brand.domain,
       brandName: brand.brandName,
       category: brand.category,
+      subcategory: brand.subcategory,
       market: brand.market,
       keywords: brand.keywords,
       competitors: brand.competitors,
@@ -119,7 +120,7 @@ router.post("/dashboard/brands/:id/scan", requirePaidAuth, async (req, res): Pro
     }
 
     const {
-      brandName, category, market,
+      brandName, subcategory, category, market,
       chatgpt, gemini, perplexity, claude, grok,
       keywordsUsed, keywordsFromDataforseo, keywordsFilteredOut,
       rawChatgptResponse, rawGeminiResponse, rawPerplexityResponse, rawClaudeResponse, rawGrokResponse,
@@ -186,7 +187,7 @@ router.post("/dashboard/brands/:id/scan", requirePaidAuth, async (req, res): Pro
     }
 
     await db.update(monitoredBrandsTable)
-      .set({ lastChecked: new Date() })
+      .set({ lastChecked: new Date(), subcategory: subcategory || null })
       .where(eq(monitoredBrandsTable.id, brand.id));
 
     req.log.info({ domain: brand.domain, scoreTotal, aiVisibilityScore, scoreTechnical }, "Brand scan complete");
@@ -451,6 +452,41 @@ router.get("/dashboard/brands/:id/keywords", requirePaidAuth, async (req, res): 
     geminiVisible,
     perplexityVisible,
   })));
+});
+
+router.post("/dashboard/brands/:id/regenerate-prompts", requirePaidAuth, async (req, res): Promise<void> => {
+  const user = (req as AuthRequest).user;
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+  const [brand] = await db
+    .select()
+    .from(monitoredBrandsTable)
+    .where(and(eq(monitoredBrandsTable.id, rawId!), eq(monitoredBrandsTable.userId, user.id)))
+    .limit(1);
+
+  if (!brand) {
+    res.status(404).json({ error: "Brand not found" });
+    return;
+  }
+
+  try {
+    const { subcategory, prompts } = await detectBrandSubcategory(
+      `https://${brand.domain}`,
+      brand.brandName,
+      brand.category,
+      brand.market,
+    );
+
+    await db.update(monitoredBrandsTable)
+      .set({ subcategory: subcategory || null })
+      .where(eq(monitoredBrandsTable.id, brand.id));
+
+    req.log.info({ domain: brand.domain, subcategory, promptCount: prompts.length }, "Prompts regenerated");
+    res.json({ subcategory, prompts });
+  } catch (err) {
+    req.log.error({ err, domain: brand.domain }, "Failed to regenerate prompts");
+    res.status(500).json({ error: "Failed to regenerate prompts. Please try again." });
+  }
 });
 
 export default router;

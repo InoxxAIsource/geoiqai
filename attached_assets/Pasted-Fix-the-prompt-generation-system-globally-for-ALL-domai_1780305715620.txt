@@ -1,0 +1,139 @@
+Fix the prompt generation system globally 
+for ALL domains audited on GeoIQ.
+
+CURRENT PROBLEM:
+The classifier detects broad generic 
+categories like "AI tool", "SaaS tool", 
+"marketing tool" and generates irrelevant 
+prompts that do not match the actual 
+product being audited.
+
+Examples of wrong prompts seen:
+- geoiqai.com getting "best grok ai tools" 
+  instead of "best AI visibility tool"
+- ahrefs.com getting "ai detector" prompts 
+  instead of "best SEO backlink tool"
+- Generic "SaaS tools and cloud software" 
+  prompts appearing for every B2B tool
+
+ROOT CAUSE:
+Category detection is too broad.
+It reads the domain category as 
+"SaaS tool" or "AI tool" and stops there
+instead of detecting the specific subcategory.
+
+THE FIX — 3 step category detection:
+
+STEP 1 — Extract specific subcategory
+
+Read these 4 elements from the homepage:
+- H1 tag
+- Meta description  
+- First 150 words of body content
+- Page title tag
+
+Find the most specific product descriptor.
+
+Examples:
+"AI visibility tracking" not "AI tool"
+"backlink analysis" not "SEO tool"
+"payment gateway" not "fintech"
+"meal planning" not "health app"
+"cricket arbitrage" not "sports tool"
+"neighborhood mapping" not "maps app"
+
+STEP 2 — Generate 5 prompts from 
+specific subcategory using these templates:
+
+Template 1 — Discovery:
+"What are the best [specific subcategory] 
+tools available in 2026? List the top 
+options with descriptions."
+
+Template 2 — Need-based:
+"I need a [specific subcategory] tool. 
+What are the most reputable and widely 
+used options right now?"
+
+Template 3 — Brand specific:
+"What is [brand name] and what is it 
+used for? How does it compare to 
+alternatives?"
+
+Template 4 — Alternatives:
+"What are the top alternatives to 
+[detected main competitor] for 
+[specific subcategory]?"
+
+Template 5 — Recommendation:
+"Which [specific subcategory] tool do 
+you recommend for [detected market]? 
+Give the top 5 with pros and cons."
+
+STEP 3 — Validate prompts before saving
+
+For each generated prompt check:
+Does the prompt contain at least one 
+word from the specific subcategory?
+
+If YES — save prompt
+If NO — regenerate using subcategory keywords
+
+COMPETITOR DETECTION FIX:
+
+Before setting any domain as Competitor A:
+
+Check 1 — Is the competitor domain 
+owned by the same Supabase user?
+If yes — exclude it
+
+Check 2 — Does the competitor domain 
+resolve to the same server/deployment?
+If yes — exclude it
+
+Check 3 — Is the competitor domain 
+in the user's own brand list?
+If yes — exclude it
+
+Only use external unrelated domains 
+as competitors.
+
+MANUAL OVERRIDE for all users:
+
+Add these controls to the Prompts tab:
+
+1. "Detected category: [X]" label 
+   with an Edit button to correct it
+
+2. "Edit keywords" button to manually 
+   set the 3 keywords used for prompts
+
+3. "Regenerate prompts" button that 
+   reruns the full detection and 
+   prompt generation from scratch
+
+4. Individual prompt edit — each prompt 
+   row should have an edit icon so 
+   users can rewrite any single prompt
+
+REAL WORLD TEST CASES:
+After implementing, test with these domains 
+and verify correct prompts generated:
+
+geoiqai.com 
+Expected: AI visibility tracking prompts
+
+ahrefs.com
+Expected: SEO backlink analysis prompts
+
+razorpay.com
+Expected: payment gateway India prompts
+
+notion.so
+Expected: productivity workspace prompts
+
+freshworks.com
+Expected: CRM customer support prompts
+
+Show generated prompts for each 
+test case before and after fix.

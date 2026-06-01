@@ -60,6 +60,7 @@ export interface TechnicalAuditResult {
 export interface AuditEngineResult {
   unreachable?: boolean;
   brandName: string;
+  subcategory: string;
   category: string;
   market: string;
   chatgpt: AuditQueryResult;
@@ -480,6 +481,7 @@ export async function runTechnicalAudit(domain: string, rawHtml: string, bodyTex
 
 interface CategoryData {
   brandName: string;
+  subcategory: string;
   category: string;
   market: string;
   competitors: string[];
@@ -514,6 +516,7 @@ async function detectCategory(scraped: ScrapedData): Promise<CategoryData> {
   if (!hasContent) {
     return {
       brandName: domain,
+      subcategory: "",
       category: domainSafeDefault(domain),
       market: "India",
       competitors: [],
@@ -530,14 +533,16 @@ H1: ${scraped.h1}
 Content preview: ${scraped.bodyText.substring(0, 400)}
 
 Rules:
-- Only use the page title, description, h1, and content to pick the category. Do not infer from the domain name alone.
-- If the page describes a software tool, API, AI product, or online service for businesses or developers, use "saas tool" or "developer tool".
-- Only use "news media" if the page content clearly shows a news publication or media outlet with articles and journalism.
-- Use "personal brand" if the site is primarily about a specific person (consultant, coach, freelancer, speaker, author) and not a product or company.
+- Only use the page title, description, h1, and content to classify. Do not infer from the domain name alone.
+- subcategory must describe WHAT THE PRODUCT DOES in 3-6 words. Be specific: "AI brand visibility tracking" not "AI tool", "backlink analysis platform" not "SEO tool", "India payment gateway" not "fintech", "project management for remote teams" not "productivity", "meal planning and nutrition" not "health app", "cricket score tracking" not "sports app".
+- If the page describes a software tool, API, AI product, or online service for businesses or developers, use "saas tool" or "developer tool" for category.
+- Only use "news media" if the page clearly shows a news publication with articles and journalism.
+- Use "personal brand" if the site is primarily about a specific person and not a product or company.
 
 Return exactly this JSON:
 {
   "brand_name": "the product or brand name (short, not the full page title)",
+  "subcategory": "3-6 word specific descriptor of what the product does, e.g. 'AI brand visibility tracking', 'backlink analysis platform', 'India payment gateway', 'project management for teams', 'meal planning app'",
   "category": "one of: social media, video platform, search engine, discussion forum, news media, entertainment, ecommerce, saas tool, health app, fintech, edtech, developer tool, productivity, food delivery, travel, real estate, personal brand, other",
   "market": "one of: India, Global, US, UK",
   "top_competitors": ["competitor1", "competitor2", "competitor3"]
@@ -546,7 +551,7 @@ Return exactly this JSON:
     const response = await openaiClient.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 300,
+      max_tokens: 350,
       temperature: 0.1,
       response_format: { type: "json_object" },
     });
@@ -557,11 +562,13 @@ Return exactly this JSON:
     // Validate the returned category is a known value. Reject anything unrecognised.
     const rawCategory = typeof parsed.category === "string" ? parsed.category.toLowerCase().trim() : "";
     const category = VALID_CATEGORIES.has(rawCategory) ? rawCategory : domainSafeDefault(domain);
+    const rawSubcategory = typeof parsed.subcategory === "string" ? parsed.subcategory.trim() : "";
 
     return {
       brandName: typeof parsed.brand_name === "string" && parsed.brand_name.length > 0
         ? parsed.brand_name
         : domain,
+      subcategory: rawSubcategory,
       category,
       market: parsed.market ?? "India",
       competitors: Array.isArray(parsed.top_competitors) ? parsed.top_competitors.slice(0, 3) : [],
@@ -569,6 +576,7 @@ Return exactly this JSON:
   } catch {
     return {
       brandName: domain,
+      subcategory: "",
       category: domainSafeDefault(domain),
       market: "India",
       competitors: [],
@@ -576,22 +584,28 @@ Return exactly this JSON:
   }
 }
 
+// Generic descriptor words excluded from subcategory validation so the check is meaningful.
+const GENERIC_DESCRIPTOR_WORDS = new Set([
+  "tool", "tools", "platform", "platforms", "app", "apps",
+  "solution", "solutions", "software", "service", "services",
+  "product", "products", "system", "systems", "suite",
+]);
+
 function generatePrompts(
   brandName: string,
   domain: string,
   category: string,
+  subcategory: string,
   market: string,
   competitors: string[],
 ): string[] {
   // RULE: No part of the brand name, domain, or domain root may appear in any prompt.
-  // Any brand token in a prompt causes AI to echo it back — triggering a false positive match.
+  // Any brand token in a prompt causes AI to echo it back - triggering a false positive match.
   // A score only counts when the AI mentions the brand completely unprompted.
 
-  // Human-readable noun phrase for each category, used in natural-language prompts.
-  // "other" maps to a broad phrase so AI lists well-known platforms rather than
-  // responding with "I don't understand what 'other tools' means".
+  // Broad category fallback (used when subcategory is empty).
   const CATEGORY_NOUN: Record<string, string> = {
-    "social media":     "social media platforms and communities",
+    "social media":     "social media platforms",
     "video platform":   "online video platforms",
     "search engine":    "search engines and web discovery tools",
     "discussion forum": "online discussion and community platforms",
@@ -599,33 +613,55 @@ function generatePrompts(
     "entertainment":    "entertainment and streaming platforms",
     "ecommerce":        "ecommerce and online shopping platforms",
     "saas tool":        "SaaS tools and cloud software",
-    "health app":       "health, fitness, and wellness apps",
-    "fintech":          "fintech and financial software platforms",
+    "health app":       "health and wellness apps",
+    "fintech":          "fintech and financial software",
     "edtech":           "edtech and online learning platforms",
-    "developer tool":   "developer tools and infrastructure platforms",
+    "developer tool":   "developer tools and infrastructure",
     "productivity":     "productivity and collaboration tools",
-    "food delivery":    "food delivery and restaurant tech platforms",
+    "food delivery":    "food delivery platforms",
     "travel":           "travel and hospitality platforms",
-    "real estate":      "real estate and property tech platforms",
-    "personal brand":   "consultants, coaches, and independent experts",
+    "real estate":      "real estate and property tech",
+    "personal brand":   "consultants and independent experts",
     "other":            "popular internet platforms and online services",
   };
-  const noun = CATEGORY_NOUN[category] ?? `${category} platforms`;
+
+  // Use specific subcategory when available; fall back to broad category noun.
+  const noun = subcategory.trim().length > 0
+    ? subcategory.trim()
+    : (CATEGORY_NOUN[category] ?? `${category} platforms`);
 
   const prompts: string[] = [
-    `What are the most popular and well-known ${noun} available today? List the top 10 with a short description of each.`,
-    `Which ${noun} do you recommend for users in ${market}? Give the top 5 with pros and cons.`,
-    `I am looking for the best ${noun}. What are the most reputable and widely used options right now?`,
+    `What are the best ${noun} tools available in 2026? List the top options with descriptions.`,
+    `I need a ${noun} tool. What are the most reputable and widely used options right now?`,
   ];
 
   if (competitors.length > 0) {
     prompts.push(
-      `What are the top alternatives to ${competitors[0]}? List similar ${noun} with brief descriptions.`,
+      `What are the top alternatives to ${competitors[0]} for ${noun}? List similar tools with brief descriptions.`,
     );
   } else {
     prompts.push(
-      `What are the leading ${noun} used by businesses and individuals in ${market}? Include both established and emerging options.`,
+      `What are the leading ${noun} platforms used by businesses in ${market}? What makes each one stand out?`,
     );
+  }
+
+  prompts.push(
+    `Which ${noun} tool do you recommend for businesses in ${market}? Give the top 5 with pros and cons.`,
+  );
+
+  // Validate: each prompt must contain at least one meaningful word from the noun phrase.
+  // This catches cases where noun ends up generic and prompts become useless.
+  const nounWords = noun.toLowerCase().split(/\s+/).filter(
+    (w) => w.length > 3 && !GENERIC_DESCRIPTOR_WORDS.has(w),
+  );
+
+  if (nounWords.length > 0) {
+    const validated = prompts.filter((p) => {
+      const lower = p.toLowerCase();
+      return nounWords.some((w) => lower.includes(w));
+    });
+    // Keep validated list only if it retains at least 2 prompts, otherwise return all.
+    return validated.length >= 2 ? validated : prompts;
   }
 
   return prompts;
@@ -1049,13 +1085,20 @@ function buildKeywordPrompts(
   brandName: string,
   domain: string,
   category: string,
+  subcategory: string,
   market: string,
   competitors: string[],
 ): KeywordPromptResult {
-  const base = generatePrompts(brandName, domain, category, market, competitors);
+  const base = generatePrompts(brandName, domain, category, subcategory, market, competitors);
 
   const variations = getBrandVariations(brandName, domain);
   const root = domain.replace(/^www\./i, "").replace(/\.[a-z]{2,6}$/i, "").toLowerCase();
+
+  // Meaningful words from subcategory used to validate DataForSEO keywords are on-topic.
+  // If a DataForSEO keyword contains none of these words it is probably off-niche data.
+  const subcategoryWords = subcategory.toLowerCase().split(/\s+/).filter(
+    (w) => w.length > 3 && !GENERIC_DESCRIPTOR_WORDS.has(w),
+  );
 
   const topical = keywords.filter((k) => {
     const kw = k.keyword.toLowerCase();
@@ -1064,6 +1107,10 @@ function buildKeywordPrompts(
     if (kw.trim().split(/\s+/).length < 2) return false;
     if (INFORMATIONAL_KW.test(kw)) return false;
     if (NAVIGATION_KW.test(kw)) return false;
+    // Reject DataForSEO keywords that share no meaningful word with the detected subcategory.
+    // This prevents off-niche keywords (e.g. "grok ai tools" for an AI visibility tracker)
+    // from polluting the prompt list.
+    if (subcategoryWords.length > 0 && !subcategoryWords.some((w) => kw.includes(w))) return false;
     return true;
   });
 
@@ -1074,7 +1121,7 @@ function buildKeywordPrompts(
   });
 
   logger.info(
-    { domain, fetched: keywords.length, filtered: keywords.length - topical.length, topical: topical.length, bonus: extra.length },
+    { domain, fetched: keywords.length, filtered: keywords.length - topical.length, topical: topical.length, bonus: extra.length, subcategoryWords },
     "DataForSEO keyword processing complete",
   );
 
@@ -1108,6 +1155,7 @@ export async function runAuditEngine(
       brandName: domain,
       category: "other",
       market: "India",
+      subcategory: "",
       chatgpt: { found: false, detail: null, score: 0, competitors: [] },
       gemini: { found: false, detail: null, score: 0, competitors: [] },
       perplexity: { found: false, detail: null, score: 0, competitors: [] },
@@ -1147,12 +1195,22 @@ export async function runAuditEngine(
   const rawBrand = brandNameOverride ?? catData.brandName;
   const brandName = rawBrand && rawBrand.trim().length > 0 ? rawBrand.trim() : domain;
   const category = categoryOverride ?? catData.category;
+  const subcategory = catData.subcategory;
   const market = marketOverride ?? catData.market;
-  const competitors = catData.competitors;
+
+  // Filter competitors: exclude the audited domain itself to prevent self-referential entries.
+  const ownRoot = domain.replace(/^www\./i, "").toLowerCase();
+  const competitors = catData.competitors.filter((c) => {
+    const cRoot = c.toLowerCase()
+      .replace(/^https?:\/\//i, "")
+      .replace(/^www\./i, "")
+      .split("/")[0] ?? "";
+    return cRoot !== ownRoot && !cRoot.endsWith(`.${ownRoot}`) && !ownRoot.endsWith(`.${cRoot}`);
+  });
 
   // Prompt assembly — fallback chain:
   //   1. DataForSEO real keyword prompts (if available) — real user search queries
-  //   2. Category-based generic prompts (fallback when DataForSEO returns nothing)
+  //   2. Subcategory-based specific prompts (fallback when DataForSEO returns nothing)
   // RULE: brand name MUST NOT appear in any prompt. Brand name in a prompt causes
   // the AI to echo it back, creating a false-positive match. Score only counts when
   // the AI mentions the brand completely unprompted.
@@ -1161,13 +1219,13 @@ export async function runAuditEngine(
   let prompts: string[];
 
   if (dfsKeywords.length > 0) {
-    const kpResult = buildKeywordPrompts(dfsKeywords, brandName, domain, category, market, competitors);
+    const kpResult = buildKeywordPrompts(dfsKeywords, brandName, domain, category, subcategory, market, competitors);
     prompts = kpResult.prompts;
     keywordsFromDataforseo = kpResult.keywordsFromDataforseo;
     keywordsFilteredOut = kpResult.keywordsFilteredOut;
   } else {
-    prompts = generatePrompts(brandName, domain, category, market, competitors);
-    logger.info({ domain }, "No DataForSEO keywords found, using category-based prompts");
+    prompts = generatePrompts(brandName, domain, category, subcategory, market, competitors);
+    logger.info({ domain, subcategory }, "No DataForSEO keywords found, using subcategory-based prompts");
   }
 
   // Direct brand query — used only for display ("what did [AI] say about you")
@@ -1259,6 +1317,7 @@ export async function runAuditEngine(
 
   return {
     brandName,
+    subcategory,
     category,
     market,
     chatgpt,
@@ -1276,6 +1335,32 @@ export async function runAuditEngine(
     rawGrokResponse,
     technicalAudit,
   };
+}
+
+/**
+ * Lightweight export for re-detecting a brand's subcategory and regenerating prompts
+ * without running a full AI visibility audit. Used by the regenerate-prompts endpoint.
+ */
+export async function detectBrandSubcategory(
+  url: string,
+  brandNameOverride: string | null,
+  categoryOverride: string | null,
+  marketOverride: string | null,
+): Promise<{ subcategory: string; prompts: string[] }> {
+  const scraped = await scrapeUrl(url);
+  const catData = await detectCategory(scraped);
+  const domain = scraped.domain;
+  const brandName = brandNameOverride ?? catData.brandName;
+  const category = categoryOverride ?? catData.category;
+  const subcategory = catData.subcategory;
+  const market = marketOverride ?? catData.market;
+  const ownRoot = domain.replace(/^www\./i, "").toLowerCase();
+  const competitors = catData.competitors.filter((c) => {
+    const cRoot = c.toLowerCase().replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0] ?? "";
+    return cRoot !== ownRoot;
+  });
+  const prompts = generatePrompts(brandName, domain, category, subcategory, market, competitors);
+  return { subcategory, prompts };
 }
 
 const DEFAULT_EEAT: EeatScore = {

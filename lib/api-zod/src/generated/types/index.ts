@@ -27,6 +27,7 @@ export * from './paymentVerifyResult';
 export * from './recommendation';
 export * from './recommendationCiteCategory';
 export * from './recommendationPriority';
+export * from './regeneratePromptsResponse';
 export * from './registerInput';
 export * from './roadmapResponse';
 export * from './roadmapTaskContent';

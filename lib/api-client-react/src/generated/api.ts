@@ -33,6 +33,7 @@ import type {
   MonitoredBrand,
   MonitoredBrandInput,
   PaymentVerifyResult,
+  RegeneratePromptsResponse,
   RegisterInput,
   RoadmapResponse,
   RoadmapTaskToggle,
@@ -949,6 +950,76 @@ export function useGetBrandKeywords<TData = Awaited<ReturnType<typeof getBrandKe
 
 
 
+
+export const getRegenerateBrandPromptsUrl = (id: string,) => {
+
+
+
+
+  return `/api/dashboard/brands/${id}/regenerate-prompts`
+}
+
+/**
+ * @summary Re-detect subcategory and regenerate prompts for a monitored brand
+ */
+export const regenerateBrandPrompts = async (id: string, options?: RequestInit): Promise<RegeneratePromptsResponse> => {
+
+  return customFetch<RegeneratePromptsResponse>(getRegenerateBrandPromptsUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRegenerateBrandPromptsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof regenerateBrandPrompts>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof regenerateBrandPrompts>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['regenerateBrandPrompts'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof regenerateBrandPrompts>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  regenerateBrandPrompts(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RegenerateBrandPromptsMutationResult = NonNullable<Awaited<ReturnType<typeof regenerateBrandPrompts>>>
+
+    export type RegenerateBrandPromptsMutationError = ErrorType<void>
+
+    /**
+ * @summary Re-detect subcategory and regenerate prompts for a monitored brand
+ */
+export const useRegenerateBrandPrompts = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof regenerateBrandPrompts>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof regenerateBrandPrompts>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getRegenerateBrandPromptsMutationOptions(options));
+    }
 
 export const getRemoveMonitoredBrandUrl = (id: string,) => {
 
