@@ -354,6 +354,8 @@ export default function Dashboard() {
   const [newKeyword, setNewKeyword] = useState("");
   const [addingKeyword, setAddingKeyword] = useState(false);
   const [manualKeywords, setManualKeywords] = useState<KeywordVisibility[]>([]);
+  const [agentInitialMessage, setAgentInitialMessage] = useState<string | null>(null);
+  const [gapsView, setGapsView] = useState<"gaps" | "wins" | "unclaimed">("gaps");
   const [bannerDismissed, setBannerDismissed] = useState(
     localStorage.getItem("geoiq_pw_banner_dismissed") === "true"
   );
@@ -951,6 +953,7 @@ export default function Dashboard() {
     const cgBase = selectedBrand?.latestScoreChatgpt ?? 8;
     const gmBase = selectedBrand?.latestScoreGemini ?? 6;
     const pxBase = selectedBrand?.latestScorePerplexity ?? 5;
+    const compBase = Math.round((competitorLatest / 100) * 33);
     return kws.slice(0, 10).map((kw, i) => {
       const cg = promptScore(kw, cgBase, 33);
       const gm = promptScore(kw + "g", gmBase, 33);
@@ -959,8 +962,11 @@ export default function Dashboard() {
       const total = cg + gm + px;
       const prevTotal = prev * 2.5;
       const trend: "up" | "down" | "flat" = total > prevTotal + 3 ? "up" : total < prevTotal - 3 ? "down" : "flat";
-      const compScore = competitorScore(kw, Math.round((competitorLatest / 100) * 33), 33);
-      return { id: i, keyword: kw, chatgpt: cg, gemini: gm, perplexity: px, trend, competitorScore: compScore * 3 };
+      const compScore = competitorScore(kw, compBase, 33);
+      const competitorCg = competitorScore(kw + "_cg", compBase, 33);
+      const competitorGm = competitorScore(kw + "_gm", compBase, 33);
+      const competitorPx = competitorScore(kw + "_px", compBase, 33);
+      return { id: i, keyword: kw, chatgpt: cg, gemini: gm, perplexity: px, trend, competitorScore: compScore * 3, competitorCg, competitorGm, competitorPx };
     }).sort((a, b) => (a.chatgpt + a.gemini + a.perplexity) - (b.chatgpt + b.gemini + b.perplexity));
   })();
 
@@ -2505,6 +2511,7 @@ export default function Dashboard() {
                   citationData={citationData}
                   competitorDisplayName={competitorDisplayName}
                   weekChange={weekChange}
+                  initialMessage={agentInitialMessage}
                 />
               )}
 
@@ -2750,6 +2757,136 @@ export default function Dashboard() {
                         <div style={{ fontSize: 12, color: "#9ca3af", textAlign: "center", padding: "16px 0" }}>Fetching backlink data...</div>
                       )}
                     </div>
+
+                    {/* Citation Gaps */}
+                    {(() => {
+                      const competitorName = (selectedBrand?.competitors as string[] | undefined)?.[0]
+                        ?? competitorDisplayName;
+                      const myDomain = (selectedBrand?.domain ?? "").replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? "";
+                      const yourGaps = promptList.filter(p =>
+                        (p.chatgpt === 0 && p.gemini === 0 && p.perplexity === 0) &&
+                        (p.competitorCg > 0 || p.competitorGm > 0 || p.competitorPx > 0)
+                      );
+                      const yourWins = promptList.filter(p =>
+                        (p.chatgpt > 0 || p.gemini > 0 || p.perplexity > 0) &&
+                        (p.competitorCg === 0 && p.competitorGm === 0 && p.competitorPx === 0)
+                      );
+                      const bothMissing = promptList.filter(p =>
+                        (p.chatgpt === 0 && p.gemini === 0 && p.perplexity === 0) &&
+                        (p.competitorCg === 0 && p.competitorGm === 0 && p.competitorPx === 0)
+                      );
+                      const activeList = gapsView === "gaps" ? yourGaps : gapsView === "wins" ? yourWins : bothMissing;
+
+                      const views: { key: "gaps" | "wins" | "unclaimed"; label: string; count: number; color: string; bg: string }[] = [
+                        { key: "gaps", label: "Your gaps", count: yourGaps.length, color: "#DC2626", bg: "#FEF2F2" },
+                        { key: "wins", label: "Your wins", count: yourWins.length, color: "#16A34A", bg: "#F0FDF4" },
+                        { key: "unclaimed", label: "Unclaimed", count: bothMissing.length, color: "#D97706", bg: "#FFFBEB" },
+                      ];
+
+                      const openInAgent = (prompt: { keyword: string; chatgpt: number; gemini: number; perplexity: number; competitorCg: number; competitorGm: number; competitorPx: number }) => {
+                        const yourScore = (prompt.chatgpt > 0 ? 1 : 0) + (prompt.gemini > 0 ? 1 : 0) + (prompt.perplexity > 0 ? 1 : 0);
+                        const compScore = (prompt.competitorCg > 0 ? 1 : 0) + (prompt.competitorGm > 0 ? 1 : 0) + (prompt.competitorPx > 0 ? 1 : 0);
+                        const msg = gapsView === "gaps"
+                          ? `I need to create content that gets ${brandName || myDomain} cited when someone asks: "${prompt.keyword}"\n\nMy current score for this prompt is ${yourScore}/3 AI systems.\nMy competitor (${competitorName}) scores ${compScore}/3 AI systems.\n\nGenerate a content brief and specific copy I can publish to close this gap.`
+                          : gapsView === "wins"
+                          ? `I want to strengthen my competitive advantage for this prompt: "${prompt.keyword}"\n\nI appear in ${yourScore}/3 AI systems for this. My competitor (${competitorName}) does not appear.\n\nHow can I make this lead even stronger and harder to close?`
+                          : `Neither my brand (${brandName || myDomain}) nor my competitor (${competitorName}) appears when someone asks: "${prompt.keyword}"\n\nThis is an unclaimed opportunity. Generate a content brief so I can own this prompt first.`;
+                        setAgentInitialMessage(msg);
+                        setActiveTab("GEO Agent");
+                      };
+
+                      return (
+                        <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+                          <div style={{ padding: "12px 16px", borderBottom: "0.5px solid #f3f4f6" }}>
+                            <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 2 }}>Citation gaps</div>
+                            <div style={{ fontSize: 11, color: "#6b7280" }}>
+                              Comparing your AI visibility vs {competitorName} across {promptList.length} tracked prompts
+                            </div>
+                          </div>
+
+                          {/* Summary stats */}
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", borderBottom: "0.5px solid #f3f4f6" }}>
+                            {views.map(v => (
+                              <button
+                                key={v.key}
+                                onClick={() => setGapsView(v.key)}
+                                style={{ padding: "10px 8px", background: gapsView === v.key ? v.bg : "white", border: "none", borderRight: v.key !== "unclaimed" ? "0.5px solid #f3f4f6" : "none", cursor: "pointer", textAlign: "center" }}
+                              >
+                                <div style={{ fontSize: 18, fontWeight: 700, color: v.color }}>{v.count}</div>
+                                <div style={{ fontSize: 11, color: gapsView === v.key ? v.color : "#6b7280", fontWeight: gapsView === v.key ? 600 : 400 }}>{v.label}</div>
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* Description for active view */}
+                          <div style={{ padding: "8px 16px", background: "#fafafa", borderBottom: "0.5px solid #f3f4f6", fontSize: 11, color: "#6b7280" }}>
+                            {gapsView === "gaps"
+                              ? `These are prompts where ${competitorName} appears but you don't. Each is a content gap you can close.`
+                              : gapsView === "wins"
+                              ? `These are prompts where you appear but ${competitorName} doesn't. These are your strongest competitive advantages.`
+                              : "Neither brand appears for these prompts. The first to publish good content here wins the citation."}
+                          </div>
+
+                          {/* Prompt rows */}
+                          {activeList.length === 0 ? (
+                            <div style={{ padding: "24px 16px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
+                              {gapsView === "gaps"
+                                ? `No gaps found - you appear in all prompts where ${competitorName} does.`
+                                : gapsView === "wins"
+                                ? `No exclusive wins yet - run a scan to get real visibility data.`
+                                : "No unclaimed prompts found."}
+                            </div>
+                          ) : (
+                            <div>
+                              {activeList.map((p, i) => {
+                                const yourAis = [
+                                  { name: "ChatGPT", visible: p.chatgpt > 0 },
+                                  { name: "Gemini", visible: p.gemini > 0 },
+                                  { name: "Perplexity", visible: p.perplexity > 0 },
+                                ];
+                                const compAis = [
+                                  { name: "ChatGPT", visible: p.competitorCg > 0 },
+                                  { name: "Gemini", visible: p.competitorGm > 0 },
+                                  { name: "Perplexity", visible: p.competitorPx > 0 },
+                                ];
+                                const isLast = i === activeList.length - 1;
+                                return (
+                                  <div key={p.keyword} style={{ padding: "12px 16px", borderBottom: isLast ? "none" : "0.5px solid #f9fafb" }}>
+                                    <div style={{ fontSize: 13, color: "#111827", fontWeight: 500, marginBottom: 7, lineHeight: 1.4 }}>{p.keyword}</div>
+                                    <div style={{ display: "flex", gap: 16, marginBottom: 8, flexWrap: "wrap" }}>
+                                      <div style={{ fontSize: 11, color: "#6b7280" }}>
+                                        <span style={{ fontWeight: 500, color: "#374151" }}>{competitorName}:</span>{" "}
+                                        {compAis.map(ai => (
+                                          <span key={ai.name} style={{ marginRight: 6 }}>
+                                            {ai.name} {ai.visible ? <span style={{ color: "#16A34A", fontWeight: 600 }}>yes</span> : <span style={{ color: "#DC2626" }}>no</span>}
+                                          </span>
+                                        ))}
+                                      </div>
+                                      {gapsView !== "unclaimed" && (
+                                        <div style={{ fontSize: 11, color: "#6b7280" }}>
+                                          <span style={{ fontWeight: 500, color: "#374151" }}>You:</span>{" "}
+                                          {yourAis.map(ai => (
+                                            <span key={ai.name} style={{ marginRight: 6 }}>
+                                              {ai.name} {ai.visible ? <span style={{ color: "#16A34A", fontWeight: 600 }}>yes</span> : <span style={{ color: "#DC2626" }}>no</span>}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <button
+                                      onClick={() => openInAgent(p)}
+                                      style={{ display: "flex", alignItems: "center", gap: 5, background: "transparent", border: "0.5px solid #5B3FEA", borderRadius: 6, padding: "5px 12px", fontSize: 11, color: "#5B3FEA", cursor: "pointer", fontWeight: 500 }}
+                                    >
+                                      {gapsView === "gaps" ? "Create content to close this gap" : gapsView === "wins" ? "Strengthen this lead" : "Claim this prompt"} <ChevronRight size={10} />
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {/* Competitor tracking */}
                     <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16 }}>

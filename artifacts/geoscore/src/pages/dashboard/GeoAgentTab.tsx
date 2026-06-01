@@ -372,6 +372,7 @@ export function GeoAgentTab({
   citationData,
   competitorDisplayName,
   weekChange,
+  initialMessage,
 }: {
   brand: Brand;
   plan: string;
@@ -381,6 +382,7 @@ export function GeoAgentTab({
   citationData: CitationData;
   competitorDisplayName: string;
   weekChange: number | null;
+  initialMessage?: string | null;
 }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("Run a full audit on my domain and give me the CORE-EEAT and CITE scores");
@@ -402,6 +404,13 @@ export function GeoAgentTab({
 
   // Find the index of the last non-loading agent message (for chip placement)
   const lastAgentIdx = messages.reduce((acc, m, i) => (m.role === "agent" && !m.isLoading && m.content ? i : acc), -1);
+
+  useEffect(() => {
+    if (initialMessage) {
+      setInput(initialMessage);
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [initialMessage]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });

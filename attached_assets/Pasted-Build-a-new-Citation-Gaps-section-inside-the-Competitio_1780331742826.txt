@@ -1,0 +1,145 @@
+Build a new "Citation Gaps" section 
+inside the Competition tab or as a 
+new tab called "Gaps".
+
+This is the most requested feature —
+showing users exactly which questions 
+their competitors get cited in 
+but they do not.
+
+WHAT IT DOES:
+
+Takes all tracked prompts for the domain.
+For each prompt checks:
+- Does your brand appear? Yes/No
+- Does Competitor A appear? Yes/No
+- Does Competitor B appear? Yes/No
+
+Then shows three views:
+
+VIEW 1 — Your gaps
+Questions where competitor appears 
+but you do not.
+These are your highest priority 
+content opportunities.
+
+VIEW 2 — Your wins
+Questions where you appear but 
+competitor does not.
+These are your competitive advantages.
+
+VIEW 3 — Both missing
+Questions where neither brand appears.
+These are untapped opportunities 
+to own the space.
+
+UI FOR EACH GAP ROW:
+
+Show the prompt question text
+Show which AI systems the competitor 
+appears in for this prompt
+Show a "Create content" button that 
+opens GEO Agent with this prompt 
+pre-loaded as context
+
+Example gap row:
+
+"What are the best AI visibility 
+tools for SaaS founders?"
+
+Competitor A: ChatGPT ✅ Gemini ✅ Perplexity ✅
+You: ChatGPT ❌ Gemini ❌ Perplexity ❌
+
+[Create content to close this gap →]
+
+Clicking "Create content" opens 
+GEO Agent with this message pre-filled:
+
+"I need to create content that gets 
+GeoIQ cited when someone asks: 
+'What are the best AI visibility 
+tools for SaaS founders?'
+
+My current score for this prompt is 0.
+My competitor scores 3/3 AI systems.
+
+Generate a content brief and 
+specific copy I can publish to 
+close this gap."
+
+
+HOW TO GET COMPETITOR DATA:
+
+You already have competitor prompts 
+running in the Competition tab.
+
+For each tracked prompt:
+
+Query your prompts table for 
+user's domain results.
+
+Query your prompts table for 
+competitor domain results 
+(already tracked in Competition tab).
+
+Compare the two sets of results.
+
+WHERE prompt_domain = user_domain 
+AND brand_mentioned = false
+AND EXISTS (
+  SELECT 1 FROM prompt_results 
+  WHERE prompt_id = same_prompt
+  AND prompt_domain = competitor_domain
+  AND brand_mentioned = true
+)
+
+These rows are the gaps.
+
+
+SUMMARY STATS at top of Gaps view:
+
+"You are missing from X prompts 
+where Competitor A appears"
+
+"You own X prompts where 
+Competitor A does not appear"
+
+"X prompts are unclaimed by both — 
+first to create content wins"
+
+
+CONTENT BRIEF GENERATION:
+
+When user clicks "Create content 
+to close this gap" call Claude API with:
+
+System: "You are a GEO content strategist. 
+Your job is to help brands get cited 
+by ChatGPT, Gemini and Perplexity."
+
+User: "The brand is [domain].
+The gap prompt is: [prompt text]
+The competitor [competitor domain] 
+appears in all 3 AI systems for this.
+The user's brand does not appear at all.
+
+Generate:
+1. One blog post title that would 
+   get cited for this prompt
+2. The exact H1 and first 150 words
+   (Perplexity reads first 150 words)
+3. Three citation sources to get 
+   listed on for this prompt
+4. One tweet to build awareness 
+   around this topic"
+
+
+This feature turns GeoIQ from a 
+tracker into an execution platform.
+
+Every gap becomes an actionable 
+content brief in one click.
+
+This is the difference between 
+Profound (just tracking) and 
+GeoIQ (tracking plus fixing).
