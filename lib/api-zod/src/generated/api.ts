@@ -147,6 +147,20 @@ export const RunAuditResponse = zod.object({
   "strengths": zod.string(),
   "weaknesses": zod.string()
 }).optional(),
+  "googleAiOverview": zod.union([zod.object({
+  "found": zod.boolean().optional(),
+  "brandMentioned": zod.boolean().optional(),
+  "brandInCitations": zod.boolean().optional(),
+  "score": zod.number().optional(),
+  "overviewText": zod.string().nullish(),
+  "citedSources": zod.array(zod.object({
+  "url": zod.string().optional(),
+  "domain": zod.string().optional(),
+  "title": zod.string().optional()
+})).optional(),
+  "keywordsChecked": zod.array(zod.string()).optional(),
+  "unavailable": zod.boolean().optional()
+}),zod.null()]).optional(),
   "createdAt": zod.string()
 })
 
@@ -231,6 +245,20 @@ export const GetAuditResponse = zod.object({
   "strengths": zod.string(),
   "weaknesses": zod.string()
 }).optional(),
+  "googleAiOverview": zod.union([zod.object({
+  "found": zod.boolean().optional(),
+  "brandMentioned": zod.boolean().optional(),
+  "brandInCitations": zod.boolean().optional(),
+  "score": zod.number().optional(),
+  "overviewText": zod.string().nullish(),
+  "citedSources": zod.array(zod.object({
+  "url": zod.string().optional(),
+  "domain": zod.string().optional(),
+  "title": zod.string().optional()
+})).optional(),
+  "keywordsChecked": zod.array(zod.string()).optional(),
+  "unavailable": zod.boolean().optional()
+}),zod.null()]).optional(),
   "createdAt": zod.string()
 })
 

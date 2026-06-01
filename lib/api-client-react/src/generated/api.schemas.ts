@@ -98,6 +98,24 @@ export interface EeatScore {
   weaknesses: string;
 }
 
+export type GoogleAiOverviewAuditResultCitedSourcesItem = {
+  url?: string;
+  domain?: string;
+  title?: string;
+};
+
+export interface GoogleAiOverviewAuditResult {
+  found?: boolean;
+  brandMentioned?: boolean;
+  brandInCitations?: boolean;
+  score?: number;
+  /** @nullable */
+  overviewText?: string | null;
+  citedSources?: GoogleAiOverviewAuditResultCitedSourcesItem[];
+  keywordsChecked?: string[];
+  unavailable?: boolean;
+}
+
 export interface AuditResult {
   id: string;
   url: string;
@@ -150,6 +168,7 @@ export interface AuditResult {
   cachedHoursAgo?: number;
   recommendations?: Recommendation[];
   eeatScore?: EeatScore;
+  googleAiOverview?: GoogleAiOverviewAuditResult | null;
   createdAt: string;
 }
 

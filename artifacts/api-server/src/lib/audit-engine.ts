@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { getDomainKeywords } from "./dataforseo";
+import { getDomainKeywords, getGoogleAiOverviewForAudit, type GoogleAiOverviewAuditResult } from "./dataforseo";
+export type { GoogleAiOverviewAuditResult };
 import { logger } from "./logger";
 
 // --- OpenAI client (ChatGPT + fallback) ---
@@ -68,6 +69,7 @@ export interface AuditEngineResult {
   perplexity: AuditQueryResult;
   claude: AuditQueryResult;
   grok: AuditQueryResult;
+  googleAiOverview: GoogleAiOverviewAuditResult;
   keywordsUsed: string[];
   keywordsFromDataforseo: number;
   keywordsFilteredOut: number;
@@ -1182,6 +1184,7 @@ export async function runAuditEngine(
       perplexity: { found: false, detail: null, score: 0, competitors: [] },
       claude: { found: false, detail: null, score: 0, competitors: [] },
       grok: { found: false, detail: null, score: 0, competitors: [] },
+      googleAiOverview: { found: false, brandMentioned: false, brandInCitations: false, score: 0, overviewText: null, citedSources: [], keywordsChecked: [], unavailable: true },
       keywordsUsed: [],
       keywordsFromDataforseo: 0,
       keywordsFilteredOut: 0,
@@ -1275,7 +1278,14 @@ export async function runAuditEngine(
   // A clean web-search style query gives the most accurate live visibility signal.
   const perplexityDirectPrompt = `Search the web for ${brandName} (${domain}) and tell me: what does this brand do, who is it for, and what is it currently known for online? If you can visit their website, please do. Give me a current, factual summary.`;
 
-  // Run all AI queries + technical audit + direct brand queries all in parallel
+  // Use short DataForSEO keywords (not full prompts) for Google AI Overview SERP check
+  const googleAiKws = dfsKeywords.length > 0
+    ? dfsKeywords.slice(0, 3).map(k => k.keyword)
+    : subcategory
+      ? [`best ${subcategory}`, `${subcategory} tools`]
+      : [];
+
+  // Run all AI queries + technical audit + direct brand queries + Google AI Overview all in parallel
   const chatgptTasks = prompts.map((p) => queryOpenAIChatGPT(p));
   const geminiTasks = prompts.map((p) => queryGemini(p));
   const perplexityTasks = prompts.map((p) => queryPerplexity(p));
@@ -1284,7 +1294,7 @@ export async function runAuditEngine(
 
   const [
     chatgptTexts, geminiResults, perplexityResults, claudeResults, grokResults,
-    technicalAudit,
+    technicalAudit, googleAiOverview,
     directChatgpt, directGemini, directPerplexity, directClaude, directGrok,
   ] = await Promise.all([
     Promise.all(chatgptTasks),
@@ -1293,6 +1303,7 @@ export async function runAuditEngine(
     Promise.all(claudeTasks),
     Promise.all(grokTasks),
     runTechnicalAudit(domain, scraped.rawHtml, scraped.bodyText),
+    getGoogleAiOverviewForAudit(googleAiKws, domain, brandName),
     queryOpenAIChatGPT(trainingDataDirectPrompt),
     queryGemini(trainingDataDirectPrompt),
     queryPerplexity(perplexityDirectPrompt),
@@ -1336,6 +1347,26 @@ export async function runAuditEngine(
   const rawClaudeResponse = stripMarkdown(directClaude.text.trim() || claudeResults.map((r) => r.text).filter((t) => t.trim())[0] || "");
   const rawGrokResponse = stripMarkdown(directGrok.text.trim() || grokResults.map((r) => r.text).filter((t) => t.trim())[0] || "");
 
+  // Build Google AI Overview technical check and add it to the audit
+  const googleAiCheck: TechnicalCheck = googleAiOverview.unavailable
+    ? { id: "google_ai", name: "Google AI Overview", score: 0, status: "warn", detail: "Google AI Overview check temporarily unavailable. Will retry on next rescan." }
+    : !googleAiOverview.found
+    ? { id: "google_ai", name: "Google AI Overview", score: 0, status: "warn", detail: "No AI Overview found for your tracked keywords. Google has not activated AI Overview for this category yet." }
+    : googleAiOverview.brandMentioned && googleAiOverview.brandInCitations
+    ? { id: "google_ai", name: "Google AI Overview", score: 100, status: "pass", detail: `Your brand appears in Google AI Overview and is cited as a source for "${googleAiOverview.keywordsChecked[0] ?? "your top keyword"}".` }
+    : googleAiOverview.brandMentioned
+    ? { id: "google_ai", name: "Google AI Overview", score: 70, status: "warn", detail: "Your brand is mentioned in Google AI Overview but not listed as a cited source. Add more authoritative content to earn citations." }
+    : googleAiOverview.brandInCitations
+    ? { id: "google_ai", name: "Google AI Overview", score: 50, status: "warn", detail: "Your domain appears in Google AI Overview citations but your brand name is not in the answer text. Improve your brand entity signals." }
+    : { id: "google_ai", name: "Google AI Overview", score: 20, status: "fail", detail: `Google AI Overview exists for your keywords but your brand is not mentioned. Sources cited: ${googleAiOverview.citedSources.slice(0, 3).map(s => s.domain).join(", ") || "others"}.` };
+
+  const extChecks = [...technicalAudit.checks, googleAiCheck];
+  const extTechnicalAudit: TechnicalAuditResult = {
+    ...technicalAudit,
+    checks: extChecks,
+    overallScore: Math.round(extChecks.reduce((s, c) => s + c.score, 0) / extChecks.length),
+  };
+
   return {
     brandName,
     subcategory,
@@ -1346,6 +1377,7 @@ export async function runAuditEngine(
     perplexity,
     claude,
     grok,
+    googleAiOverview,
     keywordsUsed: prompts,
     keywordsFromDataforseo,
     keywordsFilteredOut,
@@ -1354,7 +1386,7 @@ export async function runAuditEngine(
     rawPerplexityResponse,
     rawClaudeResponse,
     rawGrokResponse,
-    technicalAudit,
+    technicalAudit: extTechnicalAudit,
   };
 }
 

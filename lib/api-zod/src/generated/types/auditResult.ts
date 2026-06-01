@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { EeatScore } from './eeatScore';
+import type { GoogleAiOverviewAuditResult } from './googleAiOverviewAuditResult';
 import type { Recommendation } from './recommendation';
 import type { TechnicalAuditResult } from './technicalAuditResult';
 
@@ -61,5 +62,6 @@ export interface AuditResult {
   cachedHoursAgo?: number;
   recommendations?: Recommendation[];
   eeatScore?: EeatScore;
+  googleAiOverview?: GoogleAiOverviewAuditResult | null;
   createdAt: string;
 }

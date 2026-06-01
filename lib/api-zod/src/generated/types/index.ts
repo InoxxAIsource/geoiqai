@@ -14,6 +14,8 @@ export * from './dailyScore';
 export * from './dashboardSummary';
 export * from './eeatScore';
 export * from './emailSubscribeInput';
+export * from './googleAiOverviewAuditResult';
+export * from './googleAiOverviewAuditResultCitedSourcesItem';
 export * from './healthStatus';
 export * from './keywordVisibility';
 export * from './llmCrossAggResult';

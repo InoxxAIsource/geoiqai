@@ -1,0 +1,316 @@
+Add Google AI Overview tracking to GeoIQ 
+using DataForSEO SERP API.
+
+Currently Google AI Overview shows 
+"estimated" or is not tracked with 
+real data. Fix this completely.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 1 — Add DataForSEO SERP API call 
+for Google AI Overview
+
+For each domain audit, after running 
+the existing AI system checks, add 
+a Google AI Overview check.
+
+Use the domain's top 3 tracked keywords 
+or prompts (same ones used for 
+LLM Scraper calls).
+
+For each keyword call:
+
+POST https://api.dataforseo.com/v3/serp/
+google/organic/live/advanced
+
+Headers:
+Authorization: Basic [existing DataForSEO 
+credentials already in env]
+Content-Type: application/json
+
+Body:
+[
+ {
+   "keyword": "[tracked keyword]",
+   "location_code": 2840,
+   "language_code": "en",
+   "device": "desktop",
+   "os": "windows",
+   "depth": 10
+ }
+]
+
+Cost: $0.002 per call
+3 keywords = $0.006 per audit
+Negligible cost.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 2 — Parse the AI Overview response
+
+From the response parse items array 
+and look for these element types:
+
+Primary: type = "ai_overview"
+Fallback: type = "featured_snippet"
+
+For ai_overview element extract:
+- text: the full AI Overview answer text
+- items: cited source URLs and titles
+- asker: the question Google answered
+
+Example response structure:
+{
+ "type": "ai_overview",
+ "text": "GeoIQ is an AI visibility 
+ platform that tracks...",
+ "items": [
+   {
+     "type": "ai_overview_element",
+     "title": "GeoIQ - AI Visibility",
+     "url": "https://geoiqai.com",
+     "domain": "geoiqai.com"
+   }
+ ]
+}
+
+Brand detection logic:
+const brandMentioned = 
+ aiOverviewText.toLowerCase()
+ .includes(brandName.toLowerCase())
+ ||
+ aiOverviewItems.some(item => 
+   item.domain === auditedDomain
+ )
+
+Score calculation:
+If brand mentioned in text AND 
+domain in cited sources: 100/100
+If brand mentioned in text only: 70/100
+If domain in cited sources only: 50/100
+If AI Overview exists but brand 
+not mentioned: 20/100
+If no AI Overview found for keyword: 0/100
+
+Final Google AI Overview score = 
+average across 3 keywords
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 3 — Store results in Supabase
+
+Store in existing audit_results table 
+or create google_ai_overview_results:
+
+{
+ user_id: currentUserId,
+ audited_domain: domain,
+ keyword: keywordUsed,
+ ai_overview_found: boolean,
+ ai_overview_text: string,
+ brand_mentioned: boolean,
+ brand_in_citations: boolean,
+ cited_sources: array of {
+   url, domain, title
+ },
+ score: number 0-100,
+ timestamp: ISO string
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 4 — Display in dashboard
+
+In the Brand Recognition section 
+(where ChatGPT, Gemini, Perplexity, 
+Claude, Grok cards show):
+
+Add Google AI Overview as the 6th card.
+
+Card design same as other engine cards:
+- Green left border if score above 60
+- Orange left border if score 30-60
+- Red left border if score below 30
+
+Show:
+Engine name: Google AI Overview
+Score: X/100
+Status badge: Visible/Partial/Not found
+
+Expandable section showing:
+"What Google AI Overview says 
+about you:"
+[ai_overview_text truncated to 
+200 chars with expand option]
+
+"Sources Google AI cited:"
+[list of cited_sources domains]
+
+If no AI Overview found for any keyword:
+Show: "Google AI Overview not triggered 
+for your tracked keywords. This means 
+Google is not showing an AI answer for 
+these searches yet."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 5 — Add to Technical GEO audit
+
+Add a new technical check:
+
+"Google AI Overview Presence"
+
+Check if AI Overview appears for 
+the domain's primary keyword.
+
+If AI Overview appears and brand cited:
+Score: 100/100 — Pass
+Message: "Your brand appears in 
+Google AI Overview for [keyword]"
+
+If AI Overview appears but brand 
+not cited:
+Score: 30/100 — Warn
+Message: "Google AI Overview exists 
+for [keyword] but your brand is not 
+cited. Competitors appearing: [domains]"
+
+If no AI Overview found:
+Score: 0/100 — Info
+Message: "No AI Overview found for 
+your tracked keywords. Google AI 
+Overview has not activated for 
+this category yet."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 6 — Add Fix Recommendations
+
+If brand not in Google AI Overview 
+add these specific fix actions:
+
+FIX A — If AI Overview exists 
+but brand not cited:
+
+Title: Get cited in Google AI Overview
+
+Why: Google AI Overview cites 3-5 sources 
+directly. Appearing here drives zero-click 
+visibility for millions of searches.
+
+How:
+Step 1. Identify which sources Google 
+is currently citing for this keyword
+(shown in cited_sources above)
+Step 2. Get featured or mentioned on 
+those exact domains
+Step 3. Add FAQ schema to your homepage 
+answering the exact question Google 
+AI is responding to
+Step 4. Rewrite your answer page with 
+the answer in the first 150 words
+Step 5. Rescan in 2 weeks
+
+Score impact: +25 points
+Effort: 1 week
+Priority: High
+
+FIX B — If no AI Overview found:
+
+Title: Create content to trigger 
+Google AI Overview
+
+Why: Google AI Overview only appears 
+for queries with clear informational 
+intent. Creating the right content 
+can trigger AI Overview for your 
+category keywords.
+
+How:
+Step 1. Identify question-format 
+keywords in your category
+Step 2. Create a dedicated FAQ or 
+guide page answering that question
+Step 3. Add FAQPage schema markup
+Step 4. Ensure answer appears in 
+first 150 words of the page
+Step 5. Build 3-5 backlinks to that page
+
+Score impact: +15 points
+Effort: 2-3 weeks
+Priority: Medium
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 7 — Update overall GEO IQ score
+
+Update score calculation to include 
+Google AI Overview:
+
+Current scoring:
+AI Memory (ChatGPT + Gemini): 50 points
+Live Web (Perplexity): 50 points
+
+New scoring:
+AI Memory (ChatGPT + Gemini): 40 points
+Live Web (Perplexity): 30 points
+Google AI Overview: 30 points
+
+Total still 100 points.
+
+This makes the score more accurate 
+and reflects Google AI Overview 
+as a major visibility channel.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 8 — Handle errors gracefully
+
+If DataForSEO SERP API call fails:
+Do not show error to user.
+Show: "Google AI Overview check 
+temporarily unavailable. 
+Will retry on next rescan."
+
+If AI Overview element not found 
+in response:
+Show: "No AI Overview detected for 
+these keywords."
+Score: 0/100
+
+Log all API errors to console 
+for debugging.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+VERIFICATION AFTER BUILDING:
+
+Test with these domains:
+
+1. ahrefs.com
+Keyword: "best backlink checker tool"
+Expected: AI Overview likely found
+Check if ahrefs.com appears in citations
+
+2. geoiqai.com  
+Keyword: "AI visibility tracking tool"
+Expected: AI Overview may not exist yet
+for this new category
+
+3. razorpay.com
+Keyword: "payment gateway India"
+Expected: AI Overview likely found
+Check if razorpay appears
+
+Show the Google AI Overview card 
+in the dashboard for each domain 
+with real data from DataForSEO.
+
+Fix is complete when:
+- Google AI Overview shows as 6th 
+ engine in Brand Recognition
+- Score is based on real SERP data
+- Cited sources are real URLs from 
+ DataForSEO response
+- Fix actions are specific to whether 
+ AI Overview was found or not

@@ -68,6 +68,16 @@ export interface AuditResult {
   rawGrokResponse?: string | null;
   technicalAudit?: TechnicalAudit | null;
   eeatScore?: EeatScore | null;
+  googleAiOverview?: {
+    found: boolean;
+    brandMentioned: boolean;
+    brandInCitations: boolean;
+    score: number;
+    overviewText?: string | null;
+    citedSources: Array<{ url: string; domain: string; title: string }>;
+    keywordsChecked: string[];
+    unavailable?: boolean;
+  } | null;
   recommendations?: Recommendation[];
   createdAt?: string;
 }

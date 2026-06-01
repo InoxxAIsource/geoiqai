@@ -2068,3 +2068,131 @@ export function buildCategoryFallbackKeywords(category: string | null | undefine
     `${cat} for startups`,
   ];
 }
+
+// ─── Google AI Overview - Audit Result ─────────────────────────────────────────
+
+export interface GoogleAiOverviewAuditResult {
+  found: boolean;
+  brandMentioned: boolean;
+  brandInCitations: boolean;
+  score: number;
+  overviewText: string | null;
+  citedSources: Array<{ url: string; domain: string; title: string }>;
+  keywordsChecked: string[];
+  unavailable?: boolean;
+}
+
+/**
+ * Check whether a brand appears in Google AI Overview for its top keywords.
+ * Uses DataForSEO SERP live/advanced endpoint. Results cached 24h.
+ *
+ * Scoring (averaged across all checked keywords):
+ *   Brand in text + cited: 100
+ *   Brand in text only:    70
+ *   Brand in citations only: 50
+ *   AI Overview found, brand absent: 20
+ *   No AI Overview for this keyword: 0
+ */
+export async function getGoogleAiOverviewForAudit(
+  keywords: string[],
+  domain: string,
+  brandName: string,
+): Promise<GoogleAiOverviewAuditResult> {
+  const unavailable: GoogleAiOverviewAuditResult = {
+    found: false, brandMentioned: false, brandInCitations: false,
+    score: 0, overviewText: null, citedSources: [], keywordsChecked: keywords,
+    unavailable: true,
+  };
+
+  const login = process.env.DATAFORSEO_LOGIN ?? "";
+  const password = process.env.DATAFORSEO_PASSWORD ?? "";
+  if (!login || !password || keywords.length === 0) return unavailable;
+
+  const top3 = keywords.slice(0, 3);
+  const cacheKey = `gao_audit:2840:${domain}:${top3.map(k => k.slice(0, 20).replace(/\W+/g, "_")).join("|")}`;
+
+  const cached = await getDfCache(cacheKey);
+  if (cached) return cached as unknown as GoogleAiOverviewAuditResult;
+
+  const bare = domain.replace(/^www\./, "").toLowerCase();
+  const brandLower = brandName.toLowerCase();
+
+  try {
+    const controller = new AbortController();
+    const tmout = setTimeout(() => controller.abort(), 25000);
+    const resp = await fetch(`${DATAFORSEO_BASE}/v3/serp/google/organic/live/advanced`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: getAuthHeader(),
+      body: JSON.stringify(top3.map(kw => ({
+        keyword: kw,
+        location_code: 2840,
+        language_code: "en",
+        device: "desktop",
+        os: "windows",
+        depth: 10,
+      }))),
+    });
+    clearTimeout(tmout);
+    if (!resp.ok) return unavailable;
+
+    const data = (await resp.json()) as Record<string, unknown>;
+    const tasks = (data.tasks as Array<Record<string, unknown>>) ?? [];
+
+    let foundAny = false;
+    let mentionedAny = false;
+    let inCitationsAny = false;
+    let overviewText: string | null = null;
+    const allCited: Array<{ url: string; domain: string; title: string }> = [];
+    const kwScores: number[] = [];
+
+    for (let i = 0; i < top3.length; i++) {
+      const taskResult = (tasks[i]?.result as Array<Record<string, unknown>>)?.[0];
+      const items = (taskResult?.items as Array<Record<string, unknown>>) ?? [];
+      const aiItem = items.find(it => it.type === "ai_overview") ?? items.find(it => it.type === "featured_snippet");
+
+      if (!aiItem) { kwScores.push(0); continue; }
+
+      foundAny = true;
+      const rawText = String(aiItem.text ?? aiItem.content ?? "");
+      if (!overviewText && rawText.length > 10) overviewText = rawText.slice(0, 800);
+
+      const subItems = (aiItem.items as Array<Record<string, unknown>>) ?? [];
+      let kwMentioned = rawText.toLowerCase().includes(bare) || rawText.toLowerCase().includes(brandLower);
+      let kwInCitations = false;
+
+      for (const sub of subItems) {
+        const content = String(sub.content ?? sub.text ?? "");
+        if (content.toLowerCase().includes(bare) || content.toLowerCase().includes(brandLower)) kwMentioned = true;
+        const links = (sub.links as Array<Record<string, unknown>>) ?? [];
+        for (const link of links) {
+          const lu = String(link.url ?? "");
+          const ld = (String(link.domain ?? "")
+            || (lu.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? ""));
+          const ldClean = ld.replace(/^www\./, "").toLowerCase();
+          const lt = String(link.title ?? "");
+          if (lu && !allCited.some(s => s.url === lu)) allCited.push({ url: lu, domain: ldClean, title: lt });
+          if (ldClean && (ldClean.includes(bare) || bare.includes(ldClean))) kwInCitations = true;
+        }
+      }
+
+      if (kwMentioned) mentionedAny = true;
+      if (kwInCitations) inCitationsAny = true;
+      kwScores.push(kwMentioned && kwInCitations ? 100 : kwMentioned ? 70 : kwInCitations ? 50 : 20);
+    }
+
+    const score = kwScores.length > 0
+      ? Math.round(kwScores.reduce((a, b) => a + b, 0) / kwScores.length)
+      : 0;
+
+    const result: GoogleAiOverviewAuditResult = {
+      found: foundAny, brandMentioned: mentionedAny, brandInCitations: inCitationsAny,
+      score, overviewText, citedSources: allCited.slice(0, 10), keywordsChecked: top3,
+    };
+
+    await setDfCache(cacheKey, result as unknown as Record<string, unknown>, (top3.length * 0.002).toFixed(4));
+    return result;
+  } catch {
+    return unavailable;
+  }
+}

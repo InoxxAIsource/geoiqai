@@ -5,7 +5,7 @@ import {
   RunAuditBody,
   GetAuditParams,
 } from "@workspace/api-zod";
-import { runAuditEngine, generateRecommendations, extractDomain, type TechnicalAuditResult, type EeatScore } from "../lib/audit-engine";
+import { runAuditEngine, generateRecommendations, extractDomain, type TechnicalAuditResult, type EeatScore, type GoogleAiOverviewAuditResult } from "../lib/audit-engine";
 import { verifyToken } from "../lib/auth";
 
 const FREE_IP_AUDITS_PER_DAY = 2;
@@ -55,6 +55,7 @@ function serializeAudit(
     claudeRawResponse: isPaid && typeof raw.claudeRawResponse === "string" ? raw.claudeRawResponse : null,
     grokRawResponse: isPaid && typeof raw.grokRawResponse === "string" ? raw.grokRawResponse : null,
     technicalAudit: (raw.technicalAudit ?? null) as TechnicalAuditResult | null,
+    googleAiOverview: (raw.googleAiOverview ?? null) as GoogleAiOverviewAuditResult | null,
     competitorsFound: audit.competitorsFound,
     keywordsUsed: audit.keywordsUsed,
     keywordsFromDataforseo: typeof raw.keywordsFromDataforseo === "number" ? raw.keywordsFromDataforseo : 0,
@@ -182,7 +183,7 @@ router.post("/audit", async (req, res): Promise<void> => {
 
     const {
       brandName, category, market,
-      chatgpt, gemini, perplexity, claude, grok,
+      chatgpt, gemini, perplexity, claude, grok, googleAiOverview,
       keywordsUsed, keywordsFromDataforseo, keywordsFilteredOut,
       rawChatgptResponse, rawGeminiResponse, rawPerplexityResponse, rawClaudeResponse, rawGrokResponse,
       technicalAudit,
@@ -211,7 +212,7 @@ router.post("/audit", async (req, res): Promise<void> => {
         claudeDetail: claude.detail, grokDetail: grok.detail,
         chatgptRawResponse: rawChatgptResponse, geminiRawResponse: rawGeminiResponse,
         perplexityRawResponse: rawPerplexityResponse, claudeRawResponse: rawClaudeResponse,
-        grokRawResponse: rawGrokResponse, technicalAudit, eeatScore,
+        grokRawResponse: rawGrokResponse, technicalAudit, eeatScore, googleAiOverview,
       },
       recommendations: recommendations as unknown as Record<string, unknown>[],
       ipAddress: ip,

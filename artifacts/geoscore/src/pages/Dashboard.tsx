@@ -850,11 +850,12 @@ export default function Dashboard() {
   })();
 
   const systemStatuses = [
-    { name: "ChatGPT", score: selectedBrand?.latestScoreChatgpt ?? 0, found: (selectedBrand?.latestScoreChatgpt ?? 0) > 0, color: "#10a37f", notChecked: false },
-    { name: "Gemini", score: selectedBrand?.latestScoreGemini ?? 0, found: (selectedBrand?.latestScoreGemini ?? 0) > 0, color: "#4285f4", notChecked: false },
-    { name: "Perplexity", score: selectedBrand?.latestScorePerplexity ?? 0, found: (selectedBrand?.latestScorePerplexity ?? 0) > 0, color: "#22d3ee", notChecked: false },
-    { name: "Claude", score: lastScanResult?.scoreClaude ?? 0, found: lastScanResult?.claudeFound ?? false, color: "#D97706", notChecked: false },
-    { name: "Grok", score: lastScanResult?.scoreGrok ?? 0, found: lastScanResult?.grokFound ?? false, color: "#7C3AED", notChecked: false },
+    { name: "ChatGPT", score: selectedBrand?.latestScoreChatgpt ?? 0, maxScore: 33, found: (selectedBrand?.latestScoreChatgpt ?? 0) > 0, color: "#10a37f", notChecked: false },
+    { name: "Gemini", score: selectedBrand?.latestScoreGemini ?? 0, maxScore: 33, found: (selectedBrand?.latestScoreGemini ?? 0) > 0, color: "#4285f4", notChecked: false },
+    { name: "Perplexity", score: selectedBrand?.latestScorePerplexity ?? 0, maxScore: 33, found: (selectedBrand?.latestScorePerplexity ?? 0) > 0, color: "#22d3ee", notChecked: false },
+    { name: "Claude", score: lastScanResult?.scoreClaude ?? 0, maxScore: 33, found: lastScanResult?.claudeFound ?? false, color: "#D97706", notChecked: false },
+    { name: "Grok", score: lastScanResult?.scoreGrok ?? 0, maxScore: 33, found: lastScanResult?.grokFound ?? false, color: "#7C3AED", notChecked: false },
+    { name: "Google AI", score: lastScanResult?.googleAiOverview?.score ?? 0, maxScore: 100, found: lastScanResult?.googleAiOverview?.found ?? false, color: "#EA4335", notChecked: false },
   ];
 
   const weekChange = (() => {
@@ -1462,7 +1463,7 @@ export default function Dashboard() {
                         <div style={{ marginTop: 12, display: "flex", gap: 16, flexWrap: "wrap" }}>
                           <div>
                             <div style={{ fontSize: 11, color: "#94A3B8" }}>AI systems visible</div>
-                            <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 20, fontWeight: 700, color: "#0F172A" }}>{visibleCount}<span style={{ fontSize: 13, color: "#94A3B8", fontWeight: 400 }}>/5</span></div>
+                            <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 20, fontWeight: 700, color: "#0F172A" }}>{visibleCount}<span style={{ fontSize: 13, color: "#94A3B8", fontWeight: 400 }}>/6</span></div>
                           </div>
                           <div>
                             <div style={{ fontSize: 11, color: "#94A3B8" }}>Prompts tracked</div>
@@ -1475,9 +1476,10 @@ export default function Dashboard() {
                       <div style={{ flex: 1, minWidth: 200 }}>
                         <div style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", letterSpacing: "0.08em", textTransform: "uppercase" as const, marginBottom: 12 }}>Breakdown by AI system</div>
                         {systemStatuses.map((sys, i) => {
-                          const pct = Math.min(100, (sys.score / 33) * 100);
-                          const barColor = sys.score >= 16 ? "#059669" : sys.score >= 1 ? "#D97706" : "#E5E7EB";
-                          const barBg = sys.score >= 16 ? "#DCFCE7" : sys.score >= 1 ? "#FEF3C7" : "#F1F5F9";
+                          const pct = Math.min(100, (sys.score / sys.maxScore) * 100);
+                          const half = sys.maxScore / 2;
+                          const barColor = sys.score >= half ? "#059669" : sys.score >= 1 ? "#D97706" : "#E5E7EB";
+                          const barBg = sys.score >= half ? "#DCFCE7" : sys.score >= 1 ? "#FEF3C7" : "#F1F5F9";
                           return (
                             <div key={sys.name} style={{ marginBottom: i < systemStatuses.length - 1 ? 14 : 0 }}>
                               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
@@ -1486,7 +1488,7 @@ export default function Dashboard() {
                                   <span style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>{sys.name}</span>
                                 </div>
                                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                  <span style={{ fontSize: 12, color: "#64748B" }}>{sys.score}/33</span>
+                                  <span style={{ fontSize: 12, color: "#64748B" }}>{sys.score}/{sys.maxScore}</span>
                                   <span style={{ background: sys.found ? "#DCFCE7" : "#FEE2E2", color: sys.found ? "#065F46" : "#991B1B", borderRadius: 9999, padding: "2px 8px", fontSize: 11, fontWeight: 500 }}>
                                     {sys.found ? "Visible" : "Invisible"}
                                   </span>
@@ -1544,7 +1546,7 @@ export default function Dashboard() {
                           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                             <span style={{ width: 8, height: 8, borderRadius: "50%", background: sys.color, display: "inline-block" }} />
                             <span style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>{sys.name}</span>
-                            <span style={{ fontSize: 11, color: "#9ca3af" }}>{sys.score}/33 pts</span>
+                            <span style={{ fontSize: 11, color: "#9ca3af" }}>{sys.score}/{sys.maxScore} pts</span>
                           </div>
                           <span style={{ background: sys.found ? "#E1F5EE" : "#FCEBEB", color: sys.found ? "#085041" : "#791F1F", borderRadius: 9999, padding: "2px 8px", fontSize: 11, fontWeight: 500 }}>
                             {sys.found ? "Visible" : "Invisible"}
@@ -1659,6 +1661,64 @@ export default function Dashboard() {
                       </div>
                     )}
                   </div>
+
+                  {/* Google AI Overview card */}
+                  {(() => {
+                    const gao = lastScanResult?.googleAiOverview;
+                    if (!gao) return null;
+                    const statusBg = gao.found && gao.brandMentioned ? "#ECFDF5" : gao.found ? "#FFFBEB" : "#F9FAFB";
+                    const statusColor = gao.found && gao.brandMentioned ? "#065F46" : gao.found ? "#92400E" : "#6B7280";
+                    const statusLabel = gao.found && gao.brandMentioned && gao.brandInCitations ? "Mentioned + cited"
+                      : gao.found && gao.brandMentioned ? "Mentioned, not cited"
+                      : gao.found && gao.brandInCitations ? "Cited, not mentioned"
+                      : gao.found ? "Overview exists, brand absent"
+                      : gao.unavailable ? "Check unavailable"
+                      : "No overview found";
+                    return (
+                      <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: 16, marginTop: 12 }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#EA4335", display: "inline-block" }} />
+                            <span style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>Google AI Overview</span>
+                            <span style={{ fontSize: 11, color: "#9ca3af" }}>score: {gao.score}/100</span>
+                          </div>
+                          <span style={{ background: statusBg, color: statusColor, borderRadius: 9999, padding: "2px 10px", fontSize: 11, fontWeight: 500 }}>
+                            {statusLabel}
+                          </span>
+                        </div>
+                        {gao.overviewText && (
+                          <div style={{ background: "#F8FAFC", borderRadius: 6, padding: "10px 12px", marginBottom: 10, fontSize: 12, color: "#374151", lineHeight: 1.6, maxHeight: 120, overflowY: "auto" }}>
+                            {gao.overviewText}
+                          </div>
+                        )}
+                        {gao.citedSources.length > 0 && (
+                          <div style={{ marginBottom: 10 }}>
+                            <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 5 }}>Sources cited in this overview</div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                              {gao.citedSources.map((s: { url: string; domain: string; title: string }, i: number) => {
+                                const isBrand = s.domain.includes((selectedBrand?.domain ?? "").replace(/^www\./, ""));
+                                return (
+                                  <span key={i} style={{ fontSize: 11, background: isBrand ? "#EDE9FE" : "#F3F4F6", color: isBrand ? "#5B3FEA" : "#6B7280", borderRadius: 4, padding: "2px 7px", fontWeight: isBrand ? 600 : 400 }}>
+                                    {s.domain || s.url.replace(/^https?:\/\//, "").split("/")[0]}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        {!gao.brandMentioned && !gao.unavailable && (
+                          <div style={{ background: "#FEF3C7", borderRadius: 6, padding: "8px 12px", fontSize: 12, color: "#92400E" }}>
+                            <strong>Fix:</strong> Publish content that directly answers "{gao.keywordsChecked[0] ?? "your tracked keywords"}". AI Overview pulls from pages that best answer the query. Add a clear, concise answer to your homepage or a dedicated landing page.
+                          </div>
+                        )}
+                        {gao.brandMentioned && !gao.brandInCitations && (
+                          <div style={{ background: "#EFF6FF", borderRadius: 6, padding: "8px 12px", fontSize: 12, color: "#1D4ED8" }}>
+                            Your brand is mentioned in Google AI Overview but not linked as a source. Build more authoritative content with clear authorship and structured data so Google will cite your page directly.
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </>
               )}
 

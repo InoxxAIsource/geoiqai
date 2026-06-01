@@ -582,6 +582,10 @@ components:
             $ref: "#/components/schemas/Recommendation"
         eeatScore:
           $ref: "#/components/schemas/EeatScore"
+        googleAiOverview:
+          oneOf:
+            - $ref: "#/components/schemas/GoogleAiOverviewAuditResult"
+            - type: "null"
         createdAt:
           type: string
 
@@ -831,6 +835,37 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Recommendation"
+
+    GoogleAiOverviewAuditResult:
+      type: object
+      properties:
+        found:
+          type: boolean
+        brandMentioned:
+          type: boolean
+        brandInCitations:
+          type: boolean
+        score:
+          type: integer
+        overviewText:
+          type: ["string", "null"]
+        citedSources:
+          type: array
+          items:
+            type: object
+            properties:
+              url:
+                type: string
+              domain:
+                type: string
+              title:
+                type: string
+        keywordsChecked:
+          type: array
+          items:
+            type: string
+        unavailable:
+          type: boolean
 
     SubscriptionInput:
       type: object
