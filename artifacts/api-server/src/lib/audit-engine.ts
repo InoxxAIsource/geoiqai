@@ -80,6 +80,8 @@ export interface AuditEngineResult {
   perplexity: AuditQueryResult;
   claude: AuditQueryResult;
   grok: AuditQueryResult;
+  claudeSimulated: boolean;
+  grokSimulated: boolean;
   googleAiOverview: GoogleAiOverviewAuditResult;
   keywordsUsed: string[];
   keywordsFromDataforseo: number;
@@ -1211,6 +1213,8 @@ export async function runAuditEngine(
       perplexity: { found: false, detail: null, score: 0, competitors: [] },
       claude: { found: false, detail: null, score: 0, competitors: [] },
       grok: { found: false, detail: null, score: 0, competitors: [] },
+      claudeSimulated: false,
+      grokSimulated: false,
       googleAiOverview: { found: false, brandMentioned: false, brandInCitations: false, score: 0, overviewText: null, citedSources: [], keywordsChecked: [], unavailable: true },
       keywordsUsed: [],
       keywordsFromDataforseo: 0,
@@ -1404,6 +1408,8 @@ export async function runAuditEngine(
     perplexity,
     claude,
     grok,
+    claudeSimulated,
+    grokSimulated,
     googleAiOverview,
     keywordsUsed: prompts,
     keywordsFromDataforseo,

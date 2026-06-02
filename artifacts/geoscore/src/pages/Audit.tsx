@@ -1280,15 +1280,15 @@ export default function Audit() {
                 <>
                   <SystemCard system="Gemini" found={auditResult.geminiFound} score={auditResult.scoreGemini} detail={auditResult.geminiDetail} rawResponse={auditResult.geminiRawResponse} checkedAt={auditResult.createdAt} />
                   <SystemCard system="Perplexity" found={auditResult.perplexityFound} score={auditResult.scorePerplexity} detail={auditResult.perplexityDetail} rawResponse={auditResult.perplexityRawResponse} checkedAt={auditResult.createdAt} isLiveWeb />
-                  <SystemCard system="Claude" found={auditResult.claudeFound ?? false} score={auditResult.scoreClaude ?? 0} detail={auditResult.claudeDetail} rawResponse={auditResult.claudeRawResponse} checkedAt={auditResult.createdAt} simulated />
-                  <SystemCard system="Grok" found={auditResult.grokFound ?? false} score={auditResult.scoreGrok ?? 0} detail={auditResult.grokDetail} rawResponse={auditResult.grokRawResponse} checkedAt={auditResult.createdAt} />
+                  <SystemCard system="Claude" found={auditResult.claudeFound ?? false} score={auditResult.scoreClaude ?? 0} detail={auditResult.claudeDetail} rawResponse={auditResult.claudeRawResponse} checkedAt={auditResult.createdAt} simulated={auditResult.claudeSimulated ?? false} />
+                  <SystemCard system="Grok" found={auditResult.grokFound ?? false} score={auditResult.scoreGrok ?? 0} detail={auditResult.grokDetail} rawResponse={auditResult.grokRawResponse} checkedAt={auditResult.createdAt} simulated={auditResult.grokSimulated ?? false} />
                 </>
               ) : (
                 <LockedSection title="See what Gemini, Perplexity, Claude and Grok say about you" linkText="Unlock 4 more AI responses →">
                   <div>
                     <SystemCard system="Gemini" found={auditResult.geminiFound} score={auditResult.scoreGemini} detail={auditResult.geminiDetail} rawResponse={auditResult.geminiRawResponse} checkedAt={auditResult.createdAt} />
                     <SystemCard system="Perplexity" found={auditResult.perplexityFound} score={auditResult.scorePerplexity} detail={auditResult.perplexityDetail} rawResponse={auditResult.perplexityRawResponse} checkedAt={auditResult.createdAt} isLiveWeb />
-                    <SystemCard system="Claude" found={auditResult.claudeFound ?? false} score={auditResult.scoreClaude ?? 0} detail={auditResult.claudeDetail} rawResponse={auditResult.claudeRawResponse} checkedAt={auditResult.createdAt} simulated />
+                    <SystemCard system="Claude" found={auditResult.claudeFound ?? false} score={auditResult.scoreClaude ?? 0} detail={auditResult.claudeDetail} rawResponse={auditResult.claudeRawResponse} checkedAt={auditResult.createdAt} simulated={auditResult.claudeSimulated ?? false} />
                     <SystemCard system="Grok" found={auditResult.grokFound ?? false} score={auditResult.scoreGrok ?? 0} detail={auditResult.grokDetail} rawResponse={auditResult.grokRawResponse} checkedAt={auditResult.createdAt} />
                   </div>
                 </LockedSection>
@@ -1786,8 +1786,8 @@ export default function Audit() {
                   { name: "ChatGPT", found: auditResult.chatgptFound, simulated: false, color: "#10a37f" },
                   { name: "Gemini", found: auditResult.geminiFound, simulated: false, color: "#4285f4" },
                   { name: "Perplexity", found: auditResult.perplexityFound, simulated: false, color: "#22d3ee" },
-                  { name: "Claude", found: auditResult.claudeFound ?? false, simulated: true, color: "#D97706" },
-                  { name: "Grok", found: auditResult.grokFound ?? false, simulated: false, color: "#7C3AED" },
+                  { name: "Claude", found: auditResult.claudeFound ?? false, simulated: auditResult.claudeSimulated ?? false, color: "#D97706" },
+                  { name: "Grok", found: auditResult.grokFound ?? false, simulated: auditResult.grokSimulated ?? false, color: "#7C3AED" },
                 ].map(e => (
                   <div key={e.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>

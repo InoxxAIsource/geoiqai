@@ -43,6 +43,8 @@ function serializeAudit(
     perplexityFound: audit.perplexityFound,
     claudeFound: typeof raw.claudeFound === "boolean" ? raw.claudeFound : false,
     grokFound: typeof raw.grokFound === "boolean" ? raw.grokFound : false,
+    claudeSimulated: typeof raw.claudeSimulated === "boolean" ? raw.claudeSimulated : true,
+    grokSimulated: typeof raw.grokSimulated === "boolean" ? raw.grokSimulated : false,
     chatgptDetail: audit.chatgptDetail,
     geminiDetail: audit.geminiDetail,
     perplexityDetail: audit.perplexityDetail,
@@ -183,7 +185,7 @@ router.post("/audit", async (req, res): Promise<void> => {
 
     const {
       brandName, category, market,
-      chatgpt, gemini, perplexity, claude, grok, googleAiOverview,
+      chatgpt, gemini, perplexity, claude, grok, claudeSimulated, grokSimulated, googleAiOverview,
       keywordsUsed, keywordsFromDataforseo, keywordsFilteredOut,
       rawChatgptResponse, rawGeminiResponse, rawPerplexityResponse, rawClaudeResponse, rawGrokResponse,
       technicalAudit,
@@ -209,6 +211,7 @@ router.post("/audit", async (req, res): Promise<void> => {
         scoreAiVisibility: aiVisibilityScore, scoreTechnical,
         scoreClaude: claude.score, scoreGrok: grok.score,
         claudeFound: claude.found, grokFound: grok.found,
+        claudeSimulated, grokSimulated,
         claudeDetail: claude.detail, grokDetail: grok.detail,
         chatgptRawResponse: rawChatgptResponse, geminiRawResponse: rawGeminiResponse,
         perplexityRawResponse: rawPerplexityResponse, claudeRawResponse: rawClaudeResponse,

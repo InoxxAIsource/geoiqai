@@ -548,6 +548,10 @@ components:
           type: boolean
         grokFound:
           type: boolean
+        claudeSimulated:
+          type: boolean
+        grokSimulated:
+          type: boolean
         claudeDetail:
           type: ["string", "null"]
         grokDetail:

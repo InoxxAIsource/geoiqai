@@ -151,6 +151,8 @@ export interface AuditResult {
   scoreGrok?: number;
   claudeFound?: boolean;
   grokFound?: boolean;
+  claudeSimulated?: boolean;
+  grokSimulated?: boolean;
   /** @nullable */
   claudeDetail?: string | null;
   /** @nullable */
