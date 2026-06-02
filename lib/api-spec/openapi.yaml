@@ -309,6 +309,29 @@ paths:
         "404":
           description: Brand not found
 
+  /dashboard/brands/{id}/competitor-scores:
+    get:
+      operationId: getCompetitorScores
+      tags: [dashboard]
+      summary: Get latest real AI scores for all competitor domains tracked under a brand
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Latest competitor scores per domain
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CompetitorScore"
+        "404":
+          description: Brand not found
+
   /dashboard/brands/{id}:
     delete:
       operationId: removeMonitoredBrand
@@ -810,6 +833,43 @@ components:
           type: ["string", "null"]
         topBrandScore:
           type: ["integer", "null"]
+
+    CompetitorScore:
+      type: object
+      required: [competitorDomain, scoreChatgpt, scoreGemini, scorePerplexity, scoreClaude, scoreGrok, scoreTotal, chatgptFound, geminiFound, perplexityFound, claudeFound, grokFound, keywordsUsed, scannedAt, date]
+      properties:
+        competitorDomain:
+          type: string
+        scoreChatgpt:
+          type: integer
+        scoreGemini:
+          type: integer
+        scorePerplexity:
+          type: integer
+        scoreClaude:
+          type: integer
+        scoreGrok:
+          type: integer
+        scoreTotal:
+          type: integer
+        chatgptFound:
+          type: boolean
+        geminiFound:
+          type: boolean
+        perplexityFound:
+          type: boolean
+        claudeFound:
+          type: boolean
+        grokFound:
+          type: boolean
+        keywordsUsed:
+          type: array
+          items:
+            type: string
+        scannedAt:
+          type: string
+        date:
+          type: string
 
     DailyScore:
       type: object

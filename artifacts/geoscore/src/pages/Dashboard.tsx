@@ -13,7 +13,9 @@ import {
   getGetMonitoredBrandsQueryKey,
   getGetDashboardSummaryQueryKey,
   getGetBrandKeywordsQueryKey,
+  getCompetitorScores,
   type KeywordVisibility,
+  type CompetitorScore,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AddBrandModal } from "@/components/dashboard/AddBrandModal";
@@ -414,6 +416,8 @@ export default function Dashboard() {
   const [editingPromptIdx, setEditingPromptIdx] = useState<number | null>(null);
   const [editingPromptText, setEditingPromptText] = useState("");
   const [editedPrompts, setEditedPrompts] = useState<Record<string, Record<number, string>>>({}); // brandId -> idx -> text
+  const [competitorRealScores, setCompetitorRealScores] = useState<Record<string, CompetitorScore>>({});
+  const [competitorRealScoresBrandId, setCompetitorRealScoresBrandId] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768);
@@ -486,6 +490,21 @@ export default function Dashboard() {
     setTrackedCompetitors(selectedBrand?.competitors ?? []);
   }, [selectedBrand?.id]);
 
+  // Fetch real competitor AI scores whenever the selected brand changes
+  useEffect(() => {
+    if (!selectedBrand?.id || !isAuthenticated) return;
+    if (competitorRealScoresBrandId === selectedBrand.id) return;
+    const brandId = selectedBrand.id;
+    getCompetitorScores(brandId)
+      .then(records => {
+        const byDomain: Record<string, CompetitorScore> = {};
+        for (const r of records) byDomain[r.competitorDomain] = r;
+        setCompetitorRealScores(byDomain);
+        setCompetitorRealScoresBrandId(brandId);
+      })
+      .catch(() => { /* no real data yet, hash fallback stays active */ });
+  }, [selectedBrand?.id, isAuthenticated]);
+
 
   // Fetch site-specific keywords, then LLM top domains, when Citations or Overview tab opens
   useEffect(() => {
@@ -554,6 +573,11 @@ export default function Dashboard() {
         title: "Scan complete",
         description: `GEO IQ score: ${data.scoreTotal}/100. We found ${data.keywordsUsed?.length ?? 0} prompts to track.`,
       });
+      // Refresh competitor scores in the background - the scan triggers competitor audits server-side,
+      // so we poll once after a short delay to pick up fresh results.
+      setTimeout(() => {
+        setCompetitorRealScoresBrandId(null); // reset so the effect re-fetches
+      }, 5000);
     } catch {
       toast({ title: "Scan failed", description: "Could not run audit. Please try again.", variant: "destructive" });
     } finally {
@@ -954,7 +978,18 @@ export default function Dashboard() {
     const cgBase = selectedBrand?.latestScoreChatgpt ?? 8;
     const gmBase = selectedBrand?.latestScoreGemini ?? 6;
     const pxBase = selectedBrand?.latestScorePerplexity ?? 5;
-    const compBase = Math.round((competitorLatest / 100) * 33);
+    // Use real competitor scores from DB when available, otherwise fall back to hash estimate
+    const firstCompDomain = ((selectedBrand?.competitors as string[] | undefined)?.[0] ?? "")
+      .replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0]!.toLowerCase();
+    const realComp = (firstCompDomain && competitorRealScoresBrandId === selectedBrand?.id)
+      ? (competitorRealScores[firstCompDomain] ?? null)
+      : null;
+    const hasRealCompScores = realComp !== null;
+    const compHashBase = Math.round((competitorLatest / 100) * 33);
+    const compCgBase  = realComp ? realComp.scoreChatgpt  : compHashBase;
+    const compGmBase  = realComp ? realComp.scoreGemini   : compHashBase;
+    const compPxBase  = realComp ? realComp.scorePerplexity : compHashBase;
+
     return kws.slice(0, 10).map((kw, i) => {
       const cg = promptScore(kw, cgBase, 33);
       const gm = promptScore(kw + "g", gmBase, 33);
@@ -963,11 +998,11 @@ export default function Dashboard() {
       const total = cg + gm + px;
       const prevTotal = prev * 2.5;
       const trend: "up" | "down" | "flat" = total > prevTotal + 3 ? "up" : total < prevTotal - 3 ? "down" : "flat";
-      const compScore = competitorScore(kw, compBase, 33);
-      const competitorCg = competitorScore(kw + "_cg", compBase, 33);
-      const competitorGm = competitorScore(kw + "_gm", compBase, 33);
-      const competitorPx = competitorScore(kw + "_px", compBase, 33);
-      return { id: i, keyword: kw, chatgpt: cg, gemini: gm, perplexity: px, trend, competitorScore: compScore * 3, competitorCg, competitorGm, competitorPx };
+      const competitorCg = competitorScore(kw + "_cg", compCgBase, 33);
+      const competitorGm = competitorScore(kw + "_gm", compGmBase, 33);
+      const competitorPx = competitorScore(kw + "_px", compPxBase, 33);
+      const compScore = competitorCg + competitorGm + competitorPx;
+      return { id: i, keyword: kw, chatgpt: cg, gemini: gm, perplexity: px, trend, competitorScore: compScore, competitorCg, competitorGm, competitorPx, hasRealCompScores };
     }).sort((a, b) => (a.chatgpt + a.gemini + a.perplexity) - (b.chatgpt + b.gemini + b.perplexity));
   })();
 
@@ -2876,10 +2911,18 @@ export default function Dashboard() {
                         setActiveTab("GEO Agent");
                       };
 
+                      const hasRealCompData = promptList[0]?.hasRealCompScores ?? false;
                       return (
                         <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
                           <div style={{ padding: "12px 16px", borderBottom: "0.5px solid #f3f4f6" }}>
-                            <div style={{ fontSize: 13, fontWeight: 500, color: "#111827", marginBottom: 2 }}>Citation gaps</div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>Citation gaps</div>
+                              {hasRealCompData ? (
+                                <span style={{ background: "#ECFDF5", color: "#065F46", borderRadius: 9999, padding: "2px 8px", fontSize: 10, fontWeight: 500 }}>Real data</span>
+                              ) : (
+                                <span style={{ background: "#F3F4F6", color: "#6b7280", borderRadius: 9999, padding: "2px 8px", fontSize: 10, fontWeight: 500 }}>Estimated - run a scan for real data</span>
+                              )}
+                            </div>
                             <div style={{ fontSize: 11, color: "#6b7280" }}>
                               Comparing your AI visibility vs {competitorName} across {promptList.length} tracked prompts
                             </div>

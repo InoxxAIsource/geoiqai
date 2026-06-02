@@ -289,6 +289,24 @@ export interface DashboardSummary {
   topBrandScore?: number | null;
 }
 
+export interface CompetitorScore {
+  competitorDomain: string;
+  scoreChatgpt: number;
+  scoreGemini: number;
+  scorePerplexity: number;
+  scoreClaude: number;
+  scoreGrok: number;
+  scoreTotal: number;
+  chatgptFound: boolean;
+  geminiFound: boolean;
+  perplexityFound: boolean;
+  claudeFound: boolean;
+  grokFound: boolean;
+  keywordsUsed: string[];
+  scannedAt: string;
+  date: string;
+}
+
 export interface DailyScore {
   id: string;
   brandId: string;

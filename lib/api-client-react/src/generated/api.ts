@@ -24,6 +24,7 @@ import type {
   AuditResult,
   AuditSummary,
   AuthResponse,
+  CompetitorScore,
   DailyScore,
   DashboardSummary,
   EmailSubscribeInput,
@@ -1093,6 +1094,83 @@ export const useRegenerateBrandPrompts = <TError = ErrorType<void>,
       > => {
       return useMutation(getRegenerateBrandPromptsMutationOptions(options));
     }
+
+export const getGetCompetitorScoresUrl = (id: string,) => {
+
+
+
+
+  return `/api/dashboard/brands/${id}/competitor-scores`
+}
+
+/**
+ * @summary Get latest real AI scores for all competitor domains tracked under a brand
+ */
+export const getCompetitorScores = async (id: string, options?: RequestInit): Promise<CompetitorScore[]> => {
+
+  return customFetch<CompetitorScore[]>(getGetCompetitorScoresUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCompetitorScoresQueryKey = (id: string,) => {
+    return [
+    `/api/dashboard/brands/${id}/competitor-scores`
+    ] as const;
+    }
+
+
+export const getGetCompetitorScoresQueryOptions = <TData = Awaited<ReturnType<typeof getCompetitorScores>>, TError = ErrorType<void>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCompetitorScores>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCompetitorScoresQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCompetitorScores>>> = ({ signal }) => getCompetitorScores(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCompetitorScores>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCompetitorScoresQueryResult = NonNullable<Awaited<ReturnType<typeof getCompetitorScores>>>
+export type GetCompetitorScoresQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get latest real AI scores for all competitor domains tracked under a brand
+ */
+
+export function useGetCompetitorScores<TData = Awaited<ReturnType<typeof getCompetitorScores>>, TError = ErrorType<void>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCompetitorScores>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCompetitorScoresQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getRemoveMonitoredBrandUrl = (id: string,) => {
 

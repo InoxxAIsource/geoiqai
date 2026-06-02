@@ -13,3 +13,4 @@ export * from "./password_reset_tokens";
 export * from "./email_verification_tokens";
 export * from "./integrations_waitlist";
 export * from "./dataforseo_cache";
+export * from "./competitor_audits";

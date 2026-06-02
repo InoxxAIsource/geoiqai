@@ -10,6 +10,7 @@ export * from './auditInput';
 export * from './auditResult';
 export * from './auditSummary';
 export * from './authResponse';
+export * from './competitorScore';
 export * from './dailyScore';
 export * from './dashboardSummary';
 export * from './eeatScore';

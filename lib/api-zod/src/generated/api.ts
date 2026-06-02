@@ -414,6 +414,33 @@ export const RegenerateBrandPromptsResponse = zod.object({
 
 
 /**
+ * @summary Get latest real AI scores for all competitor domains tracked under a brand
+ */
+export const GetCompetitorScoresParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetCompetitorScoresResponseItem = zod.object({
+  "competitorDomain": zod.string(),
+  "scoreChatgpt": zod.number(),
+  "scoreGemini": zod.number(),
+  "scorePerplexity": zod.number(),
+  "scoreClaude": zod.number(),
+  "scoreGrok": zod.number(),
+  "scoreTotal": zod.number(),
+  "chatgptFound": zod.boolean(),
+  "geminiFound": zod.boolean(),
+  "perplexityFound": zod.boolean(),
+  "claudeFound": zod.boolean(),
+  "grokFound": zod.boolean(),
+  "keywordsUsed": zod.array(zod.string()),
+  "scannedAt": zod.string(),
+  "date": zod.string()
+})
+export const GetCompetitorScoresResponse = zod.array(GetCompetitorScoresResponseItem)
+
+
+/**
  * @summary Remove a monitored brand
  */
 export const RemoveMonitoredBrandParams = zod.object({

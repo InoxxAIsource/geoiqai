@@ -1,10 +1,11 @@
 import { Router, type IRouter } from "express";
-import { db, monitoredBrandsTable, dailyScoresTable, auditsTable, keywordCacheTable } from "@workspace/db";
+import { db, monitoredBrandsTable, dailyScoresTable, auditsTable, keywordCacheTable, competitorAuditsTable } from "@workspace/db";
 import { eq, desc, and, count } from "drizzle-orm";
 import { AddMonitoredBrandBody, RemoveMonitoredBrandParams } from "@workspace/api-zod";
 import { requirePaidAuth, type AuthRequest } from "../lib/auth";
 import { runAuditEngine, generateRecommendations, detectBrandSubcategory, checkKeywordVisibility } from "../lib/audit-engine";
 import { getDomainKeywords, isGenericAiOnly, getLocationCode } from "../lib/dataforseo";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -228,6 +229,17 @@ router.post("/dashboard/brands/:id/scan", requirePaidAuth, async (req, res): Pro
       competitors: allCompetitors,
       createdAt: new Date().toISOString(),
     });
+
+    // Fire and forget: scan competitor domains in the background after responding.
+    // Runs the same audit engine as the brand scan so comparison data is real.
+    const competitorDomains = ((brand.competitors as string[]) ?? [])
+      .map(c => c.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0]!.toLowerCase())
+      .filter(Boolean);
+
+    if (competitorDomains.length > 0) {
+      runCompetitorScans(brand.id, competitorDomains, today, brand.category, brand.market)
+        .catch(err => logger.warn({ err, brandId: brand.id }, "Background competitor scan failed"));
+    }
   } catch (err) {
     req.log.error({ err, domain: brand.domain }, "Brand scan failed");
     res.status(500).json({ error: "Scan failed. Please try again." });
@@ -621,5 +633,101 @@ router.post("/dashboard/brands/:id/regenerate-prompts", requirePaidAuth, async (
     res.status(500).json({ error: "Failed to regenerate prompts. Please try again." });
   }
 });
+
+router.get("/dashboard/brands/:id/competitor-scores", requirePaidAuth, async (req, res): Promise<void> => {
+  const user = (req as AuthRequest).user;
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+  const [brand] = await db.select()
+    .from(monitoredBrandsTable)
+    .where(and(eq(monitoredBrandsTable.id, rawId!), eq(monitoredBrandsTable.userId, user.id)))
+    .limit(1);
+
+  if (!brand) { res.status(404).json({ error: "Brand not found" }); return; }
+
+  const records = await db.select()
+    .from(competitorAuditsTable)
+    .where(eq(competitorAuditsTable.brandId, brand.id))
+    .orderBy(desc(competitorAuditsTable.date), desc(competitorAuditsTable.createdAt));
+
+  // Deduplicate: take the most recent record per competitor domain
+  const seen = new Set<string>();
+  const latest = records.filter(r => {
+    if (seen.has(r.competitorDomain)) return false;
+    seen.add(r.competitorDomain);
+    return true;
+  });
+
+  res.json(latest.map(r => ({
+    competitorDomain: r.competitorDomain,
+    scoreChatgpt: r.scoreChatgpt,
+    scoreGemini: r.scoreGemini,
+    scorePerplexity: r.scorePerplexity,
+    scoreClaude: r.scoreClaude,
+    scoreGrok: r.scoreGrok,
+    scoreTotal: r.scoreTotal,
+    chatgptFound: r.chatgptFound,
+    geminiFound: r.geminiFound,
+    perplexityFound: r.perplexityFound,
+    claudeFound: r.claudeFound,
+    grokFound: r.grokFound,
+    keywordsUsed: r.keywordsUsed,
+    scannedAt: r.createdAt.toISOString(),
+    date: r.date,
+  })));
+});
+
+async function runCompetitorScans(
+  brandId: string,
+  competitorDomains: string[],
+  today: string,
+  category: string | null,
+  market: string | null,
+): Promise<void> {
+  // Process max 2 competitors concurrently to keep resource usage bounded
+  for (let i = 0; i < competitorDomains.length; i += 2) {
+    const chunk = competitorDomains.slice(i, i + 2);
+    await Promise.all(chunk.map(async (compDomain) => {
+      try {
+        const result = await runAuditEngine(`https://${compDomain}`, null, category, market);
+        if (result.unreachable) return;
+
+        const { chatgpt, gemini, perplexity, claude, grok, keywordsUsed } = result;
+        const rawAiTotal = chatgpt.score + gemini.score + perplexity.score;
+        const scoreTotal = Math.min(Math.round(rawAiTotal * 100 / (3 * 33)), 100);
+
+        const [existing] = await db.select({ id: competitorAuditsTable.id })
+          .from(competitorAuditsTable)
+          .where(and(
+            eq(competitorAuditsTable.brandId, brandId),
+            eq(competitorAuditsTable.competitorDomain, compDomain),
+            eq(competitorAuditsTable.date, today),
+          )).limit(1);
+
+        if (existing) {
+          await db.update(competitorAuditsTable).set({
+            scoreChatgpt: chatgpt.score, scoreGemini: gemini.score, scorePerplexity: perplexity.score,
+            scoreClaude: claude.score, scoreGrok: grok.score, scoreTotal,
+            chatgptFound: chatgpt.found, geminiFound: gemini.found, perplexityFound: perplexity.found,
+            claudeFound: claude.found, grokFound: grok.found,
+            keywordsUsed,
+          }).where(eq(competitorAuditsTable.id, existing.id));
+        } else {
+          await db.insert(competitorAuditsTable).values({
+            brandId, competitorDomain: compDomain, date: today,
+            scoreChatgpt: chatgpt.score, scoreGemini: gemini.score, scorePerplexity: perplexity.score,
+            scoreClaude: claude.score, scoreGrok: grok.score, scoreTotal,
+            chatgptFound: chatgpt.found, geminiFound: gemini.found, perplexityFound: perplexity.found,
+            claudeFound: claude.found, grokFound: grok.found,
+            keywordsUsed,
+          });
+        }
+        logger.info({ brandId, competitorDomain: compDomain, scoreChatgpt: chatgpt.score, scoreGemini: gemini.score, scorePerplexity: perplexity.score }, "Competitor scan saved");
+      } catch (err) {
+        logger.warn({ err, brandId, competitorDomain: compDomain }, "Competitor scan failed for domain");
+      }
+    }));
+  }
+}
 
 export default router;
