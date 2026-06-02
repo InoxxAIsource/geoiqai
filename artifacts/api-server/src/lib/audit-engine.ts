@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getDomainKeywords, getGoogleAiOverviewForAudit, type GoogleAiOverviewAuditResult } from "./dataforseo";
 export type { GoogleAiOverviewAuditResult };
@@ -11,6 +12,16 @@ const openaiClient = new OpenAI({
   timeout: 25000,   // 25s per call - prevents any single stalled request blocking the audit
   maxRetries: 0,    // fail fast, don't retry - we already have fallback logic
 });
+
+// --- Anthropic client (real Claude via Replit AI integration) ---
+const anthropicClient = (process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL && process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY)
+  ? new Anthropic({
+      apiKey: process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY,
+      baseURL: process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL,
+      timeout: 25000,
+      maxRetries: 0,
+    })
+  : null;
 
 // --- xAI client (real Grok) ---
 const XAI_API_KEY = process.env.XAI_API_KEY ?? "";
@@ -810,7 +821,23 @@ async function queryPerplexity(prompt: string): Promise<{ text: string; simulate
 }
 
 async function queryClaude(prompt: string): Promise<{ text: string; simulated: boolean }> {
-  // Simulate Claude via OpenAI. Set ANTHROPIC_API_KEY for real Claude responses.
+  if (anthropicClient) {
+    try {
+      const message = await anthropicClient.messages.create({
+        model: "claude-haiku-4-5",
+        max_tokens: 500,
+        system: "You are Claude, an AI assistant made by Anthropic. Answer questions about products, tools, and services thoughtfully. Be direct and mention specific brands, products, and services you know about.",
+        messages: [{ role: "user", content: prompt }],
+      });
+      const block = message.content[0];
+      const text = block?.type === "text" ? block.text : "";
+      return { text, simulated: false };
+    } catch (err) {
+      logger.warn({ err }, "[Claude] Real API call failed, falling back to simulation");
+      // fall through to simulated
+    }
+  }
+  // Fallback: OpenAI simulating Claude when Anthropic integration is unavailable
   try {
     const response = await openaiClient.chat.completions.create({
       model: "gpt-4o-mini",
