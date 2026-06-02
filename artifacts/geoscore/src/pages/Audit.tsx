@@ -40,8 +40,49 @@ const LOADING_CSS = `
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
-.audit-sidebar { display: block; }
-@media (max-width: 900px) { .audit-sidebar { display: none; } }
+.audit-result-wrap {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 1020px;
+}
+@media (max-width: 900px) {
+  .audit-result-wrap { flex-direction: column; }
+}
+.audit-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 240px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 24px;
+}
+@media (max-width: 900px) {
+  .audit-sidebar { display: none; }
+}
+.audit-mobile-score { display: none; }
+@media (max-width: 900px) {
+  .audit-mobile-score { display: block; margin-bottom: 20px; }
+}
+.audit-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+@media (max-width: 600px) {
+  .audit-summary-grid { grid-template-columns: 1fr 1fr; }
+}
+.audit-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 600px) {
+  .audit-two-col { grid-template-columns: 1fr; }
+}
 `;
 
 function AuditLoadingCard({
@@ -141,7 +182,7 @@ function AuditLoadingCard({
         })}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="audit-two-col" style={{ gap: 12 }}>
         <div style={{ background: "#F9FAFB", borderRadius: 8, padding: "12px 14px", textAlign: "center" as const }}>
           <div style={{ fontSize: 28, fontWeight: 800, color: "#111827", lineHeight: 1 }}>{aiSystemsChecked}</div>
           <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#9CA3AF", marginTop: 4 }}>AI Systems Checked</div>
@@ -225,7 +266,7 @@ function AiExplainerBox({ aiMemoryScore, liveWebScore }: { aiMemoryScore: number
       </button>
       {open && (
         <div style={{ padding: "0 14px 14px", borderTop: "0.5px solid #c7d2fe" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12, marginBottom: 12 }}>
+          <div className="audit-two-col" style={{ marginTop: 12, marginBottom: 12 }}>
             <div style={{ background: "white", border: "0.5px solid #c7d2fe", borderRadius: 8, padding: "10px 12px" }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "#5B3FEA", marginBottom: 4 }}>AI Memory Score: {aiMemoryScore}/50</div>
               <div style={{ fontSize: 12, fontWeight: 600, color: "#111827", marginBottom: 4 }}>ChatGPT + Gemini</div>
@@ -636,7 +677,7 @@ function TechCheckCard({ check, hideDetail = false }: { check: TechCheck; hideDe
             </div>
           )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="audit-two-col">
             {descRows.map((row) => (
               <div key={row.label} style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "10px 12px" }}>
                 <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" as const, color: "#9ca3af", marginBottom: 6 }}>{row.label}</div>
@@ -1092,7 +1133,7 @@ export default function Audit() {
 
         {/* Results */}
         {auditResult && !runAuditMutation.isPending && !refreshing && !retrying && (
-          <div className="audit-result-anim" style={{ width: "100%", maxWidth: 1020, display: "flex", gap: 24, alignItems: "flex-start" }}>
+          <div className="audit-result-anim audit-result-wrap">
           <div style={{ flex: 1, minWidth: 0, maxWidth: 700 }}>
 
             {/* Cache age banner - show for ANY cached result so users who just fixed their site know to refresh */}
@@ -1137,6 +1178,50 @@ export default function Audit() {
               </div>
             </div>
 
+            {/* Mobile-only score summary (sidebar hidden on mobile) */}
+            {(() => {
+              const radius = 38, circ = 2 * Math.PI * radius;
+              const pct = Math.min(1, overallScore / 100);
+              const offset = circ * (1 - pct);
+              const color = overallScore >= 70 ? "#16A34A" : overallScore >= 40 ? "#2563EB" : "#DC2626";
+              const v = getVerdict(overallScore);
+              return (
+                <div className="audit-mobile-score" style={{ background: "white", border: "0.5px solid #E5E7EB", borderRadius: 12, padding: "16px", marginBottom: 20 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                    <svg width="96" height="96" viewBox="0 0 96 96" style={{ flexShrink: 0 }}>
+                      <circle cx="48" cy="48" r={radius} fill="none" stroke="#F3F4F6" strokeWidth="10" />
+                      <circle cx="48" cy="48" r={radius} fill="none" stroke={color} strokeWidth="10"
+                        strokeDasharray={circ} strokeDashoffset={offset}
+                        strokeLinecap="round" transform="rotate(-90 48 48)"
+                        style={{ transition: "stroke-dashoffset 1s ease" }} />
+                      <text x="48" y="44" textAnchor="middle" dominantBaseline="middle"
+                        fontSize="22" fontWeight="800" fill="#0F172A" fontFamily="inherit">{overallScore}</text>
+                      <text x="48" y="60" textAnchor="middle" dominantBaseline="middle"
+                        fontSize="10" fill="#9CA3AF" fontFamily="inherit">/100</text>
+                    </svg>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#374151", letterSpacing: "0.05em", textTransform: "uppercase" as const, marginBottom: 4 }}>GEO IQ Score</div>
+                      <span style={{ display: "inline-block", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", color: v.color, background: v.bg, borderRadius: 99, padding: "3px 10px", marginBottom: 10 }}>
+                        {v.label}
+                      </span>
+                      <div style={{ display: "flex", gap: 12 }}>
+                        <div style={{ fontSize: 12, color: "#374151" }}>
+                          <span style={{ fontWeight: 700, color: "#5B3FEA" }}>{aiMemoryScore}</span>
+                          <span style={{ color: "#9CA3AF" }}>/50</span>
+                          <div style={{ fontSize: 10, color: "#9CA3AF" }}>AI Memory</div>
+                        </div>
+                        <div style={{ fontSize: 12, color: "#374151" }}>
+                          <span style={{ fontWeight: 700, color: "#9333ea" }}>{liveWebScore}</span>
+                          <span style={{ color: "#9CA3AF" }}>/50</span>
+                          <div style={{ fontSize: 10, color: "#9CA3AF" }}>Live Web</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Score Bar - split between AI Memory and Live Web */}
             <div style={{ height: 8, background: "#f3f4f6", borderRadius: 4, overflow: "hidden", marginBottom: 8 }}>
               <div style={{ height: "100%", display: "flex", borderRadius: 4, overflow: "hidden" }}>
@@ -1162,7 +1247,7 @@ export default function Audit() {
               const blindSpots = allFound.filter(f => !f).length;
               const bestEngine = auditResult.chatgptFound ? "ChatGPT" : auditResult.geminiFound ? "Gemini" : auditResult.perplexityFound ? "Perplexity" : auditResult.claudeFound ? "Claude" : auditResult.grokFound ? "Grok" : null;
               return (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 28 }}>
+                <div className="audit-summary-grid">
                   {[
                     { label: `${foundCount}/5 AI engines found you` },
                     { label: bestEngine ? `Visible on ${bestEngine}` : "Not ranked anywhere" },
@@ -1619,7 +1704,7 @@ export default function Audit() {
           </div>
 
           {/* Right sticky panel - score visualization + optional CTA */}
-          <div className="audit-sidebar" style={{ width: 240, flexShrink: 0, position: "sticky", top: 24, display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="audit-sidebar">
 
             {/* Score card with circular charts */}
             <div style={{ background: "white", border: "0.5px solid #E5E7EB", borderRadius: 12, padding: "20px" }}>
