@@ -23,7 +23,7 @@ const P = ({ children, style }: { children: React.ReactNode; style?: React.CSSPr
   <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.85, marginBottom: 18, ...style }}>{children}</p>
 );
 const H2 = ({ children }: { children: React.ReactNode }) => (
-  <h2 style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#111827", marginBottom: 14, marginTop: 40, lineHeight: 1.3 }}>{children}</h2>
+  <h2 style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", marginBottom: 14, marginTop: 40, lineHeight: 1.3 }}>{children}</h2>
 );
 
 const ShareButtons = ({ url, title }: { url: string; title: string }) => (
@@ -46,11 +46,11 @@ const ShareButtons = ({ url, title }: { url: string; title: string }) => (
 );
 
 const CTA = () => (
-  <div style={{ background: "#4F46E5", borderRadius: 14, padding: "28px 28px", textAlign: "center", margin: "40px 0" }}>
+  <div style={{ background: "#5B3FEA", borderRadius: 14, padding: "28px 28px", textAlign: "center", margin: "40px 0" }}>
     <div style={{ color: "white", fontSize: 18, fontWeight: 700, fontFamily: "'Syne', sans-serif", marginBottom: 8 }}>Check your brand free</div>
     <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 14, marginBottom: 18, lineHeight: 1.6 }}>See your AI visibility score across ChatGPT, Gemini, and Perplexity in 60 seconds. No signup.</p>
     <Link href="/">
-      <button style={{ background: "white", color: "#4F46E5", fontWeight: 700, fontSize: 14, padding: "10px 24px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
+      <button style={{ background: "white", color: "#5B3FEA", fontWeight: 700, fontSize: 14, padding: "10px 24px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
         Check my score →
       </button>
     </Link>
@@ -112,7 +112,7 @@ export default function BlogIndianStartupScores() {
   }, []);
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "white" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#F2F0EB" }}>
       <Navbar />
       <main style={{ flex: 1 }}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
@@ -128,7 +128,7 @@ export default function BlogIndianStartupScores() {
             <span>Indian startups ChatGPT scores</span>
           </div>
 
-          <h1 style={{ fontSize: 34, fontWeight: 800, fontFamily: "'Syne', sans-serif", color: "#111827", lineHeight: 1.2, marginBottom: 14 }}>
+          <h1 style={{ fontSize: 34, fontWeight: 800, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", lineHeight: 1.2, marginBottom: 14 }}>
             I Checked 10 Indian Startups on ChatGPT. The Scores Shocked Me.
           </h1>
 
@@ -166,9 +166,9 @@ export default function BlogIndianStartupScores() {
           <div style={{ overflowX: "auto", marginBottom: 12 }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
-                <tr style={{ background: "#f9fafb" }}>
+                <tr style={{ background: "#E8E4DC" }}>
                   {["Brand", "Sector", "Score", "ChatGPT", "Gemini", "Perplexity"].map(h => (
-                    <th key={h} style={{ padding: "10px 12px", textAlign: "left", borderBottom: "1px solid #e5e7eb", fontWeight: 600, color: "#374151", whiteSpace: "nowrap" }}>{h}</th>
+                    <th key={h} style={{ padding: "10px 12px", textAlign: "left", borderBottom: "1px solid #D4D0C8", fontWeight: 600, color: "#374151", whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -185,8 +185,8 @@ export default function BlogIndianStartupScores() {
                   { brand: "Zepto", sector: "Q-commerce", chatgpt: 8, gemini: 6, perplexity: 8, total: "22/100", color: "#DC2626" },
                   { brand: "Unstop", sector: "EdTech", chatgpt: 4, gemini: 6, perplexity: 8, total: "18/100", color: "#DC2626" },
                 ].map((row, i) => (
-                  <tr key={i} style={{ borderBottom: "1px solid #f3f4f6", background: i % 2 === 0 ? "white" : "#fafafa" }}>
-                    <td style={{ padding: "10px 12px", fontWeight: 600, color: "#111827" }}>{row.brand}</td>
+                  <tr key={i} style={{ borderBottom: "1px solid #D4D0C8", background: i % 2 === 0 ? "#F2F0EB" : "#E8E4DC" }}>
+                    <td style={{ padding: "10px 12px", fontWeight: 600, color: "#0A0A0A" }}>{row.brand}</td>
                     <td style={{ padding: "10px 12px", color: "#6b7280" }}>{row.sector}</td>
                     <td style={{ padding: "10px 12px", fontWeight: 700, color: row.color }}>{row.total}</td>
                     <td style={{ padding: "10px 12px", color: "#374151", textAlign: "center" }}>{row.chatgpt}</td>
@@ -235,12 +235,12 @@ export default function BlogIndianStartupScores() {
               { n: 4, action: "Submit to ProductHunt and G2", time: "1-2 hours", detail: "A ProductHunt listing and 10+ G2 reviews each contribute independent citations that AI training data picks up. Encourage your existing users to review you on G2 - it takes 3 minutes per reviewer and has outsized impact on AI visibility." },
               { n: 5, action: "Get covered in YourStory and Inc42", time: "2-4 weeks", detail: "For Gemini specifically, Indian publication coverage matters. YourStory (DR 71) and Inc42 (DR 71) are indexed in Google's knowledge graph which feeds Gemini's India entity recognition. Submit your startup story to both. Even a startup database listing helps." },
             ].map((item) => (
-              <div key={item.n} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: "1px solid #f3f4f6" }}>
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#EEF2FF", color: "#4F46E5", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{item.n}</div>
+              <div key={item.n} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: "1px solid #D4D0C8" }}>
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#EDE9FE", color: "#5B3FEA", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{item.n}</div>
                 <div>
                   <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
-                    <span style={{ fontWeight: 600, color: "#111827", fontSize: 15 }}>{item.action}</span>
-                    <span style={{ background: "#EEF2FF", color: "#4F46E5", fontSize: 11, padding: "2px 8px", borderRadius: 9999 }}>{item.time}</span>
+                    <span style={{ fontWeight: 600, color: "#0A0A0A", fontSize: 15 }}>{item.action}</span>
+                    <span style={{ background: "#EDE9FE", color: "#5B3FEA", fontSize: 11, padding: "2px 8px", borderRadius: 9999 }}>{item.time}</span>
                   </div>
                   <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, margin: 0 }}>{item.detail}</p>
                 </div>
@@ -261,8 +261,8 @@ export default function BlogIndianStartupScores() {
           <H2>Frequently asked questions</H2>
           <div style={{ marginBottom: 40 }}>
             {faqItems.map((item, i) => (
-              <div key={i} style={{ borderBottom: "1px solid #f3f4f6", padding: "14px 0" }}>
-                <div style={{ fontWeight: 600, color: "#111827", fontSize: 15, marginBottom: 7 }}>{item.q}</div>
+              <div key={i} style={{ borderBottom: "1px solid #D4D0C8", padding: "14px 0" }}>
+                <div style={{ fontWeight: 600, color: "#0A0A0A", fontSize: 15, marginBottom: 7 }}>{item.q}</div>
                 <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, margin: 0 }}>{item.a}</p>
               </div>
             ))}
@@ -271,13 +271,13 @@ export default function BlogIndianStartupScores() {
           <ShareButtons url={PAGE_URL} title={PAGE_TITLE} />
 
           {/* Related posts */}
-          <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 24, marginTop: 8 }}>
+          <div style={{ borderTop: "1px solid #D4D0C8", paddingTop: 24, marginTop: 8 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: "#6b7280", marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.05em" }}>Related articles</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <Link href="/ai-visibility-for-indian-startups" style={{ fontSize: 15, color: "#4F46E5", textDecoration: "none" }}>AI visibility for Indian startups: full guide →</Link>
-              <Link href="/what-is-geo" style={{ fontSize: 15, color: "#4F46E5", textDecoration: "none" }}>What is GEO? →</Link>
-              <Link href="/llms-txt-guide" style={{ fontSize: 15, color: "#4F46E5", textDecoration: "none" }}>How to create llms.txt in 15 minutes →</Link>
-              <Link href="/blog/robots-txt-blocking-ai" style={{ fontSize: 15, color: "#4F46E5", textDecoration: "none" }}>Is your robots.txt blocking ChatGPT? →</Link>
+              <Link href="/ai-visibility-for-indian-startups" style={{ fontSize: 15, color: "#5B3FEA", textDecoration: "none" }}>AI visibility for Indian startups: full guide →</Link>
+              <Link href="/what-is-geo" style={{ fontSize: 15, color: "#5B3FEA", textDecoration: "none" }}>What is GEO? →</Link>
+              <Link href="/llms-txt-guide" style={{ fontSize: 15, color: "#5B3FEA", textDecoration: "none" }}>How to create llms.txt in 15 minutes →</Link>
+              <Link href="/blog/robots-txt-blocking-ai" style={{ fontSize: 15, color: "#5B3FEA", textDecoration: "none" }}>Is your robots.txt blocking ChatGPT? →</Link>
             </div>
           </div>
 

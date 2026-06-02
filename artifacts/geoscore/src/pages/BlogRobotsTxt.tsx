@@ -19,7 +19,7 @@ const P = ({ children, style }: { children: React.ReactNode; style?: React.CSSPr
   <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.85, marginBottom: 18, ...style }}>{children}</p>
 );
 const H2 = ({ children }: { children: React.ReactNode }) => (
-  <h2 style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#111827", marginBottom: 14, marginTop: 40, lineHeight: 1.3 }}>{children}</h2>
+  <h2 style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", marginBottom: 14, marginTop: 40, lineHeight: 1.3 }}>{children}</h2>
 );
 
 function CodeBlock({ code, label }: { code: string; label?: string }) {
@@ -62,11 +62,11 @@ const ShareButtons = ({ url, title }: { url: string; title: string }) => (
 );
 
 const CTA = () => (
-  <div style={{ background: "#4F46E5", borderRadius: 14, padding: "28px 28px", textAlign: "center", margin: "40px 0" }}>
+  <div style={{ background: "#5B3FEA", borderRadius: 14, padding: "28px 28px", textAlign: "center", margin: "40px 0" }}>
     <div style={{ color: "white", fontSize: 18, fontWeight: 700, fontFamily: "'Syne', sans-serif", marginBottom: 8 }}>Check your full AI audit free</div>
     <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 14, marginBottom: 18, lineHeight: 1.6 }}>GeoIQ checks your robots.txt, llms.txt, Organization schema, and 6 AI systems. 60 seconds. No signup.</p>
     <Link href="/">
-      <button style={{ background: "white", color: "#4F46E5", fontWeight: 700, fontSize: 14, padding: "10px 24px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
+      <button style={{ background: "white", color: "#5B3FEA", fontWeight: 700, fontSize: 14, padding: "10px 24px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
         Check my AI audit free →
       </button>
     </Link>
@@ -115,7 +115,7 @@ export default function BlogRobotsTxt() {
   }, []);
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "white" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#F2F0EB" }}>
       <Navbar />
       <main style={{ flex: 1 }}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
@@ -130,7 +130,7 @@ export default function BlogRobotsTxt() {
             <span>robots.txt and AI crawlers</span>
           </div>
 
-          <h1 style={{ fontSize: 34, fontWeight: 800, fontFamily: "'Syne', sans-serif", color: "#111827", lineHeight: 1.2, marginBottom: 14 }}>
+          <h1 style={{ fontSize: 34, fontWeight: 800, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", lineHeight: 1.2, marginBottom: 14 }}>
             Your robots.txt is Probably Blocking ChatGPT Right Now
           </h1>
           <div style={{ display: "flex", gap: 14, fontSize: 12, color: "#9CA3AF", marginBottom: 10, flexWrap: "wrap" }}>
@@ -166,9 +166,9 @@ export default function BlogRobotsTxt() {
               { bot: "ClaudeBot", company: "Anthropic / Claude", ua: "ClaudeBot", purpose: "Claude's web crawler for training data and knowledge. Blocking this makes your site invisible to Claude's training pipeline." },
               { bot: "Google-Extended", company: "Google / Gemini", ua: "Google-Extended", purpose: "Google's crawler specifically for Gemini training data. Separate from Googlebot - blocking Googlebot does NOT block Google-Extended." },
             ].map((item) => (
-              <div key={item.bot} style={{ padding: "14px 0", borderBottom: "1px solid #f3f4f6" }}>
+              <div key={item.bot} style={{ padding: "14px 0", borderBottom: "1px solid #D4D0C8" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6, flexWrap: "wrap" }}>
-                  <span style={{ fontWeight: 700, color: "#111827", fontSize: 15 }}>{item.bot}</span>
+                  <span style={{ fontWeight: 700, color: "#0A0A0A", fontSize: 15 }}>{item.bot}</span>
                   <span style={{ background: "#f3f4f6", color: "#6b7280", fontSize: 11, padding: "2px 8px", borderRadius: 9999 }}>{item.company}</span>
                 </div>
                 <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, margin: 0 }}>{item.purpose}</p>
@@ -267,15 +267,15 @@ Allow: /`} />
 
           <P>Fixing robots.txt removes a blocker. It does not directly add citations or tell AI systems what your brand is. After the fix, do these two things to compound the benefit:</P>
 
-          <P><strong>Create llms.txt.</strong> Place a plain text file at yourdomain.com/llms.txt that describes your brand to AI crawlers. When GPTBot and PerplexityBot visit your site and find a well-written llms.txt, they get structured brand context without needing to parse dozens of pages. See our <Link href="/llms-txt-guide" style={{ color: "#4F46E5" }}>llms.txt complete guide</Link> for the exact format.</P>
+          <P><strong>Create llms.txt.</strong> Place a plain text file at yourdomain.com/llms.txt that describes your brand to AI crawlers. When GPTBot and PerplexityBot visit your site and find a well-written llms.txt, they get structured brand context without needing to parse dozens of pages. See our <Link href="/llms-txt-guide" style={{ color: "#5B3FEA" }}>llms.txt complete guide</Link> for the exact format.</P>
 
           <P><strong>Run a full GeoIQ audit.</strong> The audit checks your robots.txt, llms.txt, Organization schema, AI crawler accessibility, and your live scores across 6 AI systems. It tells you exactly what is working and what to fix next, ranked by impact.</P>
 
           <H2>Frequently asked questions</H2>
           <div style={{ marginBottom: 40 }}>
             {faqItems.map((item, i) => (
-              <div key={i} style={{ borderBottom: "1px solid #f3f4f6", padding: "14px 0" }}>
-                <div style={{ fontWeight: 600, color: "#111827", fontSize: 15, marginBottom: 7 }}>{item.q}</div>
+              <div key={i} style={{ borderBottom: "1px solid #D4D0C8", padding: "14px 0" }}>
+                <div style={{ fontWeight: 600, color: "#0A0A0A", fontSize: 15, marginBottom: 7 }}>{item.q}</div>
                 <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, margin: 0 }}>{item.a}</p>
               </div>
             ))}
@@ -283,13 +283,13 @@ Allow: /`} />
 
           <ShareButtons url={PAGE_URL} title={PAGE_TITLE} />
 
-          <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 24, marginTop: 8 }}>
+          <div style={{ borderTop: "1px solid #D4D0C8", paddingTop: 24, marginTop: 8 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: "#6b7280", marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.05em" }}>Related articles</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <Link href="/llms-txt-guide" style={{ fontSize: 15, color: "#4F46E5", textDecoration: "none" }}>How to create llms.txt in 15 minutes →</Link>
-              <Link href="/ai-visibility-score" style={{ fontSize: 15, color: "#4F46E5", textDecoration: "none" }}>What is an AI visibility score? →</Link>
-              <Link href="/how-to-rank-in-chatgpt" style={{ fontSize: 15, color: "#4F46E5", textDecoration: "none" }}>Full guide: how to rank in ChatGPT →</Link>
-              <Link href="/blog/what-is-geo-score" style={{ fontSize: 15, color: "#4F46E5", textDecoration: "none" }}>What is a good GEO score? →</Link>
+              <Link href="/llms-txt-guide" style={{ fontSize: 15, color: "#5B3FEA", textDecoration: "none" }}>How to create llms.txt in 15 minutes →</Link>
+              <Link href="/ai-visibility-score" style={{ fontSize: 15, color: "#5B3FEA", textDecoration: "none" }}>What is an AI visibility score? →</Link>
+              <Link href="/how-to-rank-in-chatgpt" style={{ fontSize: 15, color: "#5B3FEA", textDecoration: "none" }}>Full guide: how to rank in ChatGPT →</Link>
+              <Link href="/blog/what-is-geo-score" style={{ fontSize: 15, color: "#5B3FEA", textDecoration: "none" }}>What is a good GEO score? →</Link>
             </div>
           </div>
 

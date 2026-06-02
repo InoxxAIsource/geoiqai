@@ -45,7 +45,7 @@ export default function Terms() {
   }, []);
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#F2F0EB" }}>
       <Navbar />
       <main style={{ flex: 1 }}>
         <div style={{ maxWidth: 720, margin: "0 auto", padding: "80px 24px" }}>
@@ -53,7 +53,7 @@ export default function Terms() {
             style={{
               fontSize: 12,
               fontWeight: 600,
-              color: "#4F46E5",
+              color: "#5B3FEA",
               letterSpacing: "0.1em",
               textTransform: "uppercase",
               marginBottom: 12,
@@ -66,7 +66,7 @@ export default function Terms() {
               fontSize: "clamp(28px, 4vw, 40px)",
               fontWeight: 700,
               letterSpacing: "-0.03em",
-              color: "#111827",
+              color: "#0A0A0A",
               marginBottom: 8,
             }}
           >
@@ -87,7 +87,7 @@ export default function Terms() {
                 style={{
                   fontSize: 18,
                   fontWeight: 600,
-                  color: "#111827",
+                  color: "#0A0A0A",
                   marginBottom: 10,
                   letterSpacing: "-0.01em",
                 }}
@@ -104,14 +104,14 @@ export default function Terms() {
             style={{
               marginTop: 48,
               padding: 24,
-              background: "#F9FAFB",
+              background: "#E8E4DC",
               borderRadius: 12,
-              border: "1px solid #F3F4F6",
+              border: "1px solid #D4D0C8",
             }}
           >
             <p style={{ fontSize: 14, color: "#6B7280", margin: 0 }}>
               Questions? Email us at{" "}
-              <a href="mailto:hello@geoiqai.com" style={{ color: "#4F46E5", textDecoration: "none" }}>
+              <a href="mailto:hello@geoiqai.com" style={{ color: "#5B3FEA", textDecoration: "none" }}>
                 hello@geoiqai.com
               </a>
             </p>

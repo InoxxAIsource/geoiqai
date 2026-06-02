@@ -75,13 +75,13 @@ const breadcrumbSchema = {
 };
 
 const H2 = ({ children }: { children: React.ReactNode }) => (
-  <h2 style={{ fontSize: 26, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#111827", lineHeight: 1.25, marginBottom: 16, marginTop: 40 }}>
+  <h2 style={{ fontSize: 26, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", lineHeight: 1.25, marginBottom: 16, marginTop: 40 }}>
     {children}
   </h2>
 );
 
 const H3 = ({ children }: { children: React.ReactNode }) => (
-  <h3 style={{ fontSize: 18, fontWeight: 600, fontFamily: "'Syne', sans-serif", color: "#1E1B4B", lineHeight: 1.3, marginBottom: 10, marginTop: 28 }}>
+  <h3 style={{ fontSize: 18, fontWeight: 600, fontFamily: "'Syne', sans-serif", color: "#2D1F6E", lineHeight: 1.3, marginBottom: 10, marginTop: 28 }}>
     {children}
   </h3>
 );
@@ -125,7 +125,7 @@ export default function AiVisibilityIndia() {
   }, []);
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "white" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#F2F0EB" }}>
       <Navbar />
       <main style={{ flex: 1 }}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
@@ -141,7 +141,7 @@ export default function AiVisibilityIndia() {
             <span>AI Visibility for Indian Startups</span>
           </div>
 
-          <h1 style={{ fontSize: 36, fontWeight: 800, fontFamily: "'Syne', sans-serif", color: "#111827", lineHeight: 1.2, marginBottom: 16 }}>
+          <h1 style={{ fontSize: 36, fontWeight: 800, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", lineHeight: 1.2, marginBottom: 16 }}>
             Why Indian Startups Are Invisible to ChatGPT (And How to Fix It)
           </h1>
 
@@ -154,15 +154,15 @@ export default function AiVisibilityIndia() {
           </div>
 
           {/* Summary box */}
-          <div style={{ background: "#EEF2FF", borderLeft: "4px solid #4F46E5", borderRadius: 8, padding: 20, marginBottom: 32 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#4F46E5", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Quick answer</div>
-            <p style={{ fontSize: 15, color: "#1E1B4B", lineHeight: 1.75, margin: 0 }}>
+          <div style={{ background: "#EDE9FE", borderLeft: "4px solid #5B3FEA", borderRadius: 8, padding: 20, marginBottom: 32 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#5B3FEA", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Quick answer</div>
+            <p style={{ fontSize: 15, color: "#2D1F6E", lineHeight: 1.75, margin: 0 }}>
               We ran GeoIQ audits on 10 major Indian startups. The average score was 43/100. Brands with millions of users - Zepto, Unstop, MealCoreAI - scored below 35/100. The root cause is not product quality. It is a structural gap in how Indian brands build AI-accessible citations. This guide shows exactly what to fix.
             </p>
           </div>
 
           {/* Key stats */}
-          <div style={{ background: "#f9fafb", border: "1px solid #f3f4f6", borderRadius: 8, padding: "14px 20px", marginBottom: 40 }}>
+          <div style={{ background: "#E8E4DC", border: "1px solid #D4D0C8", borderRadius: 8, padding: "14px 20px", marginBottom: 40 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Key stats</div>
             <ul style={{ margin: 0, padding: "0 0 0 18px", display: "flex", flexDirection: "column", gap: 6 }}>
               <li style={{ fontSize: 14, color: "#374151" }}>Gemini is the most important AI system for India - deeply integrated with Android, which holds 95%+ of India's smartphone market</li>
@@ -186,9 +186,9 @@ export default function AiVisibilityIndia() {
           <div style={{ overflowX: "auto", marginBottom: 16 }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
-                <tr style={{ background: "#f9fafb" }}>
+                <tr style={{ background: "#E8E4DC" }}>
                   {["Brand", "Sector", "Score", "ChatGPT", "Gemini", "Perplexity", "Primary issue"].map(h => (
-                    <th key={h} style={{ padding: "10px 12px", textAlign: "left", borderBottom: "1px solid #e5e7eb", fontWeight: 600, color: "#374151", whiteSpace: "nowrap" }}>{h}</th>
+                    <th key={h} style={{ padding: "10px 12px", textAlign: "left", borderBottom: "1px solid #D4D0C8", fontWeight: 600, color: "#374151", whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -197,8 +197,8 @@ export default function AiVisibilityIndia() {
                   const scoreNum = parseInt(row.geoScore);
                   const scoreColor = scoreNum >= 60 ? "#059669" : scoreNum >= 40 ? "#D97706" : "#DC2626";
                   return (
-                    <tr key={i} style={{ borderBottom: "1px solid #f3f4f6", background: i % 2 === 0 ? "white" : "#fafafa" }}>
-                      <td style={{ padding: "10px 12px", fontWeight: 600, color: "#111827" }}>{row.brand}</td>
+                    <tr key={i} style={{ borderBottom: "1px solid #D4D0C8", background: i % 2 === 0 ? "#F2F0EB" : "#E8E4DC" }}>
+                      <td style={{ padding: "10px 12px", fontWeight: 600, color: "#0A0A0A" }}>{row.brand}</td>
                       <td style={{ padding: "10px 12px", color: "#6b7280" }}>{row.sector}</td>
                       <td style={{ padding: "10px 12px", fontWeight: 700, color: scoreColor }}>{row.geoScore}</td>
                       <td style={{ padding: "10px 12px", color: "#374151", textAlign: "center" }}>{row.chatgpt}</td>
@@ -258,10 +258,10 @@ export default function AiVisibilityIndia() {
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>
             {indianPlatforms.map((platform) => (
-              <div key={platform.name} style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: "18px 20px" }}>
+              <div key={platform.name} style={{ border: "1px solid #D4D0C8", borderRadius: 10, padding: "18px 20px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
-                  <div style={{ fontWeight: 700, color: "#111827", fontSize: 16, fontFamily: "'Syne', sans-serif" }}>{platform.name}</div>
-                  <span style={{ background: "#EEF2FF", color: "#4F46E5", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 9999 }}>DR {platform.dr}</span>
+                  <div style={{ fontWeight: 700, color: "#0A0A0A", fontSize: 16, fontFamily: "'Syne', sans-serif" }}>{platform.name}</div>
+                  <span style={{ background: "#EDE9FE", color: "#5B3FEA", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 9999 }}>DR {platform.dr}</span>
                 </div>
                 <P style={{ fontSize: 14, marginBottom: 8 }}><strong>Why it matters:</strong> {platform.why}</P>
                 <P style={{ fontSize: 14, margin: 0, color: "#6b7280" }}><strong>How to get listed:</strong> {platform.how}</P>
@@ -280,12 +280,12 @@ export default function AiVisibilityIndia() {
               { fix: "Organization schema: add to homepage", time: "20 min", detail: "Add JSON-LD Organization markup with your brand name, description in English, Indian founding date, and social profile links. Include sameAs pointing to your Crunchbase, LinkedIn, and YourStory profiles." },
               { fix: "English meta tags: ensure clear descriptions", time: "10 min", detail: "Even if your product is primarily Hindi-language, your meta title and meta description should be in clear, factual English. These are often the first text AI crawlers parse to categorize your brand." },
             ].map((item, i) => (
-              <div key={i} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: "1px solid #f3f4f6" }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#4F46E5", flexShrink: 0, marginTop: 9 }} />
+              <div key={i} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: "1px solid #D4D0C8" }}>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#5B3FEA", flexShrink: 0, marginTop: 9 }} />
                 <div>
                   <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 5, flexWrap: "wrap" }}>
-                    <div style={{ fontWeight: 600, color: "#111827", fontSize: 15 }}>{item.fix}</div>
-                    <span style={{ background: "#EEF2FF", color: "#4F46E5", fontSize: 11, padding: "2px 7px", borderRadius: 9999 }}>{item.time}</span>
+                    <div style={{ fontWeight: 600, color: "#0A0A0A", fontSize: 15 }}>{item.fix}</div>
+                    <span style={{ background: "#EDE9FE", color: "#5B3FEA", fontSize: 11, padding: "2px 7px", borderRadius: 9999 }}>{item.time}</span>
                   </div>
                   <P style={{ margin: 0, fontSize: 14 }}>{item.detail}</P>
                 </div>
@@ -302,12 +302,12 @@ export default function AiVisibilityIndia() {
               { fix: "YourStory startup feature", priority: "High", detail: "Submit your startup story at yourstory.com. This directly feeds Gemini's India knowledge graph. A genuine YourStory feature is worth more for Gemini visibility than ten low-DA directory listings." },
               { fix: "Inc42 startup database", priority: "Medium", detail: "Submit to the Inc42 startup database. Pair with outreach for editorial coverage of any funding or product milestone." },
             ].map((item, i) => (
-              <div key={i} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: "1px solid #f3f4f6" }}>
+              <div key={i} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: "1px solid #D4D0C8" }}>
                 <span style={{ background: item.priority === "Critical" ? "#FEF2F2" : item.priority === "High" ? "#EEF2FF" : "#FFFBEB", color: item.priority === "Critical" ? "#DC2626" : item.priority === "High" ? "#4F46E5" : "#D97706", fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 9999, height: "fit-content", marginTop: 2, flexShrink: 0, whiteSpace: "nowrap" }}>
                   {item.priority}
                 </span>
                 <div>
-                  <div style={{ fontWeight: 600, color: "#111827", fontSize: 15, marginBottom: 5 }}>{item.fix}</div>
+                  <div style={{ fontWeight: 600, color: "#0A0A0A", fontSize: 15, marginBottom: 5 }}>{item.fix}</div>
                   <P style={{ margin: 0, fontSize: 14 }}>{item.detail}</P>
                 </div>
               </div>
@@ -325,7 +325,7 @@ export default function AiVisibilityIndia() {
           </P>
 
           {/* CTA */}
-          <div style={{ background: "#4F46E5", borderRadius: 16, padding: "36px 32px", textAlign: "center", marginBottom: 48, marginTop: 40 }}>
+          <div style={{ background: "#5B3FEA", borderRadius: 16, padding: "36px 32px", textAlign: "center", marginBottom: 48, marginTop: 40 }}>
             <h2 style={{ color: "white", fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", marginBottom: 8, marginTop: 0 }}>
               Check where your Indian startup stands in ChatGPT and Gemini
             </h2>
@@ -333,7 +333,7 @@ export default function AiVisibilityIndia() {
               Free audit in 60 seconds. No signup needed. See your score across ChatGPT, Gemini, Perplexity, Claude, and Grok with specific fix recommendations.
             </p>
             <Link href="/">
-              <button style={{ background: "white", color: "#4F46E5", fontWeight: 700, fontSize: 15, padding: "12px 28px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
+              <button style={{ background: "white", color: "#5B3FEA", fontWeight: 700, fontSize: 15, padding: "12px 28px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
                 Check my AI visibility free →
               </button>
             </Link>
@@ -343,21 +343,21 @@ export default function AiVisibilityIndia() {
 
           <div style={{ marginBottom: 40 }}>
             {faqItems.map((item, i) => (
-              <div key={i} style={{ borderBottom: "1px solid #f3f4f6", padding: "16px 0" }}>
-                <div style={{ fontWeight: 600, color: "#111827", fontSize: 15, marginBottom: 8 }}>{item.q}</div>
+              <div key={i} style={{ borderBottom: "1px solid #D4D0C8", padding: "16px 0" }}>
+                <div style={{ fontWeight: 600, color: "#0A0A0A", fontSize: 15, marginBottom: 8 }}>{item.q}</div>
                 <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, margin: 0 }}>{item.a}</p>
               </div>
             ))}
           </div>
 
           {/* Internal links */}
-          <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 24, marginTop: 16 }}>
+          <div style={{ borderTop: "1px solid #D4D0C8", paddingTop: 24, marginTop: 16 }}>
             <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 12 }}>Related guides</div>
             <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-              <Link href="/" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>Free AI visibility audit →</Link>
-              <Link href="/what-is-geo" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>What is GEO? →</Link>
-              <Link href="/llms-txt-guide" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>How to create llms.txt →</Link>
-              <Link href="/pricing" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>GeoIQ paid plan →</Link>
+              <Link href="/" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>Free AI visibility audit →</Link>
+              <Link href="/what-is-geo" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>What is GEO? →</Link>
+              <Link href="/llms-txt-guide" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>How to create llms.txt →</Link>
+              <Link href="/pricing" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>GeoIQ paid plan →</Link>
             </div>
           </div>
 

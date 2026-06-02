@@ -89,7 +89,7 @@ const breadcrumbSchema = {
 };
 
 const H2 = ({ children, id }: { children: React.ReactNode; id?: string }) => (
-  <h2 id={id} style={{ fontSize: 26, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#111827", lineHeight: 1.25, marginBottom: 16, marginTop: 40 }}>
+  <h2 id={id} style={{ fontSize: 26, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", lineHeight: 1.25, marginBottom: 16, marginTop: 40 }}>
     {children}
   </h2>
 );
@@ -117,7 +117,7 @@ export default function LlmsTxtGuide() {
   }, []);
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "white" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#F2F0EB" }}>
       <Navbar />
       <main style={{ flex: 1 }}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
@@ -134,7 +134,7 @@ export default function LlmsTxtGuide() {
             <span>llms.txt Guide</span>
           </div>
 
-          <h1 style={{ fontSize: 36, fontWeight: 800, fontFamily: "'Syne', sans-serif", color: "#111827", lineHeight: 1.2, marginBottom: 16 }}>
+          <h1 style={{ fontSize: 36, fontWeight: 800, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", lineHeight: 1.2, marginBottom: 16 }}>
             llms.txt: The Complete Guide for AI Visibility (2026)
           </h1>
 
@@ -147,15 +147,15 @@ export default function LlmsTxtGuide() {
           </div>
 
           {/* Summary box */}
-          <div style={{ background: "#EEF2FF", borderLeft: "4px solid #4F46E5", borderRadius: 8, padding: 20, marginBottom: 32 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#4F46E5", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Quick answer</div>
-            <p style={{ fontSize: 15, color: "#1E1B4B", lineHeight: 1.75, margin: 0 }}>
+          <div style={{ background: "#EDE9FE", borderLeft: "4px solid #5B3FEA", borderRadius: 8, padding: 20, marginBottom: 32 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#5B3FEA", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Quick answer</div>
+            <p style={{ fontSize: 15, color: "#2D1F6E", lineHeight: 1.75, margin: 0 }}>
               llms.txt is a plain text file placed at yourdomain.com/llms.txt that tells AI systems what your brand does, who it serves, and where to find more information. Think of it as a business card for AI crawlers. It takes 15 minutes to create and has no downside - only upside for your AI visibility.
             </p>
           </div>
 
           {/* Key stats */}
-          <div style={{ background: "#f9fafb", border: "1px solid #f3f4f6", borderRadius: 8, padding: "14px 20px", marginBottom: 40 }}>
+          <div style={{ background: "#E8E4DC", border: "1px solid #D4D0C8", borderRadius: 8, padding: "14px 20px", marginBottom: 40 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Key stats</div>
             <ul style={{ margin: 0, padding: "0 0 0 18px", display: "flex", flexDirection: "column", gap: 6 }}>
               <li style={{ fontSize: 14, color: "#374151" }}>Proposed by Jeremy Howard (fast.ai) in 2024 - now adopted by hundreds of AI-forward companies</li>
@@ -184,7 +184,7 @@ export default function LlmsTxtGuide() {
             {[
               {
                 system: "Perplexity",
-                color: "#4F46E5",
+                color: "#5B3FEA",
                 usage: "Perplexity crawls the live web in real time. When it visits your domain, llms.txt gives it immediate brand context without needing to parse dozens of pages. Brands with llms.txt get more accurate entity recognition and are less likely to be confused with similarly-named companies.",
               },
               {
@@ -203,10 +203,10 @@ export default function LlmsTxtGuide() {
                 usage: "Anthropic's web crawler reads llms.txt as part of its content collection for Claude's training and retrieval. The file's structured format makes it easier for Claude to accurately describe your brand when users ask about it.",
               },
             ].map((item) => (
-              <div key={item.system} style={{ display: "flex", gap: 14, padding: "16px 0", borderBottom: "1px solid #f3f4f6" }}>
+              <div key={item.system} style={{ display: "flex", gap: 14, padding: "16px 0", borderBottom: "1px solid #D4D0C8" }}>
                 <div style={{ width: 6, borderRadius: 3, background: item.color, flexShrink: 0, marginTop: 2 }} />
                 <div>
-                  <div style={{ fontWeight: 700, color: "#111827", fontSize: 15, marginBottom: 6 }}>{item.system}</div>
+                  <div style={{ fontWeight: 700, color: "#0A0A0A", fontSize: 15, marginBottom: 6 }}>{item.system}</div>
                   <P style={{ margin: 0, fontSize: 15 }}>{item.usage}</P>
                 </div>
               </div>
@@ -218,9 +218,9 @@ export default function LlmsTxtGuide() {
           <div style={{ overflowX: "auto", marginBottom: 32 }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
-                <tr style={{ background: "#f9fafb" }}>
+                <tr style={{ background: "#E8E4DC" }}>
                   {["", "robots.txt", "llms.txt"].map((h, i) => (
-                    <th key={i} style={{ padding: "12px 16px", textAlign: "left", borderBottom: "1px solid #e5e7eb", fontWeight: 600, color: i === 2 ? "#4F46E5" : "#374151" }}>{h}</th>
+                    <th key={i} style={{ padding: "12px 16px", textAlign: "left", borderBottom: "1px solid #D4D0C8", fontWeight: 600, color: i === 2 ? "#4F46E5" : "#374151" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -233,10 +233,10 @@ export default function LlmsTxtGuide() {
                   ["Required", "No, but expected", "No, but increasingly useful"],
                   ["Created by", "Martijn Koster, 1994", "Jeremy Howard, 2024"],
                 ].map(([label, robots, llms], i) => (
-                  <tr key={i} style={{ borderBottom: "1px solid #f3f4f6", background: i % 2 === 0 ? "white" : "#fafafa" }}>
+                  <tr key={i} style={{ borderBottom: "1px solid #D4D0C8", background: i % 2 === 0 ? "#F2F0EB" : "#E8E4DC" }}>
                     <td style={{ padding: "11px 16px", fontWeight: 600, color: "#374151" }}>{label}</td>
                     <td style={{ padding: "11px 16px", color: "#6b7280" }}>{robots}</td>
-                    <td style={{ padding: "11px 16px", color: "#4F46E5", fontWeight: 500 }}>{llms}</td>
+                    <td style={{ padding: "11px 16px", color: "#5B3FEA", fontWeight: 500 }}>{llms}</td>
                   </tr>
                 ))}
               </tbody>
@@ -267,11 +267,11 @@ export default function LlmsTxtGuide() {
                 body: "Open yourdomain.com/llms.txt in your browser. You should see plain text with no HTML tags or styling. If you see a rendered page instead of raw text, your server is not serving the file correctly. Run a GeoIQ free audit to confirm AI systems are detecting it.",
               },
             ].map((step) => (
-              <div key={step.n} style={{ padding: "20px 0", borderBottom: "1px solid #f3f4f6" }}>
+              <div key={step.n} style={{ padding: "20px 0", borderBottom: "1px solid #D4D0C8" }}>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 16, marginBottom: 10 }}>
                   <div style={{ fontSize: 28, fontWeight: 800, color: "#E0E7FF", fontFamily: "'Syne', sans-serif", flexShrink: 0, lineHeight: 1 }}>{step.n}</div>
                   <div>
-                    <div style={{ fontWeight: 700, color: "#111827", fontSize: 16, fontFamily: "'Syne', sans-serif" }}>{step.title}</div>
+                    <div style={{ fontWeight: 700, color: "#0A0A0A", fontSize: 16, fontFamily: "'Syne', sans-serif" }}>{step.title}</div>
                     <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>Time: {step.time}</div>
                   </div>
                 </div>
@@ -336,7 +336,7 @@ https://yourdomain.com/sitemap.xml`}</Code>
 
           <H2>llms.txt examples by type</H2>
 
-          <div style={{ fontSize: 16, fontWeight: 600, color: "#111827", marginBottom: 12, marginTop: 24 }}>SaaS tool example (GeoIQ)</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: "#0A0A0A", marginBottom: 12, marginTop: 24 }}>SaaS tool example (GeoIQ)</div>
           <Code>{`# GeoIQ
 
 > AI visibility platform that tracks how Indian startups appear in ChatGPT, 
@@ -381,7 +381,7 @@ hello@geoiqai.com
 
 https://geoiqai.com/sitemap.xml`}</Code>
 
-          <div style={{ fontSize: 16, fontWeight: 600, color: "#111827", marginBottom: 12, marginTop: 24 }}>Health app example (MealCoreAI)</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: "#0A0A0A", marginBottom: 12, marginTop: 24 }}>Health app example (MealCoreAI)</div>
           <Code>{`# MealCoreAI
 
 > AI-powered meal planning app for people managing diabetes and metabolic 
@@ -426,7 +426,7 @@ support@mealcoreai.com
 
 https://mealcoreai.com/sitemap.xml`}</Code>
 
-          <div style={{ fontSize: 16, fontWeight: 600, color: "#111827", marginBottom: 12, marginTop: 24 }}>E-commerce example</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: "#0A0A0A", marginBottom: 12, marginTop: 24 }}>E-commerce example</div>
           <Code>{`# Artisanal Collective
 
 > Online marketplace connecting Indian artisans directly with buyers globally, 
@@ -481,10 +481,10 @@ https://artisanalcollective.com/sitemap.xml`}</Code>
               { n: 4, mistake: "Writing too little context", fix: "A 50-word llms.txt is nearly useless. Aim for at least 300 words. Include your category name, target customer, key features, and founding year. The more factual context you provide, the better AI systems can represent your brand." },
               { n: 5, mistake: "Not updating it when your brand changes", fix: "llms.txt goes stale if your product pivots, you change your category positioning, or your pricing changes. Set a quarterly reminder to review and update it. Outdated llms.txt can cause AI systems to represent your brand incorrectly." },
             ].map((item) => (
-              <div key={item.n} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: "1px solid #f3f4f6" }}>
+              <div key={item.n} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: "1px solid #D4D0C8" }}>
                 <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#FEF2F2", color: "#DC2626", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12, flexShrink: 0 }}>{item.n}</div>
                 <div>
-                  <div style={{ fontWeight: 600, color: "#111827", fontSize: 15, marginBottom: 5 }}>{item.mistake}</div>
+                  <div style={{ fontWeight: 600, color: "#0A0A0A", fontSize: 15, marginBottom: 5 }}>{item.mistake}</div>
                   <P style={{ margin: 0, fontSize: 14 }}>{item.fix}</P>
                 </div>
               </div>
@@ -492,7 +492,7 @@ https://artisanalcollective.com/sitemap.xml`}</Code>
           </div>
 
           {/* CTA */}
-          <div style={{ background: "#4F46E5", borderRadius: 16, padding: "36px 32px", textAlign: "center", marginBottom: 48 }}>
+          <div style={{ background: "#5B3FEA", borderRadius: 16, padding: "36px 32px", textAlign: "center", marginBottom: 48 }}>
             <h2 style={{ color: "white", fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", marginBottom: 8, marginTop: 0 }}>
               Check your llms.txt and full GEO score free
             </h2>
@@ -500,7 +500,7 @@ https://artisanalcollective.com/sitemap.xml`}</Code>
               GeoIQ checks if your llms.txt exists, if AI crawlers can access it, and scores your overall AI visibility across 6 systems. Free audit, no signup.
             </p>
             <Link href="/">
-              <button style={{ background: "white", color: "#4F46E5", fontWeight: 700, fontSize: 15, padding: "12px 28px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
+              <button style={{ background: "white", color: "#5B3FEA", fontWeight: 700, fontSize: 15, padding: "12px 28px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
                 Check my llms.txt and GEO score →
               </button>
             </Link>
@@ -510,21 +510,21 @@ https://artisanalcollective.com/sitemap.xml`}</Code>
 
           <div style={{ marginBottom: 40 }}>
             {faqItems.map((item, i) => (
-              <div key={i} style={{ borderBottom: "1px solid #f3f4f6", padding: "16px 0" }}>
-                <div style={{ fontWeight: 600, color: "#111827", fontSize: 15, marginBottom: 8 }}>{item.q}</div>
+              <div key={i} style={{ borderBottom: "1px solid #D4D0C8", padding: "16px 0" }}>
+                <div style={{ fontWeight: 600, color: "#0A0A0A", fontSize: 15, marginBottom: 8 }}>{item.q}</div>
                 <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, margin: 0 }}>{item.a}</p>
               </div>
             ))}
           </div>
 
           {/* Internal links */}
-          <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 24, marginTop: 16 }}>
+          <div style={{ borderTop: "1px solid #D4D0C8", paddingTop: 24, marginTop: 16 }}>
             <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 12 }}>Related guides</div>
             <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-              <Link href="/" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>Free AI visibility audit →</Link>
-              <Link href="/what-is-geo" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>What is GEO? →</Link>
-              <Link href="/how-to-rank-in-chatgpt" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>How to rank in ChatGPT →</Link>
-              <Link href="/pricing" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>GeoIQ paid plan →</Link>
+              <Link href="/" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>Free AI visibility audit →</Link>
+              <Link href="/what-is-geo" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>What is GEO? →</Link>
+              <Link href="/how-to-rank-in-chatgpt" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>How to rank in ChatGPT →</Link>
+              <Link href="/pricing" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>GeoIQ paid plan →</Link>
             </div>
           </div>
 

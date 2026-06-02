@@ -49,21 +49,21 @@ export default function Blog() {
   ];
 
   const tagColors: Record<string, { bg: string; color: string }> = {
-    Data: { bg: "#EEF2FF", color: "#4F46E5" },
+    Data: { bg: "#EEF2FF", color: "#5B3FEA" },
     Strategy: { bg: "#ECFDF5", color: "#059669" },
     Technical: { bg: "#FEF2F2", color: "#DC2626" },
     Guide: { bg: "#FFFBEB", color: "#D97706" },
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#F2F0EB" }}>
       <Navbar />
       <main style={{ flex: 1 }}>
         <div style={{ maxWidth: 800, margin: "0 auto", padding: "80px 24px" }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: "#4F46E5", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "#5B3FEA", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>
             BLOG
           </div>
-          <h1 style={{ fontSize: "clamp(32px, 4vw, 48px)", fontWeight: 700, letterSpacing: "-0.03em", color: "#111827", marginBottom: 16 }}>
+          <h1 style={{ fontSize: "clamp(32px, 4vw, 48px)", fontWeight: 700, letterSpacing: "-0.03em", color: "#0A0A0A", marginBottom: 16 }}>
             GEO Insights
           </h1>
           <p style={{ fontSize: 18, color: "#6B7280", marginBottom: 48, lineHeight: 1.6 }}>
@@ -76,30 +76,30 @@ export default function Blog() {
               return (
                 <Link key={i} href={post.href} style={{ textDecoration: "none", display: "block" }}>
                   <div
-                    style={{ borderRadius: 14, border: "1px solid #E5E7EB", padding: "24px 28px", background: "white", transition: "background 150ms, border-color 150ms" }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = "#F9FAFB"; e.currentTarget.style.borderColor = "#C7D2FE"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "white"; e.currentTarget.style.borderColor = "#E5E7EB"; }}
+                    style={{ borderRadius: 14, border: "1px solid #D4D0C8", padding: "24px 28px", background: "#F2F0EB", transition: "background 150ms, border-color 150ms" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "#E8E4DC"; e.currentTarget.style.borderColor = "#A89EE8"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "#F2F0EB"; e.currentTarget.style.borderColor = "#D4D0C8"; }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 12, color: "#9CA3AF", fontWeight: 500 }}>{post.date}</span>
                       <span style={{ background: tc.bg, color: tc.color, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 9999, textTransform: "uppercase", letterSpacing: "0.04em" }}>{post.tag}</span>
                     </div>
-                    <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", marginBottom: 8, lineHeight: 1.35, fontFamily: "'Syne', sans-serif" }}>
+                    <h2 style={{ fontSize: 18, fontWeight: 700, color: "#0A0A0A", marginBottom: 8, lineHeight: 1.35, fontFamily: "'Syne', sans-serif" }}>
                       {post.title}
                     </h2>
                     <p style={{ fontSize: 15, color: "#6B7280", lineHeight: 1.6, margin: 0 }}>{post.excerpt}</p>
-                    <div style={{ marginTop: 14, fontSize: 14, fontWeight: 600, color: "#4F46E5" }}>Read article →</div>
+                    <div style={{ marginTop: 14, fontSize: 14, fontWeight: 600, color: "#5B3FEA" }}>Read article →</div>
                   </div>
                 </Link>
               );
             })}
           </div>
 
-          <div style={{ background: "#F9FAFB", border: "1px solid #F3F4F6", borderRadius: 14, padding: 28, textAlign: "center" }}>
+          <div style={{ background: "#E8E4DC", border: "1px solid #D4D0C8", borderRadius: 14, padding: 28, textAlign: "center" }}>
             <p style={{ fontSize: 15, color: "#6B7280", marginBottom: 16 }}>
               We write about GEO, AI visibility, and what is actually working for Indian founders. New posts every week.
             </p>
-            <a href="mailto:hello@geoiqai.com" style={{ fontSize: 14, fontWeight: 600, color: "#4F46E5", textDecoration: "none" }}>
+            <a href="mailto:hello@geoiqai.com" style={{ fontSize: 14, fontWeight: 600, color: "#5B3FEA", textDecoration: "none" }}>
               Suggest a topic →
             </a>
           </div>

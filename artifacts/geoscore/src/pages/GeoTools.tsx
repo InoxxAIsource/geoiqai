@@ -159,13 +159,13 @@ const faqSchema = {
 };
 
 const H2 = ({ children }: { children: React.ReactNode }) => (
-  <h2 style={{ fontSize: 26, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#111827", lineHeight: 1.25, marginBottom: 16, marginTop: 40 }}>
+  <h2 style={{ fontSize: 26, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", lineHeight: 1.25, marginBottom: 16, marginTop: 40 }}>
     {children}
   </h2>
 );
 
 const H3 = ({ children }: { children: React.ReactNode }) => (
-  <h3 style={{ fontSize: 18, fontWeight: 600, fontFamily: "'Syne', sans-serif", color: "#1E1B4B", lineHeight: 1.3, marginBottom: 10, marginTop: 24 }}>
+  <h3 style={{ fontSize: 18, fontWeight: 600, fontFamily: "'Syne', sans-serif", color: "#2D1F6E", lineHeight: 1.3, marginBottom: 10, marginTop: 24 }}>
     {children}
   </h3>
 );
@@ -191,7 +191,7 @@ export default function GeoTools() {
   }, []);
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "white" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#F2F0EB" }}>
       <Navbar />
       <main style={{ flex: 1 }}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
@@ -208,7 +208,7 @@ export default function GeoTools() {
           </div>
 
           {/* Title */}
-          <h1 style={{ fontSize: 36, fontWeight: 800, fontFamily: "'Syne', sans-serif", color: "#111827", lineHeight: 1.2, marginBottom: 16 }}>
+          <h1 style={{ fontSize: 36, fontWeight: 800, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", lineHeight: 1.2, marginBottom: 16 }}>
             Best GEO Tools 2026: AI Visibility Platforms Compared
           </h1>
 
@@ -222,15 +222,15 @@ export default function GeoTools() {
           </div>
 
           {/* Summary box */}
-          <div style={{ background: "#EEF2FF", borderLeft: "4px solid #4F46E5", borderRadius: 8, padding: 20, marginBottom: 32 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#4F46E5", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Quick answer</div>
-            <p style={{ fontSize: 15, color: "#1E1B4B", lineHeight: 1.75, margin: 0 }}>
+          <div style={{ background: "#EDE9FE", borderLeft: "4px solid #5B3FEA", borderRadius: 8, padding: 20, marginBottom: 32 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#5B3FEA", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Quick answer</div>
+            <p style={{ fontSize: 15, color: "#2D1F6E", lineHeight: 1.75, margin: 0 }}>
               The best GEO tools in 2026 are: GeoIQ (best free tier, India-focused, only tool with GEO Agent), Rankscale (best for enterprise, 17 AI systems), Elmo (best open-source option), AmIOnAI (best for quick checks), and Searchless (best done-for-you service). GeoIQ is the only platform that combines monitoring with live fix actions and INR pricing.
             </p>
           </div>
 
           {/* Key stats */}
-          <div style={{ background: "#f9fafb", border: "1px solid #f3f4f6", borderRadius: 8, padding: "14px 20px", marginBottom: 40 }}>
+          <div style={{ background: "#E8E4DC", border: "1px solid #D4D0C8", borderRadius: 8, padding: "14px 20px", marginBottom: 40 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Key stats</div>
             <ul style={{ margin: 0, padding: "0 0 0 18px", display: "flex", flexDirection: "column", gap: 6 }}>
               <li style={{ fontSize: 14, color: "#374151" }}>Overlap between Google top-10 results and AI-cited sources dropped from 70% to below 20% in 2026 - Google ranking no longer guarantees AI visibility</li>
@@ -253,9 +253,9 @@ export default function GeoTools() {
           <div style={{ overflowX: "auto", marginBottom: 32 }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
-                <tr style={{ background: "#f9fafb" }}>
+                <tr style={{ background: "#E8E4DC" }}>
                   {["Tool", "Free plan", "Paid from", "AI systems", "GEO Agent", "India pricing"].map((h, i) => (
-                    <th key={i} style={{ padding: "12px 14px", textAlign: "left", borderBottom: "1px solid #e5e7eb", fontWeight: 600, color: "#374151", whiteSpace: "nowrap" }}>{h}</th>
+                    <th key={i} style={{ padding: "12px 14px", textAlign: "left", borderBottom: "1px solid #D4D0C8", fontWeight: 600, color: "#374151", whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -267,7 +267,7 @@ export default function GeoTools() {
                   { name: "AmIOnAI", free: "Yes", paid: "Unknown", systems: "4", agent: false, india: false, highlight: false },
                   { name: "Searchless", free: "None", paid: "$797/mo", systems: "5", agent: false, india: false, highlight: false },
                 ].map((row, i) => (
-                  <tr key={i} style={{ borderBottom: "1px solid #f3f4f6", background: row.highlight ? "#fafafe" : i % 2 === 0 ? "white" : "#fafafa" }}>
+                  <tr key={i} style={{ borderBottom: "1px solid #D4D0C8", background: row.highlight ? "#fafafe" : i % 2 === 0 ? "#F2F0EB" : "#E8E4DC" }}>
                     <td style={{ padding: "11px 14px", fontWeight: row.highlight ? 700 : 500, color: row.highlight ? "#4F46E5" : "#111827" }}>{row.name}</td>
                     <td style={{ padding: "11px 14px", color: "#374151" }}>{row.free}</td>
                     <td style={{ padding: "11px 14px", color: "#374151" }}>{row.paid}</td>
@@ -283,20 +283,20 @@ export default function GeoTools() {
           <H2>Tool reviews</H2>
 
           {tools.map((tool, idx) => (
-            <div key={tool.name} style={{ border: tool.highlight ? "2px solid #4F46E5" : "1px solid #e5e7eb", borderRadius: 12, padding: 24, marginBottom: 20, position: "relative", background: tool.highlight ? "#fafafe" : "white" }}>
+            <div key={tool.name} style={{ border: tool.highlight ? "2px solid #5B3FEA" : "1px solid #D4D0C8", borderRadius: 12, padding: 24, marginBottom: 20, position: "relative", background: tool.highlight ? "#fafafe" : "white" }}>
               {tool.highlight && (
-                <div style={{ position: "absolute", top: -12, left: 20, background: "#4F46E5", color: "white", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 9999, fontFamily: "'Syne', sans-serif", letterSpacing: "0.04em" }}>
+                <div style={{ position: "absolute", top: -12, left: 20, background: "#5B3FEA", color: "white", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 9999, fontFamily: "'Syne', sans-serif", letterSpacing: "0.04em" }}>
                   RECOMMENDED
                 </div>
               )}
 
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 14, flexWrap: "wrap" }}>
                 <div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: "#111827", fontFamily: "'Syne', sans-serif" }}>{idx + 1}. {tool.name}</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: "#0A0A0A", fontFamily: "'Syne', sans-serif" }}>{idx + 1}. {tool.name}</div>
                   <div style={{ fontSize: 13, color: "#6b7280", marginTop: 3 }}>{tool.tagline}</div>
                 </div>
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "#111827" }}>{tool.paidFrom}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "#0A0A0A" }}>{tool.paidFrom}</div>
                   <div style={{ fontSize: 12, color: "#6b7280" }}>Free: {tool.freePlan}</div>
                 </div>
               </div>
@@ -338,9 +338,9 @@ export default function GeoTools() {
               { condition: "You want a done-for-you managed service", tool: "Searchless", reason: "Agency model handles everything for you at $797+/month" },
               { condition: "You just want a quick one-off check", tool: "AmIOnAI or GeoIQ free", reason: "Both have free tiers that give an instant snapshot without commitment" },
             ].map((row, i) => (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "auto 120px 1fr", gap: 12, padding: "12px 0", borderBottom: "1px solid #f3f4f6", alignItems: "start" }}>
+              <div key={i} style={{ display: "grid", gridTemplateColumns: "auto 120px 1fr", gap: 12, padding: "12px 0", borderBottom: "1px solid #D4D0C8", alignItems: "start" }}>
                 <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.5 }}>If {row.condition}</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#4F46E5" }}>{row.tool}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#5B3FEA" }}>{row.tool}</div>
                 <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.5 }}>{row.reason}</div>
               </div>
             ))}
@@ -357,10 +357,10 @@ export default function GeoTools() {
               { label: "Manual ChatGPT check", desc: "Open ChatGPT and type 'best [your category] for [your use case]' - check if your brand appears. Run 10+ variations for a representative result.", link: "https://chatgpt.com", linkText: "chatgpt.com" },
               { label: "Perplexity brand check", desc: "Search your brand name on Perplexity and check if it surfaces your domain as a source. Perplexity shows its citations explicitly, making it the easiest system to manually audit.", link: "https://perplexity.ai", linkText: "perplexity.ai" },
             ].map((item, i) => (
-              <div key={i} style={{ background: "#f9fafb", borderRadius: 8, padding: "14px 18px" }}>
-                <div style={{ fontWeight: 600, color: "#111827", fontSize: 14, marginBottom: 5 }}>{item.label}</div>
+              <div key={i} style={{ background: "#E8E4DC", borderRadius: 8, padding: "14px 18px" }}>
+                <div style={{ fontWeight: 600, color: "#0A0A0A", fontSize: 14, marginBottom: 5 }}>{item.label}</div>
                 <P style={{ fontSize: 13, margin: "0 0 6px 0" }}>{item.desc}</P>
-                <a href={item.link} style={{ fontSize: 12, color: "#4F46E5", textDecoration: "none" }}>{item.linkText} →</a>
+                <a href={item.link} style={{ fontSize: 12, color: "#5B3FEA", textDecoration: "none" }}>{item.linkText} →</a>
               </div>
             ))}
           </div>
@@ -383,7 +383,7 @@ export default function GeoTools() {
           </P>
 
           {/* CTA */}
-          <div style={{ background: "#4F46E5", borderRadius: 16, padding: "36px 32px", textAlign: "center", marginBottom: 48, marginTop: 40 }}>
+          <div style={{ background: "#5B3FEA", borderRadius: 16, padding: "36px 32px", textAlign: "center", marginBottom: 48, marginTop: 40 }}>
             <h3 style={{ color: "white", fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", marginBottom: 8 }}>
               Try GeoIQ free - no signup, instant results
             </h3>
@@ -391,7 +391,7 @@ export default function GeoTools() {
               Enter your domain and see your AI visibility score across ChatGPT, Gemini, Perplexity, Claude, and Grok in 60 seconds.
             </p>
             <Link href="/">
-              <button style={{ background: "white", color: "#4F46E5", fontWeight: 700, fontSize: 15, padding: "12px 28px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
+              <button style={{ background: "white", color: "#5B3FEA", fontWeight: 700, fontSize: 15, padding: "12px 28px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
                 Run your free AI visibility audit →
               </button>
             </Link>
@@ -402,27 +402,27 @@ export default function GeoTools() {
 
           <div style={{ marginBottom: 40 }}>
             {faqItems.map((item, i) => (
-              <div key={i} style={{ borderBottom: "1px solid #f3f4f6", padding: "16px 0" }}>
-                <div style={{ fontWeight: 600, color: "#111827", fontSize: 15, marginBottom: 8 }}>{item.q}</div>
+              <div key={i} style={{ borderBottom: "1px solid #D4D0C8", padding: "16px 0" }}>
+                <div style={{ fontWeight: 600, color: "#0A0A0A", fontSize: 15, marginBottom: 8 }}>{item.q}</div>
                 <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, margin: 0 }}>{item.a}</p>
               </div>
             ))}
           </div>
 
           {/* Internal links */}
-          <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 24, marginTop: 16 }}>
+          <div style={{ borderTop: "1px solid #D4D0C8", paddingTop: 24, marginTop: 16 }}>
             <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 12 }}>Related guides</div>
             <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-              <Link href="/" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
+              <Link href="/" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>
                 Free AI visibility audit →
               </Link>
-              <Link href="/what-is-geo" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
+              <Link href="/what-is-geo" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>
                 What is GEO? →
               </Link>
-              <Link href="/how-to-rank-in-chatgpt" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
+              <Link href="/how-to-rank-in-chatgpt" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>
                 How to rank in ChatGPT →
               </Link>
-              <Link href="/pricing" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
+              <Link href="/pricing" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>
                 GeoIQ paid plan →
               </Link>
             </div>

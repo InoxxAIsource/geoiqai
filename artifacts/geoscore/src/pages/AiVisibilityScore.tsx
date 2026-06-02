@@ -86,7 +86,7 @@ const breadcrumbSchema = {
 };
 
 const H2 = ({ children }: { children: React.ReactNode }) => (
-  <h2 style={{ fontSize: 26, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#111827", lineHeight: 1.25, marginBottom: 16, marginTop: 40 }}>
+  <h2 style={{ fontSize: 26, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", lineHeight: 1.25, marginBottom: 16, marginTop: 40 }}>
     {children}
   </h2>
 );
@@ -116,7 +116,7 @@ export default function AiVisibilityScore() {
   }, []);
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "white" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#F2F0EB" }}>
       <Navbar />
       <main style={{ flex: 1 }}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
@@ -133,7 +133,7 @@ export default function AiVisibilityScore() {
             <span>AI Visibility Score</span>
           </div>
 
-          <h1 style={{ fontSize: 36, fontWeight: 800, fontFamily: "'Syne', sans-serif", color: "#111827", lineHeight: 1.2, marginBottom: 16 }}>
+          <h1 style={{ fontSize: 36, fontWeight: 800, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", lineHeight: 1.2, marginBottom: 16 }}>
             What is an AI Visibility Score? (And How to Improve Yours)
           </h1>
 
@@ -146,15 +146,15 @@ export default function AiVisibilityScore() {
           </div>
 
           {/* Summary box */}
-          <div style={{ background: "#EEF2FF", borderLeft: "4px solid #4F46E5", borderRadius: 8, padding: 20, marginBottom: 32 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#4F46E5", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Quick answer</div>
-            <p style={{ fontSize: 15, color: "#1E1B4B", lineHeight: 1.75, margin: 0 }}>
+          <div style={{ background: "#EDE9FE", borderLeft: "4px solid #5B3FEA", borderRadius: 8, padding: 20, marginBottom: 32 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#5B3FEA", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Quick answer</div>
+            <p style={{ fontSize: 15, color: "#2D1F6E", lineHeight: 1.75, margin: 0 }}>
               An AI visibility score measures how frequently and accurately AI systems like ChatGPT, Gemini, and Perplexity recommend your brand when users ask questions in your category. GeoIQ scores brands from 0-100 by running standardized prompts across 6 AI systems and tracking mention rates. The average brand scores 31/100 - most brands are largely invisible to AI search.
             </p>
           </div>
 
           {/* Key stats */}
-          <div style={{ background: "#f9fafb", border: "1px solid #f3f4f6", borderRadius: 8, padding: "14px 20px", marginBottom: 40 }}>
+          <div style={{ background: "#E8E4DC", border: "1px solid #D4D0C8", borderRadius: 8, padding: "14px 20px", marginBottom: 40 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Key stats</div>
             <ul style={{ margin: 0, padding: "0 0 0 18px", display: "flex", flexDirection: "column", gap: 6 }}>
               <li style={{ fontSize: 14, color: "#374151" }}>Gartner predicts traditional search volume will drop 25% by 2026 due to AI assistants replacing standard queries</li>
@@ -182,9 +182,9 @@ export default function AiVisibilityScore() {
           <P>GeoIQ's 0-100 score combines two distinct components that reflect how AI systems actually retrieve information:</P>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 32 }}>
-            <div style={{ background: "#EEF2FF", borderRadius: 10, padding: "20px" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#4F46E5", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>AI Memory Score</div>
-              <div style={{ fontSize: 32, fontWeight: 800, color: "#4F46E5", fontFamily: "'Syne', sans-serif", marginBottom: 8 }}>0-50</div>
+            <div style={{ background: "#EDE9FE", borderRadius: 10, padding: "20px" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#5B3FEA", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>AI Memory Score</div>
+              <div style={{ fontSize: 32, fontWeight: 800, color: "#5B3FEA", fontFamily: "'Syne', sans-serif", marginBottom: 8 }}>0-50</div>
               <P style={{ fontSize: 13, margin: 0 }}>Measures your brand's presence in ChatGPT and Gemini training data. Reflects how well-cited you are in the sources these models learned from. Changes slowly - improves with consistent citation building over weeks and months.</P>
             </div>
             <div style={{ background: "#ECFDF5", borderRadius: 10, padding: "20px" }}>
@@ -217,9 +217,9 @@ export default function AiVisibilityScore() {
           <div style={{ overflowX: "auto", marginBottom: 32 }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
-                <tr style={{ background: "#f9fafb" }}>
+                <tr style={{ background: "#E8E4DC" }}>
                   {["Stage", "Avg score", "Typical bottleneck"].map(h => (
-                    <th key={h} style={{ padding: "12px 16px", textAlign: "left", borderBottom: "1px solid #e5e7eb", fontWeight: 600, color: "#374151" }}>{h}</th>
+                    <th key={h} style={{ padding: "12px 16px", textAlign: "left", borderBottom: "1px solid #D4D0C8", fontWeight: 600, color: "#374151" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -231,7 +231,7 @@ export default function AiVisibilityScore() {
                   { stage: "Scale-up / Series B+", score: "67/100", bottleneck: "Strong presence but Perplexity gaps", scoreColor: "#0284C7" },
                   { stage: "Enterprise / established brand", score: "78/100", bottleneck: "Optimization gaps, not fundamental visibility", scoreColor: "#059669" },
                 ].map((row, i) => (
-                  <tr key={i} style={{ borderBottom: "1px solid #f3f4f6", background: i % 2 === 0 ? "white" : "#fafafa" }}>
+                  <tr key={i} style={{ borderBottom: "1px solid #D4D0C8", background: i % 2 === 0 ? "#F2F0EB" : "#E8E4DC" }}>
                     <td style={{ padding: "12px 16px", fontWeight: 500, color: "#374151" }}>{row.stage}</td>
                     <td style={{ padding: "12px 16px", fontWeight: 700, color: row.scoreColor }}>{row.score}</td>
                     <td style={{ padding: "12px 16px", color: "#6b7280" }}>{row.bottleneck}</td>
@@ -245,10 +245,10 @@ export default function AiVisibilityScore() {
 
           <P>Enter your domain below to get your AI visibility score across ChatGPT, Gemini, Perplexity, Claude, and Grok in 60 seconds. No signup required.</P>
 
-          <div style={{ background: "#EEF2FF", border: "1.5px solid #C7D2FE", borderRadius: 12, padding: "28px 24px", marginBottom: 40, textAlign: "center" }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "#1E1B4B", marginBottom: 20 }}>Free AI visibility audit - no signup needed</div>
+          <div style={{ background: "#EDE9FE", border: "1.5px solid #C7D2FE", borderRadius: 12, padding: "28px 24px", marginBottom: 40, textAlign: "center" }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "#2D1F6E", marginBottom: 20 }}>Free AI visibility audit - no signup needed</div>
             <Link href="/">
-              <button style={{ background: "#4F46E5", color: "white", fontWeight: 700, fontSize: 15, padding: "14px 32px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
+              <button style={{ background: "#5B3FEA", color: "white", fontWeight: 700, fontSize: 15, padding: "14px 32px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
                 Check my AI visibility score →
               </button>
             </Link>
@@ -268,13 +268,13 @@ export default function AiVisibilityScore() {
               { rank: 5, action: "Write factual, quotable content", time: "Ongoing", impact: "Medium", detail: "Publish content with specific claims, named statistics, and direct answers to user questions. AI systems extract and cite sentences that are factual and self-contained. Marketing language ('the best solution') is ignored; specific claims ('reduces onboarding time by 40%') get cited." },
               { rank: 6, action: "Standardize entity signals", time: "1-2 hours", impact: "Medium", detail: "Make sure your brand name, description, and category are identical across LinkedIn, Crunchbase, your website, Twitter/X, and every directory listing. Inconsistency creates multiple weak entity signals instead of one strong one that AI systems can confidently cite." },
             ].map((item) => (
-              <div key={item.rank} style={{ display: "flex", gap: 14, padding: "16px 0", borderBottom: "1px solid #f3f4f6" }}>
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#EEF2FF", color: "#4F46E5", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
+              <div key={item.rank} style={{ display: "flex", gap: 14, padding: "16px 0", borderBottom: "1px solid #D4D0C8" }}>
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#EDE9FE", color: "#5B3FEA", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
                   {item.rank}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 5, flexWrap: "wrap" }}>
-                    <div style={{ fontWeight: 600, color: "#111827", fontSize: 15 }}>{item.action}</div>
+                    <div style={{ fontWeight: 600, color: "#0A0A0A", fontSize: 15 }}>{item.action}</div>
                     <span style={{ background: "#f3f4f6", color: "#374151", fontSize: 11, padding: "2px 8px", borderRadius: 9999 }}>{item.time}</span>
                     <span style={{ background: item.impact === "Very High" ? "#ECFDF5" : item.impact === "High" ? "#EEF2FF" : "#FFFBEB", color: item.impact === "Very High" ? "#059669" : item.impact === "High" ? "#4F46E5" : "#D97706", fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 9999 }}>{item.impact} impact</span>
                   </div>
@@ -285,7 +285,7 @@ export default function AiVisibilityScore() {
           </div>
 
           {/* CTA */}
-          <div style={{ background: "#4F46E5", borderRadius: 16, padding: "36px 32px", textAlign: "center", marginBottom: 48 }}>
+          <div style={{ background: "#5B3FEA", borderRadius: 16, padding: "36px 32px", textAlign: "center", marginBottom: 48 }}>
             <h2 style={{ color: "white", fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", marginBottom: 8, marginTop: 0 }}>
               Check your AI visibility score free
             </h2>
@@ -293,7 +293,7 @@ export default function AiVisibilityScore() {
               See your score across ChatGPT, Gemini, Perplexity, Claude, and Grok in 60 seconds. No signup, no credit card, no limit on free audits.
             </p>
             <Link href="/">
-              <button style={{ background: "white", color: "#4F46E5", fontWeight: 700, fontSize: 15, padding: "12px 28px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
+              <button style={{ background: "white", color: "#5B3FEA", fontWeight: 700, fontSize: 15, padding: "12px 28px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
                 Check my AI visibility score →
               </button>
             </Link>
@@ -303,21 +303,21 @@ export default function AiVisibilityScore() {
 
           <div style={{ marginBottom: 40 }}>
             {faqItems.map((item, i) => (
-              <div key={i} style={{ borderBottom: "1px solid #f3f4f6", padding: "16px 0" }}>
-                <div style={{ fontWeight: 600, color: "#111827", fontSize: 15, marginBottom: 8 }}>{item.q}</div>
+              <div key={i} style={{ borderBottom: "1px solid #D4D0C8", padding: "16px 0" }}>
+                <div style={{ fontWeight: 600, color: "#0A0A0A", fontSize: 15, marginBottom: 8 }}>{item.q}</div>
                 <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, margin: 0 }}>{item.a}</p>
               </div>
             ))}
           </div>
 
           {/* Internal links */}
-          <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 24, marginTop: 16 }}>
+          <div style={{ borderTop: "1px solid #D4D0C8", paddingTop: 24, marginTop: 16 }}>
             <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 12 }}>Related guides</div>
             <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-              <Link href="/" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>Free AI visibility audit →</Link>
-              <Link href="/what-is-geo" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>What is GEO? →</Link>
-              <Link href="/llms-txt-guide" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>How to create llms.txt →</Link>
-              <Link href="/pricing" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>GeoIQ paid plan →</Link>
+              <Link href="/" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>Free AI visibility audit →</Link>
+              <Link href="/what-is-geo" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>What is GEO? →</Link>
+              <Link href="/llms-txt-guide" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>How to create llms.txt →</Link>
+              <Link href="/pricing" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>GeoIQ paid plan →</Link>
             </div>
           </div>
 

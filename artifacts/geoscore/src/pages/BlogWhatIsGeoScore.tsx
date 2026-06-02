@@ -19,7 +19,7 @@ const P = ({ children, style }: { children: React.ReactNode; style?: React.CSSPr
   <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.85, marginBottom: 18, ...style }}>{children}</p>
 );
 const H2 = ({ children }: { children: React.ReactNode }) => (
-  <h2 style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#111827", marginBottom: 14, marginTop: 40, lineHeight: 1.3 }}>{children}</h2>
+  <h2 style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", marginBottom: 14, marginTop: 40, lineHeight: 1.3 }}>{children}</h2>
 );
 
 const ShareButtons = ({ url, title }: { url: string; title: string }) => (
@@ -36,11 +36,11 @@ const ShareButtons = ({ url, title }: { url: string; title: string }) => (
 );
 
 const CTA = () => (
-  <div style={{ background: "#4F46E5", borderRadius: 14, padding: "28px 28px", textAlign: "center", margin: "40px 0" }}>
+  <div style={{ background: "#5B3FEA", borderRadius: 14, padding: "28px 28px", textAlign: "center", margin: "40px 0" }}>
     <div style={{ color: "white", fontSize: 18, fontWeight: 700, fontFamily: "'Syne', sans-serif", marginBottom: 8 }}>See how your score compares</div>
     <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 14, marginBottom: 18, lineHeight: 1.6 }}>Free audit in 60 seconds. See where you rank versus category benchmarks with no signup required.</p>
     <Link href="/">
-      <button style={{ background: "white", color: "#4F46E5", fontWeight: 700, fontSize: 14, padding: "10px 24px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
+      <button style={{ background: "white", color: "#5B3FEA", fontWeight: 700, fontSize: 14, padding: "10px 24px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
         Check my GEO score →
       </button>
     </Link>
@@ -89,7 +89,7 @@ export default function BlogWhatIsGeoScore() {
   }, []);
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "white" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#F2F0EB" }}>
       <Navbar />
       <main style={{ flex: 1 }}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
@@ -104,7 +104,7 @@ export default function BlogWhatIsGeoScore() {
             <span>What is a good GEO score</span>
           </div>
 
-          <h1 style={{ fontSize: 34, fontWeight: 800, fontFamily: "'Syne', sans-serif", color: "#111827", lineHeight: 1.2, marginBottom: 14 }}>
+          <h1 style={{ fontSize: 34, fontWeight: 800, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", lineHeight: 1.2, marginBottom: 14 }}>
             What's a Good GEO Score? We Analyzed 500 Brands to Find Out.
           </h1>
           <div style={{ display: "flex", gap: 14, fontSize: 12, color: "#9CA3AF", marginBottom: 10, flexWrap: "wrap" }}>
@@ -117,9 +117,9 @@ export default function BlogWhatIsGeoScore() {
 
           <ShareButtons url={PAGE_URL} title={PAGE_TITLE} />
 
-          <div style={{ background: "#EEF2FF", borderLeft: "4px solid #4F46E5", borderRadius: 8, padding: "16px 20px", marginBottom: 28 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#4F46E5", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>The short answer</div>
-            <p style={{ fontSize: 15, color: "#1E1B4B", lineHeight: 1.7, margin: 0 }}>
+          <div style={{ background: "#EDE9FE", borderLeft: "4px solid #5B3FEA", borderRadius: 8, padding: "16px 20px", marginBottom: 28 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#5B3FEA", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>The short answer</div>
+            <p style={{ fontSize: 15, color: "#2D1F6E", lineHeight: 1.7, margin: 0 }}>
               The average GEO score across all brands GeoIQ has audited is 24/100. Anything above 60/100 is genuinely strong. Most brands - including well-funded ones with millions of users - score below 35/100. If you score 40+, you are already ahead of most of your competitors in AI visibility.
             </p>
           </div>
@@ -165,9 +165,9 @@ export default function BlogWhatIsGeoScore() {
           <div style={{ overflowX: "auto", marginBottom: 32 }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
-                <tr style={{ background: "#f9fafb" }}>
+                <tr style={{ background: "#E8E4DC" }}>
                   {["Category", "Avg score", "Top quartile", "Why the gap"].map(h => (
-                    <th key={h} style={{ padding: "11px 14px", textAlign: "left", borderBottom: "1px solid #e5e7eb", fontWeight: 600, color: "#374151" }}>{h}</th>
+                    <th key={h} style={{ padding: "11px 14px", textAlign: "left", borderBottom: "1px solid #D4D0C8", fontWeight: 600, color: "#374151" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -182,9 +182,9 @@ export default function BlogWhatIsGeoScore() {
                   { cat: "EdTech (India)", avg: "24/100", top: "38/100", why: "User base is India-local, content is often in Hindi, global platform citations are rare" },
                   { cat: "Q-commerce / delivery", avg: "19/100", top: "33/100", why: "Hyperlocal business model means almost no global platform coverage; offline-heavy brand building" },
                 ].map((row, i) => (
-                  <tr key={i} style={{ borderBottom: "1px solid #f3f4f6", background: i % 2 === 0 ? "white" : "#fafafa" }}>
+                  <tr key={i} style={{ borderBottom: "1px solid #D4D0C8", background: i % 2 === 0 ? "#F2F0EB" : "#E8E4DC" }}>
                     <td style={{ padding: "11px 14px", fontWeight: 500, color: "#374151" }}>{row.cat}</td>
-                    <td style={{ padding: "11px 14px", fontWeight: 700, color: "#4F46E5" }}>{row.avg}</td>
+                    <td style={{ padding: "11px 14px", fontWeight: 700, color: "#5B3FEA" }}>{row.avg}</td>
                     <td style={{ padding: "11px 14px", color: "#059669", fontWeight: 600 }}>{row.top}</td>
                     <td style={{ padding: "11px 14px", color: "#6b7280", fontSize: 13 }}>{row.why}</td>
                   </tr>
@@ -200,9 +200,9 @@ export default function BlogWhatIsGeoScore() {
           <div style={{ overflowX: "auto", marginBottom: 32 }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
-                <tr style={{ background: "#f9fafb" }}>
+                <tr style={{ background: "#E8E4DC" }}>
                   {["Age", "Avg score", "Typical ceiling", "What to focus on"].map(h => (
-                    <th key={h} style={{ padding: "11px 14px", textAlign: "left", borderBottom: "1px solid #e5e7eb", fontWeight: 600, color: "#374151" }}>{h}</th>
+                    <th key={h} style={{ padding: "11px 14px", textAlign: "left", borderBottom: "1px solid #D4D0C8", fontWeight: 600, color: "#374151" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -214,9 +214,9 @@ export default function BlogWhatIsGeoScore() {
                   { age: "4-7 years", avg: "44/100", ceiling: "68/100", focus: "Citation consistency, competitor gap analysis, emerging platforms" },
                   { age: "7+ years", avg: "58/100", ceiling: "80/100", focus: "Optimization and fine-tuning; the baseline is already strong" },
                 ].map((row, i) => (
-                  <tr key={i} style={{ borderBottom: "1px solid #f3f4f6", background: i % 2 === 0 ? "white" : "#fafafa" }}>
+                  <tr key={i} style={{ borderBottom: "1px solid #D4D0C8", background: i % 2 === 0 ? "#F2F0EB" : "#E8E4DC" }}>
                     <td style={{ padding: "11px 14px", fontWeight: 500, color: "#374151" }}>{row.age}</td>
-                    <td style={{ padding: "11px 14px", fontWeight: 700, color: "#4F46E5" }}>{row.avg}</td>
+                    <td style={{ padding: "11px 14px", fontWeight: 700, color: "#5B3FEA" }}>{row.avg}</td>
                     <td style={{ padding: "11px 14px", color: "#059669", fontWeight: 600 }}>{row.ceiling}</td>
                     <td style={{ padding: "11px 14px", color: "#6b7280", fontSize: 13 }}>{row.focus}</td>
                   </tr>
@@ -239,11 +239,11 @@ export default function BlogWhatIsGeoScore() {
               { rank: 4, factor: "Organization schema on homepage", impact: "Medium", explanation: "Brands with JSON-LD Organization schema score an average of 7 points higher. The effect is strongest on the Gemini component because Gemini uses Google's knowledge graph, which is fed by structured data." },
               { rank: 5, factor: "Publication coverage recency", impact: "Medium", explanation: "Brands covered in major publications within the last 6 months score an average of 6 points higher than brands whose last significant press coverage was over a year ago. Recency matters because Perplexity uses live crawl data and weights fresh content higher." },
             ].map((item) => (
-              <div key={item.rank} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: "1px solid #f3f4f6" }}>
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#EEF2FF", color: "#4F46E5", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{item.rank}</div>
+              <div key={item.rank} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: "1px solid #D4D0C8" }}>
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#EDE9FE", color: "#5B3FEA", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{item.rank}</div>
                 <div>
                   <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 5 }}>
-                    <span style={{ fontWeight: 600, color: "#111827", fontSize: 15 }}>{item.factor}</span>
+                    <span style={{ fontWeight: 600, color: "#0A0A0A", fontSize: 15 }}>{item.factor}</span>
                     <span style={{ background: item.impact === "Very high" ? "#ECFDF5" : "#EEF2FF", color: item.impact === "Very high" ? "#059669" : "#4F46E5", fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 9999 }}>{item.impact} impact</span>
                   </div>
                   <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, margin: 0 }}>{item.explanation}</p>
@@ -267,8 +267,8 @@ export default function BlogWhatIsGeoScore() {
           <H2>Frequently asked questions</H2>
           <div style={{ marginBottom: 40 }}>
             {faqItems.map((item, i) => (
-              <div key={i} style={{ borderBottom: "1px solid #f3f4f6", padding: "14px 0" }}>
-                <div style={{ fontWeight: 600, color: "#111827", fontSize: 15, marginBottom: 7 }}>{item.q}</div>
+              <div key={i} style={{ borderBottom: "1px solid #D4D0C8", padding: "14px 0" }}>
+                <div style={{ fontWeight: 600, color: "#0A0A0A", fontSize: 15, marginBottom: 7 }}>{item.q}</div>
                 <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, margin: 0 }}>{item.a}</p>
               </div>
             ))}
@@ -276,13 +276,13 @@ export default function BlogWhatIsGeoScore() {
 
           <ShareButtons url={PAGE_URL} title={PAGE_TITLE} />
 
-          <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 24, marginTop: 8 }}>
+          <div style={{ borderTop: "1px solid #D4D0C8", paddingTop: 24, marginTop: 8 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: "#6b7280", marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.05em" }}>Related articles</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <Link href="/ai-visibility-score" style={{ fontSize: 15, color: "#4F46E5", textDecoration: "none" }}>AI visibility score: what it is and how to improve it →</Link>
-              <Link href="/blog/geo-vs-seo-2026" style={{ fontSize: 15, color: "#4F46E5", textDecoration: "none" }}>GEO vs SEO in 2026: where should you focus? →</Link>
-              <Link href="/how-to-rank-in-chatgpt" style={{ fontSize: 15, color: "#4F46E5", textDecoration: "none" }}>Full guide: how to rank in ChatGPT →</Link>
-              <Link href="/blog/robots-txt-blocking-ai" style={{ fontSize: 15, color: "#4F46E5", textDecoration: "none" }}>Is your robots.txt blocking ChatGPT? →</Link>
+              <Link href="/ai-visibility-score" style={{ fontSize: 15, color: "#5B3FEA", textDecoration: "none" }}>AI visibility score: what it is and how to improve it →</Link>
+              <Link href="/blog/geo-vs-seo-2026" style={{ fontSize: 15, color: "#5B3FEA", textDecoration: "none" }}>GEO vs SEO in 2026: where should you focus? →</Link>
+              <Link href="/how-to-rank-in-chatgpt" style={{ fontSize: 15, color: "#5B3FEA", textDecoration: "none" }}>Full guide: how to rank in ChatGPT →</Link>
+              <Link href="/blog/robots-txt-blocking-ai" style={{ fontSize: 15, color: "#5B3FEA", textDecoration: "none" }}>Is your robots.txt blocking ChatGPT? →</Link>
             </div>
           </div>
 

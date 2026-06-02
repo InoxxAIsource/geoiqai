@@ -71,13 +71,13 @@ const faqSchema = {
 };
 
 const H2 = ({ children }: { children: React.ReactNode }) => (
-  <h2 style={{ fontSize: 26, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#111827", lineHeight: 1.25, marginBottom: 16, marginTop: 40 }}>
+  <h2 style={{ fontSize: 26, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", lineHeight: 1.25, marginBottom: 16, marginTop: 40 }}>
     {children}
   </h2>
 );
 
 const H3 = ({ children }: { children: React.ReactNode }) => (
-  <h3 style={{ fontSize: 18, fontWeight: 600, fontFamily: "'Syne', sans-serif", color: "#1E1B4B", lineHeight: 1.3, marginBottom: 10, marginTop: 24 }}>
+  <h3 style={{ fontSize: 18, fontWeight: 600, fontFamily: "'Syne', sans-serif", color: "#2D1F6E", lineHeight: 1.3, marginBottom: 10, marginTop: 24 }}>
     {children}
   </h3>
 );
@@ -99,7 +99,7 @@ export default function WhatIsGeo() {
   }, []);
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "white" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#F2F0EB" }}>
       <Navbar />
       <main style={{ flex: 1 }}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
@@ -115,7 +115,7 @@ export default function WhatIsGeo() {
           </div>
 
           {/* Title */}
-          <h1 style={{ fontSize: 36, fontWeight: 800, fontFamily: "'Syne', sans-serif", color: "#111827", lineHeight: 1.2, marginBottom: 16 }}>
+          <h1 style={{ fontSize: 36, fontWeight: 800, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", lineHeight: 1.2, marginBottom: 16 }}>
             What is GEO? Generative Engine Optimization Explained (2026)
           </h1>
 
@@ -129,15 +129,15 @@ export default function WhatIsGeo() {
           </div>
 
           {/* Summary box */}
-          <div style={{ background: "#EEF2FF", borderLeft: "4px solid #4F46E5", borderRadius: 8, padding: 20, marginBottom: 32 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#4F46E5", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Quick answer</div>
-            <p style={{ fontSize: 15, color: "#1E1B4B", lineHeight: 1.75, margin: 0 }}>
+          <div style={{ background: "#EDE9FE", borderLeft: "4px solid #5B3FEA", borderRadius: 8, padding: 20, marginBottom: 32 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#5B3FEA", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Quick answer</div>
+            <p style={{ fontSize: 15, color: "#2D1F6E", lineHeight: 1.75, margin: 0 }}>
               GEO (Generative Engine Optimization) is the practice of optimizing your brand so AI systems like ChatGPT, Gemini and Perplexity recommend it when users ask questions in your category. Unlike SEO which targets Google rankings, GEO targets AI citations. Brands with strong GEO appear in the one answer AI gives - brands without it are invisible even if they rank #1 on Google.
             </p>
           </div>
 
           {/* Key stats */}
-          <div style={{ background: "#f9fafb", border: "1px solid #f3f4f6", borderRadius: 8, padding: "14px 20px", marginBottom: 40 }}>
+          <div style={{ background: "#E8E4DC", border: "1px solid #D4D0C8", borderRadius: 8, padding: "14px 20px", marginBottom: 40 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Key stats</div>
             <ul style={{ margin: 0, padding: "0 0 0 18px", display: "flex", flexDirection: "column", gap: 6 }}>
               <li style={{ fontSize: 14, color: "#374151" }}>Adding statistics to content improves AI visibility by 33.9%, expert quotes by 32% (Princeton/IIT Delhi, KDD 2024)</li>
@@ -174,9 +174,9 @@ export default function WhatIsGeo() {
           <div style={{ overflowX: "auto", marginBottom: 32 }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
-                <tr style={{ background: "#f9fafb" }}>
+                <tr style={{ background: "#E8E4DC" }}>
                   {["", "SEO", "AEO", "GEO"].map((h, i) => (
-                    <th key={i} style={{ padding: "12px 16px", textAlign: "left", borderBottom: "1px solid #e5e7eb", fontWeight: 600, color: i === 3 ? "#4F46E5" : "#374151" }}>{h}</th>
+                    <th key={i} style={{ padding: "12px 16px", textAlign: "left", borderBottom: "1px solid #D4D0C8", fontWeight: 600, color: i === 3 ? "#4F46E5" : "#374151" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -189,11 +189,11 @@ export default function WhatIsGeo() {
                   ["Time to results", "3-6 months", "2-4 months", "4-8 weeks"],
                   ["User intent", "Search and click", "Ask and listen", "Ask and trust"],
                 ].map(([label, seo, aeo, geo], i) => (
-                  <tr key={i} style={{ borderBottom: "1px solid #f3f4f6", background: i % 2 === 0 ? "white" : "#fafafa" }}>
+                  <tr key={i} style={{ borderBottom: "1px solid #D4D0C8", background: i % 2 === 0 ? "#F2F0EB" : "#E8E4DC" }}>
                     <td style={{ padding: "11px 16px", fontWeight: 600, color: "#374151" }}>{label}</td>
                     <td style={{ padding: "11px 16px", color: "#6b7280" }}>{seo}</td>
                     <td style={{ padding: "11px 16px", color: "#6b7280" }}>{aeo}</td>
-                    <td style={{ padding: "11px 16px", color: "#4F46E5", fontWeight: 500 }}>{geo}</td>
+                    <td style={{ padding: "11px 16px", color: "#5B3FEA", fontWeight: 500 }}>{geo}</td>
                   </tr>
                 ))}
               </tbody>
@@ -222,12 +222,12 @@ export default function WhatIsGeo() {
                 body: "All AI systems weight third-party mentions heavily. A G2 review, a TechCrunch mention, a ProductHunt launch that gained traction - these signals confirm your brand is real and relevant to a specific category. A brand mentioned by 20-30 independent authoritative sources consistently appears in AI answers before a brand with a better product but no external citations.",
               },
             ].map((item) => (
-              <div key={item.n} style={{ display: "flex", gap: 16, padding: "18px 0", borderBottom: "1px solid #f3f4f6" }}>
-                <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#EEF2FF", color: "#4F46E5", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, flexShrink: 0, fontFamily: "'Syne', sans-serif" }}>
+              <div key={item.n} style={{ display: "flex", gap: 16, padding: "18px 0", borderBottom: "1px solid #D4D0C8" }}>
+                <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#EDE9FE", color: "#5B3FEA", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, flexShrink: 0, fontFamily: "'Syne', sans-serif" }}>
                   {item.n}
                 </div>
                 <div>
-                  <div style={{ fontWeight: 600, color: "#111827", marginBottom: 8, fontSize: 15 }}>{item.title}</div>
+                  <div style={{ fontWeight: 600, color: "#0A0A0A", marginBottom: 8, fontSize: 15 }}>{item.title}</div>
                   <P style={{ margin: 0 }}>{item.body}</P>
                 </div>
               </div>
@@ -242,7 +242,7 @@ export default function WhatIsGeo() {
             {[
               {
                 title: "Technical GEO",
-                color: "#4F46E5",
+                color: "#5B3FEA",
                 bg: "#EEF2FF",
                 items: ["Allow AI crawlers in robots.txt (GPTBot, PerplexityBot, Claude-Web)", "Create llms.txt at your domain root", "Add Organization schema markup in JSON-LD", "Ensure fast page load - AI crawlers deprioritize slow sites", "Submit sitemap to search console for fresh indexing"],
               },
@@ -285,12 +285,12 @@ export default function WhatIsGeo() {
               { n: 7, factor: "Conversational content format", why: "Content structured as questions and answers ('How does X work? X works by...') matches the query format AI systems receive. FAQ sections are the highest-density GEO content format." },
               { n: 8, factor: "Regular content updates", why: "Perplexity prioritizes fresh content. Pages last updated over 12 months ago score lower in real-time AI retrieval. Adding a 'Last updated' date and refreshing content quarterly maintains freshness signals." },
             ].map((item) => (
-              <div key={item.n} style={{ display: "flex", gap: 16, padding: "14px 0", borderBottom: "1px solid #f3f4f6" }}>
+              <div key={item.n} style={{ display: "flex", gap: 16, padding: "14px 0", borderBottom: "1px solid #D4D0C8" }}>
                 <div style={{ fontSize: 20, fontWeight: 800, color: "#E0E7FF", fontFamily: "'Syne', sans-serif", flexShrink: 0, width: 28, textAlign: "right" }}>
                   {String(item.n).padStart(2, "0")}
                 </div>
                 <div>
-                  <div style={{ fontWeight: 600, color: "#111827", marginBottom: 5, fontSize: 15 }}>{item.factor}</div>
+                  <div style={{ fontWeight: 600, color: "#0A0A0A", marginBottom: 5, fontSize: 15 }}>{item.factor}</div>
                   <P style={{ fontSize: 14, margin: 0 }}>{item.why}</P>
                 </div>
               </div>
@@ -304,9 +304,9 @@ export default function WhatIsGeo() {
           <div style={{ overflowX: "auto", marginBottom: 32 }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
-                <tr style={{ background: "#f9fafb" }}>
+                <tr style={{ background: "#E8E4DC" }}>
                   {["Brand", "GEO Score", "Main issue"].map(h => (
-                    <th key={h} style={{ padding: "12px 16px", textAlign: "left", borderBottom: "1px solid #e5e7eb", fontWeight: 600, color: "#374151" }}>{h}</th>
+                    <th key={h} style={{ padding: "12px 16px", textAlign: "left", borderBottom: "1px solid #D4D0C8", fontWeight: 600, color: "#374151" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -317,8 +317,8 @@ export default function WhatIsGeo() {
                   { brand: "Groww", score: "38/100", issue: "Weak entity signals - inconsistent brand descriptions", scoreColor: "#D97706" },
                   { brand: "MealCoreAI", score: "30/100", issue: "No Perplexity presence - robots.txt blocking crawlers", scoreColor: "#D97706" },
                 ].map((row, i) => (
-                  <tr key={i} style={{ borderBottom: "1px solid #f3f4f6", background: i % 2 === 0 ? "white" : "#fafafa" }}>
-                    <td style={{ padding: "12px 16px", fontWeight: 600, color: "#111827" }}>{row.brand}</td>
+                  <tr key={i} style={{ borderBottom: "1px solid #D4D0C8", background: i % 2 === 0 ? "#F2F0EB" : "#E8E4DC" }}>
+                    <td style={{ padding: "12px 16px", fontWeight: 600, color: "#0A0A0A" }}>{row.brand}</td>
                     <td style={{ padding: "12px 16px", fontWeight: 700, color: row.scoreColor }}>{row.score}</td>
                     <td style={{ padding: "12px 16px", color: "#6b7280" }}>{row.issue}</td>
                   </tr>
@@ -359,7 +359,7 @@ export default function WhatIsGeo() {
           </P>
 
           {/* CTA */}
-          <div style={{ background: "#4F46E5", borderRadius: 16, padding: "36px 32px", textAlign: "center", marginBottom: 48, marginTop: 40 }}>
+          <div style={{ background: "#5B3FEA", borderRadius: 16, padding: "36px 32px", textAlign: "center", marginBottom: 48, marginTop: 40 }}>
             <h3 style={{ color: "white", fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", marginBottom: 8 }}>
               Check your GEO score free
             </h3>
@@ -367,7 +367,7 @@ export default function WhatIsGeo() {
               Enter your domain and see exactly where you stand in ChatGPT, Gemini, Perplexity, Claude, and Grok. No signup needed. Results in 60 seconds.
             </p>
             <Link href="/">
-              <button style={{ background: "white", color: "#4F46E5", fontWeight: 700, fontSize: 15, padding: "12px 28px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
+              <button style={{ background: "white", color: "#5B3FEA", fontWeight: 700, fontSize: 15, padding: "12px 28px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
                 Check your GEO score free →
               </button>
             </Link>
@@ -378,27 +378,27 @@ export default function WhatIsGeo() {
 
           <div style={{ marginBottom: 40 }}>
             {faqItems.map((item, i) => (
-              <div key={i} style={{ borderBottom: "1px solid #f3f4f6", padding: "16px 0" }}>
-                <div style={{ fontWeight: 600, color: "#111827", fontSize: 15, marginBottom: 8 }}>{item.q}</div>
+              <div key={i} style={{ borderBottom: "1px solid #D4D0C8", padding: "16px 0" }}>
+                <div style={{ fontWeight: 600, color: "#0A0A0A", fontSize: 15, marginBottom: 8 }}>{item.q}</div>
                 <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, margin: 0 }}>{item.a}</p>
               </div>
             ))}
           </div>
 
           {/* Internal links */}
-          <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 24, marginTop: 16 }}>
+          <div style={{ borderTop: "1px solid #D4D0C8", paddingTop: 24, marginTop: 16 }}>
             <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 12 }}>Related guides</div>
             <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-              <Link href="/" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
+              <Link href="/" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>
                 Run a free AI visibility audit →
               </Link>
-              <Link href="/how-to-rank-in-chatgpt" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
+              <Link href="/how-to-rank-in-chatgpt" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>
                 How to rank in ChatGPT →
               </Link>
-              <Link href="/geo-tools" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
+              <Link href="/geo-tools" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>
                 Best GEO tools 2026 →
               </Link>
-              <Link href="/pricing" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
+              <Link href="/pricing" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>
                 GeoIQ paid plan →
               </Link>
             </div>

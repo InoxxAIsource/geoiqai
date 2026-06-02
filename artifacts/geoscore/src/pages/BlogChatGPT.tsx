@@ -11,7 +11,7 @@ export default function BlogChatGPT() {
     if (cl) cl.href = "https://geoiqai.com/blog/why-startup-not-showing-chatgpt";
   }, []);
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col" style={{ background: "#F2F0EB" }}>
       <Navbar />
       <main className="flex-1">
         <article className="max-w-2xl mx-auto px-4 py-16">
@@ -23,7 +23,7 @@ export default function BlogChatGPT() {
             <span>Why your startup doesn't show up in ChatGPT</span>
           </div>
 
-          <h1 style={{ fontSize: 32, fontWeight: 600, color: "#111827", lineHeight: 1.3, marginBottom: 16 }}>
+          <h1 style={{ fontSize: 32, fontWeight: 600, color: "#0A0A0A", lineHeight: 1.3, marginBottom: 16 }}>
             Why Your Startup Doesn't Show Up in ChatGPT (And How to Fix It)
           </h1>
 
@@ -31,9 +31,9 @@ export default function BlogChatGPT() {
             By GeoIQ Team · May 2026 · 9 min read
           </p>
 
-          <div style={{ background: "#EEF2FF", border: "1px solid #C7D2FE", borderRadius: 10, padding: "16px 20px", marginBottom: 40 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: "#4F46E5", textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 8 }}>Direct answer</div>
-            <p style={{ fontSize: 15, color: "#1E1B4B", lineHeight: 1.7, margin: 0 }}>
+          <div style={{ background: "#EDE9FE", border: "1px solid #C7D2FE", borderRadius: 10, padding: "16px 20px", marginBottom: 40 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#5B3FEA", textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 8 }}>Direct answer</div>
+            <p style={{ fontSize: 15, color: "#2D1F6E", lineHeight: 1.7, margin: 0 }}>
               Your startup doesn't show up in ChatGPT because AI systems recommend brands based on third-party citation frequency, not product quality or website traffic. A startup with 30 G2 reviews and a Hacker News post beats a better product that only has its own website. The fix: build citations on G2, ProductHunt, Crunchbase, and relevant publications in your category.
             </p>
           </div>
@@ -49,7 +49,7 @@ export default function BlogChatGPT() {
             That conversation changed how I thought about distribution. We had been pouring energy into SEO, into content, into building a product people actually used, and AI search had no idea we existed. Not because our product was bad. Because we had not learned to speak the language AI systems use to discover brands.
           </p>
 
-          <h2 style={{ fontSize: 22, fontWeight: 600, color: "#111827", marginBottom: 16 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 600, color: "#0A0A0A", marginBottom: 16 }}>
             The discovery
           </h2>
 
@@ -65,7 +65,7 @@ export default function BlogChatGPT() {
             This was not SEO. SEO rewards the page. GEO rewards the brand. The optimization target is different, the signals are different, and, critically, the measurement is different.
           </p>
 
-          <h2 style={{ fontSize: 22, fontWeight: 600, color: "#111827", marginBottom: 16 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 600, color: "#0A0A0A", marginBottom: 16 }}>
             Why this happens
           </h2>
 
@@ -93,21 +93,21 @@ export default function BlogChatGPT() {
             ].map((item, i) => (
               <div key={i} style={{ marginBottom: 32 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#EEF2FF", color: "#4F46E5", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 13, flexShrink: 0 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#EDE9FE", color: "#5B3FEA", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 13, flexShrink: 0 }}>
                     {i + 1}
                   </div>
-                  <h3 style={{ fontSize: 17, fontWeight: 600, color: "#111827", margin: 0 }}>{item.cause}</h3>
+                  <h3 style={{ fontSize: 17, fontWeight: 600, color: "#0A0A0A", margin: 0 }}>{item.cause}</h3>
                 </div>
                 <p style={{ fontSize: 15, color: "#374151", lineHeight: 1.8, marginBottom: 12, paddingLeft: 36 }}>{item.explanation}</p>
-                <div style={{ background: "#f9fafb", borderRadius: 8, padding: "12px 16px", marginLeft: 36, borderLeft: "3px solid #4F46E5" }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#4F46E5", textTransform: "uppercase", letterSpacing: "0.05em" }}>Fix: </span>
+                <div style={{ background: "#E8E4DC", borderRadius: 8, padding: "12px 16px", marginLeft: 36, borderLeft: "3px solid #4F46E5" }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#5B3FEA", textTransform: "uppercase", letterSpacing: "0.05em" }}>Fix: </span>
                   <span style={{ fontSize: 14, color: "#374151" }}>{item.fix}</span>
                 </div>
               </div>
             ))}
           </div>
 
-          <h2 style={{ fontSize: 22, fontWeight: 600, color: "#111827", marginBottom: 16 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 600, color: "#0A0A0A", marginBottom: 16 }}>
             What you can do today (free)
           </h2>
 
@@ -148,13 +148,13 @@ export default function BlogChatGPT() {
                 detail: "Add Organization schema markup to your homepage with your brand name, URL, description, and founding date. This feeds directly into Google's knowledge graph, which Gemini uses to understand and recommend brands.",
               },
             ].map((item, i) => (
-              <div key={i} style={{ display: "flex", gap: 16, padding: "16px 0", borderBottom: "1px solid #f3f4f6" }}>
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#EEF2FF", color: "#4F46E5", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 13, flexShrink: 0, marginTop: 2 }}>
+              <div key={i} style={{ display: "flex", gap: 16, padding: "16px 0", borderBottom: "1px solid #D4D0C8" }}>
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#EDE9FE", color: "#5B3FEA", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 13, flexShrink: 0, marginTop: 2 }}>
                   {i + 1}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
-                    <div style={{ fontWeight: 600, color: "#111827", fontSize: 15 }}>{item.action}</div>
+                    <div style={{ fontWeight: 600, color: "#0A0A0A", fontSize: 15 }}>{item.action}</div>
                     <div style={{ display: "flex", gap: 6 }}>
                       <span style={{ background: "#f3f4f6", color: "#6b7280", fontSize: 11, padding: "2px 8px", borderRadius: 9999 }}>
                         {item.time}
@@ -170,7 +170,7 @@ export default function BlogChatGPT() {
             ))}
           </div>
 
-          <h2 style={{ fontSize: 22, fontWeight: 600, color: "#111827", marginBottom: 16 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 600, color: "#0A0A0A", marginBottom: 16 }}>
             How to track it going forward
           </h2>
 
@@ -186,7 +186,7 @@ export default function BlogChatGPT() {
             The brands winning at GEO in 2026 are the ones that started measuring first. Most of your competitors are not tracking this yet. That is your window.
           </p>
 
-          <div style={{ background: "#4F46E5", borderRadius: 16, padding: 32, textAlign: "center", marginBottom: 48 }}>
+          <div style={{ background: "#5B3FEA", borderRadius: 16, padding: 32, textAlign: "center", marginBottom: 48 }}>
             <h3 style={{ color: "white", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>
               Check your brand right now, free
             </h3>
@@ -194,13 +194,13 @@ export default function BlogChatGPT() {
               No signup. No email needed. See where you stand in ChatGPT, Gemini, and Perplexity in 60 seconds.
             </p>
             <Link href="/">
-              <Button style={{ background: "white", color: "#4F46E5", fontWeight: 600 }}>
+              <Button style={{ background: "white", color: "#5B3FEA", fontWeight: 600 }}>
                 Check my score →
               </Button>
             </Link>
           </div>
 
-          <h2 style={{ fontSize: 22, fontWeight: 600, color: "#111827", marginBottom: 20 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 600, color: "#0A0A0A", marginBottom: 20 }}>
             Frequently asked questions
           </h2>
           {[
@@ -212,8 +212,8 @@ export default function BlogChatGPT() {
             { q: "How long does it take to get into ChatGPT after building citations?", a: "For Perplexity (real-time crawl), 1-4 weeks after content is indexed. For ChatGPT's browsing mode, days to weeks after a page is indexed by Bing. For ChatGPT's base model, improvements align with training cycle updates." },
             { q: "Can an early-stage startup appear in ChatGPT?", a: "Yes. AI systems do not consider company size or age. A pre-revenue startup with 30 independent citations on authoritative platforms will appear in AI answers before a funded company with no external mentions." },
           ].map((item, i) => (
-            <div key={i} style={{ borderBottom: "1px solid #f3f4f6", padding: "16px 0" }}>
-              <div style={{ fontWeight: 600, color: "#111827", fontSize: 15, marginBottom: 8 }}>{item.q}</div>
+            <div key={i} style={{ borderBottom: "1px solid #D4D0C8", padding: "16px 0" }}>
+              <div style={{ fontWeight: 600, color: "#0A0A0A", fontSize: 15, marginBottom: 8 }}>{item.q}</div>
               <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, margin: 0 }}>{item.a}</p>
             </div>
           ))}
@@ -250,11 +250,11 @@ export default function BlogChatGPT() {
             }}
           />
 
-          <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 24, marginTop: 32, display: "flex", gap: 24, flexWrap: "wrap" }}>
-            <Link href="/what-is-geo" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
+          <div style={{ borderTop: "1px solid #D4D0C8", paddingTop: 24, marginTop: 32, display: "flex", gap: 24, flexWrap: "wrap" }}>
+            <Link href="/what-is-geo" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>
               What is GEO? →
             </Link>
-            <Link href="/how-to-rank-in-chatgpt" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
+            <Link href="/how-to-rank-in-chatgpt" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>
               Full ChatGPT ranking guide →
             </Link>
           </div>

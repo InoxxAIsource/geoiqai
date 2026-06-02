@@ -111,7 +111,7 @@ export default function Pricing() {
         subscription_id: sub.subscription_id,
         name: "GeoIQ",
         description: sub.plan_name,
-        theme: { color: "#4F46E5" },
+        theme: { color: "#5B3FEA" },
         prefill: { email: trimmedEmail },
         handler: async (response: { razorpay_payment_id: string; razorpay_subscription_id: string; razorpay_signature: string }) => {
           try {
@@ -182,7 +182,7 @@ export default function Pricing() {
             </p>
             <button
               onClick={() => { void handleResendLink(); }}
-              style={{ background: "#4F46E5", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer", marginBottom: 12 }}
+              style={{ background: "#5B3FEA", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer", marginBottom: 12 }}
             >
               Resend login link
             </button>
@@ -210,7 +210,7 @@ export default function Pricing() {
             {pendingPlan && pendingPlan !== "free" && (
               <div
                 id="checkout-email-section"
-                style={{ maxWidth: 440, margin: "40px auto 0", background: "white", border: "1.5px solid #4F46E5", borderRadius: 12, padding: "28px 24px", boxShadow: "0 4px 24px rgba(79,70,229,0.10)" }}
+                style={{ maxWidth: 440, margin: "40px auto 0", background: "#F2F0EB", border: "1.5px solid #5B3FEA", borderRadius: 12, padding: "28px 24px", boxShadow: "0 4px 24px rgba(91,63,234,0.10)" }}
               >
                 <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>
                   {pendingPlan === "starter" ? "Start GeoIQ Starter" : "Start GeoIQ Agency"}
@@ -235,7 +235,7 @@ export default function Pricing() {
                 <Button
                   onClick={() => { void handleCheckout(); }}
                   disabled={loading}
-                  style={{ width: "100%", background: "#4F46E5", color: "white", height: 44 }}
+                  style={{ width: "100%", background: "#5B3FEA", color: "white", height: 44 }}
                 >
                   {loading ? (
                     <span style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center" }}>

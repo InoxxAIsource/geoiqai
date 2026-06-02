@@ -82,13 +82,13 @@ const faqSchema = {
 };
 
 const H2 = ({ children, id }: { children: React.ReactNode; id?: string }) => (
-  <h2 id={id} style={{ fontSize: 26, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#111827", lineHeight: 1.25, marginBottom: 16, marginTop: 40 }}>
+  <h2 id={id} style={{ fontSize: 26, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", lineHeight: 1.25, marginBottom: 16, marginTop: 40 }}>
     {children}
   </h2>
 );
 
 const H3 = ({ children }: { children: React.ReactNode }) => (
-  <h3 style={{ fontSize: 18, fontWeight: 600, fontFamily: "'Syne', sans-serif", color: "#1E1B4B", lineHeight: 1.3, marginBottom: 10, marginTop: 24 }}>
+  <h3 style={{ fontSize: 18, fontWeight: 600, fontFamily: "'Syne', sans-serif", color: "#2D1F6E", lineHeight: 1.3, marginBottom: 10, marginTop: 24 }}>
     {children}
   </h3>
 );
@@ -110,7 +110,7 @@ export default function HowToRankInChatGPT() {
   }, []);
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "white" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#F2F0EB" }}>
       <Navbar />
       <main style={{ flex: 1 }}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
@@ -127,7 +127,7 @@ export default function HowToRankInChatGPT() {
           </div>
 
           {/* Title */}
-          <h1 style={{ fontSize: 36, fontWeight: 800, fontFamily: "'Syne', sans-serif", color: "#111827", lineHeight: 1.2, marginBottom: 16 }}>
+          <h1 style={{ fontSize: 36, fontWeight: 800, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", lineHeight: 1.2, marginBottom: 16 }}>
             How to Rank in ChatGPT: Complete Guide 2026
           </h1>
 
@@ -141,15 +141,15 @@ export default function HowToRankInChatGPT() {
           </div>
 
           {/* Summary box */}
-          <div style={{ background: "#EEF2FF", borderLeft: "4px solid #4F46E5", borderRadius: 8, padding: 20, marginBottom: 32 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#4F46E5", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Quick answer</div>
-            <p style={{ fontSize: 15, color: "#1E1B4B", lineHeight: 1.75, margin: 0 }}>
+          <div style={{ background: "#EDE9FE", borderLeft: "4px solid #5B3FEA", borderRadius: 8, padding: 20, marginBottom: 32 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#5B3FEA", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Quick answer</div>
+            <p style={{ fontSize: 15, color: "#2D1F6E", lineHeight: 1.75, margin: 0 }}>
               To rank in ChatGPT you need to (1) allow GPTBot in robots.txt, (2) get cited on high-authority sources in your category, and (3) create factual content that AI can quote. Most brands can see improvement within 4-8 weeks. This guide walks through all six steps with exact time estimates and direct links.
             </p>
           </div>
 
           {/* Key stats */}
-          <div style={{ background: "#f9fafb", border: "1px solid #f3f4f6", borderRadius: 8, padding: "14px 20px", marginBottom: 40 }}>
+          <div style={{ background: "#E8E4DC", border: "1px solid #D4D0C8", borderRadius: 8, padding: "14px 20px", marginBottom: 40 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Key stats</div>
             <ul style={{ margin: 0, padding: "0 0 0 18px", display: "flex", flexDirection: "column", gap: 6 }}>
               <li style={{ fontSize: 14, color: "#374151" }}>ChatGPT has over 200 million weekly active users as of 2026 - the largest AI recommendation surface in the world</li>
@@ -190,8 +190,8 @@ export default function HowToRankInChatGPT() {
               { title: "Consistency of brand description across sources", body: "If G2 calls you a 'CRM', TechCrunch calls you a 'sales tool', and your website calls you a 'revenue platform', ChatGPT sees three different things. The model cannot confidently recommend you because it does not know what category you belong in. Use one precise description everywhere." },
               { title: "Recency of coverage in the training window", body: "More recent training data carries more weight, especially for fast-moving categories like AI tools and fintech. Coverage from 2024-2026 in relevant publications will be more impactful than older mentions from 2020, even from authoritative sources. Prioritize fresh coverage over retrospective citations." },
             ].map((item, i) => (
-              <div key={i} style={{ padding: "18px 0", borderBottom: "1px solid #f3f4f6" }}>
-                <div style={{ fontWeight: 600, color: "#111827", marginBottom: 8, fontSize: 15 }}>{item.title}</div>
+              <div key={i} style={{ padding: "18px 0", borderBottom: "1px solid #D4D0C8" }}>
+                <div style={{ fontWeight: 600, color: "#0A0A0A", marginBottom: 8, fontSize: 15 }}>{item.title}</div>
                 <P style={{ margin: 0 }}>{item.body}</P>
               </div>
             ))}
@@ -282,13 +282,13 @@ export default function HowToRankInChatGPT() {
                 extra: "This article becomes the canonical reference AI systems find when looking for content about your category. It should read like a Wikipedia entry - factual, structured, and comprehensive - not like a marketing page.",
               },
             ].map((step) => (
-              <div key={step.id} id={step.id} style={{ padding: "24px 0", borderBottom: "1px solid #f3f4f6" }}>
+              <div key={step.id} id={step.id} style={{ padding: "24px 0", borderBottom: "1px solid #D4D0C8" }}>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 16, marginBottom: 12 }}>
                   <div style={{ fontSize: 28, fontWeight: 800, color: "#E0E7FF", fontFamily: "'Syne', sans-serif", flexShrink: 0, lineHeight: 1 }}>
                     {step.n}
                   </div>
                   <div>
-                    <div style={{ fontWeight: 700, color: "#111827", fontSize: 16, fontFamily: "'Syne', sans-serif" }}>{step.title}</div>
+                    <div style={{ fontWeight: 700, color: "#0A0A0A", fontSize: 16, fontFamily: "'Syne', sans-serif" }}>{step.title}</div>
                     <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>Time: {step.time}</div>
                   </div>
                 </div>
@@ -298,7 +298,7 @@ export default function HowToRankInChatGPT() {
                   ))}
                 </ul>
                 {step.code && (
-                  <pre style={{ background: "#f9fafb", border: "1px solid #f3f4f6", borderRadius: 6, padding: "12px 16px", fontSize: 12, color: "#374151", overflowX: "auto", marginBottom: 12, lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  <pre style={{ background: "#E8E4DC", border: "1px solid #D4D0C8", borderRadius: 6, padding: "12px 16px", fontSize: 12, color: "#374151", overflowX: "auto", marginBottom: 12, lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                     {step.code}
                   </pre>
                 )}
@@ -324,7 +324,7 @@ export default function HowToRankInChatGPT() {
               { issue: "128 orphan pages with no internal links", fix: "Added internal links from homepage and blog to key product pages", time: "45 min" },
               { issue: "No Organization schema", fix: "Added JSON-LD Organization markup to homepage with sameAs social links", time: "20 min" },
             ].map((row, i) => (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 12, padding: "12px 0", borderBottom: "1px solid #f3f4f6", alignItems: "start" }}>
+              <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 12, padding: "12px 0", borderBottom: "1px solid #D4D0C8", alignItems: "start" }}>
                 <div style={{ fontSize: 13, color: "#DC2626" }}>{row.issue}</div>
                 <div style={{ fontSize: 13, color: "#374151" }}>{row.fix}</div>
                 <div style={{ fontSize: 12, color: "#6b7280", whiteSpace: "nowrap" }}>{row.time}</div>
@@ -337,9 +337,9 @@ export default function HowToRankInChatGPT() {
           <div style={{ overflowX: "auto", marginBottom: 32 }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
-                <tr style={{ background: "#f9fafb" }}>
+                <tr style={{ background: "#E8E4DC" }}>
                   {["Metric", "Before", "After", "Change"].map(h => (
-                    <th key={h} style={{ padding: "10px 14px", textAlign: "left", borderBottom: "1px solid #e5e7eb", fontWeight: 600, color: "#374151" }}>{h}</th>
+                    <th key={h} style={{ padding: "10px 14px", textAlign: "left", borderBottom: "1px solid #D4D0C8", fontWeight: 600, color: "#374151" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -351,11 +351,11 @@ export default function HowToRankInChatGPT() {
                   ["AI crawlers allowed", "0 of 4", "4 of 4", "All major crawlers"],
                   ["Time to fix", "-", "-", "~90 minutes total"],
                 ].map((row, i) => (
-                  <tr key={i} style={{ borderBottom: "1px solid #f3f4f6", background: i % 2 === 0 ? "white" : "#fafafa" }}>
+                  <tr key={i} style={{ borderBottom: "1px solid #D4D0C8", background: i % 2 === 0 ? "#F2F0EB" : "#E8E4DC" }}>
                     <td style={{ padding: "10px 14px", fontWeight: 500, color: "#374151" }}>{row[0]}</td>
                     <td style={{ padding: "10px 14px", color: "#DC2626" }}>{row[1]}</td>
                     <td style={{ padding: "10px 14px", color: "#059669" }}>{row[2]}</td>
-                    <td style={{ padding: "10px 14px", fontWeight: 600, color: "#4F46E5" }}>{row[3]}</td>
+                    <td style={{ padding: "10px 14px", fontWeight: 600, color: "#5B3FEA" }}>{row[3]}</td>
                   </tr>
                 ))}
               </tbody>
@@ -375,10 +375,10 @@ export default function HowToRankInChatGPT() {
               { mistake: "Blocking AI crawlers in robots.txt", fix: "Check your robots.txt right now. If you use a Disallow: / rule for any user agent, it may be blocking GPTBot, PerplexityBot, or other AI crawlers. Many robots.txt files have broad deny rules added years ago that were not written with AI crawlers in mind." },
               { mistake: "Waiting for a big press hit before optimizing", fix: "Small, consistent mentions across many sources outperform one TechCrunch article. Submitting to 10 niche directories, review sites, and community platforms creates a web of references that AI systems triangulate. Start now with the platforms in steps 4-5 and do not wait for earned media." },
             ].map((item, i) => (
-              <div key={i} style={{ padding: "16px 0", borderBottom: "1px solid #f3f4f6" }}>
+              <div key={i} style={{ padding: "16px 0", borderBottom: "1px solid #D4D0C8" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                   <span style={{ background: "#FCEBEB", color: "#791F1F", fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 9999 }}>Mistake</span>
-                  <div style={{ fontWeight: 600, color: "#111827", fontSize: 15 }}>{item.mistake}</div>
+                  <div style={{ fontWeight: 600, color: "#0A0A0A", fontSize: 15 }}>{item.mistake}</div>
                 </div>
                 <P style={{ margin: 0, fontSize: 14 }}>
                   <strong style={{ color: "#059669" }}>Fix:</strong> {item.fix}
@@ -388,7 +388,7 @@ export default function HowToRankInChatGPT() {
           </div>
 
           {/* CTA */}
-          <div style={{ background: "#4F46E5", borderRadius: 16, padding: "36px 32px", textAlign: "center", marginBottom: 48 }}>
+          <div style={{ background: "#5B3FEA", borderRadius: 16, padding: "36px 32px", textAlign: "center", marginBottom: 48 }}>
             <h3 style={{ color: "white", fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", marginBottom: 8 }}>
               Check if ChatGPT knows your brand
             </h3>
@@ -396,7 +396,7 @@ export default function HowToRankInChatGPT() {
               Free audit. No signup. See your score across ChatGPT, Gemini, Perplexity, Claude, and Grok in 60 seconds.
             </p>
             <Link href="/">
-              <button style={{ background: "white", color: "#4F46E5", fontWeight: 700, fontSize: 15, padding: "12px 28px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
+              <button style={{ background: "white", color: "#5B3FEA", fontWeight: 700, fontSize: 15, padding: "12px 28px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
                 Check if ChatGPT knows your brand →
               </button>
             </Link>
@@ -407,27 +407,27 @@ export default function HowToRankInChatGPT() {
 
           <div style={{ marginBottom: 40 }}>
             {faqItems.map((item, i) => (
-              <div key={i} style={{ borderBottom: "1px solid #f3f4f6", padding: "16px 0" }}>
-                <div style={{ fontWeight: 600, color: "#111827", fontSize: 15, marginBottom: 8 }}>{item.q}</div>
+              <div key={i} style={{ borderBottom: "1px solid #D4D0C8", padding: "16px 0" }}>
+                <div style={{ fontWeight: 600, color: "#0A0A0A", fontSize: 15, marginBottom: 8 }}>{item.q}</div>
                 <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, margin: 0 }}>{item.a}</p>
               </div>
             ))}
           </div>
 
           {/* Internal links */}
-          <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 24, marginTop: 16 }}>
+          <div style={{ borderTop: "1px solid #D4D0C8", paddingTop: 24, marginTop: 16 }}>
             <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 12 }}>Related guides</div>
             <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-              <Link href="/" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
+              <Link href="/" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>
                 Free AI visibility audit →
               </Link>
-              <Link href="/what-is-geo" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
+              <Link href="/what-is-geo" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>
                 What is GEO? →
               </Link>
-              <Link href="/geo-tools" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
+              <Link href="/geo-tools" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>
                 Best GEO tools 2026 →
               </Link>
-              <Link href="/pricing" style={{ fontSize: 14, color: "#4F46E5", textDecoration: "none" }}>
+              <Link href="/pricing" style={{ fontSize: 14, color: "#5B3FEA", textDecoration: "none" }}>
                 GeoIQ paid plan →
               </Link>
             </div>

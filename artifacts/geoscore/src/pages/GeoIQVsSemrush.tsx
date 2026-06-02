@@ -45,7 +45,7 @@ const CTA = () => (
       No signup. No credit card. See exactly where you stand across ChatGPT, Gemini, and Perplexity in 60 seconds.
     </p>
     <Link href="/audit">
-      <button style={{ background: "white", color: "#4F46E5", fontWeight: 700, fontSize: 15, padding: "12px 28px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
+      <button style={{ background: "white", color: "#5B3FEA", fontWeight: 700, fontSize: 15, padding: "12px 28px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
         Run free audit
       </button>
     </Link>
@@ -197,10 +197,10 @@ export default function GeoIQVsSemrush() {
 
         {/* Hero */}
         <div style={{ marginBottom: 48 }}>
-          <div style={{ display: "inline-block", background: "#EEF2FF", color: "#4F46E5", fontSize: 12, fontWeight: 600, padding: "4px 12px", borderRadius: 20, marginBottom: 16, letterSpacing: "0.04em" }}>
+          <div style={{ display: "inline-block", background: "#EDE9FE", color: "#5B3FEA", fontSize: 12, fontWeight: 600, padding: "4px 12px", borderRadius: 20, marginBottom: 16, letterSpacing: "0.04em" }}>
             COMPARISON
           </div>
-          <h1 style={{ fontSize: 34, fontWeight: 800, fontFamily: "'Syne', sans-serif", color: "#111827", lineHeight: 1.2, marginBottom: 16 }}>
+          <h1 style={{ fontSize: 34, fontWeight: 800, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", lineHeight: 1.2, marginBottom: 16 }}>
             GeoIQ vs Semrush AI Visibility: Which one actually tracks AI search?
           </h1>
           <p style={{ fontSize: 17, color: "#374151", lineHeight: 1.75, marginBottom: 0 }}>
@@ -210,9 +210,9 @@ export default function GeoIQVsSemrush() {
 
         {/* Quick verdict */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 48 }}>
-          <div style={{ background: "#EEF2FF", border: "2px solid #4F46E5", borderRadius: 12, padding: 24 }}>
-            <div style={{ fontWeight: 800, fontSize: 16, fontFamily: "'Syne', sans-serif", color: "#4F46E5", marginBottom: 8 }}>GeoIQ</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#111827", marginBottom: 4 }}>$69/mo</div>
+          <div style={{ background: "#EDE9FE", border: "2px solid #5B3FEA", borderRadius: 12, padding: 24 }}>
+            <div style={{ fontWeight: 800, fontSize: 16, fontFamily: "'Syne', sans-serif", color: "#5B3FEA", marginBottom: 8 }}>GeoIQ</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#0A0A0A", marginBottom: 4 }}>$69/mo</div>
             <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 16 }}>Starter plan, or free forever</div>
             <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8 }}>
               {["5 AI systems (incl. Claude + Grok)", "Free audit, no signup", "$69/mo, India-focused signals", "Built only for AI visibility"].map(f => (
@@ -222,9 +222,9 @@ export default function GeoIQVsSemrush() {
               ))}
             </ul>
           </div>
-          <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 12, padding: 24 }}>
+          <div style={{ background: "#E8E4DC", border: "1px solid #D4D0C8", borderRadius: 12, padding: 24 }}>
             <div style={{ fontWeight: 800, fontSize: 16, fontFamily: "'Syne', sans-serif", color: "#374151", marginBottom: 8 }}>Semrush AI Visibility</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#111827", marginBottom: 4 }}>$99/mo per domain</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#0A0A0A", marginBottom: 4 }}>$99/mo per domain</div>
             <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 16 }}>Billed annually, plus base Semrush plan</div>
             <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8 }}>
               {["4 AI systems (no Claude, no Grok)", "Requires paid subscription to start", "USD pricing only", "Add-on inside broader SEO suite"].map(f => (
@@ -237,20 +237,20 @@ export default function GeoIQVsSemrush() {
         </div>
 
         {/* Feature comparison table */}
-        <h2 style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#111827", marginBottom: 20 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", marginBottom: 20 }}>
           Feature-by-feature comparison
         </h2>
 
-        <div style={{ border: "1px solid #E5E7EB", borderRadius: 12, overflow: "hidden", marginBottom: 48 }}>
+        <div style={{ border: "1px solid #D4D0C8", borderRadius: 12, overflow: "hidden", marginBottom: 48 }}>
           {/* Header row */}
           <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr", background: "#F3F4F6" }}>
-            <div style={{ padding: "14px 20px", fontSize: 13, fontWeight: 700, color: "#374151", borderBottom: "1px solid #E5E7EB" }}>Feature</div>
-            <div style={{ padding: "14px 16px", fontSize: 13, fontWeight: 700, color: "#4F46E5", borderBottom: "1px solid #E5E7EB", borderLeft: "1px solid #E5E7EB" }}>GeoIQ</div>
-            <div style={{ padding: "14px 16px", fontSize: 13, fontWeight: 700, color: "#374151", borderBottom: "1px solid #E5E7EB", borderLeft: "1px solid #E5E7EB" }}>Semrush AI Visibility</div>
+            <div style={{ padding: "14px 20px", fontSize: 13, fontWeight: 700, color: "#374151", borderBottom: "1px solid #D4D0C8" }}>Feature</div>
+            <div style={{ padding: "14px 16px", fontSize: 13, fontWeight: 700, color: "#5B3FEA", borderBottom: "1px solid #D4D0C8", borderLeft: "1px solid #D4D0C8" }}>GeoIQ</div>
+            <div style={{ padding: "14px 16px", fontSize: 13, fontWeight: 700, color: "#374151", borderBottom: "1px solid #D4D0C8", borderLeft: "1px solid #D4D0C8" }}>Semrush AI Visibility</div>
           </div>
           {rows.map((row, i) => (
             <div key={row.feature} style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr", background: i % 2 === 0 ? "white" : "#FAFAFA" }}>
-              <div style={{ padding: "14px 20px", fontSize: 14, fontWeight: 500, color: "#111827", lineHeight: 1.5, borderBottom: i < rows.length - 1 ? "1px solid #F3F4F6" : "none" }}>
+              <div style={{ padding: "14px 20px", fontSize: 14, fontWeight: 500, color: "#0A0A0A", lineHeight: 1.5, borderBottom: i < rows.length - 1 ? "1px solid #F3F4F6" : "none" }}>
                 {row.feature}
               </div>
               <div style={{ padding: "14px 16px", borderLeft: "1px solid #F3F4F6", borderBottom: i < rows.length - 1 ? "1px solid #F3F4F6" : "none" }}>
@@ -266,7 +266,7 @@ export default function GeoIQVsSemrush() {
         <CTA />
 
         {/* Pricing section */}
-        <h2 style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#111827", marginBottom: 16, marginTop: 48 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", marginBottom: 16, marginTop: 48 }}>
           Pricing comparison
         </h2>
         <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.75, marginBottom: 24 }}>
@@ -290,14 +290,14 @@ export default function GeoIQVsSemrush() {
               padding: 20,
             }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: plan.highlight ? "#4F46E5" : "#6B7280", marginBottom: 6 }}>{plan.name}</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "#111827", marginBottom: 4 }}>{plan.price}</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "#0A0A0A", marginBottom: 4 }}>{plan.price}</div>
               <div style={{ fontSize: 13, color: "#6B7280", lineHeight: 1.5 }}>{plan.note}</div>
             </div>
           ))}
         </div>
 
         {/* AI systems section */}
-        <h2 style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#111827", marginBottom: 16 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", marginBottom: 16 }}>
           Which AI systems does each tool track?
         </h2>
         <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.75, marginBottom: 20 }}>
@@ -308,15 +308,15 @@ export default function GeoIQVsSemrush() {
         </p>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 48 }}>
-          <div style={{ background: "white", border: "1px solid #E5E7EB", borderRadius: 10, padding: 20 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: "#4F46E5", marginBottom: 14, fontFamily: "'Syne', sans-serif" }}>GeoIQ tracks</div>
+          <div style={{ background: "#F2F0EB", border: "1px solid #D4D0C8", borderRadius: 10, padding: 20 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: "#5B3FEA", marginBottom: 14, fontFamily: "'Syne', sans-serif" }}>GeoIQ tracks</div>
             {["ChatGPT (OpenAI)", "Gemini (Google)", "Perplexity", "Claude (Anthropic)", "Grok (xAI)"].map(s => (
-              <div key={s} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 14, color: "#111827" }}>
+              <div key={s} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 14, color: "#0A0A0A" }}>
                 <Check /> {s}
               </div>
             ))}
           </div>
-          <div style={{ background: "white", border: "1px solid #E5E7EB", borderRadius: 10, padding: 20 }}>
+          <div style={{ background: "#F2F0EB", border: "1px solid #D4D0C8", borderRadius: 10, padding: 20 }}>
             <div style={{ fontWeight: 700, fontSize: 14, color: "#374151", marginBottom: 14, fontFamily: "'Syne', sans-serif" }}>Semrush AI Visibility tracks</div>
             {[
               { name: "ChatGPT (OpenAI)", ok: true },
@@ -333,7 +333,7 @@ export default function GeoIQVsSemrush() {
         </div>
 
         {/* India section */}
-        <h2 style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#111827", marginBottom: 16 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", marginBottom: 16 }}>
           What about Indian brands?
         </h2>
         <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.75, marginBottom: 16 }}>
@@ -344,13 +344,13 @@ export default function GeoIQVsSemrush() {
         </p>
 
         {/* When to use each */}
-        <h2 style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#111827", marginBottom: 16 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", marginBottom: 16 }}>
           When to use each
         </h2>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 48 }}>
-          <div style={{ background: "#EEF2FF", border: "1px solid #C7D2FE", borderRadius: 10, padding: 24 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: "#4F46E5", marginBottom: 14, fontFamily: "'Syne', sans-serif" }}>Use GeoIQ if you...</div>
+          <div style={{ background: "#EDE9FE", border: "1px solid #C7D2FE", borderRadius: 10, padding: 24 }}>
+            <div style={{ fontWeight: 700, fontSize: 15, color: "#5B3FEA", marginBottom: 14, fontFamily: "'Syne', sans-serif" }}>Use GeoIQ if you...</div>
             {[
               "Are an Indian startup or targeting Indian users",
               "Want a free audit before committing to any paid plan",
@@ -358,12 +358,12 @@ export default function GeoIQVsSemrush() {
               "Are tracking multiple brands or client accounts",
               "Want a tool built entirely around AI visibility, not an SEO add-on",
             ].map(r => (
-              <div key={r} style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 10, fontSize: 14, color: "#1E1B4B", lineHeight: 1.5 }}>
+              <div key={r} style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 10, fontSize: 14, color: "#2D1F6E", lineHeight: 1.5 }}>
                 <Check /> {r}
               </div>
             ))}
           </div>
-          <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 10, padding: 24 }}>
+          <div style={{ background: "#E8E4DC", border: "1px solid #D4D0C8", borderRadius: 10, padding: 24 }}>
             <div style={{ fontWeight: 700, fontSize: 15, color: "#374151", marginBottom: 14, fontFamily: "'Syne', sans-serif" }}>Consider Semrush if you...</div>
             {[
               "Already pay for Semrush and want to add AI tracking in one place",
@@ -380,7 +380,7 @@ export default function GeoIQVsSemrush() {
 
         {/* Bottom line */}
         <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 12, padding: 28, marginBottom: 48 }}>
-          <div style={{ fontWeight: 700, fontSize: 16, color: "#111827", marginBottom: 10, fontFamily: "'Syne', sans-serif" }}>Bottom line</div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: "#0A0A0A", marginBottom: 10, fontFamily: "'Syne', sans-serif" }}>Bottom line</div>
           <p style={{ fontSize: 15, color: "#374151", lineHeight: 1.75, margin: 0 }}>
             If you are comparing tools specifically to track AI visibility, GeoIQ covers more AI systems, costs less, does not require a base subscription, and has a free tier you can use today without entering a credit card. Semrush AI Visibility makes sense if you already live inside Semrush and want to add AI tracking without switching tools - but you will pay more and track fewer AI systems.
           </p>
@@ -389,7 +389,7 @@ export default function GeoIQVsSemrush() {
         <CTA />
 
         {/* Related */}
-        <div style={{ borderTop: "1px solid #E5E7EB", paddingTop: 32 }}>
+        <div style={{ borderTop: "1px solid #D4D0C8", paddingTop: 32 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: "#6B7280", marginBottom: 16, letterSpacing: "0.05em" }}>RELATED READING</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {[
@@ -398,7 +398,7 @@ export default function GeoIQVsSemrush() {
               { href: "/blog/geo-vs-seo-2026", label: "GEO vs SEO in 2026: what changes and what stays the same" },
               { href: "/llms-txt-guide", label: "llms.txt guide: make your site readable by AI systems" },
             ].map(link => (
-              <Link key={link.href} href={link.href} style={{ color: "#4F46E5", fontSize: 15, textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }}>
+              <Link key={link.href} href={link.href} style={{ color: "#5B3FEA", fontSize: 15, textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }}>
                 {link.label} <span style={{ fontSize: 12 }}>-&gt;</span>
               </Link>
             ))}

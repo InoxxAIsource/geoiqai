@@ -184,7 +184,7 @@ export default function Faq() {
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#e8e5ff", border: "0.5px solid #c4b9ff", borderRadius: 20, padding: "4px 14px", marginBottom: 20 }}>
           <span style={{ fontSize: 12, color: PRIMARY, fontWeight: 600, letterSpacing: "0.04em" }}>FREQUENTLY ASKED QUESTIONS</span>
         </div>
-        <h1 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: "clamp(28px, 5vw, 44px)", color: "#111827", marginBottom: 14, lineHeight: 1.15 }}>
+        <h1 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: "clamp(28px, 5vw, 44px)", color: "#0A0A0A", marginBottom: 14, lineHeight: 1.15 }}>
           Questions about GeoIQ
         </h1>
         <p style={{ fontSize: 16, color: "#6b7280", lineHeight: 1.7, maxWidth: 560, margin: "0 auto 0" }}>
@@ -199,7 +199,7 @@ export default function Faq() {
             <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 13, color: "#9ca3af", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>
               {section.title}
             </h2>
-            <div style={{ borderRadius: 12, overflow: "hidden", border: "0.5px solid #e5e7eb" }}>
+            <div style={{ borderRadius: 12, overflow: "hidden", border: "0.5px solid #D4D0C8" }}>
               {section.items.map((item, idx) => {
                 const key = `${section.title}-${idx}`;
                 const isOpen = openIndex === key;
@@ -209,7 +209,7 @@ export default function Faq() {
                       onClick={() => toggle(key)}
                       style={{ width: "100%", textAlign: "left", padding: "18px 20px", background: "none", border: "none", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}
                     >
-                      <span style={{ fontSize: 15, fontWeight: 600, color: "#111827", lineHeight: 1.4, flex: 1 }}>{item.q}</span>
+                      <span style={{ fontSize: 15, fontWeight: 600, color: "#0A0A0A", lineHeight: 1.4, flex: 1 }}>{item.q}</span>
                       <svg
                         width="16"
                         height="16"

@@ -19,10 +19,10 @@ const P = ({ children, style }: { children: React.ReactNode; style?: React.CSSPr
   <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.85, marginBottom: 18, ...style }}>{children}</p>
 );
 const H2 = ({ children }: { children: React.ReactNode }) => (
-  <h2 style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#111827", marginBottom: 14, marginTop: 40, lineHeight: 1.3 }}>{children}</h2>
+  <h2 style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", marginBottom: 14, marginTop: 40, lineHeight: 1.3 }}>{children}</h2>
 );
 const H3 = ({ children }: { children: React.ReactNode }) => (
-  <h3 style={{ fontSize: 17, fontWeight: 700, color: "#1E1B4B", marginBottom: 10, marginTop: 24, fontFamily: "'Syne', sans-serif" }}>{children}</h3>
+  <h3 style={{ fontSize: 17, fontWeight: 700, color: "#2D1F6E", marginBottom: 10, marginTop: 24, fontFamily: "'Syne', sans-serif" }}>{children}</h3>
 );
 
 const ShareButtons = ({ url, title }: { url: string; title: string }) => (
@@ -39,11 +39,11 @@ const ShareButtons = ({ url, title }: { url: string; title: string }) => (
 );
 
 const CTA = () => (
-  <div style={{ background: "#4F46E5", borderRadius: 14, padding: "28px 28px", textAlign: "center", margin: "40px 0" }}>
+  <div style={{ background: "#5B3FEA", borderRadius: 14, padding: "28px 28px", textAlign: "center", margin: "40px 0" }}>
     <div style={{ color: "white", fontSize: 18, fontWeight: 700, fontFamily: "'Syne', sans-serif", marginBottom: 8 }}>Check your GEO score free</div>
     <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 14, marginBottom: 18, lineHeight: 1.6 }}>See where you stand across ChatGPT, Gemini, Perplexity, and more in 60 seconds. No signup required.</p>
     <Link href="/">
-      <button style={{ background: "white", color: "#4F46E5", fontWeight: 700, fontSize: 14, padding: "10px 24px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
+      <button style={{ background: "white", color: "#5B3FEA", fontWeight: 700, fontSize: 14, padding: "10px 24px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Syne', sans-serif" }}>
         Check my GEO score →
       </button>
     </Link>
@@ -93,7 +93,7 @@ export default function BlogGeoVsSeo() {
   }, []);
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "white" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#F2F0EB" }}>
       <Navbar />
       <main style={{ flex: 1 }}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
@@ -108,7 +108,7 @@ export default function BlogGeoVsSeo() {
             <span>GEO vs SEO in 2026</span>
           </div>
 
-          <h1 style={{ fontSize: 34, fontWeight: 800, fontFamily: "'Syne', sans-serif", color: "#111827", lineHeight: 1.2, marginBottom: 14 }}>
+          <h1 style={{ fontSize: 34, fontWeight: 800, fontFamily: "'Syne', sans-serif", color: "#0A0A0A", lineHeight: 1.2, marginBottom: 14 }}>
             GEO vs SEO in 2026: Where Should You Focus?
           </h1>
           <div style={{ display: "flex", gap: 14, fontSize: 12, color: "#9CA3AF", marginBottom: 10, flexWrap: "wrap" }}>
@@ -121,9 +121,9 @@ export default function BlogGeoVsSeo() {
 
           <ShareButtons url={PAGE_URL} title={PAGE_TITLE} />
 
-          <div style={{ background: "#EEF2FF", borderLeft: "4px solid #4F46E5", borderRadius: 8, padding: "16px 20px", marginBottom: 28 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#4F46E5", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>The short answer</div>
-            <p style={{ fontSize: 15, color: "#1E1B4B", lineHeight: 1.7, margin: 0 }}>
+          <div style={{ background: "#EDE9FE", borderLeft: "4px solid #5B3FEA", borderRadius: 8, padding: "16px 20px", marginBottom: 28 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#5B3FEA", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>The short answer</div>
+            <p style={{ fontSize: 15, color: "#2D1F6E", lineHeight: 1.7, margin: 0 }}>
               Do both, but start with GEO if you are a new or early-stage brand. AI search is a less saturated channel than Google, the competitive landscape is still forming, and the technical actions to improve GEO visibility take hours, not months. SEO remains important, especially for intent-heavy queries - but the marginal return on GEO investment is higher for most Indian startups right now.
             </p>
           </div>
@@ -134,7 +134,7 @@ export default function BlogGeoVsSeo() {
 
           <H2>The state of search in 2026: what the numbers say</H2>
 
-          <div style={{ background: "#f9fafb", border: "1px solid #f3f4f6", borderRadius: 8, padding: "16px 20px", marginBottom: 28 }}>
+          <div style={{ background: "#E8E4DC", border: "1px solid #D4D0C8", borderRadius: 8, padding: "16px 20px", marginBottom: 28 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>Key stats, May 2026</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {[
@@ -145,7 +145,7 @@ export default function BlogGeoVsSeo() {
                 "Gartner forecast: 25% reduction in traditional search volume by end of 2026 due to AI assistant adoption",
               ].map((stat, i) => (
                 <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                  <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#4F46E5", flexShrink: 0, marginTop: 8 }} />
+                  <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#5B3FEA", flexShrink: 0, marginTop: 8 }} />
                   <span style={{ fontSize: 14, color: "#374151", lineHeight: 1.6 }}>{stat}</span>
                 </div>
               ))}
@@ -192,18 +192,18 @@ export default function BlogGeoVsSeo() {
               { action: "Organization schema markup", seo: "Helps Google understand and display your brand in knowledge panels", geo: "Feeds directly into Gemini's entity recognition via Google's knowledge graph", impact: "High" },
               { action: "Fast, technically sound website", seo: "Core Web Vitals affect ranking", geo: "Slow sites get crawled less thoroughly by AI crawlers", impact: "Medium" },
             ].map((item, i) => (
-              <div key={i} style={{ padding: "14px 0", borderBottom: "1px solid #f3f4f6" }}>
+              <div key={i} style={{ padding: "14px 0", borderBottom: "1px solid #D4D0C8" }}>
                 <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
-                  <span style={{ fontWeight: 600, color: "#111827", fontSize: 15 }}>{item.action}</span>
+                  <span style={{ fontWeight: 600, color: "#0A0A0A", fontSize: 15 }}>{item.action}</span>
                   <span style={{ background: item.impact === "Very high" ? "#ECFDF5" : item.impact === "High" ? "#EEF2FF" : "#FFFBEB", color: item.impact === "Very high" ? "#059669" : item.impact === "High" ? "#4F46E5" : "#D97706", fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 9999 }}>{item.impact}</span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <div style={{ background: "#f9fafb", borderRadius: 6, padding: "8px 12px" }}>
+                  <div style={{ background: "#E8E4DC", borderRadius: 6, padding: "8px 12px" }}>
                     <div style={{ fontSize: 10, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>SEO benefit</div>
                     <p style={{ fontSize: 12, color: "#374151", margin: 0, lineHeight: 1.5 }}>{item.seo}</p>
                   </div>
-                  <div style={{ background: "#EEF2FF", borderRadius: 6, padding: "8px 12px" }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#4F46E5", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>GEO benefit</div>
+                  <div style={{ background: "#EDE9FE", borderRadius: 6, padding: "8px 12px" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#5B3FEA", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>GEO benefit</div>
                     <p style={{ fontSize: 12, color: "#374151", margin: 0, lineHeight: 1.5 }}>{item.geo}</p>
                   </div>
                 </div>
@@ -216,9 +216,9 @@ export default function BlogGeoVsSeo() {
           <div style={{ overflowX: "auto", marginBottom: 32 }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
-                <tr style={{ background: "#f9fafb" }}>
+                <tr style={{ background: "#E8E4DC" }}>
                   {["Dimension", "SEO", "GEO"].map((h, i) => (
-                    <th key={h} style={{ padding: "11px 14px", textAlign: "left", borderBottom: "1px solid #e5e7eb", fontWeight: 600, color: i === 2 ? "#4F46E5" : "#374151" }}>{h}</th>
+                    <th key={h} style={{ padding: "11px 14px", textAlign: "left", borderBottom: "1px solid #D4D0C8", fontWeight: 600, color: i === 2 ? "#4F46E5" : "#374151" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -233,10 +233,10 @@ export default function BlogGeoVsSeo() {
                   ["Platform control", "Google controls the algorithm", "Multiple AI platforms, less single-point risk"],
                   ["Geographic bias", "Relatively unbiased if content is indexed", "Heavily US-centric training data for ChatGPT"],
                 ].map(([dim, seo, geo], i) => (
-                  <tr key={i} style={{ borderBottom: "1px solid #f3f4f6", background: i % 2 === 0 ? "white" : "#fafafa" }}>
+                  <tr key={i} style={{ borderBottom: "1px solid #D4D0C8", background: i % 2 === 0 ? "#F2F0EB" : "#E8E4DC" }}>
                     <td style={{ padding: "11px 14px", fontWeight: 500, color: "#374151" }}>{dim}</td>
                     <td style={{ padding: "11px 14px", color: "#6b7280" }}>{seo}</td>
-                    <td style={{ padding: "11px 14px", color: "#4F46E5", fontWeight: 500 }}>{geo}</td>
+                    <td style={{ padding: "11px 14px", color: "#5B3FEA", fontWeight: 500 }}>{geo}</td>
                   </tr>
                 ))}
               </tbody>
@@ -259,8 +259,8 @@ export default function BlogGeoVsSeo() {
           <H2>Frequently asked questions</H2>
           <div style={{ marginBottom: 40 }}>
             {faqItems.map((item, i) => (
-              <div key={i} style={{ borderBottom: "1px solid #f3f4f6", padding: "14px 0" }}>
-                <div style={{ fontWeight: 600, color: "#111827", fontSize: 15, marginBottom: 7 }}>{item.q}</div>
+              <div key={i} style={{ borderBottom: "1px solid #D4D0C8", padding: "14px 0" }}>
+                <div style={{ fontWeight: 600, color: "#0A0A0A", fontSize: 15, marginBottom: 7 }}>{item.q}</div>
                 <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, margin: 0 }}>{item.a}</p>
               </div>
             ))}
@@ -268,13 +268,13 @@ export default function BlogGeoVsSeo() {
 
           <ShareButtons url={PAGE_URL} title={PAGE_TITLE} />
 
-          <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 24, marginTop: 8 }}>
+          <div style={{ borderTop: "1px solid #D4D0C8", paddingTop: 24, marginTop: 8 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: "#6b7280", marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.05em" }}>Related articles</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <Link href="/what-is-geo" style={{ fontSize: 15, color: "#4F46E5", textDecoration: "none" }}>What is GEO? Full explanation →</Link>
-              <Link href="/ai-visibility-score" style={{ fontSize: 15, color: "#4F46E5", textDecoration: "none" }}>What is an AI visibility score? →</Link>
-              <Link href="/blog/what-is-geo-score" style={{ fontSize: 15, color: "#4F46E5", textDecoration: "none" }}>What is a good GEO score? →</Link>
-              <Link href="/blog/indian-startups-chatgpt-scores" style={{ fontSize: 15, color: "#4F46E5", textDecoration: "none" }}>I checked 10 Indian startups on ChatGPT →</Link>
+              <Link href="/what-is-geo" style={{ fontSize: 15, color: "#5B3FEA", textDecoration: "none" }}>What is GEO? Full explanation →</Link>
+              <Link href="/ai-visibility-score" style={{ fontSize: 15, color: "#5B3FEA", textDecoration: "none" }}>What is an AI visibility score? →</Link>
+              <Link href="/blog/what-is-geo-score" style={{ fontSize: 15, color: "#5B3FEA", textDecoration: "none" }}>What is a good GEO score? →</Link>
+              <Link href="/blog/indian-startups-chatgpt-scores" style={{ fontSize: 15, color: "#5B3FEA", textDecoration: "none" }}>I checked 10 Indian startups on ChatGPT →</Link>
             </div>
           </div>
 

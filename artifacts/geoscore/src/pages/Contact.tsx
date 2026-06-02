@@ -51,10 +51,10 @@ export default function Contact() {
   const inputStyle: React.CSSProperties = {
     width: "100%",
     padding: "10px 14px",
-    border: "1px solid #e5e7eb",
+    border: "1px solid #D4D0C8",
     borderRadius: 8,
     fontSize: 14,
-    color: "#111827",
+    color: "#0A0A0A",
     outline: "none",
     background: "white",
     boxSizing: "border-box",
@@ -62,12 +62,12 @@ export default function Contact() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#fafafa", display: "flex", flexDirection: "column" }}>
+    <div style={{ minHeight: "100vh", background: "#F2F0EB", display: "flex", flexDirection: "column" }}>
       <Navbar />
 
       <main style={{ flex: 1, maxWidth: 640, margin: "0 auto", padding: "64px 24px", width: "100%" }}>
         <div style={{ marginBottom: 40 }}>
-          <h1 style={{ fontSize: 32, fontWeight: 700, color: "#111827", margin: "0 0 10px", fontFamily: "'Syne', sans-serif" }}>
+          <h1 style={{ fontSize: 32, fontWeight: 700, color: "#0A0A0A", margin: "0 0 10px", fontFamily: "'Syne', sans-serif" }}>
             Get in touch
           </h1>
           <p style={{ fontSize: 15, color: "#6b7280", margin: 0, lineHeight: 1.6 }}>
@@ -94,7 +94,7 @@ export default function Contact() {
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 12, padding: 32 }}>
+          <form onSubmit={handleSubmit} style={{ background: "#F2F0EB", border: "1px solid #D4D0C8", borderRadius: 12, padding: 32 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
               <div>
                 <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#374151", marginBottom: 6 }}>

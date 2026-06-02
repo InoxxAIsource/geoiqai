@@ -128,7 +128,7 @@ function TaskContentBlock({ content, brandName }: { content: TaskContent; brandN
           </ol>
         )}
         {!!content.testUrl && (
-          <a href={content.testUrl as string} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "#4F46E5", marginTop: 8, textDecoration: "none" }}>
+          <a href={content.testUrl as string} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "#5B3FEA", marginTop: 8, textDecoration: "none" }}>
             Test at: {content.testUrl as string} <ExternalLink style={{ width: 11, height: 11 }} />
           </a>
         )}
@@ -140,7 +140,7 @@ function TaskContentBlock({ content, brandName }: { content: TaskContent; brandN
     return (
       <div style={{ marginTop: 10 }}>
         {!!content.label && <p style={{ fontSize: 13, color: "#374151", marginBottom: 6 }}>{content.label as string}</p>}
-        <div style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "12px 14px", fontSize: 13, color: "#111827", lineHeight: 1.65, position: "relative" }}>
+        <div style={{ background: "#E8E4DC", border: "0.5px solid #D4D0C8", borderRadius: 8, padding: "12px 14px", fontSize: 13, color: "#0A0A0A", lineHeight: 1.65, position: "relative" }}>
           {content.text as string}
           <div style={{ marginTop: 8 }}>
             <CopyBtn text={content.text as string} />
@@ -172,7 +172,7 @@ function TaskContentBlock({ content, brandName }: { content: TaskContent; brandN
         ].map((row) => (
           <div key={row.label}>
             <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 3 }}>{row.label}</div>
-            <div style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "8px 12px", fontSize: 13, color: "#111827", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+            <div style={{ background: "#E8E4DC", border: "0.5px solid #D4D0C8", borderRadius: 6, padding: "8px 12px", fontSize: 13, color: "#0A0A0A", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
               <span>{row.value}</span>
               <CopyBtn text={row.value} />
             </div>
@@ -180,7 +180,7 @@ function TaskContentBlock({ content, brandName }: { content: TaskContent; brandN
         ))}
         <div>
           <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 3 }}>Description (200 words)</div>
-          <div style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "12px 14px", fontSize: 13, color: "#111827", lineHeight: 1.65 }}>
+          <div style={{ background: "#E8E4DC", border: "0.5px solid #D4D0C8", borderRadius: 6, padding: "12px 14px", fontSize: 13, color: "#0A0A0A", lineHeight: 1.65 }}>
             {listing.description}
             <div style={{ marginTop: 8 }}><CopyBtn text={listing.description} label="Copy description" /></div>
           </div>
@@ -196,9 +196,9 @@ function TaskContentBlock({ content, brandName }: { content: TaskContent; brandN
         {!!content.intro && <p style={{ fontSize: 13, color: "#374151", marginBottom: 10, lineHeight: 1.5 }}>{content.intro as string}</p>}
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {items.map((item) => (
-            <div key={item.url} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "8px 12px" }}>
+            <div key={item.url} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#E8E4DC", border: "0.5px solid #D4D0C8", borderRadius: 6, padding: "8px 12px" }}>
               <span style={{ fontSize: 13, color: "#374151" }}>{item.label}</span>
-              <a href={item.url} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "#4F46E5", textDecoration: "none", fontWeight: 500, flexShrink: 0 }}>
+              <a href={item.url} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "#5B3FEA", textDecoration: "none", fontWeight: 500, flexShrink: 0 }}>
                 Open <ExternalLink style={{ width: 11, height: 11 }} />
               </a>
             </div>
@@ -290,18 +290,18 @@ function TaskContentBlock({ content, brandName }: { content: TaskContent; brandN
             <span>Reply template - adapt naturally</span>
             <CopyBtn text={c.replyTemplate} />
           </div>
-          <div style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "10px 14px", fontSize: 13, color: "#111827", lineHeight: 1.65 }}>
+          <div style={{ background: "#E8E4DC", border: "0.5px solid #D4D0C8", borderRadius: 6, padding: "10px 14px", fontSize: 13, color: "#0A0A0A", lineHeight: 1.65 }}>
             {c.replyTemplate}
           </div>
         </div>
         <div>
           <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 4 }}>Post this thread yourself</div>
-          <div style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "10px 14px" }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "#111827", marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
+          <div style={{ background: "#E8E4DC", border: "0.5px solid #D4D0C8", borderRadius: 6, padding: "10px 14px" }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#0A0A0A", marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
               <span>{c.threadTitle}</span>
               <CopyBtn text={c.threadTitle} label="Copy title" />
             </div>
-            <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.65, borderTop: "0.5px solid #e5e7eb", paddingTop: 8 }}>
+            <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.65, borderTop: "0.5px solid #D4D0C8", paddingTop: 8 }}>
               {c.threadBody}
               <div style={{ marginTop: 8 }}><CopyBtn text={c.threadBody} label="Copy body" /></div>
             </div>
@@ -316,10 +316,10 @@ function TaskContentBlock({ content, brandName }: { content: TaskContent; brandN
     return (
       <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 16 }}>
         {items.map((n) => (
-          <div key={n.name} style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "14px" }}>
+          <div key={n.name} style={{ background: "#E8E4DC", border: "0.5px solid #D4D0C8", borderRadius: 8, padding: "14px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <div>
-                <a href={n.url} target="_blank" rel="noreferrer" style={{ fontWeight: 600, fontSize: 14, color: "#4F46E5", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <a href={n.url} target="_blank" rel="noreferrer" style={{ fontWeight: 600, fontSize: 14, color: "#5B3FEA", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
                   {n.name} <ExternalLink style={{ width: 11, height: 11 }} />
                 </a>
                 <span style={{ fontSize: 12, color: "#9ca3af", marginLeft: 8 }}>{n.subscribers} subscribers</span>
@@ -330,7 +330,7 @@ function TaskContentBlock({ content, brandName }: { content: TaskContent; brandN
                 <span>Subject line</span>
                 <CopyBtn text={n.subject} label="Copy subject" />
               </div>
-              <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 5, padding: "7px 10px", fontSize: 12, color: "#374151", fontStyle: "italic" }}>
+              <div style={{ background: "white", border: "0.5px solid #D4D0C8", borderRadius: 5, padding: "7px 10px", fontSize: 12, color: "#374151", fontStyle: "italic" }}>
                 {n.subject}
               </div>
             </div>
@@ -339,7 +339,7 @@ function TaskContentBlock({ content, brandName }: { content: TaskContent; brandN
                 <span>Pitch (3 sentences)</span>
                 <CopyBtn text={n.pitch} label="Copy pitch" />
               </div>
-              <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 5, padding: "10px 12px", fontSize: 13, color: "#374151", lineHeight: 1.65 }}>
+              <div style={{ background: "white", border: "0.5px solid #D4D0C8", borderRadius: 5, padding: "10px 12px", fontSize: 13, color: "#374151", lineHeight: 1.65 }}>
                 {n.pitch}
               </div>
             </div>
@@ -369,7 +369,7 @@ function TaskCard({
 
   return (
     <div style={{
-      background: "white", border: "0.5px solid #e5e7eb",
+      background: "white", border: "0.5px solid #D4D0C8",
       borderLeft: `3px solid ${completed ? "#10b981" : task.priority === "CRITICAL" ? "#ef4444" : task.priority === "HIGH" ? "#f59e0b" : "#4F46E5"}`,
       borderRadius: 10, marginBottom: 8, overflow: "hidden",
       opacity: completed ? 0.8 : 1,
@@ -397,7 +397,7 @@ function TaskCard({
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
             {task.url && (
               <a href={task.url} target="_blank" rel="noreferrer"
-                style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "#4F46E5", textDecoration: "none", fontWeight: 500, background: "#ede9fe", borderRadius: 5, padding: "4px 8px" }}>
+                style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "#5B3FEA", textDecoration: "none", fontWeight: 500, background: "#ede9fe", borderRadius: 5, padding: "4px 8px" }}>
                 Open <ExternalLink style={{ width: 11, height: 11 }} />
               </a>
             )}
@@ -426,7 +426,7 @@ function WeekProgress({ week, completed }: { week: RoadmapWeek; completed: numbe
   const pct = total === 0 ? 0 : Math.round((completed / total) * 100);
   const estGain = week.tasks.reduce((sum, t) => sum + Math.round((t.impactMin + t.impactMax) / 2), 0);
   return (
-    <div style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 8, padding: "10px 14px", marginBottom: 16 }}>
+    <div style={{ background: "#E8E4DC", border: "0.5px solid #D4D0C8", borderRadius: 8, padding: "10px 14px", marginBottom: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
         <span style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>
           {week.label} Progress: {completed}/{total} tasks done
@@ -535,7 +535,7 @@ function RoadmapPublicPage() {
                           <span style={{ background: p.bg, color: p.color, borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>{task.priority}</span>
                           <span style={{ fontSize: 11, color: MUTED }}>{task.time}</span>
                         </div>
-                        <div style={{ fontSize: 14, fontWeight: 500, color: "#111827" }}>{task.title}</div>
+                        <div style={{ fontSize: 14, fontWeight: 500, color: "#0A0A0A" }}>{task.title}</div>
                       </div>
                     </div>
                     <div style={{ fontSize: 12, color: "#10b981", fontWeight: 600, flexShrink: 0 }}>{task.impact}</div>
@@ -649,7 +649,7 @@ export default function Roadmap() {
 
   if (loading || meLoading) {
     return (
-      <div style={{ minHeight: "100vh", background: "#f9fafb" }}>
+      <div style={{ minHeight: "100vh", background: "#E8E4DC" }}>
         <Navbar />
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 80 }}>
           <div style={{ width: 40, height: 40, border: "3px solid #4F46E5", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite", marginBottom: 16 }} />
@@ -663,13 +663,13 @@ export default function Roadmap() {
 
   if (error) {
     return (
-      <div style={{ minHeight: "100vh", background: "#f9fafb" }}>
+      <div style={{ minHeight: "100vh", background: "#E8E4DC" }}>
         <Navbar />
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 80, textAlign: "center" }}>
           <Lock style={{ width: 40, height: 40, color: "#d1d5db", marginBottom: 16 }} />
-          <h2 style={{ fontSize: 20, fontWeight: 600, color: "#111827", marginBottom: 8 }}>{error}</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 600, color: "#0A0A0A", marginBottom: 8 }}>{error}</h2>
           {!isPaid && (
-            <a href="/pricing" style={{ background: "#4F46E5", color: "white", padding: "12px 28px", borderRadius: 8, fontSize: 15, fontWeight: 600, textDecoration: "none", marginTop: 16, display: "inline-block" }}>
+            <a href="/pricing" style={{ background: "#5B3FEA", color: "white", padding: "12px 28px", borderRadius: 8, fontSize: 15, fontWeight: 600, textDecoration: "none", marginTop: 16, display: "inline-block" }}>
               Upgrade to unlock roadmap
             </a>
           )}
@@ -687,7 +687,7 @@ export default function Roadmap() {
   const WEEK_LABELS = ["Week 1-2", "Week 2-3", "Week 3-4", "Week 4-5"];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f9fafb" }}>
+    <div style={{ minHeight: "100vh", background: "#E8E4DC" }}>
       <Navbar />
       <main style={{ maxWidth: 760, margin: "0 auto", padding: "32px 16px 60px" }}>
 
@@ -698,13 +698,13 @@ export default function Roadmap() {
 
         {/* Header */}
         <div style={{ marginBottom: 24 }}>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: "#111827", marginBottom: 4 }}>GEO IQ Execution Roadmap</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: "#0A0A0A", marginBottom: 4 }}>GEO IQ Execution Roadmap</h1>
           <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 16 }}>
             Your step-by-step plan to improve visibility in ChatGPT, Gemini, and Perplexity.
           </p>
 
           {/* Overall progress */}
-          <div style={{ background: "white", border: "0.5px solid #e5e7eb", borderRadius: 10, padding: "14px 16px" }}>
+          <div style={{ background: "white", border: "0.5px solid #D4D0C8", borderRadius: 10, padding: "14px 16px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Total progress: {totalCompleted}/{totalTasks} tasks</span>
               <span style={{ fontSize: 12, color: "#9ca3af" }}>Generated {new Date(roadmap.generatedAt).toLocaleDateString()}</span>
@@ -716,7 +716,7 @@ export default function Roadmap() {
         </div>
 
         {/* Week tabs */}
-        <div style={{ display: "flex", gap: 0, marginBottom: 24, borderBottom: "0.5px solid #e5e7eb" }}>
+        <div style={{ display: "flex", gap: 0, marginBottom: 24, borderBottom: "0.5px solid #D4D0C8" }}>
           {roadmap.weeks.map((week, i) => {
             const wCompleted = week.tasks.filter((t) => completedIds.has(t.id)).length;
             const isDone = wCompleted === week.tasks.length && week.tasks.length > 0;
@@ -726,7 +726,7 @@ export default function Roadmap() {
                 key={week.id}
                 onClick={() => setActiveWeek(week.id)}
                 style={{
-                  flex: 1, padding: "10px 8px", border: "none", borderBottom: isActive ? "2px solid #4F46E5" : "2px solid transparent",
+                  flex: 1, padding: "10px 8px", border: "none", borderBottom: isActive ? "2px solid #5B3FEA" : "2px solid transparent",
                   background: "none", cursor: "pointer",
                   color: isActive ? "#4F46E5" : "#6b7280",
                   fontWeight: isActive ? 600 : 400, fontSize: 13,
@@ -751,7 +751,7 @@ export default function Roadmap() {
             <div style={{ marginBottom: 20 }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
                 <div>
-                  <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", marginBottom: 2 }}>
+                  <h2 style={{ fontSize: 18, fontWeight: 700, color: "#0A0A0A", marginBottom: 2 }}>
                     Target: {activeWeekData.targetScore}+ GEO IQ
                   </h2>
                   <p style={{ fontSize: 13, color: "#6b7280" }}>{activeWeekData.subtitle}</p>
