@@ -8,7 +8,7 @@ const NAV_LINKS = [
 ];
 
 export function Navbar() {
-  const { isAuthenticated } = useAuthGuard();
+  const { isAuthenticated, isPaid } = useAuthGuard();
   const [location, setLocation] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -36,6 +36,9 @@ export function Navbar() {
     }
     setMobileOpen(false);
   };
+
+  const dashboardHref = isAuthenticated && isPaid ? "/dashboard" : "/pricing";
+  const dashboardLabel = isAuthenticated && isPaid ? "Dashboard" : isAuthenticated ? "Upgrade" : null;
 
   return (
     <nav
@@ -112,7 +115,7 @@ export function Navbar() {
         <div className="hidden md:flex" style={{ alignItems: "center" }}>
           {isAuthenticated ? (
             <Link
-              href="/dashboard"
+              href={dashboardHref}
               style={{
                 fontSize: 14,
                 fontWeight: 500,
@@ -123,7 +126,7 @@ export function Navbar() {
                 textDecoration: "none",
               }}
             >
-              Dashboard
+              {dashboardLabel}
             </Link>
           ) : (
             <>
@@ -238,7 +241,7 @@ export function Navbar() {
           <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
             {isAuthenticated ? (
               <Link
-                href="/dashboard"
+                href={dashboardHref}
                 onClick={() => setMobileOpen(false)}
                 style={{
                   textAlign: "center",
@@ -251,7 +254,7 @@ export function Navbar() {
                   fontWeight: 500,
                 }}
               >
-                Dashboard
+                {dashboardLabel}
               </Link>
             ) : (
               <>

@@ -1,5 +1,6 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
+import { getToken, getPlan } from "@/lib/auth";
 
 function setMeta(name: string, content: string, isProperty = false) {
   const attr = isProperty ? "property" : "name";
@@ -180,6 +181,10 @@ export default function Home() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const isLoggedInFree = useMemo(() => {
+    return !!getToken() && getPlan() === "free";
+  }, []);
+
   useEffect(() => {
     document.title = "GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand";
     setMeta("description", "Check if ChatGPT, Gemini, Perplexity, Claude and Grok recommend your brand. Free audit in 60 seconds. No signup. The Search Console for AI search.");
@@ -278,6 +283,50 @@ export default function Home() {
           <p style={{ fontSize: 18, color: MUTED, maxWidth: 540, lineHeight: 1.6, marginBottom: 40 }}>
             Paste your URL. GeoIQ checks ChatGPT, Gemini, Perplexity, Claude and Grok - and returns your AI visibility score with exact fixes. Free in 60 seconds.
           </p>
+
+          {isLoggedInFree && (
+            <div style={{
+              background: "#fafaff",
+              border: "1px solid #c7d2fe",
+              borderRadius: 12,
+              padding: "12px 16px",
+              marginBottom: 16,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              maxWidth: 580,
+            }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#3730a3", letterSpacing: "-0.01em" }}>
+                  You're on the free plan
+                </div>
+                <div style={{ fontSize: 12, color: "#6366f1", marginTop: 2 }}>
+                  Run a free audit below, or upgrade to track your brand 24/7
+                </div>
+              </div>
+              <a
+                href="/pricing"
+                style={{
+                  background: "#6366f1",
+                  color: "#fff",
+                  border: "none",
+                  padding: "8px 14px",
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  letterSpacing: "-0.01em",
+                  whiteSpace: "nowrap" as const,
+                  flexShrink: 0,
+                  textDecoration: "none",
+                }}
+              >
+                Upgrade
+              </a>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} style={{ marginBottom: 24 }}>
             <div className="input-wrap-mobile" style={{
