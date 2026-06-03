@@ -438,6 +438,8 @@ export default function Dashboard() {
   const { data: summary, isLoading: loadingSummary } = useGetDashboardSummary({ query: { enabled: isAuthenticated } as never });
   const { data: brands, isLoading: loadingBrands } = useGetMonitoredBrands({ query: { enabled: isAuthenticated } as never });
 
+  const isFree = user?.plan === "free";
+
   if (brands && brands.length > 0 && !selectedBrandId) {
     setSelectedBrandId(brands[0]!.id);
   }
@@ -554,6 +556,13 @@ export default function Dashboard() {
   }, [activeTab, selectedBrand?.id, selectedBrand?.domain, selectedBrand?.category, llmTopDomainsBrandId, scraperKeywordsBrandId]);
 
   const handleScanBrand = useCallback(async (brandId: string) => {
+    if (isFree) {
+      toast({
+        title: "Upgrade to run dashboard audits",
+        description: "Run a free audit at geoiqai.com/audit, or upgrade to a paid plan to track your brand here.",
+      });
+      return;
+    }
     setIsScanningBrandId(brandId);
     setScanStep(0);
     setLastScanResult(null);
@@ -719,6 +728,13 @@ export default function Dashboard() {
   };
 
   const handleRunOnPageAudit = async () => {
+    if (isFree) {
+      toast({
+        title: "Upgrade to run dashboard audits",
+        description: "Run a free audit at geoiqai.com/audit, or upgrade to a paid plan to track your brand here.",
+      });
+      return;
+    }
     if (!selectedBrand?.domain) return;
     setOnPageLoading(true);
     setOnPageResult(null);
@@ -1390,10 +1406,30 @@ export default function Dashboard() {
               <Loader2 size={26} color="#5B3FEA" style={{ animation: "spin 1s linear infinite" }} />
             </div>
           ) : brands?.length === 0 ? (
+            isFree ? (
+              <div style={{ textAlign: "center", border: "1.5px dashed #e5e7eb", borderRadius: 12, padding: 48, background: "white" }}>
+                <div style={{ width: 48, height: 48, background: "#EEF2FF", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5B3FEA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                </div>
+                <p style={{ color: "#111827", fontWeight: 600, fontSize: 15, marginBottom: 8 }}>Brand monitoring requires a paid plan</p>
+                <p style={{ color: "#6b7280", fontSize: 13, marginBottom: 24, lineHeight: 1.6, maxWidth: 340, margin: "0 auto 24px" }}>
+                  You're on the free plan. To track your brand in the dashboard, upgrade to Starter or Agency. Want to check your score now? Run a free audit from the home page.
+                </p>
+                <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+                  <a href="/audit" style={{ background: "#5B3FEA", color: "white", borderRadius: 8, padding: "10px 22px", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+                    Run free audit
+                  </a>
+                  <a href="/pricing" style={{ background: "white", color: "#374151", border: "0.5px solid #d1d5db", borderRadius: 8, padding: "10px 22px", fontSize: 13, fontWeight: 500, textDecoration: "none" }}>
+                    See pricing
+                  </a>
+                </div>
+              </div>
+            ) : (
             <div style={{ textAlign: "center", paddingTop: 60, border: "1.5px dashed #e5e7eb", borderRadius: 12, padding: 48 }}>
               <p style={{ color: "#6b7280", marginBottom: 20, fontSize: 14 }}>No brands monitored yet.</p>
               <AddBrandModal onBrandAdded={handleBrandAdded} />
             </div>
+            )
           ) : (
             <>
               {/* Brand switcher */}
