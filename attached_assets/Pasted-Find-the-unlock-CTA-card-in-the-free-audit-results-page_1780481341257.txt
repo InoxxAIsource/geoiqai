@@ -1,0 +1,200 @@
+Find the unlock/CTA card in the free audit results page and replace it completely with this design:
+tsx<div style={{
+  background: "linear-gradient(145deg, #0f172a 0%, #1a1040 100%)",
+  borderRadius: 20,
+  padding: "28px 20px",
+  marginBottom: 12,
+  position: "relative",
+  overflow: "hidden",
+  border: "1px solid rgba(99,102,241,0.3)",
+}}>
+
+  {/* Glow effects */}
+  <div style={{
+    position: "absolute", top: -60, right: -60,
+    width: 200, height: 200,
+    background: "radial-gradient(circle, rgba(99,102,241,0.2), transparent 70%)",
+    pointerEvents: "none",
+  }} />
+  <div style={{
+    position: "absolute", bottom: -40, left: -40,
+    width: 160, height: 160,
+    background: "radial-gradient(circle, rgba(139,92,246,0.1), transparent 70%)",
+    pointerEvents: "none",
+  }} />
+
+  {/* Header */}
+  <div style={{ textAlign: "center", marginBottom: 24, position: "relative" }}>
+    <div style={{
+      display: "inline-flex", alignItems: "center", gap: 6,
+      background: "rgba(99,102,241,0.15)",
+      border: "1px solid rgba(99,102,241,0.3)",
+      borderRadius: 100, padding: "4px 12px",
+      fontSize: 11, fontWeight: 700, color: "#818cf8",
+      letterSpacing: "0.06em", textTransform: "uppercase",
+      marginBottom: 12,
+    }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#818cf8", display: "inline-block", animation: "pulse 1.5s infinite" }} />
+      Unlock Full Access
+    </div>
+    <div style={{
+      fontSize: 24, fontWeight: 900,
+      letterSpacing: "-0.04em", lineHeight: 1.2,
+      color: "#f1f5f9", marginBottom: 8,
+    }}>
+      Go from <em style={{ fontStyle: "italic", color: "#818cf8" }}>invisible</em><br/>to recommended.
+    </div>
+    <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.6 }}>
+      Everything you need to rank in ChatGPT,<br/>Gemini and Perplexity — in one dashboard.
+    </div>
+  </div>
+
+  {/* What you unlock — 3 sections */}
+  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+
+    {/* Visibility */}
+    <div style={{
+      background: "rgba(255,255,255,0.05)",
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 12, padding: "12px 14px",
+      display: "flex", alignItems: "center", gap: 12,
+    }}>
+      <div style={{
+        width: 36, height: 36, borderRadius: 10,
+        background: "rgba(16,163,127,0.15)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 18, flexShrink: 0,
+      }}>👁</div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#f1f5f9", letterSpacing: "-0.01em", marginBottom: 2 }}>
+          Full AI Visibility Report
+        </div>
+        <div style={{ fontSize: 11, color: "#475569" }}>
+          See exactly what ChatGPT, Gemini, Perplexity, Claude + Grok say about you
+        </div>
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "#10a37f", background: "rgba(16,163,127,0.15)", padding: "2px 8px", borderRadius: 100, flexShrink: 0 }}>
+        5 engines
+      </div>
+    </div>
+
+    {/* Technical */}
+    <div style={{
+      background: "rgba(255,255,255,0.05)",
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 12, padding: "12px 14px",
+      display: "flex", alignItems: "center", gap: 12,
+    }}>
+      <div style={{
+        width: 36, height: 36, borderRadius: 10,
+        background: "rgba(99,102,241,0.15)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 18, flexShrink: 0,
+      }}>⚙️</div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#f1f5f9", letterSpacing: "-0.01em", marginBottom: 2 }}>
+          Technical GEO Fix Plan
+        </div>
+        <div style={{ fontSize: 11, color: "#475569" }}>
+          Exact fixes for schema, llms.txt, citations and entity signals
+        </div>
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "#6366f1", background: "rgba(99,102,241,0.15)", padding: "2px 8px", borderRadius: 100, flexShrink: 0 }}>
+        47 signals
+      </div>
+    </div>
+
+    {/* Roadmap */}
+    <div style={{
+      background: "rgba(255,255,255,0.05)",
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 12, padding: "12px 14px",
+      display: "flex", alignItems: "center", gap: 12,
+    }}>
+      <div style={{
+        width: 36, height: 36, borderRadius: 10,
+        background: "rgba(245,158,11,0.15)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 18, flexShrink: 0,
+      }}>🗺️</div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#f1f5f9", letterSpacing: "-0.01em", marginBottom: 2 }}>
+          4-Week Visibility Roadmap
+        </div>
+        <div style={{ fontSize: 11, color: "#475569" }}>
+          Week-by-week CITE tasks to go from invisible to 80+ GEO IQ
+        </div>
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "#f59e0b", background: "rgba(245,158,11,0.15)", padding: "2px 8px", borderRadius: 100, flexShrink: 0 }}>
+        4 weeks
+      </div>
+    </div>
+
+  </div>
+
+  {/* Pricing + CTA */}
+  <div style={{
+    background: "rgba(255,255,255,0.04)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: 14, padding: "16px",
+    marginBottom: 14,
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+  }}>
+    <div>
+      <div style={{ fontSize: 11, color: "#475569", fontWeight: 500, marginBottom: 4 }}>Starter plan</div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+        <span style={{ fontSize: 32, fontWeight: 900, color: "#f1f5f9", letterSpacing: "-0.04em", lineHeight: 1 }}>$69</span>
+        <span style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>/month</span>
+      </div>
+      <div style={{ fontSize: 11, color: "#334155", marginTop: 2 }}>₹6,679/mo via Razorpay</div>
+    </div>
+    <div style={{ textAlign: "right" }}>
+      {["Unlimited audits", "All 5 AI engines", "Weekly monitoring", "Fix roadmap"].map((f) => (
+        <div key={f} style={{ fontSize: 11, color: "#475569", marginBottom: 3, display: "flex", alignItems: "center", gap: 5, justifyContent: "flex-end" }}>
+          <span style={{ color: "#22c55e", fontSize: 10 }}>✓</span> {f}
+        </div>
+      ))}
+    </div>
+  </div>
+
+  {/* Main CTA button */}
+  <button
+    onClick={() => window.location.href = '/pricing'}
+    style={{
+      width: "100%",
+      background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+      color: "#fff",
+      border: "none",
+      padding: "16px 24px",
+      borderRadius: 12,
+      fontFamily: "Inter, sans-serif",
+      fontSize: 16,
+      fontWeight: 800,
+      letterSpacing: "-0.02em",
+      cursor: "pointer",
+      transition: "all 0.2s",
+      marginBottom: 10,
+      boxShadow: "0 4px 24px rgba(99,102,241,0.4)",
+      position: "relative",
+    }}
+    onMouseEnter={(e) => {
+      (e.target as HTMLButtonElement).style.transform = "translateY(-2px)";
+      (e.target as HTMLButtonElement).style.boxShadow = "0 8px 32px rgba(99,102,241,0.5)";
+    }}
+    onMouseLeave={(e) => {
+      (e.target as HTMLButtonElement).style.transform = "translateY(0)";
+      (e.target as HTMLButtonElement).style.boxShadow = "0 4px 24px rgba(99,102,241,0.4)";
+    }}
+  >
+    Start 7-day free trial — $69/mo
+  </button>
+
+  {/* Trust signals */}
+  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, flexWrap: "wrap" }}>
+    {["✓ Cancel anytime", "✓ 7-day free trial", "✓ Razorpay secure"].map((t) => (
+      <div key={t} style={{ fontSize: 11, color: "#334155", fontWeight: 500 }}>{t}</div>
+    ))}
+  </div>
+
+</div>
+Make sure the button links to your existing Razorpay checkout flow. Replace any existing CTA card with this entire block. Do not change anything else on the results page.

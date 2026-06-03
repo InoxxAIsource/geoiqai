@@ -339,27 +339,81 @@ export function AuditResults({ domain, score, enginesFound, blindSpots, techScor
             </div>
 
             {/* CTA card */}
-            <div style={{ background: "#0f172a", borderRadius: 16, padding: 24, textAlign: "center" as const, position: "relative", overflow: "hidden", marginBottom: 16 }}>
-              <div style={{ position: "absolute", bottom: -30, right: -30, width: 160, height: 160, background: "radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%)", pointerEvents: "none" }} />
-              <div style={{ fontWeight: 900, fontSize: 22, letterSpacing: "-0.04em", color: "#f1f5f9", marginBottom: 10, lineHeight: 1.3 }}>
-                Go from <em style={{ fontStyle: "italic", color: "#818cf8" }}>invisible</em> to recommended.
+            <div style={{
+              background: "linear-gradient(145deg, #0f172a 0%, #1a1040 100%)",
+              borderRadius: 20, padding: "28px 20px", marginBottom: 12,
+              position: "relative", overflow: "hidden",
+              border: "1px solid rgba(99,102,241,0.3)",
+            }}>
+              <div style={{ position: "absolute", top: -60, right: -60, width: 200, height: 200, background: "radial-gradient(circle, rgba(99,102,241,0.2), transparent 70%)", pointerEvents: "none" }} />
+              <div style={{ position: "absolute", bottom: -40, left: -40, width: 160, height: 160, background: "radial-gradient(circle, rgba(139,92,246,0.1), transparent 70%)", pointerEvents: "none" }} />
+
+              {/* Header */}
+              <div style={{ textAlign: "center" as const, marginBottom: 24, position: "relative" }}>
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.3)", borderRadius: 100, padding: "4px 12px", fontSize: 11, fontWeight: 700, color: "#818cf8", letterSpacing: "0.06em", textTransform: "uppercase" as const, marginBottom: 12 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#818cf8", display: "inline-block", animation: "ar-pulse 1.5s infinite" }} />
+                  Unlock Full Access
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1.2, color: "#f1f5f9", marginBottom: 8 }}>
+                  Go from <em style={{ fontStyle: "italic", color: "#818cf8" }}>invisible</em><br/>to recommended.
+                </div>
+                <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.6 }}>
+                  Everything you need to rank in ChatGPT,<br/>Gemini and Perplexity — in one dashboard.
+                </div>
               </div>
-              <div style={{ fontSize: 13, color: "#475569", marginBottom: 20, lineHeight: 1.6 }}>
-                Get exact tasks, AI-ready content, and a 4-week fix plan. Most brands reach 50+ GEO IQ in 30 days.
+
+              {/* What you unlock */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+                {[
+                  { icon: "👁", title: "Full AI Visibility Report", sub: "See exactly what ChatGPT, Gemini, Perplexity, Claude + Grok say about you", badge: "5 engines", badgeColor: "#10a37f", badgeBg: "rgba(16,163,127,0.15)", iconBg: "rgba(16,163,127,0.15)" },
+                  { icon: "⚙️", title: "Technical GEO Fix Plan", sub: "Exact fixes for schema, llms.txt, citations and entity signals", badge: "47 signals", badgeColor: "#6366f1", badgeBg: "rgba(99,102,241,0.15)", iconBg: "rgba(99,102,241,0.15)" },
+                  { icon: "🗺️", title: "4-Week Visibility Roadmap", sub: "Week-by-week CITE tasks to go from invisible to 80+ GEO IQ", badge: "4 weeks", badgeColor: "#f59e0b", badgeBg: "rgba(245,158,11,0.15)", iconBg: "rgba(245,158,11,0.15)" },
+                ].map((item) => (
+                  <div key={item.title} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: item.iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{item.icon}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#f1f5f9", letterSpacing: "-0.01em", marginBottom: 2 }}>{item.title}</div>
+                      <div style={{ fontSize: 11, color: "#475569" }}>{item.sub}</div>
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: item.badgeColor, background: item.badgeBg, padding: "2px 8px", borderRadius: 100, flexShrink: 0 }}>{item.badge}</div>
+                  </div>
+                ))}
               </div>
-              <Link href="/pricing" style={{
-                display: "block", background: "#6366f1", color: "white",
-                borderRadius: 10, padding: 15, fontSize: 15, fontWeight: 800,
-                textDecoration: "none", letterSpacing: "-0.02em",
-                transition: "background 0.2s, transform 0.2s, box-shadow 0.2s",
-              }}
-                onMouseEnter={(e) => { const el = e.currentTarget as HTMLAnchorElement; el.style.background = "#4f46e5"; el.style.transform = "translateY(-1px)"; el.style.boxShadow = "0 6px 20px rgba(99,102,241,0.35)"; }}
-                onMouseLeave={(e) => { const el = e.currentTarget as HTMLAnchorElement; el.style.background = "#6366f1"; el.style.transform = "none"; el.style.boxShadow = "none"; }}
+
+              {/* Pricing row */}
+              <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: 16, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div>
+                  <div style={{ fontSize: 11, color: "#475569", fontWeight: 500, marginBottom: 4 }}>Starter plan</div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                    <span style={{ fontSize: 32, fontWeight: 900, color: "#f1f5f9", letterSpacing: "-0.04em", lineHeight: 1 }}>Rs 3,999</span>
+                    <span style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>/month</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: "#334155", marginTop: 2 }}>via Razorpay</div>
+                </div>
+                <div style={{ textAlign: "right" as const }}>
+                  {["Unlimited audits", "All 5 AI engines", "Weekly monitoring", "Fix roadmap"].map((f) => (
+                    <div key={f} style={{ fontSize: 11, color: "#475569", marginBottom: 3, display: "flex", alignItems: "center", gap: 5, justifyContent: "flex-end" }}>
+                      <span style={{ color: "#22c55e", fontSize: 10 }}>✓</span> {f}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* CTA button */}
+              <button
+                onClick={() => { window.location.href = "/pricing"; }}
+                style={{ width: "100%", background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)", color: "#fff", border: "none", padding: "16px 24px", borderRadius: 12, fontFamily: "Inter, sans-serif", fontSize: 16, fontWeight: 800, letterSpacing: "-0.02em", cursor: "pointer", transition: "all 0.2s", marginBottom: 10, boxShadow: "0 4px 24px rgba(99,102,241,0.4)" }}
+                onMouseEnter={(e) => { const b = e.currentTarget; b.style.transform = "translateY(-2px)"; b.style.boxShadow = "0 8px 32px rgba(99,102,241,0.5)"; }}
+                onMouseLeave={(e) => { const b = e.currentTarget; b.style.transform = "translateY(0)"; b.style.boxShadow = "0 4px 24px rgba(99,102,241,0.4)"; }}
               >
-                Unlock full roadmap - Rs 3,999/mo
-              </Link>
-              <div style={{ fontSize: 11, color: "#334155", marginTop: 10 }}>
-                7-day free trial - cancel anytime - Rs 3,999/mo via Razorpay
+                Start 7-day free trial - Rs 3,999/mo
+              </button>
+
+              {/* Trust signals */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, flexWrap: "wrap" as const }}>
+                {["Cancel anytime", "7-day free trial", "Razorpay secure"].map((t) => (
+                  <div key={t} style={{ fontSize: 11, color: "#334155", fontWeight: 500 }}>✓ {t}</div>
+                ))}
               </div>
             </div>
           </div>
