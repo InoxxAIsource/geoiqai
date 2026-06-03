@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { AuditThinking } from "@/components/AuditThinking";
+import { AuditResults } from "@/components/AuditResults";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -1029,6 +1030,55 @@ export default function Audit() {
         loadingStep={loadingStep}
         doneSteps={doneSteps}
         elapsedSeconds={elapsedSeconds}
+      />
+    );
+  }
+
+  if (auditResult) {
+    const allFound = [
+      auditResult.chatgptFound,
+      auditResult.geminiFound,
+      auditResult.perplexityFound,
+      auditResult.claudeFound ?? false,
+      auditResult.grokFound ?? false,
+    ];
+    const foundCount = allFound.filter(Boolean).length;
+    const blindSpots = allFound.filter((f) => !f).length;
+
+    const resultEngines = [
+      { name: "ChatGPT",    score: auditResult.scoreChatgpt ?? 0,    status: auditResult.chatgptFound    ? "Found" : "Not found" },
+      { name: "Gemini",     score: auditResult.scoreGemini ?? 0,     status: auditResult.geminiFound     ? "Found" : "Not found" },
+      { name: "Perplexity", score: auditResult.scorePerplexity ?? 0, status: auditResult.perplexityFound ? "Found" : "Not found" },
+      { name: "Claude",     score: auditResult.scoreClaude ?? 0,     status: (auditResult.claudeFound ?? false) ? "Found" : "Not found" },
+      { name: "Grok",       score: auditResult.scoreGrok ?? 0,       status: (auditResult.grokFound ?? false)   ? "Found" : "Not found" },
+    ];
+
+    const techAudit = auditResult.technicalAudit;
+    const resultTechChecks = techAudit?.checks?.map((c: any) => ({
+      label: c.label ?? c.id ?? "Signal",
+      score: c.score ?? (c.status === "pass" ? 100 : c.status === "warn" ? 50 : 0),
+      pass: c.status === "pass",
+    })) ?? [];
+
+    const resultRoadmap = [
+      { week: "Week 1", target: "20+ GEO IQ", label: "Technical foundation",  detail: "Set up llms.txt, fix robots.txt, add schema markup",        locked: false },
+      { week: "Week 2", target: "35+ GEO IQ", label: "Brand entity mapping",  detail: "Create brand entity page, build citation profile",           locked: true  },
+      { week: "Week 3", target: "50+ GEO IQ", label: "AI-ready content",      detail: "Publish case studies and FAQs optimised for AI answers",     locked: true  },
+      { week: "Week 4", target: "70+ GEO IQ", label: "Citation building",     detail: "Earn mentions on high-authority sites, press coverage",       locked: true  },
+    ];
+
+    return (
+      <AuditResults
+        domain={auditResult.domain}
+        score={overallScore}
+        enginesFound={foundCount}
+        blindSpots={blindSpots}
+        techScore={techAudit?.overallScore ?? 0}
+        engines={resultEngines}
+        techChecks={resultTechChecks}
+        roadmap={resultRoadmap}
+        isPaid={isPaidUser}
+        onReset={() => setLocation("/")}
       />
     );
   }
