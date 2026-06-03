@@ -61,7 +61,7 @@ export function Navbar() {
         }}
       >
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none" }}>
-          <svg width="26" height="26" viewBox="0 0 40 40" fill="none">
+          <svg width="34" height="34" viewBox="0 0 40 40" fill="none">
             <path d="M32 20 A12 12 0 1 1 20 8" stroke="#6366f1" strokeWidth="3" strokeLinecap="round"/>
             <path d="M20 8 L28 8 L28 16" stroke="#6366f1" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
             <circle cx="20" cy="20" r="2.5" fill="#6366f1"/>
