@@ -1,0 +1,79 @@
+What I can see that needs fixing:
+
+ChatGPT logo — showing the old swirl icon, should be the newer ChatGPT logo
+Claude logo — showing "A1" Anthropic logo, should be Claude specific
+Status pills — "Scanning..." and "Done" look too plain, need the colored styling
+Overall card — looks good structurally
+
+Paste this into Replit Agent to fix the logo URLs and pill styling:
+
+
+In the AuditThinking component update the AI_ENGINES logos to these better URLs:
+tsxconst AI_ENGINES = [
+  {
+    name: "ChatGPT",
+    logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/openai.svg",
+    color: "#10a37f",
+    bg: "#f0fdf9",
+    hue: "150deg",
+  },
+  {
+    name: "Gemini",
+    logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/googlegemini.svg",
+    color: "#4285f4",
+    bg: "#eff6ff",
+    hue: "220deg",
+  },
+  {
+    name: "Perplexity",
+    logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/perplexity.svg",
+    color: "#20b2aa",
+    bg: "#f0fdfc",
+    hue: "170deg",
+  },
+  {
+    name: "Claude",
+    logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/claude.svg",
+    color: "#cc785c",
+    bg: "#fdf6f3",
+    hue: "20deg",
+  },
+  {
+    name: "Grok",
+    logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/x.svg",
+    color: "#0f172a",
+    bg: "#f8fafc",
+    hue: null,
+  },
+];
+Update the status pill styling to match homepage design:
+tsx<div style={{
+  fontSize: 11,
+  fontWeight: 700,
+  padding: "4px 12px",
+  borderRadius: 100,
+  background: isDone ? "#f0fdf4" : isActive ? `${engine.color}15` : "#f3f4f6",
+  color: isDone ? "#16a34a" : isActive ? engine.color : "#9ca3af",
+  border: `1px solid ${isDone ? "#bbf7d0" : isActive ? `${engine.color}30` : "#e5e7eb"}`,
+  letterSpacing: "0.02em",
+  fontFamily: "Inter, sans-serif",
+}}>
+  {isDone ? "✓ Done" : isActive ? "Scanning..." : "Queued"}
+</div>
+Also apply color filter to each logo img so it shows in brand color instead of black:
+tsx<img
+  src={engine.logo}
+  alt={engine.name}
+  width={20}
+  height={20}
+  style={{
+    objectFit: "contain",
+    filter: engine.hue
+      ? `invert(40%) sepia(100%) saturate(500%) hue-rotate(${engine.hue})`
+      : "none",
+  }}
+  onError={(e) => {
+    const t = e.target as HTMLImageElement;
+    t.style.display = "none";
+  }}
+/>

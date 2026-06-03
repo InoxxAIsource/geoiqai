@@ -23,7 +23,7 @@ const ENGINES = [
   { name: "ChatGPT",    logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/openai.svg",        color: "#10a37f", bg: "#f0fdf9", sub: "AI Memory scan", hue: "150deg"  },
   { name: "Gemini",     logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/googlegemini.svg",  color: "#4285f4", bg: "#eff6ff", sub: "Live web scan",  hue: "220deg"  },
   { name: "Perplexity", logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/perplexity.svg",    color: "#20b2aa", bg: "#f0fdfc", sub: "Live web scan",  hue: "170deg"  },
-  { name: "Claude",     logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/anthropic.svg",     color: "#cc785c", bg: "#fdf6f3", sub: "AI Memory scan", hue: "20deg"   },
+  { name: "Claude",     logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/claude.svg",         color: "#cc785c", bg: "#fdf6f3", sub: "AI Memory scan", hue: "20deg"   },
   { name: "Grok",       logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/x.svg",             color: "#0f172a", bg: "#f8fafc", sub: "AI Memory scan", hue: null      },
 ];
 
@@ -276,18 +276,12 @@ export function AuditThinking({ url, loadingStep, doneSteps, elapsedSeconds }: P
                         style={{
                           objectFit: "contain",
                           filter: eng.hue
-                            ? "invert(40%) sepia(100%) saturate(500%) hue-rotate(var(--hue, 120deg))"
-                            : "invert(0)",
+                            ? `invert(40%) sepia(100%) saturate(500%) hue-rotate(${eng.hue})`
+                            : "none",
                         }}
                         onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = "none";
-                          if (target.parentElement) {
-                            target.parentElement.innerHTML = eng.name.charAt(0);
-                            target.parentElement.style.fontWeight = "800";
-                            target.parentElement.style.color = eng.color;
-                            target.parentElement.style.fontSize = "14px";
-                          }
+                          const t = e.target as HTMLImageElement;
+                          t.style.display = "none";
                         }}
                       />
                     </div>
@@ -298,15 +292,16 @@ export function AuditThinking({ url, loadingStep, doneSteps, elapsedSeconds }: P
                       </div>
                     </div>
                   </div>
-                  <span style={{
-                    fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 99,
-                    background: status === "done" ? "#f0fdf4" : status === "scanning" ? "#eef2ff" : "#f1f5f9",
-                    color: status === "done" ? "#10b981" : status === "scanning" ? "#6366f1" : "#94a3b8",
-                    border: `1px solid ${status === "done" ? "#bbf7d0" : status === "scanning" ? "#c7d2fe" : "#e2e8f0"}`,
+                  <div style={{
+                    fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 100,
+                    background: status === "done" ? "#f0fdf4" : status === "scanning" ? `${eng.color}15` : "#f3f4f6",
+                    color: status === "done" ? "#16a34a" : status === "scanning" ? eng.color : "#9ca3af",
+                    border: `1px solid ${status === "done" ? "#bbf7d0" : status === "scanning" ? `${eng.color}30` : "#e5e7eb"}`,
+                    letterSpacing: "0.02em", fontFamily: "Inter, sans-serif",
                     transition: "all 0.4s",
                   }}>
                     {status === "done" ? "Done" : status === "scanning" ? "Scanning..." : "Queued"}
-                  </span>
+                  </div>
                 </div>
               );
             })}
