@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Link, useLocation } from "wouter";
+import { AuditThinking } from "@/components/AuditThinking";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -1019,33 +1020,25 @@ export default function Audit() {
   const liveWebScore = Math.round((auditResult?.scorePerplexity ?? 0) / 33 * 50);
   const overallScore = auditResult?.scoreTotal ?? (aiMemoryScore + liveWebScore);
 
+  const isLoading = runAuditMutation.isPending || refreshing || retrying;
+
+  if (isLoading) {
+    return (
+      <AuditThinking
+        url={urlParam ?? ""}
+        loadingStep={loadingStep}
+        doneSteps={doneSteps}
+        elapsedSeconds={elapsedSeconds}
+      />
+    );
+  }
+
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#F2F0EB" }}>
       <style>{LOADING_CSS}</style>
       <Navbar />
 
       <main style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 16px" }}>
-
-        {/* Loading state */}
-        {runAuditMutation.isPending && (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 48, width: "100%" }}>
-            <AuditLoadingCard loadingStep={loadingStep} doneSteps={doneSteps} elapsedSeconds={elapsedSeconds} url={urlParam ?? ""} />
-          </div>
-        )}
-
-        {/* Refreshing state - force fresh audit */}
-        {refreshing && (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 48, width: "100%" }}>
-            <AuditLoadingCard loadingStep={loadingStep} doneSteps={doneSteps} elapsedSeconds={elapsedSeconds} url={urlParam ?? ""} />
-          </div>
-        )}
-
-        {/* Retrying with email state */}
-        {retrying && (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 48, width: "100%" }}>
-            <AuditLoadingCard loadingStep={loadingStep} doneSteps={doneSteps} elapsedSeconds={elapsedSeconds} url={urlParam ?? ""} />
-          </div>
-        )}
 
         {/* Error state */}
         {auditError && !retrying && (

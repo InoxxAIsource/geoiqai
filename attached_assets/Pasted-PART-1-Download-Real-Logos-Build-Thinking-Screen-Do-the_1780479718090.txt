@@ -1,0 +1,102 @@
+PART 1 — Download Real Logos + Build Thinking Screen
+
+
+Do these tasks in order:
+STEP 1 — Download real AI logos into /public/logos/
+Run these commands in the shell to download official AI logos:
+bashmkdir -p public/logos
+
+curl -L "https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg" -o public/logos/chatgpt.svg
+
+curl -L "https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg" -o public/logos/gemini.svg
+
+curl -L "https://upload.wikimedia.org/wikipedia/commons/1/1d/Perplexity_AI_logo.svg" -o public/logos/perplexity.svg
+
+curl -L "https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Anthropic_logo.svg/240px-Anthropic_logo.svg.png" -o public/logos/claude.png
+
+curl -L "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Grok_logo.svg/240px-Grok_logo.svg.png" -o public/logos/grok.png
+STEP 2 — Create src/components/AuditThinking.tsx
+This is the loading/thinking screen shown while the audit runs. It must match the homepage design exactly — same #f4f4f0 background, same white navbar with Orbit SVG logo, same Inter 900 font, same #0f172a dark card style.
+Full component requirements:
+Navbar — white background, sticky top, Orbit SVG logo (same as homepage), wordmark "Geo" + "IQ" in #6366f1, right side shows indigo badge "Scanning now" with pulsing dot
+Main dark card (#0f172a, border-radius 20px):
+
+Top row: domain name in Inter 900 white left, live % counter in #6366f1 right
+Indigo glowing progress bar below (height 4px, glow shadow)
+Signals counter box in #1e293b: shows "X / 47 signals checked" left, "XX%" right, both Inter 900
+Steps list — 6 steps ticking off in real time with animated progress:
+
+Step 1: "Fetching & crawling your domain" — category [TECHNICAL] — 4 signals
+Step 2: "Detecting brand category & market" — category [ENTITY] — 6 signals
+Step 3: "Running ChatGPT visibility prompts" — category [AI MEMORY] — 8 signals
+Step 4: "Running Gemini & Perplexity prompts" — category [LIVE WEB] — 8 signals
+Step 5: "Scoring technical GEO signals" — category [TECHNICAL] — 12 signals
+Step 6: "Building your fix roadmap" — category [CITATIONS] — 9 signals
+Each step shows: circle icon (grey pending, indigo pulsing active, green ✓ done), label text, category badge in matching color, signal count
+
+
+Bottom 2-column grid: "AI Systems Checked" counter + "Issues Found" counter both updating live
+
+CITE signal categories card (white, border 1px #e5e7eb, border-radius 16px):
+
+Title: "Checking CITE signal categories" in grey uppercase
+2x2 grid of 4 category cards cycling active state:
+
+[C] Citations — color #f59e0b — "Checking citation sources"
+[I] Indexability — color #6366f1 — "Crawlability & llms.txt"
+[T] Technical — color #3b82f6 — "Schema & content signals"
+[E] Entity — color #8b5cf6 — "Brand entity mapping"
+
+
+Active card gets colored background + colored border, inactive cards stay grey
+Cycle through all 4 every 1.8 seconds
+
+AI Engines card (white, border-radius 16px):
+
+Title: "Querying AI engines" in grey uppercase
+List of 5 engines each showing:
+
+Real logo image from /public/logos/ folder using img tag with onError fallback
+Engine name in Inter 700, sub-label "Visibility data collected" / "Running prompts..." / "Queued"
+Status pill on right: grey "Queued" → colored "Scanning..." → green "✓ Done"
+Logo backgrounds:
+
+ChatGPT: bg #f0fdf9, color #10a37f, logo /public/logos/chatgpt.svg
+Gemini: bg #eff6ff, color #4285f4, logo /public/logos/gemini.svg
+Perplexity: bg #f0fdfc, color #20b2aa, logo /public/logos/perplexity.svg
+Claude: bg #fdf6f3, color #cc785c, logo /public/logos/claude.png
+Grok: bg #f8fafc, color #0f172a, logo /public/logos/grok.png
+
+
+Each logo img: width 22px, height 22px, objectFit contain, onError hides image
+
+
+
+Live message ticker (white card):
+
+Pulsing colored dot + category badge + rotating message + elapsed seconds
+Rotate through these messages every 2.4 seconds:
+
+[AI MEMORY] "Asking ChatGPT if it knows your brand"
+[CITATIONS] "Scanning Gemini for brand citations"
+[TECHNICAL] "Analysing your llms.txt & robots.txt"
+[ENTITY] "Mapping entity consistency across AI"
+[LIVE WEB] "Checking Perplexity live web results"
+[CITATIONS] "Scoring citation gap opportunities"
+[AI MEMORY] "Detecting competitor AI mentions"
+[TECHNICAL] "Building your GEO IQ score"
+
+
+
+Bottom note: "Free audit checks 5 AI engines across 47 signals. Usually completes in 60–90 seconds."
+Animation logic using useEffect + requestAnimationFrame:
+
+Steps complete one by one based on their signal count × 280ms per signal
+Progress bar fills smoothly as signals complete
+Issues Found counts up to 28 as progress increases
+AI Systems Checked increments 0→5 as progress increases
+Elapsed timer increments every second
+Dots animation (0→3) every 450ms for the message ticker
+
+STEP 3 — Wire it up
+Find the file where the audit scan is triggered (likely App.tsx or a page component). When audit status is "scanning" or "loading", render <AuditThinking domain={domain} /> instead of whatever shows now. When audit completes, switch to the results page
