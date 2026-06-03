@@ -1,0 +1,204 @@
+Build 3 Missing High-Priority Pages
+Based on your GSC data, these 3 pages have the most evidence behind them:
+Page 1: /best-ai-visibility-tools
+Why: "best ai visibility tracking tools" showing impressions, zero competition for India-specific version
+Page 2: /geo-tools-comparison
+Why: "comparing different geo tools for b2b saas brands in india" — exact query, nobody has this page
+Page 3: /chatgpt-visibility
+Why: 73 impressions already — highest impression query you have
+
+Paste this to Replit Agent for all 3 pages in one shot:
+Build 3 new SEO landing pages for geoiqai.com.
+Each page should be a React component added to the 
+routing system. Use the same design system as existing pages.
+
+━━━━━━━━━━━━━━━━━━━━━━
+PAGE 1: /best-ai-visibility-tools
+━━━━━━━━━━━━━━━━━━━━━━
+
+Title tag: Best AI Visibility Tools 2026: Track Your Brand in ChatGPT & Gemini
+Meta description: Compare the 8 best AI visibility tracking tools for startups 
+and agencies. GeoIQ, Profound, Semrush, Peec AI compared. Free tier available.
+
+Page structure:
+
+H1: Best AI Visibility Tools in 2026
+
+Intro paragraph (150 words):
+AI search has changed how brands get discovered. 
+Write about how ChatGPT, Gemini and Perplexity now 
+answer buyer questions directly — and brands not 
+in those answers lose customers silently.
+
+H2: What Is an AI Visibility Tool?
+200 words explaining what these tools do.
+
+H2: The 8 Best AI Visibility Tools (Comparison Table)
+Build a styled HTML comparison table with these tools:
+
+| Tool | Free Tier | ChatGPT Tracking | Gemini | Perplexity | India Billing | Starting Price |
+| GeoIQ | Yes | Yes | Yes | Yes | Yes (INR) | $69/mo |
+| Profound | No | Yes | Yes | Yes | No | $499/mo |
+| Semrush AI | Yes (limited) | Yes | Yes | No | No | $139/mo |
+| Peec AI | No | Yes | Yes | Yes | No | $99/mo |
+| Rankscale | No | Yes | No | Yes | No | $199/mo |
+| Otterly.ai | No | Yes | No | Yes | No | $79/mo |
+| Ahrefs AI | Yes (limited) | Yes | No | No | No | $129/mo |
+| BrandRadar | No | Yes | Yes | Yes | No | $299/mo |
+
+H2: How to Choose the Right AI Visibility Tool
+200 words — mention budget, number of brands, 
+India billing as key factors.
+
+H2: Why Indian Startups Choose GeoIQ
+150 words — INR pricing, Razorpay, built for 
+startups not enterprise, free audit to start.
+
+H2: FAQ (add JSON-LD FAQPage schema)
+Q: What is the best free AI visibility tool?
+A: GeoIQ offers a completely free audit with no 
+signup — check your brand across 6 AI systems 
+at geoiqai.com.
+
+Q: How much do AI visibility tools cost?
+A: Prices range from free (GeoIQ free audit) to 
+$499/month (Profound). GeoIQ paid plans start 
+at $69/month billed in INR via Razorpay.
+
+Q: Do AI visibility tools work for Indian brands?
+A: Most tools charge in USD. GeoIQ is the only 
+major AI visibility platform with INR billing 
+via Razorpay, making it ideal for Indian startups.
+
+Q: What is GEO (Generative Engine Optimization)?
+A: GEO is the practice of optimizing your brand 
+to appear in AI-generated answers from ChatGPT, 
+Gemini and Perplexity.
+
+CTA section: "Check Your AI Visibility Free"
+Button → geoiqai.com free audit
+
+Internal links to: /geo-tools, /chatgpt-brand-visibility, 
+/ai-visibility-score, /pricing
+
+Word count: 1500+ words minimum.
+
+━━━━━━━━━━━━━━━━━━━━━━
+PAGE 2: /geo-tools-comparison
+━━━━━━━━━━━━━━━━━━━━━━
+
+Title tag: GEO Tools Comparison 2026: Best Platforms for Indian B2B SaaS Brands
+Meta description: Compare GEO tools for tracking brand mentions across 
+ChatGPT, Perplexity and Gemini. Find the best option for Indian startups.
+
+H1: GEO Tools Comparison: Which Platform Is Best for Your Brand in 2026?
+
+Intro (150 words): Write about the problem — 
+Indian B2B SaaS brands are invisible to AI, 
+most GEO tools are priced for enterprise 
+in USD, and there's no good comparison guide 
+for Indian startups specifically.
+
+H2: What Makes a Good GEO Tool?
+Criteria: real LLM API calls (not estimated), 
+multi-engine tracking, citation gap analysis, 
+actionable fix recommendations, India-friendly pricing.
+
+H2: GEO Tools Compared for Indian B2B SaaS
+Same comparison table as above.
+
+H2: GeoIQ vs Profound for Indian Startups
+300 words — honest comparison. 
+Profound is enterprise-focused, USD-only, 
+starts at $499. GeoIQ starts at $69, 
+INR billing, built for indie founders and 
+growing startups.
+
+H2: GeoIQ vs Semrush AI Visibility
+200 words — Semrush is an addon to existing 
+tool, limited AI tracking. GeoIQ is purpose-built.
+
+H2: FAQ with JSON-LD schema
+Q: Which GEO tool is best for Indian startups?
+Q: What is the difference between GEO and SEO?
+Q: Can I track competitor AI visibility?
+Q: How often should I check AI visibility?
+
+CTA: Free audit at geoiqai.com
+
+Internal links to: /geoiq-vs-profound, 
+/geoiq-vs-semrush, /best-ai-visibility-tools, /pricing
+
+Word count: 1500+ words.
+
+━━━━━━━━━━━━━━━━━━━━━━
+PAGE 3: /chatgpt-visibility
+━━━━━━━━━━━━━━━━━━━━━━
+
+Title tag: ChatGPT Visibility: How to Get Your Brand Cited in ChatGPT Answers
+Meta description: Learn why your brand isn't showing in ChatGPT and how to 
+fix it. Free ChatGPT visibility checker — see your score in 60 seconds.
+
+H1: ChatGPT Visibility: The Complete Guide for Brands (2026)
+
+Intro (200 words): ChatGPT now gets 800M+ weekly 
+users. When someone asks "what's the best [your category] 
+tool" — if you're not in the answer, you don't 
+exist to that user. No second page. No "also consider."
+
+H2: Why Your Brand Isn't Appearing in ChatGPT
+List 5 reasons:
+1. Weak entity signals (ChatGPT doesn't know you exist)
+2. No structured data (can't extract facts about you)
+3. Missing from authoritative sources AI trains on
+4. Competitor content is more citable
+5. No llms.txt file
+
+H2: How ChatGPT Decides Which Brands to Mention
+200 words — explain training data, citations, 
+entity recognition, structured content.
+
+H2: How to Improve Your ChatGPT Visibility (Step by Step)
+Step 1: Check your current score (free at GeoIQ)
+Step 2: Fix your llms.txt
+Step 3: Add structured data / schema markup
+Step 4: Get mentioned on sites ChatGPT cites
+Step 5: Create citable content (statistics, studies)
+Step 6: Monitor and rescan monthly
+
+H2: Check Your ChatGPT Visibility Free
+CTA — embed or link to free audit
+
+H2: FAQ with JSON-LD schema
+Q: How do I check if ChatGPT knows my brand?
+Q: How long does it take to improve ChatGPT visibility?
+Q: What is a good ChatGPT visibility score?
+Q: Does ChatGPT visibility affect sales?
+
+Internal links to: /how-to-rank-in-chatgpt, 
+/chatgpt-brand-visibility, /ai-visibility-score, 
+/llms-txt-guide
+
+Word count: 1500+ words.
+
+━━━━━━━━━━━━━━━━━━━━━━
+TECHNICAL REQUIREMENTS FOR ALL 3 PAGES:
+━━━━━━━━━━━━━━━━━━━━━━
+
+1. Add JSON-LD FAQPage schema to <head> of each page
+2. Add JSON-LD BreadcrumbList schema
+3. Add canonical URL tag
+4. Add og:title and og:description tags
+5. Use semantic HTML: article, section, h1, h2, h3
+6. Add sitemap entry for each new page
+7. Submit new URLs to Google Search Console 
+   after building
+8. Each page must load under 2 seconds
+9. Mobile responsive
+10. Add "Last updated: June 2026" to each page
+
+After building all 3 pages, also update sitemap.xml 
+to include:
+https://geoiqai.com/best-ai-visibility-tools
+https://geoiqai.com/geo-tools-comparison
+https://geoiqai.com/chatgpt-visibility

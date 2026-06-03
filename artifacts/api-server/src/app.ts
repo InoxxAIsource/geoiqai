@@ -5,6 +5,7 @@ import pinoHttp from "pino-http";
 import router from "./routes";
 import seoPagesRouter from "./routes/seo-pages";
 import seoPagesRouter2 from "./routes/seo-pages-2";
+import seoPagesRouter3 from "./routes/seo-pages-3";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
@@ -78,6 +79,8 @@ const SITEMAP_XML = `<?xml version="1.0" encoding="UTF-8"?>
   <url><loc>https://geoiqai.com/blog/why-startup-not-showing-chatgpt</loc><lastmod>2026-05-25</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://geoiqai.com/ai-search-ranking-factors</loc><lastmod>2026-05-30</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
   <url><loc>https://geoiqai.com/best-ai-visibility-tools</loc><lastmod>2026-05-30</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://geoiqai.com/geo-tools-comparison</loc><lastmod>2026-06-03</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://geoiqai.com/chatgpt-visibility</loc><lastmod>2026-06-03</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
   <url><loc>https://geoiqai.com/faq</loc><lastmod>2026-05-30</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://geoiqai.com/roadmap</loc><lastmod>2026-05-25</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoiqai.com/contact</loc><lastmod>2026-05-25</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
@@ -93,6 +96,7 @@ app.get("/sitemap.xml", (_req, res) => {
 
 app.use(seoPagesRouter);
 app.use(seoPagesRouter2);
+app.use(seoPagesRouter3);
 app.use("/api", router);
 
 export default app;

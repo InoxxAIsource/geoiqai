@@ -2728,11 +2728,11 @@ function bestAiVisibilityToolsHtml(): string {
   `;
 
   return ssrHtmlShell({
-    title: "Best AI Visibility Tools 2026: Honest Comparison | GeoIQ",
-    description: "Compared: GeoIQ, Profound, Rankscale, SE Ranking, Ahrefs Brand Radar and more. Pricing, features, and which tool fits your budget. Free option included.",
+    title: "Best AI Visibility Tools 2026: Track Your Brand in ChatGPT & Gemini | GeoIQ",
+    description: "Compare the 8 best AI visibility tracking tools for startups and agencies. GeoIQ, Profound, Semrush, Peec AI compared. Free tier available.",
     canonical: "https://geoiqai.com/best-ai-visibility-tools",
-    ogTitle: "Best AI Visibility Tools 2026: Honest Comparison | GeoIQ",
-    ogDescription: "Compared: GeoIQ, Profound, Rankscale, SE Ranking, Ahrefs Brand Radar and more. Pricing, features, and which tool fits your budget. Free option included.",
+    ogTitle: "Best AI Visibility Tools 2026: Track Your Brand in ChatGPT & Gemini | GeoIQ",
+    ogDescription: "Compare the 8 best AI visibility tracking tools for startups and agencies. GeoIQ, Profound, Semrush, Peec AI compared. Free tier available.",
     schemaJson: [articleSchema, faqSchema, breadcrumbSchema],
     body,
   });

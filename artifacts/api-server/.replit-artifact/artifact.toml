@@ -23,7 +23,9 @@ paths = [
   "/geoiq-vs-semrush",
   "/faq",
   "/ai-search-ranking-factors",
-  "/best-ai-visibility-tools"
+  "/best-ai-visibility-tools",
+  "/geo-tools-comparison",
+  "/chatgpt-visibility"
 ]
 
 [services.development]
