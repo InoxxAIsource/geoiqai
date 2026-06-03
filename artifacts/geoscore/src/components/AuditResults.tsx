@@ -330,8 +330,7 @@ export function AuditResults({ domain, score, enginesFound, blindSpots, techScor
           </div>
         )}
 
-        {/* CTA card - shown on all tabs for free users */}
-        {!isPaid && (
+        {/* CTA card - shown on all tabs */}
         <div style={{
           background: "linear-gradient(145deg, #0f172a 0%, #1a1040 100%)",
           borderRadius: 20, padding: "28px 20px", marginBottom: 16,
@@ -405,7 +404,6 @@ export function AuditResults({ domain, score, enginesFound, blindSpots, techScor
             ))}
           </div>
         </div>
-        )}
 
         {/* Share + Reset buttons */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16, ...fadeStyle(0.26) }}>
