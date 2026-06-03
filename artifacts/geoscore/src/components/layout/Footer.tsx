@@ -86,14 +86,17 @@ export function Footer() {
             <div style={headingStyle}>Product</div>
             <FooterLink href="/#how-it-works">How it works</FooterLink>
             <FooterLink href="/pricing">Pricing</FooterLink>
-            <FooterLink href="/">Free audit</FooterLink>
+            <FooterLink href="/audit">Free audit</FooterLink>
             <FooterLink href="/dashboard">Dashboard</FooterLink>
           </div>
 
           <div>
             <div style={headingStyle}>Resources</div>
             <FooterLink href="/what-is-geo">What is GEO</FooterLink>
-            <FooterLink href="/how-to-rank-in-chatgpt">How to rank in ChatGPT</FooterLink>
+            <FooterLink href="/how-to-rank-in-chatgpt">Rank in ChatGPT</FooterLink>
+            <FooterLink href="/chatgpt-brand-visibility">ChatGPT visibility</FooterLink>
+            <FooterLink href="/gemini-seo">Gemini SEO</FooterLink>
+            <FooterLink href="/ai-visibility-for-indian-startups">AI visibility for Indian startups</FooterLink>
             <FooterLink href="/geo-tools">GEO Tools 2026</FooterLink>
             <FooterLink href="/blog">Blog</FooterLink>
             <FooterLink href="/faq">FAQ</FooterLink>

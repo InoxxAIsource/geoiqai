@@ -1880,7 +1880,7 @@ function faqHtml(): string {
     {
       q: "What is an llms.txt file and why does it matter?",
       a: "An llms.txt file is a plain text file placed at yourdomain.com/llms.txt that tells AI systems what your company does, who your audience is, and what your key pages are. It is the AI equivalent of robots.txt - a direct signal to language models about how to represent your brand. GeoIQ checks for its presence and content quality as part of every audit.",
-      aHtml: `An <a href="/audit">llms.txt file</a> is a plain text file placed at yourdomain.com/llms.txt that tells AI systems what your company does, who your audience is, and what your key pages are. It is the AI equivalent of robots.txt - a direct signal to language models about how to represent your brand. GeoIQ checks for its presence and content quality as part of every audit.`,
+      aHtml: `An <a href="/llms-txt-guide">llms.txt file</a> is a plain text file placed at yourdomain.com/llms.txt that tells AI systems what your company does, who your audience is, and what your key pages are. It is the AI equivalent of robots.txt - a direct signal to language models about how to represent your brand. GeoIQ checks for its presence and content quality as part of every <a href="/audit">free audit</a>.`,
     },
     {
       q: "Why does my brand score low even though I rank well on Google?",
@@ -1905,7 +1905,7 @@ function faqHtml(): string {
     {
       q: "What is ChatGPT brand visibility and how do I measure it?",
       a: "ChatGPT brand visibility is whether ChatGPT mentions your brand when users ask questions in your product category. For example: 'What are the best tools for tracking AI search rankings?' - does ChatGPT name your brand? GeoIQ measures this by running structured queries related to your category and checking for brand mentions. The result feeds into your overall AI visibility score.",
-      aHtml: `ChatGPT brand visibility is whether ChatGPT mentions your brand when users ask questions in your product category. For example: "What are the best tools for tracking AI search rankings?" - does ChatGPT name your brand? GeoIQ measures this by running structured queries related to your category and checking for brand mentions. The result feeds into your overall AI visibility score.`,
+      aHtml: `<a href="/chatgpt-brand-visibility">ChatGPT brand visibility</a> is whether ChatGPT mentions your brand when users ask questions in your product category. For example: "What are the best tools for tracking AI search rankings?" - does ChatGPT name your brand? GeoIQ measures this by running structured queries related to your category and checking for brand mentions. The result feeds into your overall <a href="/audit">AI visibility score</a>.`,
     },
     {
       q: "How do I improve my GeoIQ score?",
@@ -1950,7 +1950,12 @@ function faqHtml(): string {
     {
       q: "Who is GeoIQ built for?",
       a: "GeoIQ is built for SaaS founders, growth marketers, and digital agencies who want their brand cited by AI systems. It is especially useful for Indian startups competing in categories where ChatGPT, Gemini, and Perplexity are increasingly where buyers discover products. If your target customers use AI assistants to research software, GeoIQ shows you exactly how visible you are and what to fix.",
-      aHtml: `GeoIQ is built for SaaS founders, growth marketers, and digital agencies who want their brand cited by AI systems. It is especially useful for Indian startups competing in categories where ChatGPT, Gemini, and Perplexity are increasingly where buyers discover products. If your target customers use AI assistants to research software, GeoIQ shows you exactly how visible you are and what to fix.`,
+      aHtml: `GeoIQ is built for SaaS founders, growth marketers, and digital agencies who want their brand cited by AI systems. It is especially useful for <a href="/ai-visibility-for-indian-startups">Indian startups</a> competing in categories where ChatGPT, Gemini, and Perplexity are increasingly where buyers discover products. If your target customers use AI assistants to research software, GeoIQ shows you exactly how visible you are and what to fix.`,
+    },
+    {
+      q: "How do I optimize for Gemini AI search?",
+      a: "Gemini draws from Google's index, so the foundation is standard technical SEO - fast pages, structured data, and crawlability. Beyond that, Gemini gives significant weight to Google's own properties: Google Business Profile, Google Knowledge Panel, and Google's entity graph. Having consistent brand information across your Google Business Profile, LinkedIn, and Crunchbase builds the entity recognition Gemini needs to cite you. FAQ schema on product pages and structured How-To content also gets picked up faster by Gemini than by other AI systems.",
+      aHtml: `<a href="/gemini-seo">Gemini SEO</a> draws from Google's index, so the foundation is standard technical SEO - fast pages, structured data, and crawlability. Beyond that, Gemini gives significant weight to Google's own properties: Google Business Profile, Google Knowledge Panel, and Google's entity graph. Having consistent brand information across your Google Business Profile, LinkedIn, and Crunchbase builds the entity recognition Gemini needs to cite you. FAQ schema on product pages and structured How-To content also gets picked up faster by Gemini than by other AI systems.`,
     },
   ];
 
@@ -2021,9 +2026,13 @@ function faqHtml(): string {
       <div class="rel-heading">Related guides</div>
       <a href="/what-is-geo">What is GEO (Generative Engine Optimization)?</a>
       <a href="/how-to-rank-in-chatgpt">How to rank in ChatGPT</a>
+      <a href="/chatgpt-brand-visibility">ChatGPT brand visibility: complete optimization guide</a>
+      <a href="/gemini-seo">Gemini SEO: how to rank in Google Gemini AI search</a>
+      <a href="/ai-visibility-for-indian-startups">AI visibility for Indian startups</a>
       <a href="/llms-txt-guide">How to create an llms.txt file</a>
       <a href="/ai-visibility-score">What is an AI visibility score?</a>
       <a href="/geo-optimization-checklist">GEO optimization checklist 2026</a>
+      <a href="/audit">Run a free AI visibility audit</a>
     </div>
 
     <style>
