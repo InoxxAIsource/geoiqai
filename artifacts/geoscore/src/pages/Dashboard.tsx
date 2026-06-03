@@ -434,7 +434,7 @@ export default function Dashboard() {
     return () => window.removeEventListener("audit-updated", handler);
   }, [queryClient]);
 
-  const { data: user } = useGetMe({ query: { enabled: isAuthenticated } as never });
+  const { data: user, isLoading: loadingUser } = useGetMe({ query: { enabled: isAuthenticated } as never });
   const { data: summary, isLoading: loadingSummary } = useGetDashboardSummary({ query: { enabled: isAuthenticated } as never });
   const { data: brands, isLoading: loadingBrands } = useGetMonitoredBrands({ query: { enabled: isAuthenticated } as never });
 
@@ -559,7 +559,7 @@ export default function Dashboard() {
     if (isFree) {
       toast({
         title: "Upgrade to run dashboard audits",
-        description: "Run a free audit at geoiqai.com/audit, or upgrade to a paid plan to track your brand here.",
+        description: "Go to the home page to run a free audit, or upgrade to a paid plan to track your brand here.",
       });
       return;
     }
@@ -731,7 +731,7 @@ export default function Dashboard() {
     if (isFree) {
       toast({
         title: "Upgrade to run dashboard audits",
-        description: "Run a free audit at geoiqai.com/audit, or upgrade to a paid plan to track your brand here.",
+        description: "Go to the home page to run a free audit, or upgrade to a paid plan to track your brand here.",
       });
       return;
     }
@@ -1033,7 +1033,7 @@ export default function Dashboard() {
 
   if (!isAuthenticated) return null;
 
-  const isLoading = loadingSummary || loadingBrands;
+  const isLoading = loadingUser || loadingSummary || loadingBrands;
   const isScanning = !!isScanningBrandId;
   const scanningBrand = brands?.find(b => b.id === isScanningBrandId);
 
@@ -1405,7 +1405,7 @@ export default function Dashboard() {
             <div style={{ display: "flex", justifyContent: "center", paddingTop: 60 }}>
               <Loader2 size={26} color="#5B3FEA" style={{ animation: "spin 1s linear infinite" }} />
             </div>
-          ) : brands?.length === 0 ? (
+          ) : (!brands || brands.length === 0) ? (
             isFree ? (
               <div style={{ textAlign: "center", border: "1.5px dashed #e5e7eb", borderRadius: 12, padding: 48, background: "white" }}>
                 <div style={{ width: 48, height: 48, background: "#EEF2FF", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
@@ -1416,7 +1416,7 @@ export default function Dashboard() {
                   You're on the free plan. To track your brand in the dashboard, upgrade to Starter or Agency. Want to check your score now? Run a free audit from the home page.
                 </p>
                 <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-                  <a href="/audit" style={{ background: "#5B3FEA", color: "white", borderRadius: 8, padding: "10px 22px", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+                  <a href="/" style={{ background: "#5B3FEA", color: "white", borderRadius: 8, padding: "10px 22px", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
                     Run free audit
                   </a>
                   <a href="/pricing" style={{ background: "white", color: "#374151", border: "0.5px solid #d1d5db", borderRadius: 8, padding: "10px 22px", fontSize: 13, fontWeight: 500, textDecoration: "none" }}>

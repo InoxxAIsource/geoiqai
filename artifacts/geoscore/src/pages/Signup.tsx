@@ -61,7 +61,7 @@ export default function Signup() {
       if (data.token) {
         setToken(data.token);
         setPlan(data.user?.plan ?? "free");
-        setLocation("/audit");
+        window.location.href = "/";
       } else {
         setCreatedEmail(cleanEmail);
         setDone(true);
