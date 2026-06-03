@@ -183,16 +183,21 @@ export function AuditResults({ domain, score, enginesFound, blindSpots, techScor
         </div>
 
         {/* Tab bar */}
-        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 4, display: "flex", gap: 2, marginBottom: 16, ...fadeStyle(0.19) }}>
+        <div style={{ background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 12, padding: 4, display: "flex", gap: 2, marginBottom: 16, ...fadeStyle(0.19) }}>
           {(["visibility", "technical", "roadmap"] as const).map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)} style={{
-              flex: 1, padding: "9px 0", border: "none", cursor: "pointer", borderRadius: 9,
+              flex: 1, padding: "10px 0", border: "none", cursor: "pointer", borderRadius: 9,
               background: activeTab === tab ? "#0f172a" : "transparent",
-              color: activeTab === tab ? "#f1f5f9" : "#9ca3af",
-              fontWeight: 700, fontSize: 12, fontFamily: "Inter, sans-serif",
+              color: activeTab === tab ? "#f1f5f9" : "#374151",
+              fontWeight: activeTab === tab ? 700 : 600,
+              fontSize: 12, fontFamily: "Inter, sans-serif",
               textTransform: "capitalize" as const,
-              transition: "all 0.2s",
-            }}>
+              transition: "all 0.15s",
+              boxShadow: activeTab === tab ? "0 1px 4px rgba(0,0,0,0.18)" : "none",
+            }}
+            onMouseEnter={(e) => { if (activeTab !== tab) e.currentTarget.style.background = "#e2e8f0"; }}
+            onMouseLeave={(e) => { if (activeTab !== tab) e.currentTarget.style.background = "transparent"; }}
+            >
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
