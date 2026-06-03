@@ -99,10 +99,10 @@ const P = ({ children, style }: { children: React.ReactNode; style?: React.CSSPr
 
 export default function HowToRankInChatGPT() {
   useEffect(() => {
-    document.title = "How to Rank in ChatGPT: Complete Guide 2026 | GeoIQ";
-    setMeta("description", "Step by step guide to getting your brand recommended by ChatGPT. Technical fixes, content strategy, and citation building. Check your score free.");
-    setMeta("og:title", "How to Rank in ChatGPT: Complete Guide 2026 | GeoIQ", true);
-    setMeta("og:description", "Step by step guide to getting your brand recommended by ChatGPT. Technical fixes, content strategy, and citation building. Check your score free.", true);
+    document.title = "How to Rank in ChatGPT: Complete GEO Guide for Brands (2026)";
+    setMeta("description", "Step-by-step guide to getting your brand mentioned in ChatGPT, Gemini and Perplexity. Includes free visibility checker.");
+    setMeta("og:title", "How to Rank in ChatGPT: Complete GEO Guide for Brands (2026)", true);
+    setMeta("og:description", "Step-by-step guide to getting your brand mentioned in ChatGPT, Gemini and Perplexity. Includes free visibility checker.", true);
     setMeta("og:url", "https://geoiqai.com/how-to-rank-in-chatgpt", true);
     setMeta("og:type", "article", true);
     setMeta("og:image", "https://geoiqai.com/og-chatgpt.png", true);

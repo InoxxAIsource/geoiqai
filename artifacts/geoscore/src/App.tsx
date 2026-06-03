@@ -34,6 +34,8 @@ import BlogRobotsTxt from "@/pages/BlogRobotsTxt";
 import BlogWhatIsGeoScore from "@/pages/BlogWhatIsGeoScore";
 import BlogGeoVsSeo from "@/pages/BlogGeoVsSeo";
 import GeoIQVsSemrush from "@/pages/GeoIQVsSemrush";
+import GeoIQVsProfound from "@/pages/GeoIQVsProfound";
+import ChatGPTBrandVisibility from "@/pages/ChatGPTBrandVisibility";
 import Faq from "@/pages/Faq";
 import DevLogin from "@/pages/DevLogin";
 
@@ -89,6 +91,8 @@ function Router() {
         <Route path="/blog/what-is-geo-score" component={BlogWhatIsGeoScore} />
         <Route path="/blog/geo-vs-seo-2026" component={BlogGeoVsSeo} />
         <Route path="/geoiq-vs-semrush" component={GeoIQVsSemrush} />
+        <Route path="/geoiq-vs-profound" component={GeoIQVsProfound} />
+        <Route path="/chatgpt-brand-visibility" component={ChatGPTBrandVisibility} />
         <Route path="/faq" component={Faq} />
         <Route component={NotFound} />
       </Switch>

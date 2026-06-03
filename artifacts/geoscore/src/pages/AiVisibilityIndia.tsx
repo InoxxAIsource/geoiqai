@@ -114,10 +114,10 @@ const indianPlatforms = [
 
 export default function AiVisibilityIndia() {
   useEffect(() => {
-    document.title = "AI Visibility for Indian Startups: Why ChatGPT is Ignoring Your Brand | GeoIQ";
-    setMeta("description", "Most Indian startups are invisible to ChatGPT and Gemini. We tested 10 major Indian brands and found shocking scores. Free audit included.");
-    setMeta("og:title", "AI Visibility for Indian Startups: Why ChatGPT is Ignoring Your Brand | GeoIQ", true);
-    setMeta("og:description", "Most Indian startups are invisible to ChatGPT and Gemini. We tested 10 major Indian brands and found shocking scores. Free audit included.", true);
+    document.title = "AI Visibility for Indian Startups: Is ChatGPT Recommending Your Brand?";
+    setMeta("description", "Indian startups are invisible to AI. Check your GEO score free. Razorpay billing, INR pricing. Built by an indie founder from Bijnor.");
+    setMeta("og:title", "AI Visibility for Indian Startups: Is ChatGPT Recommending Your Brand?", true);
+    setMeta("og:description", "Indian startups are invisible to AI. Check your GEO score free. Razorpay billing, INR pricing. Built by an indie founder from Bijnor.", true);
     setMeta("og:url", "https://geoiqai.com/ai-visibility-for-indian-startups", true);
     setMeta("og:type", "article", true);
     setMeta("og:image", "https://geoiqai.com/og-india.png", true);

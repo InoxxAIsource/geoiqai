@@ -162,10 +162,10 @@ const schemaJson = {
 
 export default function GeoIQVsSemrush() {
   useEffect(() => {
-    document.title = "GeoIQ vs Semrush AI Visibility (2026) | Comparison";
-    setMeta("description", "GeoIQ vs Semrush AI Visibility: side-by-side feature and pricing comparison. 5 AI systems vs 4, $69/mo vs $99/mo per domain, free audit, and India-specific tracking.");
-    setMeta("og:title", "GeoIQ vs Semrush AI Visibility (2026)", true);
-    setMeta("og:description", "GeoIQ tracks ChatGPT, Gemini, Perplexity, Claude, and Grok. Semrush AI Visibility tracks 4. See the full comparison.", true);
+    document.title = "GeoIQ vs Semrush AI Visibility Checker (2026) — Full Comparison";
+    setMeta("description", "GeoIQ vs Semrush for AI search visibility. Which tool tracks ChatGPT brand mentions better? Free vs paid. INR pricing comparison.");
+    setMeta("og:title", "GeoIQ vs Semrush AI Visibility Checker (2026) — Full Comparison", true);
+    setMeta("og:description", "GeoIQ vs Semrush for AI search visibility. Which tool tracks ChatGPT brand mentions better? Free vs paid. INR pricing comparison.", true);
     setMeta("og:type", "article", true);
     setMeta("og:url", "https://geoiqai.com/geoiq-vs-semrush", true);
     setMeta("twitter:card", "summary_large_image");

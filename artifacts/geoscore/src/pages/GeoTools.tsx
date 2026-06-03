@@ -180,10 +180,10 @@ const Check = ({ value }: { value: boolean }) => (
 
 export default function GeoTools() {
   useEffect(() => {
-    document.title = "Best GEO Tools 2026: AI Visibility Platforms Compared | GeoIQ";
-    setMeta("description", "Compare the best GEO (Generative Engine Optimization) tools for 2026. GeoIQ, Rankscale, Elmo and more. Pricing, features and which to choose.");
-    setMeta("og:title", "Best GEO Tools 2026: AI Visibility Platforms Compared | GeoIQ", true);
-    setMeta("og:description", "Compare the best GEO tools for 2026. GeoIQ, Rankscale, Elmo and more. Pricing, features and which to choose.", true);
+    document.title = "Best GEO Tools 2026: Compare AI Visibility Platforms for Startups";
+    setMeta("description", "Compare the top Generative Engine Optimization tools — GeoIQ, Profound, Semrush AI, Peec AI. Free tier available. INR pricing for Indian teams.");
+    setMeta("og:title", "Best GEO Tools 2026: Compare AI Visibility Platforms for Startups", true);
+    setMeta("og:description", "Compare the top GEO tools — GeoIQ, Profound, Semrush AI, Peec AI. Free tier available. INR pricing for Indian teams.", true);
     setMeta("og:url", "https://geoiqai.com/geo-tools", true);
     setMeta("og:type", "article", true);
     setMeta("og:image", "https://geoiqai.com/og-geo-tools.png", true);

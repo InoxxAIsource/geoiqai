@@ -1,0 +1,46 @@
+Update the HTML <title> and <meta description> tags 
+for these pages on geoiqai.com:
+
+1. Homepage /
+Title: GeoIQ — Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+Description: Check if ChatGPT, Gemini, Perplexity, Claude and Grok recommend 
+your brand. Free audit in 60 seconds. No signup. The Search Console for AI search.
+
+2. /chatgpt-brand-visibility
+Title: ChatGPT Brand Visibility: How to Get Your Brand Cited by ChatGPT (2026)
+Description: Learn why your brand isn't appearing in ChatGPT answers and how 
+to fix it. Free audit tool included. Trusted by Indian startups.
+
+3. /how-to-rank-in-chatgpt
+Title: How to Rank in ChatGPT: Complete GEO Guide for Brands (2026)
+Description: Step-by-step guide to getting your brand mentioned in ChatGPT, 
+Gemini and Perplexity. Includes free visibility checker.
+
+4. /geo-tools
+Title: Best GEO Tools 2026: Compare AI Visibility Platforms for Startups
+Description: Compare the top Generative Engine Optimization tools — GeoIQ, 
+Profound, Semrush AI, Peec AI. Free tier available. INR pricing for Indian teams.
+
+5. /geoiq-vs-profound
+Title: GeoIQ vs Profound (2026): Which AI Visibility Tool Is Better?
+Description: Honest comparison of GeoIQ AI vs Profound for brand visibility 
+tracking across ChatGPT, Gemini and Perplexity. Pricing, features, verdict.
+
+6. /geoiq-vs-semrush
+Title: GeoIQ vs Semrush AI Visibility Checker (2026) — Full Comparison
+Description: GeoIQ vs Semrush for AI search visibility. Which tool tracks 
+ChatGPT brand mentions better? Free vs paid. INR pricing comparison.
+
+7. /ai-visibility-score
+Title: What Is an AI Visibility Score? How It's Calculated (GeoIQ Guide)
+Description: Understand how AI visibility scores work across ChatGPT, 
+Gemini and Perplexity. Check your free score at GeoIQ in 60 seconds.
+
+8. /ai-visibility-for-indian-startups
+Title: AI Visibility for Indian Startups: Is ChatGPT Recommending Your Brand?
+Description: Indian startups are invisible to AI. Check your GEO score free. 
+Razorpay billing, INR pricing. Built by an indie founder from Bijnor.
+
+Make sure all title tags are under 60 characters 
+and meta descriptions under 155 characters.
+Add these as <meta> tags in the <head> of each page.

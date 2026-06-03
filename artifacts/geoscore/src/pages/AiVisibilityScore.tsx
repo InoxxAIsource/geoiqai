@@ -105,10 +105,10 @@ const scoreRanges = [
 
 export default function AiVisibilityScore() {
   useEffect(() => {
-    document.title = "AI Visibility Score: What It Is and How to Check Yours Free | GeoIQ";
-    setMeta("description", "Your AI visibility score measures how often ChatGPT, Gemini and Perplexity recommend your brand. Check your score free in 60 seconds.");
-    setMeta("og:title", "AI Visibility Score: What It Is and How to Check Yours Free | GeoIQ", true);
-    setMeta("og:description", "Your AI visibility score measures how often ChatGPT, Gemini and Perplexity recommend your brand. Check your score free in 60 seconds.", true);
+    document.title = "What Is an AI Visibility Score? How It's Calculated (GeoIQ Guide)";
+    setMeta("description", "Understand how AI visibility scores work across ChatGPT, Gemini and Perplexity. Check your free score at GeoIQ in 60 seconds.");
+    setMeta("og:title", "What Is an AI Visibility Score? How It's Calculated (GeoIQ Guide)", true);
+    setMeta("og:description", "Understand how AI visibility scores work across ChatGPT, Gemini and Perplexity. Check your free score at GeoIQ in 60 seconds.", true);
     setMeta("og:url", "https://geoiqai.com/ai-visibility-score", true);
     setMeta("og:type", "article", true);
     setMeta("og:image", "https://geoiqai.com/og-ai-visibility-score.png", true);

@@ -1,5 +1,12 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useLocation } from "wouter";
+
+function setMeta(name: string, content: string, isProperty = false) {
+  const attr = isProperty ? "property" : "name";
+  let el = document.querySelector(`meta[${attr}="${name}"]`) as HTMLMetaElement | null;
+  if (!el) { el = document.createElement("meta"); el.setAttribute(attr, name); document.head.appendChild(el); }
+  el.setAttribute("content", content);
+}
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { PricingCards } from "@/components/pricing/PricingCards";
@@ -172,6 +179,13 @@ export default function Home() {
   const [url, setUrl] = useState("");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    document.title = "GeoIQ — Free AI Visibility Audit | See If ChatGPT Knows Your Brand";
+    setMeta("description", "Check if ChatGPT, Gemini, Perplexity, Claude and Grok recommend your brand. Free audit in 60 seconds. No signup. The Search Console for AI search.");
+    setMeta("og:title", "GeoIQ — Free AI Visibility Audit | See If ChatGPT Knows Your Brand", true);
+    setMeta("og:description", "Check if ChatGPT, Gemini, Perplexity, Claude and Grok recommend your brand. Free audit in 60 seconds. No signup.", true);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
