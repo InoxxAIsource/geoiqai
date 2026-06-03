@@ -181,9 +181,9 @@ export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    document.title = "GeoIQ — Free AI Visibility Audit | See If ChatGPT Knows Your Brand";
+    document.title = "GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand";
     setMeta("description", "Check if ChatGPT, Gemini, Perplexity, Claude and Grok recommend your brand. Free audit in 60 seconds. No signup. The Search Console for AI search.");
-    setMeta("og:title", "GeoIQ — Free AI Visibility Audit | See If ChatGPT Knows Your Brand", true);
+    setMeta("og:title", "GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand", true);
     setMeta("og:description", "Check if ChatGPT, Gemini, Perplexity, Claude and Grok recommend your brand. Free audit in 60 seconds. No signup.", true);
   }, []);
 
