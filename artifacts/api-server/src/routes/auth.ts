@@ -6,7 +6,7 @@ import { RegisterBody, LoginBody } from "@workspace/api-zod";
 import { hashPassword, verifyPassword, createToken, generateMagicToken, requireAuth, type AuthRequest } from "../lib/auth";
 import { sendMagicLinkEmail, sendEmailVerification, sendPasswordResetEmail, sendNewSignupAlert } from "../lib/email";
 
-const APP_URL = process.env.APP_URL ?? "https://geoscore.app";
+const APP_URL = process.env.APP_URL ?? "https://geoiqai.com";
 
 const router: IRouter = Router();
 
