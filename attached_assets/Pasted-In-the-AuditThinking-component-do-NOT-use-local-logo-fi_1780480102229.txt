@@ -1,0 +1,82 @@
+In the AuditThinking component, do NOT use local logo files. Instead use these direct image URLs for each AI engine logo. Update the AI_ENGINES array to use these exact URLs:
+tsxconst AI_ENGINES = [
+  {
+    name: "ChatGPT",
+    logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/openai.svg",
+    color: "#10a37f",
+    bg: "#f0fdf9",
+    sub: "AI Memory scan",
+  },
+  {
+    name: "Gemini",
+    logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/googlegemini.svg",
+    color: "#4285f4",
+    bg: "#eff6ff",
+    sub: "Live web scan",
+  },
+  {
+    name: "Perplexity",
+    logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/perplexity.svg",
+    color: "#20b2aa",
+    bg: "#f0fdfc",
+    sub: "Live web scan",
+  },
+  {
+    name: "Claude",
+    logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/anthropic.svg",
+    color: "#cc785c",
+    bg: "#fdf6f3",
+    sub: "AI Memory scan",
+  },
+  {
+    name: "Grok",
+    logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/x.svg",
+    color: "#0f172a",
+    bg: "#f8fafc",
+    sub: "AI Memory scan",
+  },
+];
+Render each logo like this — the key is applying a color filter so the SVG shows in the right brand color since simple-icons are black by default:
+tsx<div style={{
+  width: 36,
+  height: 36,
+  borderRadius: 10,
+  background: engine.bg,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
+}}>
+  <img
+    src={engine.logo}
+    alt={engine.name}
+    width={20}
+    height={20}
+    style={{
+      objectFit: "contain",
+      filter: engine.name === "Grok" ? "invert(0)" : "invert(40%) sepia(100%) saturate(500%) hue-rotate(var(--hue, 120deg))",
+    }}
+    onError={(e) => {
+      const target = e.target as HTMLImageElement;
+      target.style.display = "none";
+      if (target.parentElement) {
+        target.parentElement.innerHTML = engine.name.charAt(0);
+        target.parentElement.style.fontWeight = "800";
+        target.parentElement.style.color = engine.color;
+        target.parentElement.style.fontSize = "14px";
+      }
+    }}
+  />
+</div>
+Also add this CSS variable to each engine's container so the hue-rotate filter matches the brand color:
+
+ChatGPT: --hue: 150deg
+Gemini: --hue: 220deg
+Perplexity: --hue: 170deg
+Claude: --hue: 20deg
+Grok: no filter, keep black
+
+The onError fallback shows the first letter of the engine name if the image fails, so the UI never breaks regardless.
+
+
+This uses jsdelivr CDN + simple-icons which is 100% reliable, always available, and has official SVG icons for every major tech brand. No curl downloads needed.

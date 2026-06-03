@@ -20,11 +20,11 @@ const CITE_CARDS = [
 ];
 
 const ENGINES = [
-  { name: "ChatGPT",    sub: "AI memory check",         logo: "/logos/chatgpt.svg",    bg: "#f0fdf9", color: "#10a37f", ext: "svg" },
-  { name: "Gemini",     sub: "AI memory check",         logo: "/logos/gemini.svg",     bg: "#eff6ff", color: "#4285f4", ext: "svg" },
-  { name: "Perplexity", sub: "Live web results",        logo: "/logos/perplexity.svg", bg: "#f0fdfc", color: "#20b2aa", ext: "svg" },
-  { name: "Claude",     sub: "Visibility data",         logo: "/logos/claude.png",     bg: "#fdf6f3", color: "#cc785c", ext: "png" },
-  { name: "Grok",       sub: "Visibility data",         logo: "/logos/grok.png",       bg: "#f8fafc", color: "#0f172a", ext: "png" },
+  { name: "ChatGPT",    logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/openai.svg",        color: "#10a37f", bg: "#f0fdf9", sub: "AI Memory scan", hue: "150deg"  },
+  { name: "Gemini",     logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/googlegemini.svg",  color: "#4285f4", bg: "#eff6ff", sub: "Live web scan",  hue: "220deg"  },
+  { name: "Perplexity", logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/perplexity.svg",    color: "#20b2aa", bg: "#f0fdfc", sub: "Live web scan",  hue: "170deg"  },
+  { name: "Claude",     logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/anthropic.svg",     color: "#cc785c", bg: "#fdf6f3", sub: "AI Memory scan", hue: "20deg"   },
+  { name: "Grok",       logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/x.svg",             color: "#0f172a", bg: "#f8fafc", sub: "AI Memory scan", hue: null      },
 ];
 
 const MESSAGES = [
@@ -265,15 +265,30 @@ export function AuditThinking({ url, loadingStep, doneSteps, elapsedSeconds }: P
                 <div key={eng.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <div style={{
-                      width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                      width: 36, height: 36, borderRadius: 10, flexShrink: 0,
                       background: eng.bg, display: "flex", alignItems: "center", justifyContent: "center",
+                      ["--hue" as string]: eng.hue ?? "0deg",
                     }}>
                       <img
                         src={eng.logo}
-                        width={22} height={22}
-                        style={{ objectFit: "contain" }}
                         alt={eng.name}
-                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                        width={20} height={20}
+                        style={{
+                          objectFit: "contain",
+                          filter: eng.hue
+                            ? "invert(40%) sepia(100%) saturate(500%) hue-rotate(var(--hue, 120deg))"
+                            : "invert(0)",
+                        }}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = "none";
+                          if (target.parentElement) {
+                            target.parentElement.innerHTML = eng.name.charAt(0);
+                            target.parentElement.style.fontWeight = "800";
+                            target.parentElement.style.color = eng.color;
+                            target.parentElement.style.fontSize = "14px";
+                          }
+                        }}
                       />
                     </div>
                     <div>
