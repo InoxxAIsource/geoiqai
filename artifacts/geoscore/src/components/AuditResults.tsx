@@ -378,7 +378,7 @@ export function AuditResults({ domain, score, enginesFound, blindSpots, techScor
                 <span style={{ fontSize: 32, fontWeight: 900, color: "#f1f5f9", letterSpacing: "-0.04em", lineHeight: 1 }}>$69</span>
                 <span style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>/month</span>
               </div>
-              <div style={{ fontSize: 11, color: "#334155", marginTop: 2 }}>Rs 3,999/mo via Razorpay</div>
+              <div style={{ fontSize: 11, color: "#334155", marginTop: 2 }}>billed monthly via Razorpay</div>
             </div>
             <div style={{ textAlign: "right" as const }}>
               {["Unlimited audits", "All 5 AI engines", "Weekly monitoring", "Fix roadmap"].map((f) => (
