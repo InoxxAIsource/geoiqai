@@ -112,19 +112,16 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
   const [user] = await db.insert(usersTable).values({
     email: cleanEmail,
     passwordHash,
-    emailVerified: false,
+    emailVerified: true,
     plan: "free",
   }).returning();
 
-  const verifyToken = randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  await db.insert(emailVerificationTokensTable).values({ userId: user!.id, token: verifyToken, expiresAt });
-
-  const verifyUrl = `${APP_URL}/auth/verify-email?token=${verifyToken}`;
-  void sendEmailVerification(cleanEmail, verifyUrl);
   void sendNewSignupAlert(cleanEmail, "free");
+  req.log.info({ email: cleanEmail }, "New free user signed up");
 
-  res.status(201).json({ sent: true, message: "Account created. Check your email to verify your account." });
+  // Issue a token immediately so the client can log them in right away
+  const bearerToken = createToken(user!.id);
+  res.status(201).json({ token: bearerToken, user: { id: user!.id, email: cleanEmail, plan: "free" }, message: "Account created." });
 });
 
 // Email + password sign in

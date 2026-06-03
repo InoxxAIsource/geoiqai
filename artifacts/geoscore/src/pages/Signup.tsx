@@ -5,6 +5,7 @@ import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { setToken, setPlan } from "@/lib/auth";
 
 export default function Signup() {
   const [, setLocation] = useLocation();
@@ -43,7 +44,7 @@ export default function Signup() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: cleanEmail, password }),
       });
-      const data = await res.json() as { sent?: boolean; error?: string; alreadyExists?: boolean };
+      const data = await res.json() as { token?: string; user?: { plan: string }; error?: string; alreadyExists?: boolean };
       if (!res.ok) {
         if (data.alreadyExists) {
           toast({
@@ -57,8 +58,14 @@ export default function Signup() {
         toast({ title: data.error ?? "Signup failed", variant: "destructive" });
         return;
       }
-      setCreatedEmail(cleanEmail);
-      setDone(true);
+      if (data.token) {
+        setToken(data.token);
+        setPlan(data.user?.plan ?? "free");
+        setLocation("/audit");
+      } else {
+        setCreatedEmail(cleanEmail);
+        setDone(true);
+      }
     } catch {
       toast({ title: "Something went wrong", description: "Please try again.", variant: "destructive" });
     } finally {
