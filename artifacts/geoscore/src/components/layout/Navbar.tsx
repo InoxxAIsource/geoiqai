@@ -60,25 +60,14 @@ export function Navbar() {
           justifyContent: "space-between",
         }}
       >
-        <Link
-          href="/"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            textDecoration: "none",
-          }}
-        >
-          <svg width="28" height="28" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="180" height="180" rx="36" fill="#4F46E5"/>
-            <rect x="26" y="118" width="34" height="42" rx="8" fill="white" opacity="0.65"/>
-            <rect x="73" y="82" width="34" height="78" rx="8" fill="white" opacity="0.82"/>
-            <rect x="120" y="46" width="34" height="114" rx="8" fill="white"/>
-            <circle cx="137" cy="28" r="16" fill="#A5B4FC"/>
-            <circle cx="137" cy="28" r="9" fill="#4F46E5"/>
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none" }}>
+          <svg width="26" height="26" viewBox="0 0 40 40" fill="none">
+            <path d="M32 20 A12 12 0 1 1 20 8" stroke="#6366f1" strokeWidth="3" strokeLinecap="round"/>
+            <path d="M20 8 L28 8 L28 16" stroke="#6366f1" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="20" cy="20" r="2.5" fill="#6366f1"/>
           </svg>
-          <span style={{ fontSize: 20, fontWeight: 700, color: "#4F46E5", letterSpacing: "-0.03em" }}>
-            GeoIQ
+          <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 800, fontSize: "18px", letterSpacing: "-0.04em", color: "#0f172a" }}>
+            Geo<span style={{ color: "#6366f1" }}>IQ</span>
           </span>
         </Link>
 
