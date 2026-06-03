@@ -1,2 +1,3 @@
 - [DataForSEO LLM cache pattern](dataforseo-llm-cache.md) — generic getDfCache/setDfCache helpers using dataforseo_cache table; cast cached JSON as `unknown` first before target type.
 - [DataForSEO OnPage API limitation](dataforseo-onpage.md) — on_page/summary endpoints return 404 or empty results; replaced with direct HTML crawl.
+- [All GeoIQ pages](all-pages.md) — complete URL registry for geoiqai.com; check before building any page to avoid duplicates. SSR pages live in seo-pages-N.ts + artifact.toml; React pages in App.tsx.
