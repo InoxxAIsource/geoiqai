@@ -25,7 +25,23 @@ paths = [
   "/ai-search-ranking-factors",
   "/best-ai-visibility-tools",
   "/geo-tools-comparison",
-  "/chatgpt-visibility"
+  "/chatgpt-visibility",
+  "/audit",
+  "/pricing",
+  "/what-is-geo",
+  "/how-to-rank-in-chatgpt",
+  "/llms-txt-guide",
+  "/ai-visibility-score",
+  "/ai-visibility-for-indian-startups",
+  "/geo-tools",
+  "/blog",
+  "/contact",
+  "/privacy",
+  "/terms",
+  "/roadmap",
+  "/login",
+  "/signup",
+  "/dashboard"
 ]
 
 [services.development]

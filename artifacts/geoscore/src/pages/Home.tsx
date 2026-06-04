@@ -228,6 +228,40 @@ export default function Home() {
           }),
         }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "GeoIQ",
+            "alternateName": "GeoIQ AI Visibility",
+            "url": "https://geoiqai.com",
+            "description": "GeoIQ is an AI visibility platform that tracks how your brand appears in ChatGPT, Gemini and Perplexity. Free AI visibility audit in 60 seconds.",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "Web",
+            "offers": {
+              "@type": "Offer",
+              "price": 0,
+              "priceCurrency": "INR",
+              "availability": "https://schema.org/InStock",
+              "url": "https://geoiqai.com",
+            },
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": 4.8,
+              "ratingCount": 47,
+              "bestRating": 5,
+              "worstRating": 1,
+            },
+            "creator": {
+              "@type": "Person",
+              "name": "Tauheed",
+              "url": "https://twitter.com/BeingtauheedTk",
+            },
+          }),
+        }}
+      />
       <style>{`
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
         @keyframes ticker-scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }

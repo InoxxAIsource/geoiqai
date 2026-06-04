@@ -6,6 +6,7 @@ import router from "./routes";
 import seoPagesRouter from "./routes/seo-pages";
 import seoPagesRouter2 from "./routes/seo-pages-2";
 import seoPagesRouter3 from "./routes/seo-pages-3";
+import spaMetaRouter from "./routes/spa-meta";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
@@ -97,6 +98,7 @@ app.get("/sitemap.xml", (_req, res) => {
 app.use(seoPagesRouter);
 app.use(seoPagesRouter2);
 app.use(seoPagesRouter3);
+app.use(spaMetaRouter);
 app.use("/api", router);
 
 export default app;

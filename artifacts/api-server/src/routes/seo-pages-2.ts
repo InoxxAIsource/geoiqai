@@ -2008,9 +2008,25 @@ function faqHtml(): string {
 
     <div class="tag-pill">FREQUENTLY ASKED QUESTIONS</div>
 
-    <h1>FAQ - GeoIQ AI Visibility Tool</h1>
+    <h1>GeoIQ FAQ: AI Visibility, GEO Scores, and How It All Works</h1>
 
-    <p style="font-size:17px;color:#6B7280;margin-bottom:40px;line-height:1.7;">Everything you need to know about GeoIQ, AI visibility scores, GEO optimization, and how to get your SaaS brand recommended by ChatGPT, Gemini, and Perplexity.</p>
+    <p style="font-size:17px;color:#374151;margin-bottom:20px;line-height:1.7;">This page answers the most common questions about GeoIQ, AI visibility scoring, generative engine optimization (GEO), and how to get your brand recommended by ChatGPT, Gemini, and Perplexity. If you are new here: GeoIQ is a free AI visibility audit tool that shows you a score from 0 to 100 based on how well your brand is set up to appear in AI-generated answers. The audit takes under 20 seconds and needs no account.</p>
+
+    <p style="font-size:16px;color:#6B7280;margin-bottom:20px;line-height:1.7;">The questions below cover how the scoring works, which AI platforms we track, what each check actually measures, how to fix a low score, how pricing works, and what the GeoIQ Agent does. Use the accordion to jump to the topic you need - every answer links to a full guide if you want more depth.</p>
+
+    <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:12px;padding:24px 28px;margin-bottom:40px;">
+      <p style="font-size:13px;font-weight:600;color:#4F46E5;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 14px;">What this FAQ covers</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 32px;">
+        <span style="font-size:14px;color:#374151;">What GeoIQ is and who it's for</span>
+        <span style="font-size:14px;color:#374151;">How AI visibility scores are calculated</span>
+        <span style="font-size:14px;color:#374151;">Which AI platforms are tracked</span>
+        <span style="font-size:14px;color:#374151;">How to improve your GEO score</span>
+        <span style="font-size:14px;color:#374151;">ChatGPT and Gemini optimization</span>
+        <span style="font-size:14px;color:#374151;">Pricing, plans, and free tier</span>
+        <span style="font-size:14px;color:#374151;">What llms.txt is and why it matters</span>
+        <span style="font-size:14px;color:#374151;">Privacy and data handling</span>
+      </div>
+    </div>
 
     <div class="faq-accordion-wrap">
       ${accordionItems}

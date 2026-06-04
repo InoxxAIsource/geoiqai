@@ -1,0 +1,401 @@
+19 pages have duplicate meta descriptions
+Error
+
+How to fix
+Provide a unique, relevant meta description for each of your webpages.
+For information on how to create effective meta descriptions
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/
+
+18 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/ai-visibility-for-indian-startups
+
+18 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/ai-visibility-score
+
+18 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/audit
+
+18 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/audit?url=groww.in
+
+18 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/audit?url=lemlist.com
+
+18 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/audit?url=notion.so
+
+18 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/blog
+
+18 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/contact
+
+18 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/dashboard
+
+18 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/geo-tools
+
+18 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/how-to-rank-in-chatgpt
+
+18 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/llms-txt-guide
+
+18 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/login
+
+18 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/pricing
+
+18 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/privacy
+
+18 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/signup
+
+18 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/terms
+
+18 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/what-is-geo
+
+18 pages
+Jun 3, 2026, 9:14
+
+
+
+
+
+
+2. 19 structured data items are invalid
+Error
+Check structured data on your webpages with a validation tool. Please note that different markup testing tools may show different results.
+We recommend that you use the Rich Results Test tool to review and validate your pages’ structured data against their rich snippet requirements.
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/
+Software App
+
+1 field
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/ai-visibility-for-indian-startups
+Software App
+
+1 field
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/ai-visibility-score
+Software App
+
+1 field
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/audit
+Software App
+
+1 field
+Jun 3, 2026, 9:14
+Field
+Issue Description
+aggregateRating or review
+A value for the aggregateRating or review field is required.
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/audit?url=groww.in
+Software App
+
+1 field
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/audit?url=lemlist.com
+Software App
+
+1 field
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/audit?url=notion.so
+Software App
+
+1 field
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/blog
+Software App
+
+1 field
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/contact
+Software App
+
+1 field
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/dashboard
+Software App
+
+1 field
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/geo-tools
+Software App
+
+1 field
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/how-to-rank-in-chatgpt
+Software App
+
+1 field
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/llms-txt-guide
+Software App
+
+1 field
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/login
+Software App
+
+1 field
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/pricing
+Software App
+
+1 field
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/privacy
+Software App
+
+1 field
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/signup
+Software App
+
+1 field
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/terms
+Software App
+
+1 field
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/what-is-geo
+
+
+
+3.19 pages have duplicate content issues
+Error
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/
+
+10 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/ai-visibility-for-indian-startups
+
+10 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/ai-visibility-score
+
+10 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/audit
+
+10 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/audit?url=groww.in
+
+10 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/audit?url=lemlist.com
+
+10 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/audit?url=notion.so
+
+10 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/blog
+
+10 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/contact
+
+10 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/dashboard
+
+10 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/geo-tools
+
+10 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/how-to-rank-in-chatgpt
+
+10 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/llms-txt-guide
+
+10 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/login
+
+10 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/pricing
+
+10 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/privacy
+
+10 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/signup
+
+10 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/terms
+
+10 pages
+Jun 3, 2026, 9:14
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+https://geoiqai.com/what-is-geo
+
+10 pages
+Jun 3, 2026, 9:14
+
+
+4.19 issues with duplicate title tags
+Error
+
+GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand
+
+
+
+5.1 page requires content optimization
+Notice
+
+How to fix
+- Follow the advice provided in the error details for each page.
+- Improve your content with AI using the Content Optimizer tool.
+
+FAQ - GeoIQ AI Visibility Tool
+https://geoiqai.com/faq
+
