@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 import Home from "@/pages/Home";
+import Audit from "@/pages/Audit";
 import WhatIsGeo from "@/pages/WhatIsGeo";
 import HowToRankInChatGPT from "@/pages/HowToRankInChatGPT";
 import GeoTools from "@/pages/GeoTools";
@@ -42,6 +43,7 @@ export function render(url: string): string {
         <Router hook={makeStaticHook(url) as Parameters<typeof Router>[0]["hook"]}>
           <Switch>
             <Route path="/" component={Home} />
+            <Route path="/audit" component={Audit} />
             <Route path="/what-is-geo" component={WhatIsGeo} />
             <Route path="/how-to-rank-in-chatgpt" component={HowToRankInChatGPT} />
             <Route path="/geo-tools" component={GeoTools} />
