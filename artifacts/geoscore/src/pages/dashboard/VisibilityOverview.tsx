@@ -347,7 +347,7 @@ export function VisibilityOverview({
   onDomainChange?: (d: string) => void;
 }) {
   const [data, setData] = useState<VisibilityData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(!!domain);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(!domain);
   const [metricTab, setMetricTab] = useState<"main" | "monthly" | "ai">("main");
@@ -392,7 +392,7 @@ export function VisibilityOverview({
   };
 
   const d = data;
-  const hasData = d && (d.score > 0 || d.mentions > 0);
+  const hasData = !!d;
 
   return (
     <div style={{ maxWidth: 1200 }}>
@@ -497,13 +497,16 @@ export function VisibilityOverview({
                 <div style={{ padding: "40px 24px", textAlign: "center", color: MUTED, fontSize: 13 }}>
                   Enter a domain above to load data.
                 </div>
-              ) : !hasData ? (
-                <NoDataState domain={d.domain} />
               ) : (
                 <div style={{ display: "flex", gap: 0 }}>
                   {/* Gauge side */}
-                  <div style={{ padding: "24px 24px 24px 20px", borderRight: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ padding: "24px 24px 24px 20px", borderRight: `1px solid ${BORDER}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
                     <ScoreGauge score={d.score} />
+                    {d.score === 0 && (
+                      <div style={{ fontSize: 11, color: "#D97706", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 6, padding: "4px 10px", textAlign: "center", maxWidth: 160 }}>
+                        Not appearing in AI results yet
+                      </div>
+                    )}
                   </div>
 
                   {/* Metrics + chart side */}

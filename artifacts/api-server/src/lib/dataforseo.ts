@@ -1450,11 +1450,11 @@ export async function getLlmTopDomains(
 
     const domains: LlmTopDomain[] = Array.from(domainMap.entries())
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 15)
+      .slice(0, 50)
       .map(([domain, mentions]) => ({
         domain,
         mentions,
-        mentionRate: totalMentions > 0 ? Math.round((mentions / totalMentions) * 100) : 0,
+        mentionRate: totalMentions > 0 ? mentions / totalMentions : 0,
       }));
 
     const result: LlmTopDomainsResult = {
