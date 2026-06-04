@@ -7,12 +7,15 @@ const LOGO_SVG = `<svg width="32" height="32" viewBox="0 0 180 180" fill="none" 
   <circle cx="137" cy="28" r="9" fill="#4F46E5"/>
 </svg>`;
 
+const DEFAULT_OG_IMAGE = "https://geoiqai.com/opengraph.jpg";
+
 interface SsrPageOptions {
   title: string;
   description: string;
   canonical: string;
   ogTitle?: string;
   ogDescription?: string;
+  ogImage?: string;
   schemaJson: object[];
   body: string;
   readingTime?: number;
@@ -169,7 +172,8 @@ function ssrFooter(): string {
 }
 
 export function ssrHtmlShell(opts: SsrPageOptions): string {
-  const { title, description, canonical, ogTitle, ogDescription, schemaJson, body, readingTime } = opts;
+  const { title, description, canonical, ogTitle, ogDescription, ogImage, schemaJson, body, readingTime } = opts;
+  const resolvedImage = ogImage ?? DEFAULT_OG_IMAGE;
   const schemaBlock = schemaJson.map(s => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join("\n");
   return `<!DOCTYPE html>
 <html lang="en">
@@ -184,9 +188,11 @@ export function ssrHtmlShell(opts: SsrPageOptions): string {
   <meta property="og:type" content="article" />
   <meta property="og:url" content="${escHtml(canonical)}" />
   <meta property="og:site_name" content="GeoIQ" />
+  <meta property="og:image" content="${escHtml(resolvedImage)}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${escHtml(ogTitle ?? title)}" />
   <meta name="twitter:description" content="${escHtml(ogDescription ?? description)}" />
+  <meta name="twitter:image" content="${escHtml(resolvedImage)}" />
   <link rel="icon" href="/favicon.ico" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
