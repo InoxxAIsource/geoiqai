@@ -1,0 +1,253 @@
+FILE 3 — dataforseo.js (Complete — append after the cut-off line)
+Open dataforseo.js and replace everything from async getBalance onwards with this complete version. Here is the full file from scratch — delete what you have and paste this entire code:
+javascript// ═══════════════════════════════════════════════════════════════
+// DataForSEO API Client
+// Handles all authenticated requests to DataForSEO REST API
+// Docs: https://docs.dataforseo.com/v3/
+// ═══════════════════════════════════════════════════════════════
+
+const https = require('https');
+
+class DataForSEO {
+  constructor() {
+    this.login    = process.env.DATAFORSEO_LOGIN;
+    this.password = process.env.DATAFORSEO_PASSWORD;
+    this.baseHost = 'api.dataforseo.com';
+    if (!this.login || !this.password) {
+      console.warn('⚠️  DataForSEO credentials not set — demo mode active.');
+    }
+  }
+
+  // Basic Auth header
+  authHeader() {
+    return 'Basic ' + Buffer.from(`${this.login}:${this.password}`).toString('base64');
+  }
+
+  // ─── POST ───────────────────────────────────────────────────
+  post(endpoint, tasks) {
+    return new Promise((resolve, reject) => {
+      if (!this.login || !this.password) {
+        return reject(new Error('DataForSEO credentials not configured'));
+      }
+      const body = JSON.stringify(tasks);
+      const options = {
+        hostname: this.baseHost,
+        path: endpoint,
+        method: 'POST',
+        headers: {
+          'Authorization': this.authHeader(),
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body)
+        }
+      };
+      const req = https.request(options, (res) => {
+        let raw = '';
+        res.on('data', c => raw += c);
+        res.on('end', () => {
+          try {
+            const parsed = JSON.parse(raw);
+            if (parsed.status_code && parsed.status_code !== 20000) {
+              reject(new Error(`DataForSEO [${parsed.status_code}]: ${parsed.status_message}`));
+            } else {
+              resolve(parsed);
+            }
+          } catch (e) {
+            reject(new Error('Invalid JSON from DataForSEO'));
+          }
+        });
+      });
+      req.on('error', reject);
+      req.setTimeout(30000, () => { req.destroy(); reject(new Error('DataForSEO timeout')); });
+      req.write(body);
+      req.end();
+    });
+  }
+
+  // ─── GET ────────────────────────────────────────────────────
+  get(endpoint) {
+    return new Promise((resolve, reject) => {
+      if (!this.login || !this.password) {
+        return reject(new Error('DataForSEO credentials not configured'));
+      }
+      const options = {
+        hostname: this.baseHost,
+        path: endpoint,
+        method: 'GET',
+        headers: { 'Authorization': this.authHeader(), 'Content-Type': 'application/json' }
+      };
+      const req = https.request(options, (res) => {
+        let raw = '';
+        res.on('data', c => raw += c);
+        res.on('end', () => {
+          try { resolve(JSON.parse(raw)); }
+          catch (e) { reject(new Error('Invalid JSON')); }
+        });
+      });
+      req.on('error', reject);
+      req.setTimeout(30000, () => { req.destroy(); reject(new Error('Timeout')); });
+      req.end();
+    });
+  }
+
+  // ─── CHECK ACCOUNT BALANCE ──────────────────────────────────
+  async getBalance() {
+    const res = await this.get('/v3/appendix/user_data');
+    return res?.tasks?.[0]?.result?.[0]?.money?.balance ?? null;
+  }
+
+  // ─── AI OPTIMIZATION ── LLM MENTIONS ───────────────────────
+
+  // Aggregated metrics for a domain (citations, mentions, cited pages)
+  async llmAggregatedMetrics({ target, dateFrom, dateTo, locationCode = null, languageCode = 'en' }) {
+    return this.post('/v3/ai_optimization/llm_mentions/aggregated_metrics/live', [{
+      target,
+      date_from: dateFrom,
+      date_to: dateTo,
+      ...(locationCode && { location_code: locationCode }),
+      language_code: languageCode
+    }]);
+  }
+
+  // Cross-aggregated metrics (group by date, llm_name, competitor etc.)
+  async llmCrossAggregatedMetrics({ target, targets, dateFrom, dateTo, groupBy = 'date', locationCode = null, languageCode = 'en' }) {
+    const payload = {
+      date_from: dateFrom,
+      date_to: dateTo,
+      group_by: groupBy,
+      ...(locationCode && { location_code: locationCode }),
+      language_code: languageCode
+    };
+    if (targets) payload.targets = targets;
+    else payload.target = target;
+    return this.post('/v3/ai_optimization/llm_mentions/cross_aggregated_metrics/live', [payload]);
+  }
+
+  // Search mentions by domain — returns topics + prompts
+  async llmMentionsSearch({ target, dateFrom, dateTo, locationCode = null, languageCode = 'en', limit = 50, filterMissing = false }) {
+    return this.post('/v3/ai_optimization/llm_mentions/search/live', [{
+      target,
+      date_from: dateFrom,
+      date_to: dateTo,
+      ...(locationCode && { location_code: locationCode }),
+      language_code: languageCode,
+      limit,
+      ...(filterMissing && { filter: [['your_brand_cited', '=', false]] })
+    }]);
+  }
+
+  // Top cited pages for a domain
+  async llmTopPages({ target, dateFrom, dateTo, locationCode = null, languageCode = 'en', limit = 20 }) {
+    return this.post('/v3/ai_optimization/llm_mentions/top_pages/live', [{
+      target,
+      date_from: dateFrom,
+      date_to: dateTo,
+      ...(locationCode && { location_code: locationCode }),
+      language_code: languageCode,
+      limit
+    }]);
+  }
+
+  // ─── AI KEYWORD DATA ────────────────────────────────────────
+
+  // Search volume for AI keywords/prompts
+  async aiKeywordVolume({ keywords, locationCode = null, languageCode = 'en' }) {
+    return this.post('/v3/ai_optimization/ai_keyword_data/keywords_search_volume/live', [{
+      keywords,
+      ...(locationCode && { location_code: locationCode }),
+      language_code: languageCode
+    }]);
+  }
+
+  // Related keywords / topics for a seed keyword
+  async aiRelatedKeywords({ keywords, locationCode = null, languageCode = 'en', limit = 50 }) {
+    return this.post('/v3/ai_optimization/ai_keyword_data/keywords_for_keywords/live', [{
+      keywords,
+      ...(locationCode && { location_code: locationCode }),
+      language_code: languageCode,
+      limit
+    }]);
+  }
+
+  // ─── CHATGPT / LLM SCRAPER ──────────────────────────────────
+
+  // Live prompt tracking — send a prompt and get AI response + citations
+  async llmScraper({ prompt, llm = 'chatgpt', locationCode = null, languageCode = 'en' }) {
+    return this.post('/v3/ai_optimization/chat_gpt/llm_scraper/live', [{
+      prompt,
+      llm_type: llm,
+      ...(locationCode && { location_code: locationCode }),
+      language_code: languageCode
+    }]);
+  }
+
+  // ─── ON-PAGE / SITE AUDIT ───────────────────────────────────
+
+  // Create a site audit crawl task
+  async onPageTaskPost({ target, maxCrawlPages = 100, userAgent = 'GPTBot/1.0' }) {
+    return this.post('/v3/on_page/task_post', [{
+      target,
+      max_crawl_pages: maxCrawlPages,
+      user_agent_type: 'desktop',
+      custom_user_agent: userAgent,
+      enable_javascript: false,
+      store_raw_html: false,
+      check_spell: false
+    }]);
+  }
+
+  // Get audit summary for a task
+  async onPageSummary(taskId) {
+    return this.post('/v3/on_page/summary', [{ id: taskId }]);
+  }
+
+  // Get issues summary for a task
+  async onPageIssuesSummary(taskId) {
+    return this.post('/v3/on_page/issues_summary', [{ id: taskId }]);
+  }
+
+  // Get list of crawled pages
+  async onPagePages(taskId, limit = 50, offset = 0) {
+    return this.post('/v3/on_page/pages', [{ id: taskId, limit, offset }]);
+  }
+
+  // Get non-indexable pages
+  async onPageNonIndexable(taskId) {
+    return this.post('/v3/on_page/non_indexable', [{ id: taskId }]);
+  }
+
+  // ─── SERP (for additional keyword intelligence) ─────────────
+
+  // Standard Google organic SERP
+  async serpOrganicSearch({ keyword, locationCode = 2840, languageCode = 'en', depth = 10 }) {
+    return this.post('/v3/serp/google/organic/live/advanced', [{
+      keyword,
+      location_code: locationCode,
+      language_code: languageCode,
+      depth
+    }]);
+  }
+
+  // ─── DOMAIN ANALYTICS ───────────────────────────────────────
+
+  // Get backlinks summary for a domain
+  async backlinksSummary(target) {
+    return this.post('/v3/backlinks/summary/live', [{
+      target,
+      include_subdomains: true
+    }]);
+  }
+
+  // ─── UTILITIES ──────────────────────────────────────────────
+
+  // Test connection + credentials
+  async testConnection() {
+    try {
+      const balance = await this.getBalance();
+      return { ok: true, balance };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+}
+
+module.exports = DataForSEO;

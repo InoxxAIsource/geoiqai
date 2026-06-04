@@ -1,0 +1,541 @@
+FILE 1B — index.html (Part B of 2)
+In Replit, open index.html and APPEND this code directly after the last line of Part A (after the × button closing tags). Do NOT create a new file.
+html</button></div>
+    <button class="btn btn-p" onclick="runCompetitor()">Analyze</button>
+    <button class="btn btn-o" onclick="clearAllComp()">Clear</button>
+  </div>
+  <div id="comp-results" style="display:none">
+    <div class="cscores" id="comp-scores-wrap"></div>
+    <div class="g2">
+      <div class="card"><div class="ctitle">AI Visibility Trend</div><div class="cw"><canvas id="compChart"></canvas></div></div>
+      <div class="card"><div class="ctitle">Competitor Insights</div><div id="comp-insights"></div></div>
+    </div>
+    <div class="card mb20">
+      <div class="cheader"><div class="ctitle" style="margin:0">Topics &amp; Prompts Gap</div><button class="btn btn-o" style="font-size:11px;padding:5px 10px">⬆ Export</button></div>
+      <div class="tw"><table class="dt" id="comp-gap-table">
+        <thead><tr><th>TOPIC</th><th>AI VOLUME</th><th>YOUR STATUS</th><th>COMPETITORS</th><th>MISSING PROMPTS</th></tr></thead>
+        <tbody id="comp-gap-body"></tbody>
+      </table></div>
+    </div>
+  </div>
+  <div id="comp-empty" class="card" style="text-align:center;padding:60px 20px;color:var(--muted)">
+    <div style="font-size:40px;margin-bottom:12px">🔍</div>
+    <h3 style="font-size:16px;font-weight:600;margin-bottom:8px">Add competitors to analyze</h3>
+    <p style="font-size:13px">Enter your domain and up to 3 competitors then click Analyze</p>
+  </div>
+</div>
+
+<!-- PAGE: PROMPT RESEARCH -->
+<div class="page" id="page-prompt">
+  <div id="prompt-landing" class="lw">
+    <div style="font-size:11px;font-weight:600;color:var(--primary);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Discover Trending AI Prompts &amp; Topics</div>
+    <h1>Uncover the Prompts Where<br><span>Your Brand Should Be</span></h1>
+    <p>Conduct prompt research for AI SEO. See what questions people ask AI, analyze demand and difficulty, and uncover opportunities to boost your brand's visibility.</p>
+    <div class="sbl"><input type="text" id="prompt-input" placeholder="Enter a topic to analyze…" onkeydown="if(event.key==='Enter')runPrompt()"/><button onclick="runPrompt()">Analyze</button></div>
+    <div class="qtopics">
+      <span class="qt" onclick="quickPrompt('Airbnb India')">🏠 Airbnb India</span>
+      <span class="qt" onclick="quickPrompt('Short term rentals')">📋 Short term rentals</span>
+      <span class="qt" onclick="quickPrompt('Vacation homes')">🏡 Vacation homes</span>
+      <span class="qt" onclick="quickPrompt('Location intelligence')">📍 Location intelligence</span>
+    </div>
+    <div class="ficons">
+      <div class="fi"><span>📊</span><span>AI Volume</span></div>
+      <div class="fi"><span>🎯</span><span>Topic Difficulty</span></div>
+      <div class="fi"><span>🔎</span><span>Intent Analysis</span></div>
+      <div class="fi"><span>🏷️</span><span>Brand Mentions</span></div>
+    </div>
+  </div>
+  <div id="prompt-results" style="display:none;flex-direction:column;flex:1">
+    <div class="ph">
+      <div class="pt">Prompt Research: <span id="prompt-topic-title">—</span></div>
+      <div class="ps">AI search demand analysis</div>
+    </div>
+    <div id="prompt-kpis" class="kgrid" style="grid-template-columns:repeat(6,1fr)"></div>
+    <div class="g2">
+      <div class="card"><div class="ctitle">Intent Distribution</div><div class="cw csm"><canvas id="intentChart"></canvas></div></div>
+      <div class="card"><div class="ctitle">Top Brands in AI Responses</div><div id="brand-list"></div></div>
+    </div>
+    <div class="card mb20">
+      <div class="cheader"><div class="ctitle" style="margin:0">Related Topics</div><button class="btn btn-o" style="font-size:11px;padding:5px 10px" onclick="showPage('visibility',document.querySelector('[data-page=visibility]'))">← Back</button></div>
+      <div class="tw"><table class="dt" id="prompt-table">
+        <thead><tr><th>TOPIC</th><th>AI VOLUME</th><th>DIFFICULTY</th><th>INTENT</th><th>TOP BRANDS</th><th>TREND</th></tr></thead>
+        <tbody id="prompt-body"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: BRAND PERFORMANCE -->
+<div class="page" id="page-brand">
+  <div id="brand-landing" class="lw">
+    <div style="font-size:11px;font-weight:600;color:var(--primary);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Brand Performance</div>
+    <h1>How Does AI Talk<br><span>About Your Brand?</span></h1>
+    <p>Track your brand's AI visibility, sentiment, share of voice and key business drivers across ChatGPT, Gemini, and Perplexity.</p>
+    <div class="bform">
+      <div class="fg"><label class="fl">Your Domain</label><input class="fi2" type="text" id="brand-domain" placeholder="yoursite.com"/></div>
+      <div class="fg"><label class="fl">Target Location</label>
+        <select class="fsel" id="brand-location">
+          <option value="worldwide">🌐 Worldwide</option>
+          <option value="in">🇮🇳 India</option>
+          <option value="us">🇺🇸 United States</option>
+          <option value="gb">🇬🇧 United Kingdom</option>
+          <option value="de">🇩🇪 Germany</option>
+          <option value="au">🇦🇺 Australia</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Language</label>
+        <select class="fsel" id="brand-lang">
+          <option value="en">English</option>
+          <option value="hi">Hindi</option>
+          <option value="de">German</option>
+        </select>
+      </div>
+      <button class="btn btn-p" style="width:100%;padding:12px" onclick="runBrand()">Get Started →</button>
+    </div>
+  </div>
+  <div id="brand-results" style="display:none;flex-direction:column;flex:1">
+    <div class="ph">
+      <div class="pt">Brand Performance: <span id="brand-domain-title" style="color:var(--primary)">—</span></div>
+      <div class="ps" id="brand-target-sub">Target: Worldwide · English</div>
+    </div>
+    <div class="cpills" id="brand-pills"></div>
+    <div class="ip">
+      <div class="ih"><div class="it">Insights</div><div style="font-size:11px;color:var(--muted)">AI-generated strategy based on latest data</div></div>
+      <div id="brand-insights-list"></div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="ctitle">Overall Sentiment</div><div class="cw csm"><canvas id="sentimentChart"></canvas></div><div class="dleg" id="sent-legend"></div></div>
+      <div class="card"><div class="ctitle">Share of Voice</div><div class="cw csm"><canvas id="sovChart"></canvas></div><div class="dleg" id="sov-legend"></div></div>
+    </div>
+    <div class="card mb20">
+      <div class="ctitle">Key Business Drivers</div>
+      <div id="heatmap-wrap"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: PERCEPTION -->
+<div class="page" id="page-perception">
+  <div class="ph"><div class="pt">Perception</div><div class="ps">How AI platforms perceive your brand vs competitors</div></div>
+  <div class="ip">
+    <div class="ih"><div class="it">AI Insights</div></div>
+    <div class="ii"><div class="inum">1</div><div class="ibody"><div class="ititle">Strong positive association with convenience</div><div class="idesc">AI platforms consistently mention your brand in context of ease-of-use and seamless booking experience across 78% of prompts.</div><span class="ilink">View related prompts →</span></div></div>
+    <div class="ii"><div class="inum">2</div><div class="ibody"><div class="ititle">Price narrative needs reinforcement</div><div class="idesc">Competitors dominate value-for-money discussions. Your brand appears in only 12% of price-related queries.</div><span class="ilink">Go to Narrative Drivers →</span></div></div>
+    <div class="ii"><div class="inum">3</div><div class="ibody"><div class="ititle">Trust signals are working</div><div class="idesc">Review and safety-related prompts cite your brand 3.2x more than the category average.</div><span class="ilink">View sources →</span></div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="ctitle">Competitive Perception by Platform</div><div id="platform-bars-perc"></div></div>
+    <div class="card"><div class="ctitle">Overall Sentiment</div><div class="cw csm"><canvas id="percSentChart"></canvas></div><div class="dleg" id="perc-sent-legend"></div></div>
+  </div>
+  <div class="card mb20"><div class="ctitle">Favorable Sentiment Over Time</div><div class="cw"><canvas id="sentTimeChart"></canvas></div></div>
+</div>
+
+<!-- PAGE: NARRATIVE DRIVERS -->
+<div class="page" id="page-narrative">
+  <div class="ph"><div class="pt">Narrative Drivers</div><div class="ps">What themes drive AI mentions of your brand</div></div>
+  <div class="ip">
+    <div class="ih"><div class="it">AI Insights</div></div>
+    <div class="ii"><div class="inum">1</div><div class="ibody"><div class="ititle">Convenience is your strongest narrative</div><div class="idesc">Steady 8–10% share of voice across all platforms. Lean into this with structured data and FAQ content.</div></div></div>
+    <div class="ii"><div class="inum">2</div><div class="ibody"><div class="ititle">Location-based content drives citations</div><div class="idesc">City-specific landing pages account for 67% of all cited URLs. Expand to more tier-2 cities.</div></div></div>
+    <div class="ii"><div class="inum">3</div><div class="ibody"><div class="ititle">Sustainability narrative is emerging</div><div class="idesc">Eco-friendly travel prompts are growing 34% MoM. Early mover advantage available.</div></div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="ctitle">Share of Voice by Platform</div><div id="sov-platform-bars"></div></div>
+    <div class="card"><div class="ctitle">Narrative Trend Over Time</div><div class="cw"><canvas id="narrativeChart"></canvas></div></div>
+  </div>
+</div>
+
+<!-- PAGE: QUESTIONS -->
+<div class="page" id="page-questions">
+  <div class="ph"><div class="pt">Questions</div><div class="ps">Questions AI users ask that relate to your category</div></div>
+  <div class="ip">
+    <div class="ih"><div class="it">AI Insights</div></div>
+    <div class="ii"><div class="inum">1</div><div class="ibody"><div class="ititle">Comparison questions dominate</div><div class="idesc">20% of queries ask AI to compare platforms. Ensure your brand appears in head-to-head comparisons.</div></div></div>
+    <div class="ii"><div class="inum">2</div><div class="ibody"><div class="ititle">Shopping intent is growing</div><div class="idesc">Transactional queries up 18% this month. High-intent pages need schema markup and structured pricing data.</div></div></div>
+    <div class="ii"><div class="inum">3</div><div class="ibody"><div class="ititle">Research queries cite Reddit &amp; YouTube heavily</div><div class="idesc">46% of informational queries cite user-generated content. Build community presence to capture these.</div></div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="ctitle">Topic Distribution</div><div class="tmap" id="treemap"></div></div>
+    <div class="card"><div class="ctitle">Query Intent Distribution</div><div class="cw csm"><canvas id="intentQChart"></canvas></div><div class="dleg" id="intent-q-legend"></div></div>
+  </div>
+  <div class="card mb20">
+    <div class="ctitle">Top Questions</div>
+    <div class="tw"><table class="dt">
+      <thead><tr><th>QUESTION</th><th>AI VOLUME</th><th>INTENT</th><th>YOUR BRAND CITED</th><th>TOP SOURCE</th></tr></thead>
+      <tbody id="questions-body"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- PAGE: SITE AUDIT -->
+<div class="page" id="page-audit">
+  <div class="ph"><div class="pt">Site Audit: <span id="audit-domain">yourdomain.com</span></div><div class="ps" id="audit-sub">Last crawled: Loading…</div></div>
+  <div id="audit-err" class="aerr" style="display:none"></div>
+  <div class="g4" id="audit-header">
+    <div class="agcard"><div class="ascore" id="a-site-health">—</div><div class="alabel">Site Health</div><div style="font-size:11px;color:var(--muted);margin-top:4px">Overall score</div></div>
+    <div class="agcard"><div class="ascore" id="a-ai-health">—</div><div class="alabel">AI Search Health</div><div style="font-size:11px;color:var(--muted);margin-top:4px">GPTBot access</div></div>
+    <div class="agcard"><div class="ascore" style="color:var(--red)" id="a-errors">—</div><div class="alabel">Errors</div><div style="font-size:11px;color:var(--muted);margin-top:4px">Critical issues</div></div>
+    <div class="agcard"><div class="ascore" style="color:var(--orange)" id="a-warnings">—</div><div class="alabel">Warnings</div><div style="font-size:11px;color:var(--muted);margin-top:4px">To fix</div></div>
+  </div>
+  <div class="tbar">
+    <button class="tbtn active" onclick="switchAuditTab('overview',this)">Overview</button>
+    <button class="tbtn" onclick="switchAuditTab('issues',this)">Issues</button>
+    <button class="tbtn" onclick="switchAuditTab('crawled',this)">Crawled Pages</button>
+    <button class="tbtn" onclick="switchAuditTab('bots',this)">Bot Access</button>
+  </div>
+  <div class="tpane active" id="audit-overview">
+    <div class="g2">
+      <div class="card"><div class="ctitle">Crawl Summary</div>
+        <div class="kgrid" style="grid-template-columns:repeat(3,1fr);margin-bottom:0">
+          <div class="kcard"><div class="klabel">Crawled</div><div class="kval" id="a-crawled">—</div></div>
+          <div class="kcard"><div class="klabel">Healthy</div><div class="kval" id="a-healthy" style="color:var(--green)">—</div></div>
+          <div class="kcard"><div class="klabel">Issues</div><div class="kval" id="a-issues" style="color:var(--red)">—</div></div>
+        </div>
+      </div>
+      <div class="card"><div class="ctitle">Audit Progress</div><div class="cw csm"><canvas id="auditChart"></canvas></div></div>
+    </div>
+  </div>
+  <div class="tpane" id="audit-issues">
+    <div class="card"><div class="ctitle">Issues Found</div><div id="issues-list"></div></div>
+  </div>
+  <div class="tpane" id="audit-crawled">
+    <div class="card"><div class="ctitle">Crawled Pages</div>
+      <div class="tw"><table class="dt" id="crawled-table">
+        <thead><tr><th>URL</th><th>STATUS</th><th>TITLE</th><th>ISSUES</th></tr></thead>
+        <tbody id="crawled-body"></tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="tpane" id="audit-bots">
+    <div class="card"><div class="ctitle">AI Bot Access Check</div><div id="bot-list"></div></div>
+  </div>
+</div>
+
+<!-- PAGE: PROMPT TRACKING -->
+<div class="page" id="page-tracking">
+  <div class="ph"><div class="pt">Prompt Tracking: <span id="track-domain">yourdomain.com</span></div><div class="ps">Track your AI visibility position for specific prompts</div></div>
+  <div id="track-err" class="aerr" style="display:none"></div>
+  <div class="trkpis">
+    <div class="tcard"><div class="tval" id="t-visibility">0%</div><div class="tlab">AI Visibility</div></div>
+    <div class="tcard"><div class="tval" id="t-mentions">0</div><div class="tlab">Total Mentions</div></div>
+    <div class="tcard"><div class="tval" id="t-position">—</div><div class="tlab">Avg Position</div></div>
+    <div class="tcard"><div class="tval" id="t-prompts">0</div><div class="tlab">Tracked Prompts</div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="ctitle">Visibility Trend</div><div class="cw"><canvas id="trackChart"></canvas></div></div>
+    <div class="card"><div class="ctitle">Platform Breakdown</div><div id="track-platforms"></div></div>
+  </div>
+  <div class="card mb20">
+    <div class="cheader"><div class="ctitle" style="margin:0">Tracked Prompts</div>
+      <button class="btn btn-p" style="font-size:11px;padding:5px 12px" onclick="addPromptModal()">+ Add Prompt</button>
+    </div>
+    <div class="tw"><table class="dt">
+      <thead><tr><th>PROMPT</th><th>LLM</th><th>POSITION</th><th>MENTIONED</th><th>LAST CHECKED</th><th>TREND</th></tr></thead>
+      <tbody id="track-body"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- PAGE: CONTENT CREATION -->
+<div class="page" id="page-content">
+  <div class="ph"><div class="pt">Content Creation: <span id="content-domain">yourdomain.com</span></div><div class="ps">AI-powered content gap analysis and brief generator</div></div>
+  <div class="ckpis">
+    <div class="ckcard"><div class="ckv red" id="c-gaps">—</div><div class="ckl">Content Gaps Found</div><div style="font-size:11px;color:var(--muted)">topics with 0 AI coverage</div></div>
+    <div class="ckcard"><div class="ckv orange" id="c-wins">—</div><div class="ckl">Quick Wins</div><div style="font-size:11px;color:var(--muted)">low difficulty, high AI volume</div></div>
+    <div class="ckcard"><div class="ckv" id="c-briefs" style="color:var(--muted)">0</div><div class="ckl">Briefs Generated</div><div style="font-size:11px;color:var(--muted)">AI content briefs created</div></div>
+  </div>
+  <div class="card mb20">
+    <div class="cheader"><div class="ctitle" style="margin:0">Content Gap Analysis</div><button class="btn btn-o" style="font-size:11px;padding:5px 10px">⬆ Export</button></div>
+    <div class="tw"><table class="dt">
+      <thead><tr><th>TOPIC / KEYWORD</th><th>AI VOLUME</th><th>DIFFICULTY</th><th>YOUR COVERAGE</th><th>COMPETITORS</th><th>INTENT</th><th>ACTION</th></tr></thead>
+      <tbody id="content-body"></tbody>
+    </table></div>
+  </div>
+</div>
+
+</div><!-- end .main -->
+
+<script>
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let state = {
+  domain: 'yourdomain.com',
+  geo: 'worldwide',
+  period: '1m',
+  llmTab: 'mentions',
+  topTab: 'performing',
+  brandDomain: '',
+  charts: {}
+};
+
+// ═══════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════
+function showPage(id, navEl) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const pg = document.getElementById('page-' + id);
+  if (pg) pg.classList.add('active');
+  if (navEl) navEl.classList.add('active');
+  else {
+    const n = document.querySelector('[data-page="' + id + '"]');
+    if (n) n.classList.add('active');
+  }
+  initPageCharts(id);
+}
+
+// ═══════════════════════════════════════════════
+// DOMAIN SEARCH
+// ═══════════════════════════════════════════════
+function runSearch() {
+  const d = document.getElementById('domainInput').value.trim();
+  if (!d) return;
+  state.domain = d;
+  document.getElementById('vis-domain').textContent = d;
+  document.getElementById('audit-domain').textContent = d;
+  document.getElementById('track-domain').textContent = d;
+  document.getElementById('content-domain').textContent = d;
+  loadVisibility();
+}
+
+function geoChip(geo, el) {
+  document.querySelectorAll('.chips .chip').forEach((c,i) => { if(i<4) c.classList.remove('active'); });
+  el.classList.add('active');
+  state.geo = geo;
+  loadVisibility();
+}
+
+// ═══════════════════════════════════════════════
+// VISIBILITY
+// ═══════════════════════════════════════════════
+async function loadVisibility() {
+  document.getElementById('topics-table-wrap').innerHTML = '<div class="spinbox"><div class="spin"></div><div class="stxt">Loading…</div></div>';
+  try {
+    const res = await fetch(`/api/visibility?domain=${encodeURIComponent(state.domain)}&geo=${state.geo}&period=${state.period}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    renderVisibility(data);
+    document.getElementById('vis-banner').style.display = 'none';
+  } catch(e) {
+    document.getElementById('vis-banner').style.display = 'flex';
+    renderVisibility(getDemoVisibility());
+  }
+}
+
+function renderVisibility(data) {
+  document.getElementById('vis-score').textContent = data.score ?? '—';
+  document.getElementById('k-mentions').textContent = data.mentions ?? 0;
+  document.getElementById('k-citations').textContent = data.citations ?? 0;
+  document.getElementById('k-cited').textContent = data.citedPages ?? 0;
+  document.getElementById('k-mentions-ch').textContent = data.mentionsChange ?? '';
+  document.getElementById('k-citations-ch').textContent = data.citationsChange ?? '';
+  document.getElementById('k-cited-ch').textContent = data.citedPagesChange ?? '';
+  document.getElementById('cnt-p').textContent = data.topics?.length ?? 0;
+  document.getElementById('cnt-cp').textContent = data.citedPages ?? 0;
+  renderLLMTable(data.llm ?? getDemoLLM(), state.llmTab);
+  renderTopicsTable(data.topics ?? getDemoTopics());
+  updateVisChart(data.trend ?? getDemoTrend());
+}
+
+function renderLLMTable(llm, tab) {
+  const rows = llm.map(l => {
+    const val = tab === 'mentions' ? l.mentionsPct : l.citedPct;
+    return `<div class="lrow">
+      <div class="lname">${l.icon} ${l.name}</div>
+      <div class="lbar"><div class="lfill" style="width:${val}%"></div></div>
+      <div class="lval">${val}%</div>
+    </div>`;
+  }).join('');
+  document.getElementById('llm-table').innerHTML = rows;
+}
+
+function switchLLM(tab, el) {
+  document.querySelectorAll('#page-visibility .tbar:nth-of-type(2) .tbtn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  state.llmTab = tab;
+  renderLLMTable(getDemoLLM(), tab);
+}
+
+function switchTP(p, el) {
+  document.querySelectorAll('#page-visibility .tbar:first-of-type .tbtn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  state.period = p;
+  loadVisibility();
+}
+
+function switchTopTab(tab, el) {
+  document.querySelectorAll('#page-visibility .tbar:nth-of-type(3) .tbtn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  state.topTab = tab;
+  if (tab === 'cited-pages') renderCitedPages(getDemoCitedPages());
+  else renderTopicsTable(getDemoTopics());
+}
+
+function renderTopicsTable(topics) {
+  const rows = topics.map(t => `
+    <tr>
+      <td><button class="xbtn" onclick="toggleExpand(this)">▶</button> ${t.flag||''}${t.topic}</td>
+      <td><div class="sbar"><div class="strack"><div class="sfill" style="width:${t.visibility||0}%"></div></div> ${t.visibility||0}%</div></td>
+      <td>${t.mentions ?? 0}</td>
+      <td>${t.aiVolume ?? '—'}</td>
+      <td><span class="badge bb">${t.intent||'Info'}</span></td>
+    </tr>
+    <tr class="xrow"><td colspan="5"><div class="xi">
+      <div><div class="xl">Sample Prompt</div><div class="xv">${t.samplePrompt||'—'}</div></div>
+      <div><div class="xl">AI Response Preview</div><div class="xv">${t.aiResponse||'—'}</div></div>
+      <div><div class="xl">Brands Mentioned</div><div class="xv">${t.brands ?? 0}</div></div>
+      <div><div class="xl">Sources Cited</div><div class="xv">${t.sources ?? 0}</div></div>
+    </div></td></tr>`).join('');
+  document.getElementById('topics-table-wrap').innerHTML = `
+    <div class="tw"><table class="dt">
+      <thead><tr><th>TOPIC</th><th>VISIBILITY</th><th>YOUR MENTIONS</th><th>AI VOLUME</th><th>INTENT</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
+function renderCitedPages(pages) {
+  const rows = pages.map(p => `<tr><td><a href="https://${p.url}" target="_blank" style="color:var(--primary)">${p.url}</a></td><td>${p.prompts}</td><td>${p.aiVolume}</td><td><span class="badge bg">Cited</span></td></tr>`).join('');
+  document.getElementById('topics-table-wrap').innerHTML = `
+    <div class="tw"><table class="dt">
+      <thead><tr><th>URL</th><th>PROMPT COUNT</th><th>AI VOLUME</th><th>STATUS</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
+function toggleExpand(btn) {
+  btn.classList.toggle('open');
+  const xrow = btn.closest('tr').nextElementSibling;
+  const xi = xrow.querySelector('.xi');
+  if (xi) xi.classList.toggle('open');
+}
+
+function updateVisChart(trend) {
+  if (state.charts.vis) { state.charts.vis.destroy(); delete state.charts.vis; }
+  const ctx = document.getElementById('visChart');
+  if (!ctx) return;
+  state.charts.vis = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: trend.labels,
+      datasets: [
+        { label: 'Citations', data: trend.citations, borderColor: '#5B4FDB', backgroundColor: 'rgba(91,79,219,.1)', fill: true, tension: .4, pointRadius: 3 },
+        { label: 'Mentions', data: trend.mentions, borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,.1)', fill: true, tension: .4, pointRadius: 3 }
+      ]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: { family: 'Sora', size: 11 } } } }, scales: { y: { beginAtZero: true }, x: { ticks: { font: { family: 'Sora', size: 10 } } } } }
+  });
+}
+
+// ═══════════════════════════════════════════════
+// COMPETITOR RESEARCH
+// ═══════════════════════════════════════════════
+function clearComp(n) { document.getElementById('comp-d'+n).value = ''; }
+function clearAllComp() {
+  [1,2,3].forEach(n => document.getElementById('comp-d'+n).value = '');
+  document.getElementById('comp-main').value = '';
+  document.getElementById('comp-results').style.display = 'none';
+  document.getElementById('comp-empty').style.display = 'block';
+}
+
+async function runCompetitor() {
+  const main = document.getElementById('comp-main').value.trim() || state.domain;
+  const d1 = document.getElementById('comp-d1').value.trim();
+  const d2 = document.getElementById('comp-d2').value.trim();
+  const d3 = document.getElementById('comp-d3').value.trim();
+  const domains = [main, d1, d2, d3].filter(Boolean);
+  if (domains.length < 2) { alert('Enter at least one competitor domain'); return; }
+
+  document.getElementById('comp-empty').style.display = 'none';
+  document.getElementById('comp-results').style.display = 'block';
+
+  try {
+    const res = await fetch('/api/competitor', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ domains }) });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    renderCompetitor(data, domains);
+  } catch(e) {
+    renderCompetitor(getDemoCompetitor(domains), domains);
+  }
+}
+
+function renderCompetitor(data, domains) {
+  const scoresWrap = document.getElementById('comp-scores-wrap');
+  scoresWrap.innerHTML = domains.map((d, i) => `
+    <div class="cscore">
+      <div class="cscn">${i === 0 ? 'YOU' : 'COMPETITOR ' + i}</div>
+      <div class="cscv ${i===0?'you':''}">${data.scores[i] ?? 0}</div>
+      <div style="font-size:11px;color:var(--muted)">${d}</div>
+    </div>`).join('');
+
+  if (state.charts.comp) { state.charts.comp.destroy(); delete state.charts.comp; }
+  const ctx = document.getElementById('compChart');
+  if (ctx) {
+    const colors = ['#5B4FDB','#EF4444','#F59E0B','#10B981'];
+    state.charts.comp = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.trend.labels,
+        datasets: domains.map((d, i) => ({
+          label: d, data: data.trend.series[i] ?? [],
+          borderColor: colors[i], backgroundColor: 'transparent', tension: .4, pointRadius: 3
+        }))
+      },
+      options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: { family: 'Sora', size: 11 } } } } }
+    });
+  }
+
+  document.getElementById('comp-insights').innerHTML = (data.insights || []).map((ins, i) => `
+    <div class="ii"><div class="inum">${i+1}</div><div class="ibody"><div class="ititle">${ins.title}</div><div class="idesc">${ins.desc}</div></div></div>`).join('');
+
+  document.getElementById('comp-gap-body').innerHTML = (data.gaps || []).map(g => `
+    <tr>
+      <td>${g.topic}</td>
+      <td>${g.aiVolume}</td>
+      <td><span class="badge ${g.status==='Missing'?'br':g.status==='Cited'?'bg':'bo'}">${g.status}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${g.competitors}</td>
+      <td style="font-weight:600;color:var(--red)">${g.missing?.toLocaleString()}</td>
+    </tr>`).join('');
+}
+
+// ═══════════════════════════════════════════════
+// PROMPT RESEARCH
+// ═══════════════════════════════════════════════
+function quickPrompt(t) { document.getElementById('prompt-input').value = t; runPrompt(); }
+
+async function runPrompt() {
+  const topic = document.getElementById('prompt-input').value.trim();
+  if (!topic) return;
+  document.getElementById('prompt-landing').style.display = 'none';
+  document.getElementById('prompt-results').style.display = 'flex';
+  document.getElementById('prompt-topic-title').textContent = topic;
+  document.getElementById('prompt-kpis').innerHTML = '<div class="spinbox" style="grid-column:span 6"><div class="spin"></div></div>';
+
+  try {
+    const res = await fetch(`/api/prompts?topic=${encodeURIComponent(topic)}&geo=${state.geo}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    renderPromptResults(data);
+  } catch(e) {
+    renderPromptResults(getDemoPrompt(topic));
+  }
+}
+
+function renderPromptResults(data) {
+  const kpis = [
+    { label: 'AI Volume', value: data.aiVolume },
+    { label: 'Topics', value: data.topicsCount },
+    { label: 'Prompts', value: data.promptsCount },
+    { label: 'Brands', value: data.brandsCount },
+    { label: 'Sources', value: data.sourcesCount },
+    { label: 'Avg Difficulty', value: data.avgDifficulty + '%' }
+  ];
+  document.getElementById('prompt-kpis').innerHTML = kpis.map(k => `
+    <div class="kcard"><div class="klabel">${k.label}</div><div class="kval">${k.value}</div></div>`).join('');
+
+  if (state.charts.intent) { state.charts.intent.destroy(); delete state.charts.intent; }
+  const ctx = document.getElementById('intentChart');
+  if (ctx && data.intent) {
+    state.charts.intent = new Chart(ctx, {
+      type: 'doughnut',
+      data: { labels: Object.keys(data.intent), datasets: [{ data: Object.values(data.intent), backgroundColor: ['#5B4FDB','#10B981','#F59E0B','#EF4444','#8B5CF6'] }] },

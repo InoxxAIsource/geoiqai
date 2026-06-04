@@ -1,0 +1,349 @@
+FILE 1A — index.html (Part A of 2)
+Create a new file in Replit called index.html and paste this first:
+html<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>GeoIQ AI Visibility Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#5B4FDB;--pl:#7B72E8;--pf:#EEF0FF;
+  --fg:#0F1729;--muted:#64748B;--mbg:#F1F5F9;--border:#E2E8F0;
+  --white:#fff;--green:#10B981;--orange:#F59E0B;--red:#EF4444;
+  --r:.75rem;--sw:220px;--th:60px;
+}
+*{font-family:'Sora',sans-serif;}
+body{background:#F8FAFC;color:var(--fg);min-height:100vh;}
+/* SIDEBAR */
+.sidebar{position:fixed;top:0;left:0;width:var(--sw);height:100vh;background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;overflow-y:auto;}
+.s-logo{display:flex;align-items:center;gap:10px;padding:18px 16px;border-bottom:1px solid var(--border);}
+.s-icon{width:32px;height:32px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;}
+.s-text{font-size:16px;font-weight:700;}
+.s-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;padding:16px 16px 6px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-radius:6px;margin:1px 8px;transition:all .15s;}
+.nav-item:hover{background:var(--mbg);color:var(--fg);}
+.nav-item.active{background:var(--pf);color:var(--primary);font-weight:600;}
+.nav-item svg{width:15px;height:15px;flex-shrink:0;}
+/* MAIN */
+.main{margin-left:var(--sw);min-height:100vh;display:flex;flex-direction:column;}
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:90;height:var(--th);background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;padding:0 20px;}
+.dsearch{display:flex;align-items:center;gap:8px;background:var(--mbg);border:1px solid var(--border);border-radius:8px;padding:6px 12px;}
+.dsearch input{border:none;background:transparent;font-size:13px;color:var(--fg);outline:none;width:180px;}
+.dsearch button{background:var(--primary);border:none;color:#fff;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;}
+.chips{display:flex;gap:6px;}
+.chip{padding:5px 12px;border:1.5px solid var(--border);border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;transition:all .15s;background:var(--white);color:var(--fg);white-space:nowrap;}
+.chip.active{border-color:var(--primary);background:var(--pf);color:var(--primary);}
+.tr{margin-left:auto;display:flex;gap:8px;}
+.btn{padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s;}
+.btn-o{background:var(--white);border:1.5px solid var(--border);color:var(--fg);}
+.btn-o:hover{border-color:var(--primary);color:var(--primary);}
+.btn-p{background:var(--primary);color:#fff;}
+.btn-p:hover{background:var(--pl);}
+/* PAGE */
+.page{display:none;flex:1;flex-direction:column;padding:24px;}
+.page.active{display:flex;}
+.ph{margin-bottom:20px;}
+.pt{font-size:20px;font-weight:700;}
+.pt span{color:var(--primary);}
+.ps{font-size:13px;color:var(--muted);margin-top:3px;}
+/* CARD */
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:20px;}
+.ctitle{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;}
+.cheader{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+/* KPI */
+.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin-bottom:20px;}
+.kcard{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;}
+.klabel{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.kval{font-size:28px;font-weight:700;line-height:1;}
+.kch{font-size:12px;font-weight:500;margin-top:4px;}
+.up{color:var(--green);}.dn{color:var(--red);}.neu{color:var(--muted);}
+/* GRIDS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;}
+.mb16{margin-bottom:16px;}.mb20{margin-bottom:20px;}
+/* TABLE */
+.tw{overflow-x:auto;}
+.dt{width:100%;border-collapse:collapse;font-size:13px;}
+.dt th{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;}
+.dt td{padding:11px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.dt tr:last-child td{border-bottom:none;}
+.dt tbody tr:hover td{background:var(--mbg);}
+/* EXPAND */
+.xbtn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:2px 6px;border-radius:4px;transition:transform .2s;}
+.xbtn.open{transform:rotate(90deg);}
+.xrow td{background:#F8FAFF!important;padding:0!important;}
+.xi{padding:16px 20px;display:none;grid-template-columns:1fr 1fr;gap:16px;}
+.xi.open{display:grid;}
+.xl{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:4px;}
+.xv{font-size:12px;line-height:1.6;}
+/* BADGES */
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;}
+.bg{background:#D1FAE5;color:#065F46;}.br{background:#FEE2E2;color:#991B1B;}.bo{background:#FEF3C7;color:#92400E;}.bb{background:var(--pf);color:var(--primary);}
+/* TABS */
+.tbar{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px;}
+.tbtn{padding:8px 16px;font-size:13px;font-weight:500;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;margin-bottom:-1px;transition:all .15s;}
+.tbtn.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:600;}
+.tpane{display:none;}.tpane.active{display:block;}
+/* SCORE BAR */
+.sbar{display:flex;align-items:center;gap:8px;}
+.strack{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.sfill{height:100%;border-radius:3px;background:var(--primary);transition:width .8s;}
+/* INSIGHTS */
+.ip{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:20px;}
+.ih{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.it{font-size:15px;font-weight:700;}
+.ii{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+.ii:last-child{border-bottom:none;padding-bottom:0;}
+.inum{width:24px;height:24px;border-radius:50%;background:var(--primary);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+.ibody{flex:1;}
+.ititle{font-size:13px;font-weight:600;margin-bottom:3px;}
+.idesc{font-size:12px;color:var(--muted);line-height:1.5;}
+.ilink{font-size:11px;color:var(--primary);font-weight:500;cursor:pointer;margin-top:4px;display:inline-block;}
+/* LLM ROW */
+.lrow{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+.lrow:last-child{border-bottom:none;}
+.lname{width:130px;font-size:13px;font-weight:500;}
+.lbar{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
+.lfill{height:100%;background:var(--primary);border-radius:4px;transition:width .8s;}
+.lval{width:50px;text-align:right;font-size:13px;font-weight:600;}
+/* WHAT'S NEXT */
+.wnext{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;}
+.wcard{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px;cursor:pointer;transition:all .2s;}
+.wcard:hover{border-color:var(--primary);box-shadow:0 0 0 3px var(--pf);}
+.wicon{font-size:20px;margin-bottom:8px;}
+.wtitle{font-size:13px;font-weight:600;margin-bottom:4px;}
+.wdesc{font-size:12px;color:var(--muted);line-height:1.5;}
+.wlink{font-size:11px;color:var(--primary);font-weight:600;margin-top:8px;display:block;}
+/* CHARTS */
+.cw{position:relative;width:100%;}
+.cw canvas{max-height:260px;}
+.csm canvas{max-height:180px;}
+/* COMPETITOR */
+.cinputs{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center;}
+.cfield{display:flex;align-items:center;gap:8px;background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;}
+.cfield input{border:none;outline:none;font-size:13px;width:160px;}
+.cfield .rm{background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;}
+.cscores{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;}
+.cscore{background:var(--white);border:1.5px solid var(--border);border-radius:var(--r);padding:14px 20px;min-width:160px;}
+.cscn{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;}
+.cscv{font-size:32px;font-weight:700;margin:4px 0;}
+.cscv.you{color:var(--primary);}
+/* LANDING */
+.lw{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:60px 20px;flex:1;}
+.lw h1{font-size:30px;font-weight:700;margin-bottom:12px;}
+.lw h1 span{color:var(--primary);}
+.lw p{font-size:14px;color:var(--muted);max-width:500px;margin-bottom:28px;line-height:1.7;}
+.sbl{display:flex;width:100%;max-width:540px;}
+.sbl input{flex:1;padding:12px 16px;font-size:14px;border:1.5px solid var(--border);border-right:none;border-radius:8px 0 0 8px;outline:none;}
+.sbl input:focus{border-color:var(--primary);}
+.sbl button{padding:12px 24px;background:var(--primary);color:#fff;border:none;border-radius:0 8px 8px 0;font-weight:600;font-size:14px;cursor:pointer;}
+.qtopics{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:16px;}
+.qt{padding:6px 14px;border:1.5px solid var(--border);border-radius:20px;font-size:12px;cursor:pointer;transition:all .15s;background:var(--white);}
+.qt:hover{border-color:var(--primary);color:var(--primary);}
+.ficons{display:flex;gap:40px;margin-top:36px;}
+.fi{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;color:var(--muted);}
+.fi span:first-child{font-size:30px;}
+/* BRAND FORM */
+.bform{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:28px;max-width:480px;width:100%;text-align:left;margin-top:24px;}
+.fg{margin-bottom:16px;}
+.fl{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;}
+.fi2,.fsel{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none;background:var(--white);}
+.fi2:focus,.fsel:focus{border-color:var(--primary);}
+/* COMP PILLS */
+.cpills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+.cpill{display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;border:1.5px solid var(--border);font-size:12px;font-weight:500;}
+.cpill.main{background:var(--pf);border-color:var(--primary);color:var(--primary);}
+/* DONUT LEGEND */
+.dleg{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:12px;flex-wrap:wrap;}
+.dli{display:flex;align-items:center;gap:6px;font-size:12px;}
+.ddot{width:10px;height:10px;border-radius:50%;}
+/* HEATMAP */
+.hmtable{width:100%;border-collapse:separate;border-spacing:4px;}
+.hmth{font-size:11px;font-weight:600;color:var(--muted);text-align:center;padding:6px 4px;}
+.hmrl{font-size:12px;font-weight:500;padding:4px 8px;white-space:nowrap;}
+.hmcell{padding:10px 8px;border-radius:6px;font-size:11px;font-weight:600;text-align:center;}
+.hh{background:#065F46;color:#fff;}.hm{background:#10B981;color:#fff;}.hl{background:#D1FAE5;color:#065F46;}.hn{background:var(--mbg);color:var(--muted);}
+/* PLATFORM BARS */
+.pbrow{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);}
+.pbrow:last-child{border-bottom:none;}
+.pbn{width:110px;font-size:13px;font-weight:500;}
+.pbt{flex:1;height:22px;background:var(--mbg);border-radius:4px;overflow:hidden;}
+.pbf{height:100%;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:600;color:#fff;border-radius:4px;transition:width .8s;}
+.pbp{width:40px;text-align:right;font-size:12px;font-weight:600;}
+/* TREEMAP */
+.tmap{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;height:200px;}
+.tmc{border-radius:8px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#fff;padding:8px;text-align:center;}
+/* AUDIT */
+.agcard{background:var(--white);border:1px solid var(--border);border-radius:var(--r);text-align:center;padding:20px;}
+.ascore{font-size:28px;font-weight:700;color:var(--primary);}
+.alabel{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;}
+.iitem{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+.iitem:last-child{border-bottom:none;}
+.idot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+.idot.e{background:var(--red);}.idot.w{background:var(--orange);}.idot.i{background:var(--primary);}
+.ibod{flex:1;}
+.iti{font-size:13px;font-weight:600;margin-bottom:2px;}
+.ime{font-size:11px;color:var(--muted);}
+.icnt{margin-left:auto;font-size:13px;font-weight:700;}
+.brow{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.brow:last-child{border-bottom:none;}
+/* TRACKING */
+.trkpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;}
+.tcard{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;}
+.tval{font-size:32px;font-weight:700;}
+.tlab{font-size:12px;color:var(--muted);margin-top:4px;}
+/* CONTENT */
+.ckpis{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;}
+.ckcard{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;}
+.ckv{font-size:32px;font-weight:700;}
+.ckv.red{color:var(--red);}.ckv.orange{color:var(--orange);}
+.ckl{font-size:12px;color:var(--muted);margin-top:4px;}
+/* SPINNER */
+.spinbox{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;gap:14px;}
+.spin{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:sp .8s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg)}}
+.stxt{font-size:14px;color:var(--muted);}
+/* BANNERS */
+.abanner{background:#FEF3C7;border:1px solid var(--orange);border-radius:8px;padding:10px 16px;font-size:12px;color:#92400E;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.aerr{background:#FEE2E2;border:1px solid var(--red);border-radius:8px;padding:10px 16px;font-size:12px;color:#991B1B;margin-bottom:16px;}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="s-logo"><div class="s-icon">G</div><span class="s-text">GeoIQ</span></div>
+  <div class="s-label">AI Analysis</div>
+  <div class="nav-item active" data-page="visibility" onclick="showPage('visibility',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+    <span>Visibility Overview</span>
+  </div>
+  <div class="nav-item" data-page="competitor" onclick="showPage('competitor',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    <span>Competitor Research</span>
+  </div>
+  <div class="nav-item" data-page="prompt" onclick="showPage('prompt',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <span>Prompt Research</span>
+  </div>
+  <div class="s-label">Brand Performance</div>
+  <div class="nav-item" data-page="brand" onclick="showPage('brand',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    <span>Brand Performance</span>
+  </div>
+  <div class="nav-item" data-page="perception" onclick="showPage('perception',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+    <span>Perception</span>
+  </div>
+  <div class="nav-item" data-page="narrative" onclick="showPage('narrative',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    <span>Narrative Drivers</span>
+  </div>
+  <div class="nav-item" data-page="questions" onclick="showPage('questions',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/><circle cx="12" cy="12" r="10"/></svg>
+    <span>Questions</span>
+  </div>
+  <div class="s-label">Boost &amp; Monitor</div>
+  <div class="nav-item" data-page="audit" onclick="showPage('audit',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    <span>Site Audit</span>
+  </div>
+  <div class="nav-item" data-page="tracking" onclick="showPage('tracking',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    <span>Prompt Tracking</span>
+  </div>
+  <div class="nav-item" data-page="content" onclick="showPage('content',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    <span>Content Creation</span>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+<div class="topbar">
+  <div class="dsearch">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="domainInput" value="yourdomain.com" placeholder="Enter domain…" onkeydown="if(event.key==='Enter')runSearch()"/>
+    <button onclick="runSearch()">Go</button>
+  </div>
+  <div class="chips">
+    <div class="chip active" onclick="geoChip('worldwide',this)">🌐 Worldwide</div>
+    <div class="chip" onclick="geoChip('us',this)">🇺🇸 US</div>
+    <div class="chip" onclick="geoChip('gb',this)">🇬🇧 UK</div>
+    <div class="chip" onclick="geoChip('in',this)">🇮🇳 IN</div>
+    <div class="chip active" onclick="this.classList.toggle('active')">All AI platforms ▾</div>
+    <div class="chip">📅 Jun 2026 ▾</div>
+  </div>
+  <div class="tr"><button class="btn btn-o" onclick="window.print()">⬆ Export PDF</button></div>
+</div>
+
+<!-- PAGE: VISIBILITY OVERVIEW -->
+<div class="page active" id="page-visibility">
+  <div class="ph"><div class="pt">Visibility Overview: <span id="vis-domain">yourdomain.com</span></div><div class="ps" id="vis-sub">Data as of Jun 2026 · All AI platforms</div></div>
+  <div id="vis-banner" class="abanner" style="display:none">⚠ Demo mode — add DataForSEO credentials in .env to see live data</div>
+  <div id="vis-err" class="aerr" style="display:none"></div>
+  <div class="tbar" style="margin-bottom:20px">
+    <button class="tbtn active" onclick="switchTP('1m',this)">1M</button>
+    <button class="tbtn" onclick="switchTP('6m',this)">6M</button>
+    <button class="tbtn" onclick="switchTP('all',this)">All time</button>
+  </div>
+  <div class="g2">
+    <div class="card" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:28px;">
+      <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">AI Visibility Score</div>
+      <div id="vis-score" style="font-size:56px;font-weight:700;color:var(--primary);line-height:1">—</div>
+      <div style="font-size:12px;color:var(--muted)">Top‑10% sites: <strong>87</strong></div>
+      <div class="cw csm" style="width:100%;max-width:300px;margin-top:8px"><canvas id="visChart"></canvas></div>
+    </div>
+    <div class="kgrid" style="margin-bottom:0;align-content:start">
+      <div class="kcard"><div class="klabel">Mentions</div><div class="kval" id="k-mentions">—</div><div class="kch neu" id="k-mentions-ch"></div></div>
+      <div class="kcard"><div class="klabel">Citations</div><div class="kval" id="k-citations">—</div><div class="kch up" id="k-citations-ch"></div></div>
+      <div class="kcard"><div class="klabel">Cited Pages</div><div class="kval" id="k-cited">—</div><div class="kch up" id="k-cited-ch"></div></div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ctitle">Distribution by LLM</div>
+      <div class="tbar"><button class="tbtn active" onclick="switchLLM('mentions',this)">Mentions</button><button class="tbtn" onclick="switchLLM('cited',this)">Cited Pages</button></div>
+      <div id="llm-table"></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Mentions by Country</div>
+      <div id="country-wrap" style="min-height:160px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;text-align:center">🗺️<br>Country data loads with live API</div>
+    </div>
+  </div>
+  <div class="card mb20">
+    <div class="cheader"><div class="ctitle" style="margin:0">What's Next?</div></div>
+    <div class="wnext">
+      <div class="wcard" onclick="showPage('prompt',document.querySelector('[data-page=prompt]'))"><div class="wicon">🎯</div><div class="wtitle">Rank for your topic</div><div class="wdesc">Use Prompt Research to find AI search opportunities in your niche.</div><span class="wlink">Explore topic →</span></div>
+      <div class="wcard" onclick="showPage('brand',document.querySelector('[data-page=brand]'))"><div class="wicon">🔍</div><div class="wtitle">See how AI sees your brand</div><div class="wdesc">Review perception, sentiment and narrative drivers.</div><span class="wlink">Explore brand →</span></div>
+      <div class="wcard" onclick="showPage('audit',document.querySelector('[data-page=audit]'))"><div class="wicon">📍</div><div class="wtitle">Fix AI search issues</div><div class="wdesc">Fix crawl and schema issues to boost AI platform citations.</div><span class="wlink">Fix issues →</span></div>
+    </div>
+  </div>
+  <div class="card mb20">
+    <div class="cheader"><div class="ctitle" style="margin:0">Topics &amp; Sources</div><button class="btn btn-o" style="font-size:11px;padding:5px 10px" onclick="exportCSV()">⬆ Export</button></div>
+    <div class="tbar">
+      <button class="tbtn active" onclick="switchTopTab('performing',this)">Performing Topics <span id="cnt-p" style="background:var(--pf);color:var(--primary);border-radius:10px;padding:1px 7px;font-size:10px;margin-left:4px">0</span></button>
+      <button class="tbtn" onclick="switchTopTab('opportunities',this)">Topic Opportunities</button>
+      <button class="tbtn" onclick="switchTopTab('sources',this)">Cited Sources</button>
+      <button class="tbtn" onclick="switchTopTab('cited-pages',this)">Cited Pages <span id="cnt-cp" style="background:var(--pf);color:var(--primary);border-radius:10px;padding:1px 7px;font-size:10px;margin-left:4px">0</span></button>
+    </div>
+    <div id="topics-table-wrap"><div class="spinbox"><div class="spin"></div><div class="stxt">Loading topics…</div></div></div>
+  </div>
+</div>
+
+<!-- PAGE: COMPETITOR RESEARCH -->
+<div class="page" id="page-competitor">
+  <div class="ph"><div class="pt">Competitor Research</div><div class="ps">Compare AI visibility across domains</div></div>
+  <div id="comp-err" class="aerr" style="display:none"></div>
+  <div class="cinputs">
+    <div class="cfield"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input type="text" id="comp-main" placeholder="Your domain" value=""/></div>
+    <div class="cfield" id="comp-f1"><input type="text" id="comp-d1" placeholder="Competitor 1"/><button class="rm" onclick="clearComp(1)">×</button></div>
+    <div class="cfield" id="comp-f2"><input type="text" id="comp-d2" placeholder="Competitor 2"/><button class="rm" onclick="clearComp(2)">×</button></div>
+    <div class="cfield" id="comp-f3" style="display:none"><input type="text" id="comp-d3" placeholder="Competitor 3"/><button class="rm" onclick="clearComp(3)">×

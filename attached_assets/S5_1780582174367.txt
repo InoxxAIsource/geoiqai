@@ -1,0 +1,116 @@
+FILE 3 — dataforseo.js
+Create a new file called dataforseo.js:
+javascript// ═══════════════════════════════════════════════════════════════
+// DataForSEO API Client
+// Handles all authenticated requests to DataForSEO REST API
+// Docs: https://docs.dataforseo.com/v3/
+// ═══════════════════════════════════════════════════════════════
+
+const https = require('https');
+
+class DataForSEO {
+  constructor() {
+    this.login = process.env.DATAFORSEO_LOGIN;
+    this.password = process.env.DATAFORSEO_PASSWORD;
+    this.baseHost = 'api.dataforseo.com';
+
+    if (!this.login || !this.password) {
+      console.warn('⚠️  DataForSEO credentials missing. Running in demo mode.');
+    }
+  }
+
+  // Base64 encode credentials for Basic Auth
+  getAuthHeader() {
+    const credentials = Buffer.from(`${this.login}:${this.password}`).toString('base64');
+    return `Basic ${credentials}`;
+  }
+
+  // Core POST request method
+  post(endpoint, tasks) {
+    return new Promise((resolve, reject) => {
+      if (!this.login || !this.password) {
+        return reject(new Error('DataForSEO credentials not configured'));
+      }
+
+      const body = JSON.stringify(tasks);
+      const options = {
+        hostname: this.baseHost,
+        path: endpoint,
+        method: 'POST',
+        headers: {
+          'Authorization': this.getAuthHeader(),
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body)
+        }
+      };
+
+      const req = https.request(options, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.status_code && parsed.status_code !== 20000) {
+              reject(new Error(`DataForSEO error ${parsed.status_code}: ${parsed.status_message}`));
+            } else {
+              resolve(parsed);
+            }
+          } catch (e) {
+            reject(new Error('Invalid JSON response from DataForSEO'));
+          }
+        });
+      });
+
+      req.on('error', reject);
+      req.setTimeout(30000, () => {
+        req.destroy();
+        reject(new Error('DataForSEO request timed out after 30s'));
+      });
+
+      req.write(body);
+      req.end();
+    });
+  }
+
+  // GET request (for some endpoints)
+  get(endpoint) {
+    return new Promise((resolve, reject) => {
+      if (!this.login || !this.password) {
+        return reject(new Error('DataForSEO credentials not configured'));
+      }
+
+      const options = {
+        hostname: this.baseHost,
+        path: endpoint,
+        method: 'GET',
+        headers: {
+          'Authorization': this.getAuthHeader(),
+          'Content-Type': 'application/json'
+        }
+      };
+
+      const req = https.request(options, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          try {
+            resolve(JSON.parse(data));
+          } catch (e) {
+            reject(new Error('Invalid JSON response'));
+          }
+        });
+      });
+
+      req.on('error', reject);
+      req.setTimeout(30000, () => {
+        req.destroy();
+        reject(new Error('Request timed out'));
+      });
+      req.end();
+    });
+  }
+
+  // ─── CONVENIENCE METHODS ────────────────────────────────────
+
+  // Check API account balance
+  async getBalance
