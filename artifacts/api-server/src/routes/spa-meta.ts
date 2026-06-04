@@ -216,6 +216,10 @@ async function serveSpaMeta(req: Request, res: Response, meta: PageMeta): Promis
 
 for (const [pagePath, meta] of Object.entries(PAGE_META)) {
   router.get(pagePath, (req: Request, res: Response) => {
+    if (Object.keys(req.query).length > 0 && !meta.noindex) {
+      res.redirect(301, meta.canonical);
+      return;
+    }
     void serveSpaMeta(req, res, meta);
   });
 }
