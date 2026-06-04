@@ -1,21 +1,21 @@
 import { useState } from "react";
 import { getToken } from "@/lib/auth";
-import { X, Plus } from "lucide-react";
+import { X, Plus, AlertCircle } from "lucide-react";
 
 const P = "#4F46E5";
 const BORDER = "#E5E7EB";
 const MUTED = "#6B7280";
-const BG = "#F9FAFB";
 
 interface CompScore { domain: string; score: number; isYou: boolean }
-interface TrendPoint { label: string; scores: number[] }
-interface GapRow { topic: string; aiVolume: string; status: "Cited" | "Weak" | "Missing"; competitors: string; missing: number }
 interface InsightRow { title: string; desc: string }
+interface GapRow { topic: string; aiVolume: string; status: "Cited" | "Weak" | "Missing"; competitors: string; missing: number }
 
 interface CompData {
-  domains: string[]; scores: CompScore[];
+  domains: string[];
+  scores: CompScore[];
   trend: { labels: string[]; series: number[][] };
-  insights: InsightRow[]; gaps: GapRow[];
+  insights: InsightRow[];
+  gaps: GapRow[];
 }
 
 function ScoreBadge({ score, isYou }: { score: number; isYou: boolean }) {
@@ -67,31 +67,11 @@ function SimpleTrendChart({ labels, series, domains }: { labels: string[]; serie
           </div>
         ))}
       </div>
+      <div style={{ fontSize: 11, color: MUTED, marginTop: 8 }}>
+        Trend lines reflect current snapshot. Historical tracking builds over time as you monitor these domains.
+      </div>
     </div>
   );
-}
-
-function getDemoData(domains: string[]): CompData {
-  const baseScores = [38, 62, 51, 44];
-  return {
-    domains,
-    scores: domains.map((d, i) => ({ domain: d, score: baseScores[i] ?? 30, isYou: i === 0 })),
-    trend: {
-      labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-      series: domains.map((_, i) => [20, 22, 25, 28, 32, baseScores[i] ?? 30]),
-    },
-    insights: [
-      { title: "You lag behind on citation authority", desc: "Competitor 1 is cited 3x more frequently in educational and research contexts. Building Crunchbase and G2 profiles will close most of this gap." },
-      { title: "Technical access is your advantage", desc: "Your robots.txt correctly allows all AI crawlers. Both competitors have partial blocks on GPTBot - exploit this with fresh content." },
-      { title: "Entity recognition gap", desc: "Competitor 2 has a Wikipedia stub and is listed in 4 major directories. Getting listed in Crunchbase and Product Hunt is the quickest path to parity." },
-    ],
-    gaps: [
-      { topic: "AI visibility tracking", aiVolume: "12.4K", status: "Missing", competitors: domains.slice(1).join(", "), missing: 890 },
-      { topic: "GEO optimization tools", aiVolume: "8.1K", status: "Weak", competitors: domains.slice(1, 2).join(", "), missing: 340 },
-      { topic: "ChatGPT brand monitoring", aiVolume: "6.7K", status: "Missing", competitors: domains.slice(1).join(", "), missing: 210 },
-      { topic: "AI search ranking", aiVolume: "5.3K", status: "Cited", competitors: "", missing: 0 },
-    ],
-  };
 }
 
 export function CompetitorResearch({ initialDomain }: { initialDomain: string }) {
@@ -119,14 +99,27 @@ export function CompetitorResearch({ initialDomain }: { initialDomain: string })
       });
       const json = await r.json();
       if (json.error) throw new Error(json.error);
-      const scores: CompScore[] = domains.map((d, i) => ({
+
+      const domainScores: CompScore[] = domains.map((d, i) => ({
         domain: d,
-        score: (i === 0 ? json.mentionRate : json.targets?.find((t: { domain: string; mentionRate: number }) => t.domain === d)?.mentionRate ?? 0) ?? 0,
+        score: i === 0
+          ? Math.round((json.mentionRate ?? 0) * 100)
+          : Math.round((json.targets?.find((t: { domain: string; mentionRate: number }) => t.domain === d)?.mentionRate ?? 0) * 100),
         isYou: i === 0,
       }));
-      setData({ domains, scores, trend: { labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"], series: domains.map(() => [0, 0, 0, 0, 0, 0]) }, insights: [], gaps: [] });
-    } catch {
-      setData(getDemoData(domains));
+
+      const trendLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+      const trendSeries = domainScores.map(s => Array(6).fill(s.score) as number[]);
+
+      setData({
+        domains,
+        scores: domainScores,
+        trend: { labels: trendLabels, series: trendSeries },
+        insights: [],
+        gaps: [],
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not fetch competitor data. Check your DataForSEO credentials.");
     } finally {
       setLoading(false);
     }
@@ -137,7 +130,12 @@ export function CompetitorResearch({ initialDomain }: { initialDomain: string })
       <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Competitor Research</div>
       <div style={{ fontSize: 13, color: MUTED, marginBottom: 20 }}>Compare AI visibility across domains</div>
 
-      {error && <div style={{ background: "#FEE2E2", border: `1px solid #FCA5A5`, borderRadius: 8, padding: "10px 16px", fontSize: 12, color: "#991B1B", marginBottom: 16 }}>{error}</div>}
+      {error && (
+        <div style={{ display: "flex", gap: 10, alignItems: "center", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "12px 16px", fontSize: 13, color: "#991B1B", marginBottom: 16 }}>
+          <AlertCircle size={15} color="#DC2626" />
+          {error}
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, background: "white", border: `1.5px solid ${P}`, borderRadius: 8, padding: "8px 12px" }}>
@@ -170,7 +168,7 @@ export function CompetitorResearch({ initialDomain }: { initialDomain: string })
           {loading ? "Analyzing..." : "Analyze"}
         </button>
         {data && (
-          <button onClick={() => { setData(null); setCompetitors(["", ""]); }} style={{ padding: "9px 14px", background: "white", border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 13, color: MUTED, cursor: "pointer" }}>
+          <button onClick={() => { setData(null); setError(null); setCompetitors(["", ""]); }} style={{ padding: "9px 14px", background: "white", border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 13, color: MUTED, cursor: "pointer" }}>
             Clear
           </button>
         )}
@@ -180,6 +178,13 @@ export function CompetitorResearch({ initialDomain }: { initialDomain: string })
         <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: "60px 20px", textAlign: "center", color: MUTED }}>
           <div style={{ fontSize: 15, fontWeight: 600, color: "#111827", marginBottom: 8 }}>Add competitors to analyze</div>
           <div style={{ fontSize: 13 }}>Enter your domain and up to 3 competitors, then click Analyze.</div>
+        </div>
+      )}
+
+      {loading && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 60, gap: 12, color: MUTED, fontSize: 14 }}>
+          <div style={{ width: 20, height: 20, border: `2px solid ${BORDER}`, borderTopColor: P, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+          Fetching AI visibility data from DataForSEO...
         </div>
       )}
 
@@ -197,28 +202,23 @@ export function CompetitorResearch({ initialDomain }: { initialDomain: string })
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
             <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: 20 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 16 }}>AI Visibility Trend</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 16 }}>AI Visibility Snapshot</div>
               <SimpleTrendChart labels={data.trend.labels} series={data.trend.series} domains={data.domains} />
             </div>
             <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: 20 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 16 }}>Competitor Insights</div>
-              {data.insights.map((ins, i) => (
-                <div key={i} style={{ display: "flex", gap: 12, padding: "12px 0", borderBottom: `1px solid ${BORDER}` }}>
-                  <div style={{ width: 24, height: 24, borderRadius: "50%", background: P, color: "white", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</div>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{ins.title}</div>
-                    <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.5 }}>{ins.desc}</div>
-                  </div>
-                </div>
-              ))}
-              {data.insights.length === 0 && <div style={{ fontSize: 13, color: MUTED }}>No insights yet. Try with real competitor domains.</div>}
+              <div style={{ textAlign: "center", padding: "30px 20px", color: MUTED, fontSize: 13 }}>
+                AI-generated insights are available after running a full audit. Click "Run free audit" from the main page to get detailed recommendations.
+              </div>
             </div>
           </div>
 
           <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: 20 }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 16 }}>Topics and Prompts Gap</div>
             {data.gaps.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "30px 20px", color: MUTED, fontSize: 13 }}>No gap data available. Results load with live DataForSEO credentials.</div>
+              <div style={{ textAlign: "center", padding: "30px 20px", color: MUTED, fontSize: 13 }}>
+                Topic-level gap analysis is generated from the full AI audit. Run an audit on your domain to see which topics your competitors are winning.
+              </div>
             ) : (
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -246,6 +246,7 @@ export function CompetitorResearch({ initialDomain }: { initialDomain: string })
           </div>
         </>
       )}
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

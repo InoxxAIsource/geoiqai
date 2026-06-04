@@ -510,10 +510,10 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
     const score = Math.round(Math.min(100, mentionRate * 100));
 
     const llm = [
-      { name: "ChatGPT", mentionsPct: Math.round(mentionRate * 85 + Math.random() * 5), citedPct: Math.round(mentionRate * 70) },
-      { name: "Gemini", mentionsPct: Math.round(mentionRate * 75 + Math.random() * 5), citedPct: Math.round(mentionRate * 60) },
-      { name: "Perplexity", mentionsPct: Math.round(mentionRate * 65 + Math.random() * 5), citedPct: Math.round(mentionRate * 55) },
-      { name: "Claude", mentionsPct: Math.round(mentionRate * 50 + Math.random() * 5), citedPct: Math.round(mentionRate * 40) },
+      { name: "ChatGPT", mentionsPct: Math.round(mentionRate * 82), citedPct: Math.round(mentionRate * 68) },
+      { name: "Gemini", mentionsPct: Math.round(mentionRate * 76), citedPct: Math.round(mentionRate * 61) },
+      { name: "Perplexity", mentionsPct: Math.round(mentionRate * 63), citedPct: Math.round(mentionRate * 52) },
+      { name: "Claude", mentionsPct: Math.round(mentionRate * 47), citedPct: Math.round(mentionRate * 37) },
     ];
 
     const topics = kws.map((kw, i) => ({
@@ -589,18 +589,18 @@ router.get("/dataforseo/brand-performance", requireAuth, async (req, res): Promi
     res.json({
       domain,
       overallScore: score,
-      chatgpt: Math.round(score * 0.95 + Math.random() * 5),
-      gemini: Math.round(score * 1.1 + Math.random() * 5),
-      perplexity: Math.round(score * 0.85 + Math.random() * 5),
-      sentiment: { positive: 62, neutral: 28, negative: 10 },
+      chatgpt: Math.min(100, Math.round(score * 0.95)),
+      gemini: Math.min(100, Math.round(score * 1.05)),
+      perplexity: Math.min(100, Math.round(score * 0.82)),
+      sentiment: { positive: 0, neutral: 0, negative: 0 },
       narrativeDrivers: kws.map((kw, i) => ({
         topic: kw,
-        mentions: Math.round((500 - i * 80) * Math.max(0.1, mentionRate)),
+        mentions: Math.round((500 - i * 80) * mentionRate),
         trend: (["up", "flat", "up", "down", "up"] as const)[i] ?? "flat",
       })),
       topQuestions: kws.slice(0, 5).map((kw, i) => ({
         question: `What are the best ${kw} tools for startups?`,
-        frequency: Math.round((1200 - i * 150) * Math.max(0.1, mentionRate)),
+        frequency: Math.round((1200 - i * 150) * mentionRate),
         you: mentionRate > 0.2 && i < 3,
       })),
       perceptionSummary: mentionRate > 0.3
