@@ -385,7 +385,12 @@ export function Dashboard() {
         <main style={{ flex: 1, padding: "28px 32px", overflowY: "auto" }} onClick={() => showBrandDropdown && setShowBrandDropdown(false)}>
 
           {activeNav === "visibility-overview" && (
-            <VisibilityOverview domain={activeDomain} />
+            <VisibilityOverview
+              domain={activeDomain}
+              geo={geo}
+              period={period}
+              onDomainChange={d => { setSearchDomain(d); }}
+            />
           )}
 
           {activeNav === "competitor-research" && (
