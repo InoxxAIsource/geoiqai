@@ -2556,3 +2556,146 @@ export async function getLlmSearchTopics(
     return empty;
   }
 }
+
+// ─── LLM Keyword Aggregated Metrics (brand keyword in answer text) ─────────────
+
+export interface LlmKeywordAggResult {
+  total: LlmAggTotal | null;   // full breakdown: platform[], location[], language[], sources_domain[]
+  mentions: number;             // sum of platform[].mentions (keyword in AI answer text)
+  aiSearchVolume: number;       // language["en"].ai_search_volume
+  cached: boolean;
+}
+
+/**
+ * Fetches aggregated LLM mention metrics for a BRAND KEYWORD (not domain).
+ * Searches AI answer text for the keyword (e.g. "netflix"), returning the
+ * total times it appears in AI-generated answers. This gives the large
+ * Semrush-style "Mentions" number, plus per-platform and per-country breakdown.
+ *
+ * Endpoint: /v3/ai_optimization/llm_mentions/aggregated_metrics/live
+ * target.keyword + search_scope: ["answer"]
+ */
+export async function getLlmKeywordAggMetrics(
+  brandName: string,
+  dateFrom: string,
+  dateTo: string,
+): Promise<LlmKeywordAggResult> {
+  const empty: LlmKeywordAggResult = { total: null, mentions: 0, aiSearchVolume: 0, cached: false };
+  const login = process.env.DATAFORSEO_LOGIN ?? "";
+  const password = process.env.DATAFORSEO_PASSWORD ?? "";
+  if (!login || !password || !brandName) return empty;
+
+  const cacheKey = `llm_kw_agg:${brandName}:${dateFrom}:${dateTo}`;
+  const cached = await getDfCache(cacheKey);
+  if (cached) return { ...(cached as unknown as LlmKeywordAggResult), cached: true };
+
+  try {
+    const auth = getAuthHeader();
+    const resp = await fetch(`${DATAFORSEO_BASE}/v3/ai_optimization/llm_mentions/aggregated_metrics/live`, {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify([{
+        target: [{ keyword: brandName, search_scope: ["answer"] }],
+        date_from: dateFrom,
+        date_to: dateTo,
+        language_code: "en",
+      }]),
+    });
+    const data = await resp.json() as Record<string, unknown>;
+    const tasks = (data.tasks as Array<Record<string, unknown>>) ?? [];
+    const task = tasks[0];
+    const taskResult = (task?.result as Array<Record<string, unknown>>)?.[0];
+    const statusCode = Number(task?.status_code ?? 0);
+    if (statusCode !== 20000 || !taskResult) return empty;
+
+    const total = taskResult.total as LlmAggTotal | undefined;
+
+    // mentions = sum of platform[].mentions (keyword appearing in AI answer text per LLM)
+    const platforms = total?.platform ?? [];
+    const mentions = (platforms as Array<{ mentions: number }>).reduce((s, p) => s + (p.mentions || 0), 0);
+
+    // AI search volume from language["en"].ai_search_volume
+    const langArr = (total?.language ?? []) as Array<{ key: string; ai_search_volume?: number }>;
+    const enLang = langArr.find(l => String(l.key) === "en") ?? langArr[0];
+    const aiSearchVolume = enLang?.ai_search_volume ?? 0;
+
+    const res: LlmKeywordAggResult = { total: total ?? null, mentions, aiSearchVolume, cached: false };
+    await setDfCache(cacheKey, res as unknown as Record<string, unknown>, "0.001");
+    return res;
+  } catch {
+    return empty;
+  }
+}
+
+// ─── LLM Cross-Aggregated by group_by (single keyword target) ──────────────────
+
+export interface LlmCrossAggGroupItem {
+  aggregationKey: string;
+  mentions: number;
+  aiSearchVolume: number;
+}
+
+export interface LlmCrossAggByGroupResult {
+  items: LlmCrossAggGroupItem[];
+  cached: boolean;
+}
+
+/**
+ * Fetches LLM cross-aggregated metrics for a single brand keyword, grouped
+ * by llm_name, location_code, or date. Enables "Distribution by LLM" and
+ * "Mentions by Country" sections using real per-platform breakdown data.
+ *
+ * Endpoint: /v3/ai_optimization/llm_mentions/cross_aggregated_metrics/live
+ * target.keyword + group_by: "llm_name" | "location_code" | "date"
+ */
+export async function getLlmCrossAggByGroup(
+  brandName: string,
+  dateFrom: string,
+  dateTo: string,
+  groupBy: "llm_name" | "location_code" | "date",
+): Promise<LlmCrossAggByGroupResult> {
+  const empty: LlmCrossAggByGroupResult = { items: [], cached: false };
+  const login = process.env.DATAFORSEO_LOGIN ?? "";
+  const password = process.env.DATAFORSEO_PASSWORD ?? "";
+  if (!login || !password || !brandName) return empty;
+
+  const cacheKey = `llm_cross_grp:${brandName}:${dateFrom}:${dateTo}:${groupBy}`;
+  const cached = await getDfCache(cacheKey);
+  if (cached) return { ...(cached as unknown as LlmCrossAggByGroupResult), cached: true };
+
+  try {
+    const auth = getAuthHeader();
+    const resp = await fetch(`${DATAFORSEO_BASE}/v3/ai_optimization/llm_mentions/cross_aggregated_metrics/live`, {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify([{
+        target: [{ keyword: brandName, search_scope: ["answer"] }],
+        date_from: dateFrom,
+        date_to: dateTo,
+        group_by: groupBy,
+        language_code: "en",
+      }]),
+    });
+    const data = await resp.json() as Record<string, unknown>;
+    const tasks = (data.tasks as Array<Record<string, unknown>>) ?? [];
+    const task = tasks[0];
+    const taskResult = (task?.result as Array<Record<string, unknown>>)?.[0];
+    if (!taskResult) return empty;
+
+    const rawItems = (taskResult.items as Array<Record<string, unknown>>) ?? [];
+    const items: LlmCrossAggGroupItem[] = rawItems.map(item => {
+      const tt = (item.total as Record<string, number>) ?? {};
+      return {
+        aggregationKey: String(item.aggregation_key ?? ""),
+        mentions: Number(tt.mentions ?? 0),
+        aiSearchVolume: Number(tt.ai_search_volume ?? tt.impressions ?? 0),
+      };
+    });
+
+    const res: LlmCrossAggByGroupResult = { items, cached: false };
+    await setDfCache(cacheKey, res as unknown as Record<string, unknown>, "0.001");
+    return res;
+  } catch {
+    return empty;
+  }
+}

@@ -15,9 +15,11 @@ interface Topic { question: string; platform: string; model_name: string; ai_sea
 
 interface VisibilityData {
   domain: string;
+  brandName: string;
   score: number;
   mentions: number;
   aiSearchVolume: number;
+  citations: number;
   citedPagesCount: number;
   hasData: boolean;
   platforms: PlatformRow[];
@@ -35,6 +37,7 @@ interface VisibilityData {
 
 /* ---- helpers ---- */
 function fmt(n: number): string {
+  if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1) + "B";
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
   if (n >= 1_000) return (n / 1_000).toFixed(1) + "K";
   return String(n);
@@ -342,10 +345,11 @@ export function VisibilityOverview({
             {/* KPIs card */}
             <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "24px 28px" }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 20 }}>Key Metrics</div>
-              <div style={{ display: "flex", gap: 40, marginBottom: 28, flexWrap: "wrap" }}>
-                <KpiCard label="Mentions" value={d.mentions} color={P} sub="Times cited in AI answers" />
-                <KpiCard label="AI Search Volume" value={d.aiSearchVolume} color="#10B981" sub="Monthly searches triggering mentions" />
-                <KpiCard label="Cited Pages" value={d.citedPagesCount} color="#8B5CF6" sub="Unique pages cited by AI" />
+              <div style={{ display: "flex", gap: 32, marginBottom: 28, flexWrap: "wrap" }}>
+                <KpiCard label="Mentions" value={d.mentions} color={P} sub={`"${d.brandName}" in AI answers`} />
+                <KpiCard label="AI Search Volume" value={d.aiSearchVolume} color="#10B981" sub="Monthly AI searches" />
+                <KpiCard label="Citations" value={d.citations} color="#F59E0B" sub="Domain URL cited as source" />
+                <KpiCard label="Cited Pages" value={d.citedPagesCount} color="#8B5CF6" sub="Unique pages cited" />
               </div>
 
               {/* platform mini bars */}

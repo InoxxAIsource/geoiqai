@@ -1,0 +1,235 @@
+CRITICAL FIX: Add brand keyword search to get 
+real mentions count like Semrush shows.
+
+Current problem: GeoIQ shows 33 mentions for 
+netflix.com because we only query domain citations.
+Semrush shows 2.4M because they search for the 
+brand KEYWORD "netflix" in all AI answers.
+
+DataForSEO supports both. We need to use both.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 1: EXTRACT BRAND NAME FROM DOMAIN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When user enters "netflix.com", extract brand name:
+
+function extractBrandName(domain) {
+  // Remove TLD and www
+  // "netflix.com" → "netflix"
+  // "hubspot.com" → "hubspot"
+  // "geoiqai.com" → "geoiqai"
+  // "coca-cola.com" → "coca-cola"
+  return domain
+    .replace(/^www\./, '')
+    .replace(/\.[a-z]{2,}(\.[a-z]{2})?$/, '')
+    .toLowerCase()
+    .trim()
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 2: RUN 3 PARALLEL API CALLS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For any domain audit, run these 3 calls in parallel
+using Promise.all():
+
+// CALL A — Brand keyword mentions (NEW — gives Mentions count)
+const brandPayload = [{
+  "target": [{
+    "keyword": brandName,        // e.g. "netflix"
+    "search_scope": ["answer"]   // find in AI answer text
+  }],
+  "date_from": sixMonthsAgo,
+  "date_to": today,
+  "language_code": "en"
+}]
+POST /v3/ai_optimization/llm_mentions/aggregated_metrics/live
+
+// CALL B — Domain citations (existing — gives Citations + Cited Pages)
+const domainPayload = [{
+  "target": [{
+    "domain": domain,            // e.g. "netflix.com"
+    "search_scope": ["sources"]
+  }],
+  "date_from": sixMonthsAgo,
+  "date_to": today,
+  "language_code": "en"
+}]
+POST /v3/ai_optimization/llm_mentions/aggregated_metrics/live
+
+// CALL C — By LLM platform (existing — gives Distribution by LLM)
+const llmPayload = [{
+  "target": [{
+    "keyword": brandName,
+    "search_scope": ["answer"]
+  }],
+  "date_from": sixMonthsAgo,
+  "date_to": today,
+  "group_by": "llm_name",
+  "language_code": "en"
+}]
+POST /v3/ai_optimization/llm_mentions/cross_aggregated_metrics/live
+
+const [brandData, domainData, llmData] = await Promise.all([
+  callDFS(brandPayload, 'aggregated_metrics'),
+  callDFS(domainPayload, 'aggregated_metrics'),
+  callDFS(llmPayload, 'cross_aggregated_metrics')
+])
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 3: MAP RESULTS TO KPI CARDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+From CALL A (brand keyword):
+const mentions = brandData.tasks[0].result[0]?.metrics?.mentions || 0
+const aiSearchVolume = brandData.tasks[0].result[0]?.metrics?.impressions || 0
+
+From CALL B (domain):
+const citations = domainData.tasks[0].result[0]?.metrics?.mentions || 0
+const citedPages = domainData.tasks[0].result[0]?.metrics?.cited_pages || 0
+
+Display 4 KPI cards:
+┌─────────────┬──────────────────┬───────────────┬──────────────┐
+│  Mentions   │  AI Search Vol   │   Citations   │ Cited Pages  │
+│  2.4M       │  4.7K            │  821K         │  476K        │
+│ In AI answers│Monthly searches │URL cited by AI│Pages cited   │
+└─────────────┴──────────────────┴───────────────┴──────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 4: FIX SCORE FORMULA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Now that mentions will be large numbers, 
+rescale the formula:
+
+const mentionScore  = Math.min(mentions / 100000, 1) * 40
+const citationScore = Math.min(citations / Math.max(mentions, 1), 1) * 40
+const pageScore     = Math.min(citedPages / 10000, 1) * 20
+const score = Math.min(100, Math.round(
+  mentionScore + citationScore + pageScore
+))
+
+Score labels:
+0–30  → "Low"    — red
+31–60 → "Medium" — amber  
+61–80 → "Good"   — green
+81–100→ "Great"  — bright green
+         "Frequently mentioned and often preferred by LLMs"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 5: FIX DISTRIBUTION BY LLM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+From CALL C (llmData), extract items array:
+const platforms = llmData.tasks[0].result[0]?.items || []
+
+Each item has:
+- item.aggregation_key = "chat_gpt" / "google" / 
+  "google_ai_mode" / "gemini"
+- item.total.mentions = number
+
+Calculate % share:
+const totalMentions = platforms.reduce((s,p) => s + p.total.mentions, 0)
+
+Display:
+platforms.map(p => ({
+  name: p.aggregation_key,
+  mentions: p.total.mentions,
+  share: ((p.total.mentions / totalMentions) * 100).toFixed(1) + '%'
+}))
+
+Platform name mapping:
+"chat_gpt"       → "ChatGPT"
+"google"         → "AI Overview (Google)"
+"google_ai_mode" → "AI Mode (Google)"
+"gemini"         → "Gemini"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 6: FIX MENTIONS BY COUNTRY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Run cross_aggregated with keyword target 
+grouped by location:
+
+[{
+  "target": [{
+    "keyword": brandName,
+    "search_scope": ["answer"]
+  }],
+  "date_from": sixMonthsAgo,
+  "date_to": today,
+  "group_by": "location_code",
+  "language_code": "en"
+}]
+POST /v3/ai_optimization/llm_mentions/cross_aggregated_metrics/live
+
+Map location_code to country name + flag:
+2840 → 🇺🇸 United States
+2826 → 🇬🇧 United Kingdom  
+2356 → 🇮🇳 India
+2036 → 🇦🇺 Australia
+2124 → 🇨🇦 Canada
+2276 → 🇩🇪 Germany
+2250 → 🇫🇷 France
+2392 → 🇯🇵 Japan
+2076 → 🇧🇷 Brazil
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 7: FIX TREND CHART
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Run cross_aggregated with keyword target 
+grouped by date:
+
+[{
+  "target": [{
+    "keyword": brandName,
+    "search_scope": ["answer"]
+  }],
+  "date_from": sixMonthsAgo,
+  "date_to": today,
+  "group_by": "date",
+  "language_code": "en"
+}]
+
+Plot 3 lines on chart using this data:
+- Mentions (blue) — from brand keyword call
+- Citations (green) — from domain call  
+- Cited Pages (purple) — from top_pages call
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 8: ADD CONSOLE LOGS FOR DEBUG
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+console.log('Brand name extracted:', brandName)
+console.log('CALL A brand mentions result:', 
+  JSON.stringify(brandData.tasks[0].result[0]?.metrics))
+console.log('CALL B domain citations result:', 
+  JSON.stringify(domainData.tasks[0].result[0]?.metrics))
+console.log('CALL C LLM platforms:', 
+  llmData.tasks[0].result[0]?.items?.map(i => 
+    ({platform: i.aggregation_key, mentions: i.total.mentions})))
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST AFTER FIX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Test netflix.com:
+Expected after fix:
+- Mentions: 100K+ (brand keyword "netflix" in answers)
+- Citations: 30-100 (netflix.com URL cited)
+- Cited Pages: 5-20
+- Platforms: 3-4 showing
+- Score: 70-90
+
+Test hubspot.com:
+- Should show different but real numbers
+
+Test geoiqai.com:
+- Mentions likely 0-5 (too new, OK)
+- Show empty state gracefully
+
+If netflix.com mentions still shows < 1000 
+after this fix, paste the console.log output 
+of CALL A so we can see the raw response.
