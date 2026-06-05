@@ -179,10 +179,11 @@ function NoDataState({ domain }: { domain: string }) {
 }
 
 /* ===== KPI card ===== */
-function KpiCard({ label, value, color, sub }: { label: string; value: number; color: string; sub?: string }) {
+function KpiCard({ label, value, color, sub, showZero }: { label: string; value: number; color: string; sub?: string; showZero?: boolean }) {
+  const display = (value > 0 || showZero) ? fmt(value) : "--";
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <div style={{ fontSize: 28, fontWeight: 700, color: value > 0 ? "#111827" : MUTED, lineHeight: 1 }}>{value > 0 ? fmt(value) : "--"}</div>
+      <div style={{ fontSize: 28, fontWeight: 700, color: value > 0 ? "#111827" : MUTED, lineHeight: 1 }}>{display}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <span style={{ width: 10, height: 10, borderRadius: 2, background: color, flexShrink: 0, display: "inline-block" }} />
         <span style={{ fontSize: 12, color: MUTED }}>{label}</span>
@@ -348,8 +349,8 @@ export function VisibilityOverview({
               <div style={{ display: "flex", gap: 32, marginBottom: 28, flexWrap: "wrap" }}>
                 <KpiCard label="Mentions" value={d.mentions} color={P} sub={`"${d.brandName}" in AI answers`} />
                 <KpiCard label="AI Search Volume" value={d.aiSearchVolume} color="#10B981" sub="Monthly AI searches" />
-                <KpiCard label="Citations" value={d.citations} color="#F59E0B" sub="Domain URL cited as source" />
-                <KpiCard label="Cited Pages" value={d.citedPagesCount} color="#8B5CF6" sub="Unique pages cited" />
+                <KpiCard label="Citations" value={d.citations} color="#F59E0B" sub="Domain URL cited as source" showZero />
+                <KpiCard label="Cited Pages" value={d.citedPagesCount} color="#8B5CF6" sub="Unique pages cited" showZero />
               </div>
 
               {/* platform mini bars */}

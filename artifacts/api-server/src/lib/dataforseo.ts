@@ -2408,7 +2408,7 @@ export async function getLlmAggregatedMetrics(
         target: [{ domain, search_filter: "include" }],
         date_from: dateFrom,
         date_to: dateTo,
-        language_code: "en",
+        include_subdomains: true,
       }]),
     });
     const data = await resp.json() as Record<string, unknown>;
@@ -2461,7 +2461,7 @@ export async function getLlmTopPagesList(
         target: [{ domain, search_filter: "include" }],
         date_from: dateFrom,
         date_to: dateTo,
-        language_code: "en",
+        include_subdomains: true,
         limit,
       }]),
     });
@@ -2505,7 +2505,7 @@ export interface LlmSearchTopicsResult {
 }
 
 export async function getLlmSearchTopics(
-  domain: string,
+  keyword: string,
   dateFrom: string,
   dateTo: string,
   filter: "include" | "exclude" = "include",
@@ -2516,7 +2516,7 @@ export async function getLlmSearchTopics(
   const password = process.env.DATAFORSEO_PASSWORD ?? "";
   if (!login || !password) return empty;
 
-  const cacheKey = `llm_topics:${domain}:${dateFrom}:${dateTo}:${filter}:${limit}`;
+  const cacheKey = `llm_topics_kw:${keyword}:${dateFrom}:${dateTo}:${filter}:${limit}`;
   const cached = await getDfCache(cacheKey);
   if (cached) return { ...(cached as unknown as LlmSearchTopicsResult), cached: true };
 
@@ -2526,10 +2526,9 @@ export async function getLlmSearchTopics(
       method: "POST",
       headers: auth,
       body: JSON.stringify([{
-        target: [{ domain, search_filter: filter, search_scope: ["sources"] }],
+        target: [{ keyword, search_filter: filter, search_scope: ["answer"] }],
         date_from: dateFrom,
         date_to: dateTo,
-        language_code: "en",
         order_by: ["ai_search_volume,desc"],
         limit,
       }]),
@@ -2598,7 +2597,6 @@ export async function getLlmKeywordAggMetrics(
         target: [{ keyword: brandName, search_scope: ["answer"] }],
         date_from: dateFrom,
         date_to: dateTo,
-        language_code: "en",
       }]),
     });
     const data = await resp.json() as Record<string, unknown>;
@@ -2673,7 +2671,6 @@ export async function getLlmCrossAggByGroup(
         date_from: dateFrom,
         date_to: dateTo,
         group_by: groupBy,
-        language_code: "en",
       }]),
     });
     const data = await resp.json() as Record<string, unknown>;

@@ -1,0 +1,223 @@
+CRITICAL FIXES for Visibility Overview.
+3 specific bugs to fix. Do not change anything else.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BUG 1: MENTIONS TOO LOW (906 vs 1M expected)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current keyword search payload is too narrow.
+It's filtering by India location only.
+
+Find the aggregated_metrics call that uses 
+keyword target and FIX the payload to remove 
+ALL location filtering:
+
+WRONG (current):
+[{
+  "target": [{ "keyword": "primevideo", "search_scope": ["answer"] }],
+  "date_from": "2025-12-07",
+  "date_to": "2026-06-05",
+  "language_code": "en",
+  "location_code": 2356    ← REMOVE THIS LINE
+}]
+
+CORRECT (fix):
+[{
+  "target": [{ "keyword": "primevideo", "search_scope": ["answer"] }],
+  "date_from": "2025-12-07",
+  "date_to": "2026-06-05",
+  "language_code": "en"
+  // NO location_code — query globally
+}]
+
+Also try WITHOUT language_code too:
+[{
+  "target": [{ "keyword": "primevideo", "search_scope": ["answer"] }],
+  "date_from": "2025-12-07",
+  "date_to": "2026-06-05"
+  // No language_code, no location_code
+}]
+
+console.log the mentions count from both attempts.
+Use whichever returns higher number.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BUG 2: CITATIONS AND CITED PAGES SHOWING "--"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The domain citation call is failing silently.
+Find the aggregated_metrics call that uses 
+domain target and add console.log:
+
+console.log('=== DOMAIN CITATION CALL ===')
+console.log('payload:', JSON.stringify(domainPayload))
+console.log('response status:', response.tasks[0].status_code)
+console.log('response message:', response.tasks[0].status_message)
+console.log('result:', JSON.stringify(response.tasks[0].result))
+
+Common fixes to try:
+
+FIX A — Try domain as string not object:
+WRONG: "target": [{ "domain": "primevideo.com" }]
+CORRECT: "target": "primevideo.com"
+
+FIX B — Try with include_subdomains:
+[{
+  "target": "primevideo.com",
+  "date_from": "2025-12-07",
+  "date_to": "2026-06-05",
+  "language_code": "en",
+  "include_subdomains": true
+}]
+
+FIX C — Check field names in response:
+The field might be called:
+- result[0].metrics.mentions
+- result[0].metrics.citations  
+- result[0].metrics.cited_pages
+- result[0].total.mentions
+- result[0].count
+
+console.log the FULL result object and check 
+what field names actually exist.
+
+Show Citations and Cited Pages as actual numbers.
+If still -- after fix, show 0 not dashes.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BUG 3: TOPIC OPPORTUNITIES SHOWING WRONG DATA
+("tpu tubes", "weather", "gold price" etc)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+These are generic AI Overview topics, NOT 
+topics related to primevideo.com.
+
+This means the Topic Opportunities search call
+is NOT filtering by the brand domain or keyword.
+
+Find the search/live call for Topic Opportunities.
+It currently looks like this (WRONG):
+[{
+  "date_from": "...",
+  "date_to": "...",
+  "language_code": "en",
+  "order_by": ["ai_search_volume,desc"],
+  "limit": 50
+  // MISSING: target/domain filter!
+}]
+
+Fix it to filter by brand keyword (CORRECT):
+[{
+  "target": [{
+    "keyword": "primevideo",
+    "search_filter": "exclude",
+    "search_scope": ["answer"]
+  }],
+  "date_from": "2025-12-07",
+  "date_to": "2026-06-05",
+  "language_code": "en",
+  "order_by": ["ai_search_volume,desc"],
+  "limit": 50
+}]
+
+search_filter "exclude" = topics where 
+"primevideo" is NOT mentioned = opportunities.
+
+For Performing Topics tab use "include":
+[{
+  "target": [{
+    "keyword": "primevideo",
+    "search_filter": "include",
+    "search_scope": ["answer"]
+  }],
+  "date_from": "2025-12-07",
+  "date_to": "2026-06-05",
+  "language_code": "en",
+  "order_by": ["ai_search_volume,desc"],
+  "limit": 50
+}]
+
+This will return topics like "Mirzapur Season 4",
+"Inspector Rishi" etc — actual brand-related topics.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BUG 4: ONLY 2 LLM PLATFORMS SHOWING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Currently showing: AI Overview + ChatGPT only
+Should show: ChatGPT, AI Overview, AI Mode, Gemini
+
+Find cross_aggregated_metrics call with 
+group_by: "llm_name" and remove any platform filter.
+
+WRONG (current — has platform filter):
+[{
+  "target": ...,
+  "group_by": "llm_name",
+  "platform": ["google", "chat_gpt"]  ← REMOVE THIS
+}]
+
+CORRECT:
+[{
+  "target": [{
+    "keyword": brandName,
+    "search_scope": ["answer"]
+  }],
+  "date_from": "2025-12-07",
+  "date_to": "2026-06-05",
+  "group_by": "llm_name"
+  // No platform filter — return ALL platforms
+}]
+
+Map all 4 platform names:
+"chat_gpt"       → "ChatGPT"
+"google"         → "AI Overview (Google)"
+"google_ai_mode" → "AI Mode (Google)"
+"gemini"         → "Gemini"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BUG 5: COUNTRY NAMES — "Region 2608", "Region 2104"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Showing raw DataForSEO location codes instead 
+of country names. Fix the location_code mapping:
+
+Add these missing codes to your mapping:
+2608 → 🌐 Worldwide (other)
+2104 → 🇲🇲 Myanmar
+2050 → 🇧🇩 Bangladesh
+2144 → 🇱🇰 Sri Lanka
+2524 → 🇳🇵 Nepal
+2586 → 🇵🇰 Pakistan (already have)
+2566 → 🇳🇬 Nigeria
+2818 → 🇪🇬 Egypt
+2012 → 🇩🇿 Algeria
+
+For any unknown code not in your map:
+Show: 🌐 "Other (region {code})"
+Instead of: "Region 2608"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AFTER FIXING — ADD CONSOLE LOGS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add these logs so we can verify:
+console.log('✅ Mentions (keyword global):', mentions)
+console.log('✅ Citations (domain):', citations)
+console.log('✅ Cited Pages:', citedPages)
+console.log('✅ Platforms found:', platforms.map(p => p.name))
+console.log('✅ Topic Opportunities count:', topicOpps.length)
+console.log('✅ First topic:', topicOpps[0]?.topic)
+
+Clear Supabase cache after fix:
+DELETE FROM dataforseo_cache 
+WHERE cache_key LIKE '%primevideo%'
+
+Then rescan primevideo.com and share screenshot.
+Expected after fix:
+- Mentions: 500K+ 
+- Citations: real number not --
+- Cited Pages: real number not --
+- 4 platforms showing
+- Topics: "Mirzapur", "Prime Video content" etc
+- No "Region 2608" in country list

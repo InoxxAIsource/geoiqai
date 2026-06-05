@@ -20,6 +20,7 @@ import {
   getLlmTopPagesList,
   getLlmSearchTopics,
   getLlmKeywordAggMetrics,
+  getLlmCrossAggByGroup,
 } from "../lib/dataforseo";
 import { runAuditEngine } from "../lib/audit-engine";
 import { db, citationsTable, keywordCacheTable, auditsTable } from "@workspace/db";
@@ -627,23 +628,25 @@ const LOCATION_NAMES: Record<number, string> = {
   2840: "United States", 2826: "United Kingdom", 2356: "India", 2124: "Canada",
   2036: "Australia", 2276: "Germany", 2250: "France", 2724: "Spain",
   2380: "Italy", 2392: "Japan", 2076: "Brazil", 2484: "Mexico",
-  2566: "Pakistan", 2682: "Saudi Arabia", 2158: "Taiwan", 2410: "South Korea",
+  2586: "Pakistan", 2682: "Saudi Arabia", 2158: "Taiwan", 2410: "South Korea",
   2702: "Singapore", 2458: "Malaysia", 2360: "Indonesia", 2764: "Thailand",
   2616: "Poland", 2528: "Netherlands", 2752: "Sweden", 2578: "Norway",
   2208: "Denmark", 2246: "Finland", 2804: "Ukraine", 2792: "Turkey",
   2818: "Egypt", 2704: "Vietnam", 2710: "South Africa",
+  2566: "Nigeria", 2104: "Myanmar", 2050: "Bangladesh", 2144: "Sri Lanka",
+  2524: "Nepal", 2608: "Worldwide (other)", 2012: "Algeria",
 };
 
 const PLATFORM_NAMES: Record<string, string> = {
   google: "AI Overview (Google)", chat_gpt: "ChatGPT", gemini: "Gemini",
   perplexity: "Perplexity", claude: "Claude", ai_mode: "AI Mode (Google)",
-  copilot: "Microsoft Copilot", bing: "Bing AI",
+  google_ai_mode: "AI Mode (Google)", copilot: "Microsoft Copilot", bing: "Bing AI",
 };
 
 const PLATFORM_COLORS: Record<string, string> = {
   google: "#4285F4", chat_gpt: "#10A37F", gemini: "#8B5CF6",
   perplexity: "#5B21B6", claude: "#CC785C", ai_mode: "#34A853",
-  copilot: "#0078D4", bing: "#008373",
+  google_ai_mode: "#34A853", copilot: "#0078D4", bing: "#008373",
 };
 
 /** Extract short brand name from a domain. "netflix.com" -> "netflix" */
@@ -653,6 +656,31 @@ function extractBrandName(domain: string): string {
     .replace(/\.[a-z]{2,}(\.[a-z]{2})?$/, "")
     .toLowerCase()
     .trim();
+}
+
+/**
+ * Generate keyword candidates for a brand name.
+ * "primevideo" -> ["primevideo", "prime video"]
+ * "hotstar" -> ["hotstar"]
+ * "netflix" -> ["netflix"]
+ */
+function brandKeywordCandidates(brandName: string): string[] {
+  const candidates = [brandName];
+  // Detect compound-word domains by checking for common words at end or start
+  const knownWords = [
+    "video", "media", "music", "store", "shop", "hub", "app", "box",
+    "plus", "now", "pass", "live", "pay", "go", "max", "tv", "tube",
+    "cloud", "mail", "maps", "meet", "chat", "news", "play", "voice",
+    "works", "book", "base", "space", "gate", "line", "link", "desk",
+  ];
+  for (const word of knownWords) {
+    if (brandName.endsWith(word) && brandName.length > word.length + 2) {
+      const prefix = brandName.slice(0, brandName.length - word.length);
+      candidates.push(`${prefix} ${word}`);
+      break;
+    }
+  }
+  return candidates;
 }
 
 // Visibility Overview - uses DataForSEO LLM Mentions API (funded account required)
@@ -665,16 +693,29 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
   const today = new Date().toISOString().split("T")[0]!;
   const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]!;
 
-  req.log.info({ domain: bareD, brandName }, "visibility-overview: starting");
+  const candidates = brandKeywordCandidates(brandName);
+  req.log.info({ domain: bareD, brandName, candidates }, "visibility-overview: starting");
 
   try {
-    // 5 parallel calls: keyword-based agg, domain-based agg, cited pages, topics x2
-    const [kwAgg, domainAgg, pagesData, performingData, opportunitiesData] = await Promise.all([
-      getLlmKeywordAggMetrics(brandName, sixMonthsAgo, today),       // A: brand keyword in AI answer text
-      getLlmAggregatedMetrics(bareD, sixMonthsAgo, today),           // B: domain URL cited as source
-      getLlmTopPagesList(bareD, sixMonthsAgo, today, 50),            // C: cited pages list
-      getLlmSearchTopics(bareD, sixMonthsAgo, today, "include", 50), // D: performing topics
-      getLlmSearchTopics(bareD, sixMonthsAgo, today, "exclude", 30), // E: topic opportunities
+    // Round 1: keyword candidate selection + domain + pages (all parallel)
+    // We try up to 2 keyword variants and pick the one with the most mentions
+    const round1 = await Promise.all([
+      getLlmKeywordAggMetrics(candidates[0]!, sixMonthsAgo, today),              // keyword candidate 1
+      candidates[1] ? getLlmKeywordAggMetrics(candidates[1], sixMonthsAgo, today) : Promise.resolve(null), // candidate 2
+      getLlmAggregatedMetrics(bareD, sixMonthsAgo, today),                       // domain URL citations
+      getLlmTopPagesList(bareD, sixMonthsAgo, today, 50),                        // cited pages
+    ]);
+    const [kwAgg1, kwAgg2, domainAgg, pagesData] = round1;
+
+    // Pick best keyword variant by mentions count
+    const kwAgg = (kwAgg2 && kwAgg2.mentions > kwAgg1.mentions) ? kwAgg2 : kwAgg1;
+    const bestKeyword = (kwAgg2 && kwAgg2.mentions > kwAgg1.mentions) ? candidates[1]! : candidates[0]!;
+
+    // Round 2: topics + LLM distribution using the best keyword (parallel)
+    const [performingData, opportunitiesData, llmDist] = await Promise.all([
+      getLlmSearchTopics(bestKeyword, sixMonthsAgo, today, "include", 50),   // performing topics
+      getLlmSearchTopics(bestKeyword, sixMonthsAgo, today, "exclude", 30),   // topic opportunities
+      getLlmCrossAggByGroup(bestKeyword, sixMonthsAgo, today, "llm_name"),   // per-LLM breakdown
     ]);
 
     // CALL A: brand keyword mentions (keyword appearing in AI answer text)
@@ -690,10 +731,12 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
 
     req.log.info({
       brandName,
+      bestKeyword,
       mentions,
       aiSearchVolume,
       citations,
       citedPagesCount,
+      llmDistItems: llmDist.items.map(i => ({ key: i.aggregationKey, mentions: i.mentions })),
       kwPlatforms: (kwTotal?.platform ?? []).map((p: unknown) => {
         const pp = p as { key: string; mentions: number };
         return { key: pp.key, mentions: pp.mentions };
@@ -702,7 +745,7 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
     }, "visibility-overview: raw results");
 
     // Score formula: log-scale on keyword mentions (primary signal)
-    // 1K mentions ~28, 10K ~44, 100K ~60, 1M ~78, 2M+ ~83
+    // 1K ~28, 10K ~44, 100K ~60, 1M ~78, 2M+ ~83
     const mentionScore = mentions > 0
       ? Math.min(Math.log10(mentions) / Math.log10(5000000) * 85, 85)
       : 0;
@@ -715,13 +758,16 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
     const score = (mentions + citations) === 0 ? 0
       : Math.min(100, Math.round(mentionScore + citationBonus + pageBonus));
 
-    // Platforms from CALL A keyword breakdown (much richer than domain citations)
-    // Falls back to domain citations if keyword call returns nothing
+    // Platforms: prefer cross_agg result (more platforms), fall back to kwAgg.total.platform
+    const crossAggItems = llmDist.items.length > 0
+      ? llmDist.items.map(i => ({ key: i.aggregationKey, mentions: i.mentions, ai_search_volume: i.aiSearchVolume }))
+      : null;
     const kwPlatforms = (kwTotal?.platform ?? []) as Array<{ key: string; mentions: number; ai_search_volume: number }>;
-    const rawPlatforms = kwPlatforms.length > 0 ? kwPlatforms : domainPlatforms.map(p => {
-      const pp = p as { key: string; mentions: number; ai_search_volume: number };
-      return { key: pp.key, mentions: pp.mentions, ai_search_volume: pp.ai_search_volume };
-    });
+    const rawPlatforms = crossAggItems
+      ?? (kwPlatforms.length > 0 ? kwPlatforms : domainPlatforms.map(p => {
+          const pp = p as { key: string; mentions: number; ai_search_volume: number };
+          return { key: pp.key, mentions: pp.mentions, ai_search_volume: pp.ai_search_volume };
+        }));
     const maxPlatMentions = Math.max(...rawPlatforms.map(p => p.mentions), 1);
     const platformData = [...rawPlatforms]
       .sort((a, b) => b.mentions - a.mentions)
@@ -734,7 +780,7 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
         pct: Math.round((p.mentions / maxPlatMentions) * 100),
       }));
 
-    // Countries from CALL A keyword breakdown (fallback to domain location)
+    // Countries from keyword breakdown (fallback to domain location)
     const kwLocations = (kwTotal?.location ?? []) as Array<{ key: string; mentions: number }>;
     const rawLocations = kwLocations.length > 0 ? kwLocations
       : (domainTotal?.location ?? []) as Array<{ key: string; mentions: number }>;
@@ -744,7 +790,7 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
       .slice(0, 10)
       .map(l => ({
         code: Number(l.key),
-        name: LOCATION_NAMES[Number(l.key)] ?? `Region ${l.key}`,
+        name: LOCATION_NAMES[Number(l.key)] ?? `Other (region ${l.key})`,
         mentions: l.mentions,
         pct: Math.round((l.mentions / totalLocMentions) * 100),
       }));
@@ -757,11 +803,11 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
       .map(s => ({ domain: s.key, mentions: s.mentions, ai_search_volume: s.ai_search_volume }));
 
     const hasData = mentions > 0 || citations > 0;
-    req.log.info({ domain: bareD, brandName, score, mentions, citations, citedPagesCount, hasData }, "visibility-overview: done");
+    req.log.info({ domain: bareD, brandName, bestKeyword, score, mentions, citations, citedPagesCount, hasData }, "visibility-overview: done");
 
     res.json({
       domain: bareD,
-      brandName,
+      brandName: bestKeyword,
       score,
       mentions,
       aiSearchVolume,
