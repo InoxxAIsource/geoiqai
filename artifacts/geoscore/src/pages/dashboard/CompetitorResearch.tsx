@@ -152,10 +152,39 @@ function TopicsTable({ topics, counts, yourDomain, compDomain, sources = [] }: {
 }) {
   const [tab, setTab] = useState<"topics" | "sources">("topics");
   const [filter, setFilter] = useState<TopicFilter>("all");
+  const [search, setSearch] = useState("");
+  const [sortVolDir, setSortVolDir] = useState<"desc" | "asc">("desc");
   const [page, setPage] = useState(0);
   const PER_PAGE = 20;
 
-  const filtered = filter === "all" ? topics : topics.filter(t => t.status === filter);
+  const exportCsv = () => {
+    const rows = [
+      ["Topic", yourDomain + " Mentions", (compDomain ?? "Competitor") + " Mentions", "AI Volume", "Status"],
+      ...topics.map(t => [
+        `"${t.topic.replace(/"/g, '""')}"`,
+        String(t.yourMentions),
+        String(t.compMentions),
+        String(t.aiVolume),
+        t.status,
+      ]),
+    ];
+    const csv = rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `competitor-topics-${yourDomain.replace(/\./g, "-")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const byStatus = filter === "all" ? topics : topics.filter(t => t.status === filter);
+  const bySearch = search.trim()
+    ? byStatus.filter(t => t.topic.toLowerCase().includes(search.trim().toLowerCase()))
+    : byStatus;
+  const filtered = [...bySearch].sort((a, b) =>
+    sortVolDir === "desc" ? b.aiVolume - a.aiVolume : a.aiVolume - b.aiVolume
+  );
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const visible = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
 
@@ -216,6 +245,18 @@ function TopicsTable({ topics, counts, yourDomain, compDomain, sources = [] }: {
 
       {tab === "topics" && (
         <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+            <input
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(0); }}
+              placeholder="Filter by topic..."
+              style={{ flex: "1 1 180px", minWidth: 160, padding: "6px 10px", fontSize: 13, border: `1px solid ${BORDER}`, borderRadius: 6, outline: "none", color: "#111827" }}
+            />
+            <button onClick={exportCsv}
+              style={{ padding: "6px 14px", fontSize: 12, fontWeight: 600, border: `1px solid ${BORDER}`, borderRadius: 6, background: "white", color: MUTED, cursor: "pointer", whiteSpace: "nowrap" }}>
+              Export CSV
+            </button>
+          </div>
           <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
             {chips.map(c => (
               <button key={c.key} style={chipStyle(filter === c.key, c.key)}
@@ -236,7 +277,10 @@ function TopicsTable({ topics, counts, yourDomain, compDomain, sources = [] }: {
                     {compDomain && (
                       <th style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 600, color: "#10B981", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}`, whiteSpace: "nowrap" }}>{compDomain}</th>
                     )}
-                    <th style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}`, whiteSpace: "nowrap" }}>AI Volume</th>
+                    <th onClick={() => { setSortVolDir(d => d === "desc" ? "asc" : "desc"); setPage(0); }}
+                      style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}`, whiteSpace: "nowrap", cursor: "pointer", userSelect: "none" }}>
+                      AI Volume {sortVolDir === "desc" ? "\u2193" : "\u2191"}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>

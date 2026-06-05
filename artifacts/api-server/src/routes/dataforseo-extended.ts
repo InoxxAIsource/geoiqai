@@ -20,7 +20,6 @@ import {
   getLlmTopPagesList,
   getLlmSearchTopics,
   getLlmKeywordAggMetrics,
-  getLlmCrossAggByGroup,
 } from "../lib/dataforseo";
 import { runAuditEngine } from "../lib/audit-engine";
 import { db, citationsTable, keywordCacheTable, auditsTable } from "@workspace/db";
@@ -913,11 +912,13 @@ const compOpenai = new OpenAI({
   maxRetries: 0,
 });
 
-function calcScore(mentions: number, citedPages: number): number {
+// Identical formula used by visibility-overview: 70pt mentions + 20pt citations + 10pt pages
+function calcScore(mentions: number, citations: number, citedPages: number): number {
   if (mentions === 0) return 0;
-  const mentionScore = Math.min(Math.log10(Math.max(mentions, 1)) / Math.log10(10_000_000) * 70, 70);
-  const pageBonus = citedPages > 0 ? Math.min(citedPages / 100 * 10, 10) : 0;
-  return Math.min(100, Math.round(mentionScore + pageBonus));
+  const mentionScore  = Math.min(Math.log10(Math.max(mentions, 1)) / Math.log10(10_000_000) * 70, 70);
+  const citationBonus = citations > 0 ? Math.min(Math.log10(citations) / 6 * 20, 20) : 0;
+  const pageBonus     = citedPages > 0 ? Math.min(citedPages / 100 * 10, 10) : 0;
+  return Math.min(100, Math.round(mentionScore + citationBonus + pageBonus));
 }
 
 router.post("/dataforseo/competitor-research", requireAuth, async (req, res): Promise<void> => {
@@ -936,60 +937,85 @@ router.post("/dataforseo/competitor-research", requireAuth, async (req, res): Pr
 
   req.log.info({ domains: allDomains, dateFrom: sixMonthsAgo, dateTo: today }, "competitor-research: start");
 
+  // Build 6 monthly date slices for trend chart
+  const startMs = Date.now() - 180 * 24 * 60 * 60 * 1000;
+  const monthSlices = Array.from({ length: 6 }, (_, i) => {
+    const from = new Date(startMs + i * 30 * 24 * 60 * 60 * 1000);
+    const to   = new Date(Math.min(from.getTime() + 30 * 24 * 60 * 60 * 1000, Date.now()));
+    return { from: from.toISOString().split("T")[0]!, to: to.toISOString().split("T")[0]! };
+  });
+
   try {
-    // Per-domain: fetch mentions + pages in parallel across all domains
+    // Per-domain: fetch keyword mentions + domain citations + cited pages in parallel
     const domainFetches = allDomains.map(async (domain, idx) => {
       const brandName = extractBrandName(domain);
       const candidates = brandKeywordCandidates(brandName);
-      const [kw1G, kw1C, kw2G, kw2C, pages] = await Promise.all([
+      const [kw1G, kw1C, kw2G, kw2C, pages, domG, domC] = await Promise.all([
         getLlmKeywordAggMetrics(candidates[0]!, sixMonthsAgo, today, "google"),
         getLlmKeywordAggMetrics(candidates[0]!, sixMonthsAgo, today, "chat_gpt"),
         candidates[1] ? getLlmKeywordAggMetrics(candidates[1], sixMonthsAgo, today, "google") : Promise.resolve(null),
         candidates[1] ? getLlmKeywordAggMetrics(candidates[1], sixMonthsAgo, today, "chat_gpt") : Promise.resolve(null),
         getLlmTopPagesList(domain, sixMonthsAgo, today, 20),
+        getLlmAggregatedMetrics(domain, sixMonthsAgo, today, "google"),
+        getLlmAggregatedMetrics(domain, sixMonthsAgo, today, "chat_gpt"),
       ]);
       const kw1Total = kw1G.mentions + kw1C.mentions;
       const kw2Total = (kw2G?.mentions ?? 0) + (kw2C?.mentions ?? 0);
       const useKw2 = kw2Total > kw1Total;
       const bestKeyword = useKw2 ? candidates[1]! : candidates[0]!;
-      const mentions = useKw2 ? kw2Total : kw1Total;
+      const mentions  = useKw2 ? kw2Total : kw1Total;
+      const citations = domG.mentions + domC.mentions;
       const citedPages = pages.pages.length;
-      const score = calcScore(mentions, citedPages);
-      req.log.info({ domain, brandName, kw1Total, kw2Total, mentions, citedPages, score }, "competitor-research: domain metrics");
-      return { domain, brandName, bestKeyword, mentions, citedPages, score, isYou: idx === 0 };
+      const score = calcScore(mentions, citations, citedPages);
+      req.log.info({ domain, brandName, mentions, citations, citedPages, score }, "competitor-research: domain metrics");
+      return { domain, brandName, bestKeyword, mentions, citations, citedPages, score, isYou: idx === 0 };
     });
 
     const domainResults = await Promise.all(domainFetches);
 
-    // Trend data + topics (parallel)
+    // Topics (parallel fetch for both brands)
     const yourBrand = domainResults[0]!.bestKeyword;
     const compBrand = domainResults[1]?.bestKeyword;
 
-    const [trendResults, yourTopics, compTopics] = await Promise.all([
-      Promise.all(domainResults.map(d => getLlmCrossAggByGroup(d.bestKeyword, sixMonthsAgo, today, "date"))),
+    const [yourTopics, compTopics] = await Promise.all([
       getLlmSearchTopics(yourBrand, sixMonthsAgo, today, "include", 100),
       compBrand
         ? getLlmSearchTopics(compBrand, sixMonthsAgo, today, "include", 100)
         : Promise.resolve({ items: [], totalCount: 0, cached: false }),
     ]);
 
+    // Monthly trend: reuse getLlmKeywordAggMetrics per 30-day slice (results are cached after first run)
+    const trendSeries = await Promise.all(domainResults.map(async (d) => {
+      const monthPoints = await Promise.all(monthSlices.map(async (slice) => {
+        const [g, c] = await Promise.all([
+          getLlmKeywordAggMetrics(d.bestKeyword, slice.from, slice.to, "google"),
+          getLlmKeywordAggMetrics(d.bestKeyword, slice.from, slice.to, "chat_gpt"),
+        ]);
+        const monthMentions = g.mentions + c.mentions;
+        return { date: slice.from, mentions: monthMentions, score: calcScore(monthMentions, d.citations, d.citedPages) };
+      }));
+      return { domain: d.domain, points: monthPoints };
+    }));
+
     req.log.info({
-      trendPoints: trendResults.map(t => t.items.length),
+      trendPoints: trendSeries.map(t => t.points.filter(p => p.mentions > 0).length),
       yourTopics: yourTopics.items.length,
       compTopics: compTopics.items.length,
     }, "competitor-research: secondary data");
 
-    // Build trend series
-    const trendSeries = trendResults.map((t, i) => ({
-      domain: allDomains[i]!,
-      points: t.items.map(item => ({
-        date: item.aggregationKey,
-        mentions: item.mentions,
-        score: calcScore(item.mentions, domainResults[i]!.citedPages),
-      })),
-    }));
+    // Build rank maps (index in search results = prominence rank)
+    const yourRankMap = new Map<string, number>();
+    yourTopics.items.forEach((item, idx) => {
+      const key = item.question.toLowerCase().trim();
+      if (key) yourRankMap.set(key, idx);
+    });
+    const compRankMap = new Map<string, number>();
+    compTopics.items.forEach((item, idx) => {
+      const key = item.question.toLowerCase().trim();
+      if (key) compRankMap.set(key, idx);
+    });
 
-    // Merge topics for gap table - store separate ai_search_volume per brand
+    // Merge topics for gap table
     const topicMap = new Map<string, {
       topic: string;
       yourMentions: number;
@@ -1001,14 +1027,7 @@ router.post("/dataforseo/competitor-research", requireAuth, async (req, res): Pr
     for (const item of yourTopics.items) {
       const key = item.question.toLowerCase().trim();
       if (!key) continue;
-      topicMap.set(key, {
-        topic: item.question,
-        yourMentions: 1,
-        compMentions: 0,
-        yourAiVolume: item.ai_search_volume,
-        compAiVolume: 0,
-        aiVolume: item.ai_search_volume,
-      });
+      topicMap.set(key, { topic: item.question, yourMentions: 1, compMentions: 0, yourAiVolume: item.ai_search_volume, compAiVolume: 0, aiVolume: item.ai_search_volume });
     }
     for (const item of compTopics.items) {
       const key = item.question.toLowerCase().trim();
@@ -1019,38 +1038,31 @@ router.post("/dataforseo/competitor-research", requireAuth, async (req, res): Pr
         existing.compAiVolume = item.ai_search_volume;
         existing.aiVolume = Math.max(existing.aiVolume, item.ai_search_volume);
       } else {
-        topicMap.set(key, {
-          topic: item.question,
-          yourMentions: 0,
-          compMentions: 1,
-          yourAiVolume: 0,
-          compAiVolume: item.ai_search_volume,
-          aiVolume: item.ai_search_volume,
-        });
+        topicMap.set(key, { topic: item.question, yourMentions: 0, compMentions: 1, yourAiVolume: 0, compAiVolume: item.ai_search_volume, aiVolume: item.ai_search_volume });
       }
     }
 
     type TopicStatus = "unique" | "missing" | "shared" | "weak" | "strong";
-    const classifyStatus = (yourVol: number, compVol: number, yourPresent: number, compPresent: number): TopicStatus => {
+    const classifyStatus = (key: string, yourPresent: number, compPresent: number): TopicStatus => {
       if (yourPresent === 0 && compPresent > 0) return "missing";
       if (yourPresent > 0 && compPresent === 0) return "unique";
-      if (yourPresent > 0 && compPresent > 0) {
-        if (compVol > yourVol * 2) return "weak";
-        if (yourVol > compVol * 2) return "strong";
-        return "shared";
-      }
+      // Both present: compare rank position (lower index = more prominent in results)
+      const yourRank = yourRankMap.get(key) ?? 999;
+      const compRank = compRankMap.get(key) ?? 999;
+      if (compRank < yourRank * 0.5) return "weak";   // competitor ranks much higher
+      if (yourRank < compRank * 0.5) return "strong"; // you rank much higher
       return "shared";
     };
 
-    const topicList = [...topicMap.values()]
-      .map(t => ({
+    const topicList = [...topicMap.entries()]
+      .map(([key, t]) => ({
         topic: t.topic,
         yourMentions: t.yourMentions,
         compMentions: t.compMentions,
         yourAiVolume: t.yourAiVolume,
         compAiVolume: t.compAiVolume,
         aiVolume: t.aiVolume,
-        status: classifyStatus(t.yourAiVolume, t.compAiVolume, t.yourMentions, t.compMentions),
+        status: classifyStatus(key, t.yourMentions, t.compMentions),
       }))
       .sort((a, b) => b.aiVolume - a.aiVolume);
 

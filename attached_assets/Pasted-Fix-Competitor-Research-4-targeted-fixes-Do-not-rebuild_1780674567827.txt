@@ -1,0 +1,194 @@
+Fix Competitor Research — 4 targeted fixes.
+Do not rebuild. Fix specific issues only.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 1: SCORE GAP (64 vs should be 80+)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Competitor Research shows netflix score 64
+but Visibility Overview shows netflix score 82+
+for same domain with same 2.4M mentions.
+
+They must use IDENTICAL score formula.
+
+Find the score calculation in competitor 
+research backend. Replace it with exact 
+same function used in Visibility Overview:
+
+const score = calculateVisibilityScore(
+  mentions, citations, citedPages
+)
+
+If calculateVisibilityScore is defined in 
+visibility overview only, move it to a 
+shared utils file and import it in both:
+
+// utils/scoreCalculator.js
+export function calculateVisibilityScore(
+  mentions, citations = 0, citedPages = 0
+) {
+  const mentionScore = Math.min(
+    Math.log10(Math.max(mentions, 1)) / 
+    Math.log10(10000000) * 70, 70
+  )
+  const citationBonus = citations > 0
+    ? Math.min(Math.log10(citations) / 6 * 20, 20)
+    : 0
+  const pageBonus = citedPages > 0
+    ? Math.min(citedPages / 100 * 10, 10)
+    : 0
+  return Math.min(100, Math.round(
+    mentionScore + citationBonus + pageBonus
+  ))
+}
+
+Import and use in BOTH pages.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 2: TREND CHART STILL EMPTY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add these console.logs to the trend call:
+
+console.log('=== TREND DEBUG ===')
+console.log('payload:', JSON.stringify(trendPayload))
+console.log('status:', trendRes.tasks[0].status_code)
+console.log('status_msg:', trendRes.tasks[0].status_message)
+console.log('result length:', trendRes.tasks[0].result?.length)
+console.log('items:', JSON.stringify(
+  trendRes.tasks[0].result?.[0]?.items?.slice(0,2)
+))
+
+Then check Replit console after clicking Analyze.
+The items array structure will show us 
+what field names to use for the chart.
+
+If items is null or empty — the cross_aggregated
+call with group_by "date" is not working.
+Try this alternative approach instead:
+
+Run aggregated_metrics for each month separately:
+const months = [
+  { from: '2025-12-07', to: '2026-01-07' },
+  { from: '2026-01-07', to: '2026-02-07' },
+  { from: '2026-02-07', to: '2026-03-07' },
+  { from: '2026-03-07', to: '2026-04-07' },
+  { from: '2026-04-07', to: '2026-05-07' },
+  { from: '2026-05-07', to: '2026-06-05' },
+]
+
+const trendPoints = await Promise.all(
+  months.map(m => dfsPost(
+    '/v3/ai_optimization/llm_mentions/aggregated_metrics/live',
+    [{
+      "target": [{ 
+        "keyword": brandName,
+        "search_scope": ["answer"]
+      }],
+      "date_from": m.from,
+      "date_to": m.to,
+      "language_code": "en"
+    }]
+  ))
+)
+
+const chartData = trendPoints.map((res, i) => ({
+  date: months[i].from,
+  mentions: res.tasks[0].result?.[0]?.metrics?.mentions || 0
+}))
+
+// Run same for competitor brand
+// Plot 2 lines using chartData
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 3: WEAK=0 AND STRONG=0 BUG
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Weak and Strong show 0 because the classification
+uses mention counts but both sides show same 
+ai_search_volume value (9.1M for both netflix 
+and primevideo on "nfl games").
+
+The issue: you're comparing ai_search_volume 
+instead of actual per-brand mention counts.
+
+Fix classification to compare correctly:
+
+// yourCount and competitorCount should be 
+// based on whether topic appears in each 
+// brand's search results, weighted by position
+
+topics.forEach((topic, index) => {
+  const yourRank = yourTopicMap[topic.key]?.rank || 999
+  const compRank = competitorTopicMap[topic.key]?.rank || 999
+  
+  // Lower rank = more prominent
+  if (yourRank < 999 && compRank === 999) {
+    topic.status = 'unique'
+  } else if (yourRank === 999 && compRank < 999) {
+    topic.status = 'missing'
+  } else if (yourRank < compRank * 0.5) {
+    topic.status = 'strong'  // you rank much better
+  } else if (compRank < yourRank * 0.5) {
+    topic.status = 'weak'    // competitor ranks much better
+  } else {
+    topic.status = 'shared'  // roughly equal
+  }
+})
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 4: ADD MISSING UI ELEMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+4a. Add topic search filter input:
+Above the topics table add:
+<input placeholder="Filter by topic..." 
+  onChange={e => setTopicFilter(e.target.value)} />
+
+Filter topics list:
+const filteredTopics = topics.filter(t => 
+  t.topic.toLowerCase().includes(topicFilter.toLowerCase())
+)
+
+4b. Add AI Volume sort:
+Make AI Volume column header clickable.
+onClick: sort topics by aiVolume descending/ascending.
+
+4c. Add "Monitor all prompts" button per row:
+Small button on each topic row.
+onClick: save topic to Prompt Tracking table 
+in Supabase for this user.
+Show toast: "Added to Prompt Tracking"
+
+4d. Add Export button:
+Top right of topics table.
+onClick: download topics as CSV with columns:
+Topic, Your Mentions, Competitor Mentions, 
+AI Volume, Status
+
+4e. Competitor Insights — add prev/next:
+If Claude generates multiple insights (1 per 
+missing topic), show them with arrows:
+"← 1/3 →"
+Each click shows next insight.
+
+4f. Add "Go to topic" button in insights panel:
+onClick: filter topics table to that specific topic.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST AFTER FIX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+netflix.com vs primevideo.com
+Expected:
+- netflix score: 80+
+- primevideo score: 70+
+- Trend chart: 2 lines showing Jan-Jun data
+- Weak: some number > 0
+- Strong: some number > 0
+- Filter by topic: works
+- Export: downloads CSV
+
+Clear competitor cache before testing:
+DELETE FROM dataforseo_cache 
+WHERE cache_key LIKE '%competitor%'
