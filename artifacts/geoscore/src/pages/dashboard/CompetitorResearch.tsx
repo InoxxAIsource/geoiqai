@@ -21,20 +21,25 @@ interface DomainResult {
 }
 interface TrendPoint { date: string; mentions: number; score: number }
 interface TrendSeries { domain: string; points: TrendPoint[] }
+type TopicStatus = "unique" | "missing" | "shared" | "weak" | "strong";
 interface TopicRow {
   topic: string;
   yourMentions: number;
   compMentions: number;
+  yourAiVolume: number;
+  compAiVolume: number;
   aiVolume: number;
-  status: "unique" | "missing" | "shared";
+  status: TopicStatus;
 }
-interface TopicCounts { all: number; missing: number; shared: number; unique: number }
+interface TopicCounts { all: number; missing: number; weak: number; shared: number; strong: number; unique: number }
+interface SourceRow { domain: string; count: number }
 interface CompData {
   domains: DomainResult[];
   trend: TrendSeries[];
   topics: TopicRow[];
   topicCounts: TopicCounts;
   insights: string[];
+  sources: SourceRow[];
   cached: boolean;
 }
 
@@ -116,14 +121,36 @@ function TrendChart({ trend }: { trend: TrendSeries[] }) {
 }
 
 /* ───── Topics Table ───── */
-type TopicFilter = "all" | "missing" | "shared" | "unique";
+type TopicFilter = "all" | "missing" | "weak" | "shared" | "strong" | "unique";
 
-function TopicsTable({ topics, counts, yourDomain, compDomain }: {
+const fmtVol = (v: number) =>
+  v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : v >= 1_000 ? `${(v / 1_000).toFixed(1)}K` : String(v);
+
+const CHIP_COLORS: Record<TopicFilter, { bg: string; color: string; border: string }> = {
+  all:     { bg: "#EEF2FF", color: P,       border: P },
+  missing: { bg: "#FEF2F2", color: DANGER,  border: "#FECACA" },
+  weak:    { bg: "#FFF7ED", color: WARNING, border: "#FED7AA" },
+  shared:  { bg: "#F9FAFB", color: MUTED,   border: BORDER },
+  strong:  { bg: "#F0FDF4", color: SUCCESS, border: "#BBF7D0" },
+  unique:  { bg: "#ECFDF5", color: "#065F46", border: "#6EE7B7" },
+};
+
+const ROW_BG: Record<TopicStatus, string> = {
+  missing: "#FFF5F5",
+  weak:    "#FFFBF0",
+  shared:  "white",
+  strong:  "#F6FFF8",
+  unique:  "#F0FDF4",
+};
+
+function TopicsTable({ topics, counts, yourDomain, compDomain, sources = [] }: {
   topics: TopicRow[];
   counts: TopicCounts;
   yourDomain: string;
   compDomain?: string;
+  sources: SourceRow[];
 }) {
+  const [tab, setTab] = useState<"topics" | "sources">("topics");
   const [filter, setFilter] = useState<TopicFilter>("all");
   const [page, setPage] = useState(0);
   const PER_PAGE = 20;
@@ -133,91 +160,155 @@ function TopicsTable({ topics, counts, yourDomain, compDomain }: {
   const visible = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
 
   const chips: Array<{ key: TopicFilter; label: string; count: number }> = [
-    { key: "all", label: "All", count: counts.all },
+    { key: "all",     label: "All",     count: counts.all },
     { key: "missing", label: "Missing", count: counts.missing },
-    { key: "shared", label: "Shared", count: counts.shared },
-    { key: "unique", label: "Unique", count: counts.unique },
+    { key: "weak",    label: "Weak",    count: counts.weak },
+    { key: "shared",  label: "Shared",  count: counts.shared },
+    { key: "strong",  label: "Strong",  count: counts.strong },
+    { key: "unique",  label: "Unique",  count: counts.unique },
   ];
 
-  const chipStyle = (active: boolean, key: TopicFilter) => ({
-    padding: "5px 12px",
-    borderRadius: 20,
+  const chipStyle = (active: boolean, key: TopicFilter) => {
+    const c = CHIP_COLORS[key];
+    return {
+      padding: "5px 12px",
+      borderRadius: 20,
+      fontSize: 12,
+      fontWeight: 600,
+      cursor: "pointer",
+      border: `1px solid ${active ? c.border : BORDER}`,
+      background: active ? c.bg : "white",
+      color: active ? c.color : MUTED,
+    };
+  };
+
+  const tabBtn = (active: boolean) => ({
+    padding: "6px 14px",
     fontSize: 12,
     fontWeight: 600,
     cursor: "pointer",
-    border: `1px solid ${active ? P : BORDER}`,
-    background: active ? "#EEF2FF" : "white",
+    border: "none",
+    borderBottom: `2px solid ${active ? P : "transparent"}`,
+    background: "none",
     color: active ? P : MUTED,
   });
 
-  const rowBg = (status: TopicRow["status"]) =>
-    status === "missing" ? "#FFF5F5" : status === "unique" ? "#F0FDF4" : "white";
-
-  const fmtVol = (v: number) => v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : v >= 1_000 ? `${(v / 1_000).toFixed(1)}K` : String(v);
+  const totalTopicsVol = topics.reduce((s, t) => s + t.aiVolume, 0);
+  const totalSourcesCount = sources.reduce((s, r) => s + r.count, 0);
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        {chips.map(c => (
-          <button key={c.key} style={chipStyle(filter === c.key, c.key)}
-            onClick={() => { setFilter(c.key); setPage(0); }}>
-            {c.label} {c.count}
-          </button>
-        ))}
+      {/* Tab bar */}
+      <div style={{ display: "flex", gap: 4, borderBottom: `1px solid ${BORDER}`, marginBottom: 16 }}>
+        <button style={tabBtn(tab === "topics")} onClick={() => setTab("topics")}>
+          Topics and Prompts
+          {totalTopicsVol > 0 && (
+            <span style={{ marginLeft: 6, fontSize: 11, color: MUTED, fontWeight: 400 }}>{fmtVol(totalTopicsVol)}</span>
+          )}
+        </button>
+        <button style={tabBtn(tab === "sources")} onClick={() => setTab("sources")}>
+          Sources
+          {totalSourcesCount > 0 && (
+            <span style={{ marginLeft: 6, fontSize: 11, color: MUTED, fontWeight: 400 }}>{fmtVol(totalSourcesCount)}</span>
+          )}
+        </button>
       </div>
-      {visible.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "32px 20px", color: MUTED, fontSize: 13 }}>No topics found for this filter.</div>
-      ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-            <thead>
-              <tr style={{ background: "#F9FAFB" }}>
-                <th style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}` }}>Topic</th>
-                <th style={{ padding: "8px 12px", textAlign: "center", fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}`, whiteSpace: "nowrap" }}>{yourDomain}</th>
-                {compDomain && (
-                  <th style={{ padding: "8px 12px", textAlign: "center", fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}`, whiteSpace: "nowrap" }}>{compDomain}</th>
-                )}
-                <th style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}`, whiteSpace: "nowrap" }}>AI Volume</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((row, i) => (
-                <tr key={i} style={{ background: rowBg(row.status) }}>
-                  <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, maxWidth: 400, lineHeight: 1.4 }}>
-                    {row.topic}
-                  </td>
-                  <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, textAlign: "center" }}>
-                    {row.yourMentions > 0
-                      ? <span style={{ background: "#D1FAE5", color: SUCCESS, borderRadius: 10, padding: "2px 8px", fontSize: 11, fontWeight: 600 }}>Yes</span>
-                      : <span style={{ background: "#FEE2E2", color: DANGER, borderRadius: 10, padding: "2px 8px", fontSize: 11, fontWeight: 600 }}>No</span>
-                    }
-                  </td>
-                  {compDomain && (
-                    <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, textAlign: "center" }}>
-                      {row.compMentions > 0
-                        ? <span style={{ background: "#D1FAE5", color: SUCCESS, borderRadius: 10, padding: "2px 8px", fontSize: 11, fontWeight: 600 }}>Yes</span>
-                        : <span style={{ background: "#F3F4F6", color: MUTED, borderRadius: 10, padding: "2px 8px", fontSize: 11, fontWeight: 600 }}>No</span>
-                      }
-                    </td>
-                  )}
-                  <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, textAlign: "right", fontWeight: 600, color: "#111827", whiteSpace: "nowrap" }}>
-                    {fmtVol(row.aiVolume)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {totalPages > 1 && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, marginTop: 12, fontSize: 12, color: MUTED }}>
-              <span>{page * PER_PAGE + 1}-{Math.min((page + 1) * PER_PAGE, filtered.length)} of {filtered.length}</span>
-              <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
-                style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 6, padding: "4px 8px", cursor: page === 0 ? "not-allowed" : "pointer", opacity: page === 0 ? 0.4 : 1, display: "flex", alignItems: "center" }}>
-                <ChevronLeft size={13} />
+
+      {tab === "topics" && (
+        <div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+            {chips.map(c => (
+              <button key={c.key} style={chipStyle(filter === c.key, c.key)}
+                onClick={() => { setFilter(c.key); setPage(0); }}>
+                {c.label} {c.count}
               </button>
-              <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
-                style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 6, padding: "4px 8px", cursor: page >= totalPages - 1 ? "not-allowed" : "pointer", opacity: page >= totalPages - 1 ? 0.4 : 1, display: "flex", alignItems: "center" }}>
-                <ChevronRight size={13} />
-              </button>
+            ))}
+          </div>
+          {visible.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "32px 20px", color: MUTED, fontSize: 13 }}>No topics for this filter.</div>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: "#F9FAFB" }}>
+                    <th style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}` }}>Topic</th>
+                    <th style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 600, color: P, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}`, whiteSpace: "nowrap" }}>{yourDomain}</th>
+                    {compDomain && (
+                      <th style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 600, color: "#10B981", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}`, whiteSpace: "nowrap" }}>{compDomain}</th>
+                    )}
+                    <th style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}`, whiteSpace: "nowrap" }}>AI Volume</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visible.map((row, i) => (
+                    <tr key={i} style={{ background: ROW_BG[row.status] }}>
+                      <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, maxWidth: 400, lineHeight: 1.4 }}>{row.topic}</td>
+                      <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, textAlign: "right", fontWeight: 600, color: row.yourMentions > 0 ? SUCCESS : MUTED }}>
+                        {row.yourMentions > 0 ? fmtVol(row.yourAiVolume || row.aiVolume) : <span style={{ color: "#D1D5DB" }}>-</span>}
+                      </td>
+                      {compDomain && (
+                        <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, textAlign: "right", fontWeight: 600, color: row.compMentions > 0 ? "#10B981" : MUTED }}>
+                          {row.compMentions > 0 ? fmtVol(row.compAiVolume || row.aiVolume) : <span style={{ color: "#D1D5DB" }}>-</span>}
+                        </td>
+                      )}
+                      <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, textAlign: "right", fontWeight: 600, color: "#111827", whiteSpace: "nowrap" }}>
+                        {fmtVol(row.aiVolume)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {totalPages > 1 && (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, marginTop: 12, fontSize: 12, color: MUTED }}>
+                  <span>{page * PER_PAGE + 1}-{Math.min((page + 1) * PER_PAGE, filtered.length)} of {filtered.length}</span>
+                  <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
+                    style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 6, padding: "4px 8px", cursor: page === 0 ? "not-allowed" : "pointer", opacity: page === 0 ? 0.4 : 1, display: "flex", alignItems: "center" }}>
+                    <ChevronLeft size={13} />
+                  </button>
+                  <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
+                    style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 6, padding: "4px 8px", cursor: page >= totalPages - 1 ? "not-allowed" : "pointer", opacity: page >= totalPages - 1 ? 0.4 : 1, display: "flex", alignItems: "center" }}>
+                    <ChevronRight size={13} />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === "sources" && (
+        <div>
+          {sources.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "32px 20px", color: MUTED, fontSize: 13 }}>
+              No source data found. Run an analysis to see which domains AI cites.
+            </div>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: "#F9FAFB" }}>
+                    <th style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}` }}>#</th>
+                    <th style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}` }}>Domain</th>
+                    <th style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}` }}>Citations</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sources.map((row, i) => (
+                    <tr key={row.domain} style={{ background: i % 2 === 0 ? "white" : "#FAFAFA" }}>
+                      <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, color: MUTED, width: 40 }}>{i + 1}</td>
+                      <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, fontWeight: 500, color: "#111827" }}>
+                        <a href={`https://${row.domain}`} target="_blank" rel="noopener noreferrer"
+                          style={{ color: P, textDecoration: "none" }}>
+                          {row.domain}
+                        </a>
+                      </td>
+                      <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, textAlign: "right", fontWeight: 600, color: "#111827" }}>
+                        {row.count.toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
@@ -459,21 +550,19 @@ export function CompetitorResearch({ initialDomain }: { initialDomain: string })
             </div>
           </div>
 
-          {/* Topics gap */}
+          {/* Topics + Sources gap */}
           <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: "20px 24px" }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 4 }}>Topics and Prompts Gap</div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 4 }}>Topics, Prompts and Sources</div>
             <div style={{ fontSize: 12, color: MUTED, marginBottom: 16 }}>
-              Topics where {compDomain ?? "the competitor"} appears vs where you appear.
-              <span style={{ marginLeft: 12 }}>
-                <span style={{ background: "#FFF5F5", color: DANGER, borderRadius: 4, padding: "1px 6px", fontSize: 11, fontWeight: 600, marginRight: 6 }}>Missing</span>
-                competitor shows, you don't
-              </span>
-              <span>
-                <span style={{ background: "#F0FDF4", color: SUCCESS, borderRadius: 4, padding: "1px 6px", fontSize: 11, fontWeight: 600, marginLeft: 6, marginRight: 6 }}>Unique</span>
-                only you appear
-              </span>
+              AI queries where each brand appears.
+              <span style={{ marginLeft: 10, background: "#FFF5F5", color: DANGER, borderRadius: 4, padding: "1px 6px", fontSize: 11, fontWeight: 600 }}>Missing</span>
+              <span style={{ marginLeft: 4, marginRight: 10, fontSize: 11, color: MUTED }}>competitor shows, you don't</span>
+              <span style={{ background: "#FFFBF0", color: WARNING, borderRadius: 4, padding: "1px 6px", fontSize: 11, fontWeight: 600 }}>Weak</span>
+              <span style={{ marginLeft: 4, marginRight: 10, fontSize: 11, color: MUTED }}>competitor 2x stronger</span>
+              <span style={{ background: "#F0FDF4", color: SUCCESS, borderRadius: 4, padding: "1px 6px", fontSize: 11, fontWeight: 600 }}>Strong</span>
+              <span style={{ marginLeft: 4, fontSize: 11, color: MUTED }}>you are 2x stronger</span>
             </div>
-            {data.topicCounts.all === 0 ? (
+            {data.topicCounts.all === 0 && data.sources.length === 0 ? (
               <div style={{ textAlign: "center", padding: "32px 20px", color: MUTED, fontSize: 13 }}>
                 No topic data found. This may happen if DataForSEO has limited data for these brand keywords.
               </div>
@@ -483,6 +572,7 @@ export function CompetitorResearch({ initialDomain }: { initialDomain: string })
                 counts={data.topicCounts}
                 yourDomain={yourDomain}
                 compDomain={compDomain}
+                sources={data.sources ?? []}
               />
             )}
           </div>

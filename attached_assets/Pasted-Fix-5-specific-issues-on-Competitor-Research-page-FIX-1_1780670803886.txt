@@ -1,0 +1,172 @@
+Fix 5 specific issues on Competitor Research page.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 1: SCORES TOO LOW (44 vs 33 should be 87 vs 71)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Competitor Research is using 1M date range 
+but only getting 22K mentions for netflix.
+Visibility Overview gets 2.4M for same domain.
+
+The difference: Competitor Research is filtering 
+by location IN (India) but Visibility Overview 
+queries globally.
+
+Fix: Remove location filter from Competitor 
+Research API calls. Query globally same as 
+Visibility Overview.
+
+Also verify date range is 6 months not 1 month:
+sixMonthsAgo = new Date(Date.now() - 180*24*60*60*1000)
+  .toISOString().split('T')[0]
+
+After fix netflix should show 1.6M+ mentions
+and score 80+.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 2: TREND CHART EMPTY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+"No trend data available for this period"
+
+The cross_aggregated call with group_by "date"
+is returning empty. Add console.log:
+
+console.log('Trend payload:', JSON.stringify(trendPayload))
+console.log('Trend response:', JSON.stringify(
+  trendResponse.tasks[0].result[0]?.items?.slice(0,3)
+))
+
+Common fix: the trend call needs keyword target
+not domain target:
+
+WRONG:
+[{ "target": [{ "domain": "netflix.com" }],
+   "group_by": "date" }]
+
+CORRECT:
+[{ "target": [{ 
+     "keyword": "netflix",
+     "search_scope": ["answer"]
+   }],
+   "group_by": "date",
+   "date_from": sixMonthsAgo,
+   "date_to": today,
+   "language_code": "en"
+}]
+
+Run for both brands, plot 2 lines.
+If items array is empty log the full 
+tasks[0] object to see what's returned.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 3: TOPICS TABLE — SHOW COUNTS NOT YES/NO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Currently showing Yes/No badges.
+Semrush shows actual mention counts: 413 vs 1,824
+
+The search endpoint returns ai_search_volume 
+per item but not per-brand mention counts.
+
+Fix the table to show:
+
+Topic | YOUR count | COMPETITOR count | AI Volume
+
+For count: use the item's rank or position 
+as proxy, OR show 1/0 but as numbers not badges:
+
+yourMentions: topicInYourList ? 
+  (item.mentions_count || item.impressions || 1) : 0
+competitorMentions: topicInCompetitorList ?
+  (item.mentions_count || item.impressions || 1) : 0
+
+Also highlight rows:
+- Red background: YOU=0, COMPETITOR>0 (Missing)
+- Green background: YOU>0, COMPETITOR=0 (Unique)  
+- White: both have data (Shared)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 4: ADD WEAK AND STRONG FILTER CHIPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Currently: All | Missing | Shared | Unique
+Need:      All | Missing | Weak | Shared | Strong | Unique
+
+Add Weak and Strong classification:
+
+topic.status = 
+  yourCount === 0 && competitorCount > 0 
+    ? 'missing' :
+  yourCount > 0 && competitorCount === 0 
+    ? 'unique' :
+  yourCount > 0 && competitorCount > yourCount * 2 
+    ? 'weak' :        // competitor 2x stronger
+  yourCount > competitorCount * 2 && yourCount > 0 
+    ? 'strong' :      // you are 2x stronger
+  yourCount > 0 && competitorCount > 0 
+    ? 'shared' : 'unknown'
+
+Filter chips with counts:
+[All 172] [Missing 80] [Weak 12] [Shared 0] [Strong 8] [Unique 92]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 5: ADD SOURCES TAB
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add "Sources" tab next to "Topics & Prompts":
+
+"Topics & Prompts  273K | Sources  385K"
+
+Sources tab shows which domains AI cites 
+when mentioning each brand.
+
+Parse sources[] from search endpoint items:
+const sourceDomains = {}
+searchItems.forEach(item => {
+  (item.sources || []).forEach(src => {
+    try {
+      const domain = new URL(src.url).hostname
+        .replace('www.','')
+      sourceDomains[domain] = 
+        (sourceDomains[domain] || 0) + 1
+    } catch(e) {}
+  })
+})
+
+const sourcesList = Object.entries(sourceDomains)
+  .sort((a,b) => b[1]-a[1])
+  .map(([domain, count]) => ({ domain, count }))
+
+Show table:
+Domain | Mentions | URLs | Prompts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 6: COMPETITOR INSIGHTS — MAKE IT SHORTER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current insight text is too long (4-5 sentences).
+Semrush shows 2-3 short punchy sentences max.
+
+Update Claude prompt to:
+"Write exactly 2 sentences of competitor insight.
+Sentence 1: Which specific topic competitor leads in.
+Sentence 2: One specific action to close the gap.
+Maximum 50 words total. Be specific not generic."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST AFTER ALL FIXES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Test netflix.com vs primevideo.com
+Expected:
+- netflix score 80+, primevideo score 70+
+- Trend chart shows 2 lines (not empty)
+- Topics show numbers not Yes/No
+- 6 filter chips showing
+- Sources tab populated
+- Insights panel: 2 sentences max
+
+console.log after fix:
+console.log('netflix mentions:', netflixMentions)
+console.log('primevideo mentions:', primevideoMentions)

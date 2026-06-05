@@ -2524,6 +2524,7 @@ export interface LlmSearchTopic {
   model_name: string;
   ai_search_volume: number;
   location_code: number;
+  sources: string[]; // cited source URLs for this topic
 }
 
 export interface LlmSearchTopicsResult {
@@ -2575,6 +2576,9 @@ export async function getLlmSearchTopics(
       model_name: String(item.model_name ?? ""),
       ai_search_volume: Number(item.ai_search_volume ?? 0),
       location_code: Number(item.location_code ?? 2840),
+      sources: ((item.sources as Array<Record<string, unknown>>) ?? [])
+        .map(s => String(s.url ?? ""))
+        .filter(Boolean),
     }));
 
     const res: LlmSearchTopicsResult = { items: topics, totalCount, cached: false };
