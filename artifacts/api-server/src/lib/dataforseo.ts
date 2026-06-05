@@ -2527,6 +2527,7 @@ export interface LlmSearchTopic {
   sources: string[]; // cited source URLs for this topic
   brandEntities: string[]; // brand names mentioned in AI responses for this query
   monthlySearches: Array<{ year: number; month: number; count: number }>;
+  answer: string; // AI answer text (used for brand extraction fallback)
 }
 
 export interface LlmSearchTopicsResult {
@@ -2585,8 +2586,9 @@ export async function getLlmSearchTopics(
       brandEntities: ((item.brand_entities as Array<Record<string, unknown>>) ?? [])
         .map(b => String(b.name ?? ""))
         .filter(Boolean),
-      monthlySearches: ((item.monthly_searches as Array<Record<string, unknown>>) ?? [])
+      monthlySearches: (((item.ai_monthly_searches ?? item.monthly_searches) as Array<Record<string, unknown>>) ?? [])
         .map(m => ({ year: Number(m.year ?? 0), month: Number(m.month ?? 0), count: Number(m.count ?? m.search_volume ?? 0) })),
+      answer: String(item.answer ?? item.snippet ?? ""),
     }));
 
     const res: LlmSearchTopicsResult = { items: topics, totalCount, cached: false };

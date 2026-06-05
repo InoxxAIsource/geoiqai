@@ -1,0 +1,213 @@
+Fix 4 specific bugs on Prompt Research page.
+
+BUG 1: TOPICS NOT BRAND-RELEVANT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Currently showing: "connected", "nfl games", 
+"streamingcommunity" — these are generic topics.
+
+Should show: "Netflix and Streaming Services",
+"Netflix Content and Subscription" etc.
+
+Root cause: topic clustering groups by first 
+3 words of query, which loses brand context.
+
+Fix topic clustering — group by semantic theme
+AND filter to only brand-relevant topics:
+
+// Only include items where brand name appears
+// in the question OR answer
+const brandRelevantItems = allItems.filter(item => {
+  const q = (item.se_query || item.question || '').toLowerCase()
+  const a = (item.answer || '').toLowerCase()
+  return q.includes(brandName.toLowerCase()) || 
+         a.includes(brandName.toLowerCase())
+})
+
+// Better topic naming — use actual query text
+// but cleaned up
+const topicMap = {}
+brandRelevantItems.forEach(item => {
+  const query = item.se_query || item.question || ''
+  
+  // Extract topic from query by removing brand name
+  // "netflix streaming services" → "Streaming Services"
+  // "how to cancel netflix" → "Cancel Netflix"
+  
+  // Use first meaningful phrase as topic
+  const cleanQuery = query
+    .toLowerCase()
+    .replace(/^(how to|what is|what are|how do|where is|when does|why is|best|top|free)/i, '')
+    .trim()
+  
+  // Group by first 2-3 meaningful words
+  const words = cleanQuery.split(' ').filter(w => w.length > 2)
+  const topicKey = words.slice(0, 3).join(' ')
+  
+  if (!topicMap[topicKey]) {
+    // Capitalize properly for display
+    const topicDisplay = words.slice(0, 4)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ')
+    
+    topicMap[topicKey] = {
+      topic: topicDisplay,
+      prompts: [],
+      totalAiVolume: 0,
+      brands: new Set(),
+      sources: new Set()
+    }
+  }
+  
+  topicMap[topicKey].prompts.push(item)
+  topicMap[topicKey].totalAiVolume += item.ai_search_volume || 0
+})
+
+console.log('Brand relevant items:', brandRelevantItems.length)
+console.log('Topics after brand filter:', Object.keys(topicMap).length)
+console.log('Sample topic:', Object.keys(topicMap)[0])
+
+BUG 2: BRANDS = 0
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Brands tab shows 0. brand_entities is empty 
+or not being parsed correctly.
+
+Add console.log to check the field:
+console.log('First item brand_entities:', 
+  allItems[0]?.brand_entities)
+console.log('First item all keys:', 
+  Object.keys(allItems[0] || {}))
+
+If brand_entities is null/undefined, try 
+extracting brands from answer text instead:
+
+// Fallback: extract capitalized words from answer
+// as potential brand names
+function extractBrandsFromText(text) {
+  if (!text) return []
+  // Match capitalized words that appear multiple times
+  const words = text.match(/\b[A-Z][a-z]+(?:\s[A-Z][a-z]+)?\b/g) || []
+  const freq = {}
+  words.forEach(w => freq[w] = (freq[w]||0) + 1)
+  return Object.entries(freq)
+    .filter(([,count]) => count > 1)
+    .sort((a,b) => b[1]-a[1])
+    .map(([name, count]) => ({ name, count }))
+    .slice(0, 20)
+}
+
+const allBrandMap = {}
+allItems.forEach(item => {
+  // Try brand_entities first
+  const entities = item.brand_entities || []
+  if (entities.length > 0) {
+    entities.forEach(b => {
+      if (b.name) {
+        allBrandMap[b.name] = (allBrandMap[b.name]||0) + 1
+      }
+    })
+  } else {
+    // Fallback to text extraction
+    const extracted = extractBrandsFromText(item.answer)
+    extracted.forEach(b => {
+      allBrandMap[b.name] = (allBrandMap[b.name]||0) + b.count
+    })
+  }
+})
+
+const brandsList = Object.entries(allBrandMap)
+  .sort((a,b) => b[1]-a[1])
+  .map(([name, count]) => ({ name, count }))
+
+console.log('Brands found:', brandsList.length)
+console.log('Top brands:', brandsList.slice(0,5))
+
+Show in Brands tab:
+Brand name | Mentions | Top topic
+
+BUG 3: RELEVANCE ALL "MEDIUM" — SHOULD HAVE "HIGH"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+All topics show "Medium". Should show "High" 
+for topics directly about the brand.
+
+Fix relevance logic:
+function getRelevance(topicName, brandName) {
+  const topic = topicName.toLowerCase()
+  const brand = brandName.toLowerCase()
+  
+  if (topic.includes(brand)) return 'High'
+  
+  const brandWords = brand.split(/[\s-]/)
+  if (brandWords.some(w => w.length > 3 && topic.includes(w))) 
+    return 'High'
+  
+  // Medium for loosely related
+  return 'Medium'
+}
+
+"netflix streaming" → High (contains "netflix")
+"streaming services" → Medium (no direct brand ref)
+"connected" → Low (not related at all — filter out)
+
+Add "Low" relevance filter — hide Low relevance 
+topics from default view OR show them greyed out.
+
+BUG 4: ADD MISSING UI ELEMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+4a. Add Monitor button per topic row:
+Small button: [Monitor]
+onClick: save to Prompt Tracking in Supabase
+Show toast: "Topic added to monitoring ✓"
+
+4b. Add sparkline per topic:
+If item.monthly_searches exists:
+Map to mini chart data [jan, feb, mar, apr, may, jun]
+Show as 60px wide sparkline in AI Volume column
+Use Chart.js or simple SVG line
+
+4c. Add intent badge per topic row:
+Show small colored dot + label:
+🔵 Informational  🟡 Navigational
+🔴 Commercial     🟢 Transactional
+
+Classify per topic using Claude:
+const topicIntents = await callClaude(`
+Classify each topic intent as one of:
+Informational, Navigational, Commercial, Transactional, Task
+Topics: ${topicsList.slice(0,20).map(t=>t.topic).join('\n')}
+Return JSON: {"topic": "intent", ...}
+`)
+
+4d. Add filter by topic search:
+<input placeholder="Filter by topic..."
+  onChange={e => setFilter(e.target.value)} />
+
+4e. Add Export button:
+Download topics as CSV:
+Topic, AI Volume, Relevance, Intent, Prompts count
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST AFTER FIX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Search "netflix.com":
+Expected:
+- Topics show "Netflix Streaming", 
+  "Netflix Pricing", "Netflix Cancel" etc
+  NOT "connected" or "nfl games"
+- Brands tab shows 5+ brands 
+  (youtube, hulu, disney, amazon etc)
+- Some topics show "High" relevance
+- Monitor button on each row
+- Filter input works
+
+console.log:
+console.log('Brand relevant items:', brandRelevantItems.length)
+console.log('Sample relevant item query:', 
+  brandRelevantItems[0]?.se_query)
+console.log('Brands count:', brandsList.length)
+
+Do NOT clear cache unless testing specific fix.

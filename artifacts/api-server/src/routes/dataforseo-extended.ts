@@ -1186,7 +1186,43 @@ router.post("/dataforseo/prompt-research", requireAuth, async (req, res): Promis
     const allItems = [...googleResult.items, ...chatgptResult.items];
     req.log.info({ brandName, google: googleResult.items.length, chatgpt: chatgptResult.items.length, total: allItems.length }, "prompt-research: items fetched");
 
-    // Cluster into topics by first 3 words of the query
+    // Filter to brand-relevant items (brand name must appear in the question or answer)
+    const brandLower = brandName.toLowerCase();
+    const brandRelevantItems = allItems.filter(item => {
+      const q = item.question.toLowerCase();
+      const a = item.answer.toLowerCase();
+      return q.includes(brandLower) || a.includes(brandLower);
+    });
+    // Fall back to all items if fewer than 5 brand-relevant ones
+    const itemsForTopics = brandRelevantItems.length >= 5 ? brandRelevantItems : allItems;
+    req.log.info({ brandName, brandRelevant: brandRelevantItems.length, usingAll: itemsForTopics === allItems }, "prompt-research: brand filter");
+
+    // Extract brands from answer text when brand_entities is empty
+    function extractBrandsFromText(text: string): string[] {
+      if (!text) return [];
+      const words = text.match(/\b[A-Z][a-z]{2,}(?:\s[A-Z][a-z]{2,})?\b/g) ?? [];
+      const freq: Record<string, number> = {};
+      for (const w of words) freq[w] = (freq[w] ?? 0) + 1;
+      return Object.entries(freq)
+        .filter(([, c]) => c > 1)
+        .sort((a, b) => b[1] - a[1])
+        .map(([name]) => name)
+        .slice(0, 10);
+    }
+
+    // Better topic naming: strip leading stop-word phrases, use first 3 meaningful words
+    const TOPIC_STOP = /^(how to |what is |what are |how do |how does |where is |where can |when does |why is |why does |best |top |free |is |are |does |can |will |which |who is |who are )/i;
+    function makeTopicKey(question: string): { key: string; display: string } {
+      let cleaned = question.toLowerCase().replace(TOPIC_STOP, "").trim();
+      // Keep stripping repeated stop words
+      for (let i = 0; i < 3; i++) cleaned = cleaned.replace(TOPIC_STOP, "").trim();
+      const words = cleaned.split(/\s+/).filter(w => w.length > 1);
+      const key = words.slice(0, 3).join(" ");
+      const display = words.slice(0, 4).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+      return { key, display };
+    }
+
+    // Cluster into topics
     interface TopicBucket {
       topic: string;
       prompts: typeof allItems;
@@ -1195,36 +1231,46 @@ router.post("/dataforseo/prompt-research", requireAuth, async (req, res): Promis
       sources: Set<string>;
     }
     const topicMap = new Map<string, TopicBucket>();
-    for (const item of allItems) {
+    for (const item of itemsForTopics) {
       if (!item.question) continue;
-      const words = item.question.toLowerCase().split(/\s+/).filter(Boolean);
-      const topicKey = words.slice(0, 3).join(" ");
+      const { key: topicKey, display: topicDisplay } = makeTopicKey(item.question);
       if (!topicKey) continue;
       if (!topicMap.has(topicKey)) {
-        topicMap.set(topicKey, { topic: item.question, prompts: [], totalAiVolume: 0, brands: new Set(), sources: new Set() });
+        topicMap.set(topicKey, { topic: topicDisplay, prompts: [], totalAiVolume: 0, brands: new Set(), sources: new Set() });
       }
       const bucket = topicMap.get(topicKey)!;
       bucket.prompts.push(item);
       bucket.totalAiVolume += item.ai_search_volume;
-      for (const b of item.brandEntities) if (b) bucket.brands.add(b);
+      // Brand entities - use DataForSEO field if present, else extract from answer
+      const entities = item.brandEntities.length > 0 ? item.brandEntities : extractBrandsFromText(item.answer);
+      for (const b of entities) if (b) bucket.brands.add(b);
       for (const url of item.sources) {
         try { const d = new URL(url).hostname.replace(/^www\./, ""); if (d) bucket.sources.add(d); } catch { /* skip */ }
       }
     }
 
-    // Global brand + source aggregates
+    // Global brand + source aggregates (use allItems so Brands tab shows all competition)
     const brandCountMap = new Map<string, { count: number; topics: string[] }>();
     const sourceCountMap = new Map<string, { count: number; topics: string[] }>();
-    for (const bucket of topicMap.values()) {
-      for (const b of bucket.brands) {
+    for (const item of allItems) {
+      const entities = item.brandEntities.length > 0 ? item.brandEntities : extractBrandsFromText(item.answer);
+      const topicDisplay = makeTopicKey(item.question).display;
+      for (const b of entities) {
+        if (!b) continue;
         const e = brandCountMap.get(b) ?? { count: 0, topics: [] };
-        e.count++; if (e.topics.length < 3) e.topics.push(bucket.topic);
+        e.count++;
+        if (e.topics.length < 3 && topicDisplay) e.topics.push(topicDisplay);
         brandCountMap.set(b, e);
       }
-      for (const s of bucket.sources) {
-        const e = sourceCountMap.get(s) ?? { count: 0, topics: [] };
-        e.count++; if (e.topics.length < 3) e.topics.push(bucket.topic);
-        sourceCountMap.set(s, e);
+      for (const url of item.sources) {
+        try {
+          const d = new URL(url).hostname.replace(/^www\./, "");
+          if (!d) continue;
+          const e = sourceCountMap.get(d) ?? { count: 0, topics: [] };
+          e.count++;
+          if (e.topics.length < 3 && topicDisplay) e.topics.push(topicDisplay);
+          sourceCountMap.set(d, e);
+        } catch { /* skip */ }
       }
     }
 
@@ -1250,14 +1296,28 @@ router.post("/dataforseo/prompt-research", requireAuth, async (req, res): Promis
     const totalAiVolume = allItems.reduce((s, i) => s + i.ai_search_volume, 0);
 
     const topics = [...topicMap.values()]
-      .map(b => ({
-        topic: b.topic,
-        totalAiVolume: b.totalAiVolume,
-        promptCount: b.prompts.length,
-        prompts: b.prompts.map(p => ({ question: p.question, platform: p.platform, ai_search_volume: p.ai_search_volume, sources: p.sources.slice(0, 5), brands: p.brandEntities.slice(0, 5) })),
-        brands: [...b.brands].slice(0, 10),
-        sources: [...b.sources].slice(0, 10),
-      }))
+      .map(b => {
+        // Aggregate monthly searches across all prompts in the topic (sum by month)
+        const monthlyMap = new Map<string, { year: number; month: number; count: number }>();
+        for (const p of b.prompts) {
+          for (const m of p.monthlySearches) {
+            const mkey = `${m.year}-${m.month}`;
+            const prev = monthlyMap.get(mkey) ?? { year: m.year, month: m.month, count: 0 };
+            prev.count += m.count;
+            monthlyMap.set(mkey, prev);
+          }
+        }
+        const monthlySearches = [...monthlyMap.values()].sort((a, x) => a.year !== x.year ? a.year - x.year : a.month - x.month);
+        return {
+          topic: b.topic,
+          totalAiVolume: b.totalAiVolume,
+          promptCount: b.prompts.length,
+          monthlySearches,
+          prompts: b.prompts.map(p => ({ question: p.question, platform: p.platform, ai_search_volume: p.ai_search_volume, sources: p.sources.slice(0, 5), brands: (p.brandEntities.length > 0 ? p.brandEntities : extractBrandsFromText(p.answer)).slice(0, 5) })),
+          brands: [...b.brands].slice(0, 10),
+          sources: [...b.sources].slice(0, 10),
+        };
+      })
       .sort((a, b) => b.totalAiVolume - a.totalAiVolume)
       .slice(0, 100);
 
