@@ -2571,7 +2571,7 @@ export async function getLlmSearchTopics(
     const totalCount = Number(taskResult.total_count ?? 0);
     const items = (taskResult.items as Array<Record<string, unknown>>) ?? [];
     const topics: LlmSearchTopic[] = items.map(item => ({
-      question: String(item.question ?? ""),
+      question: String(item.se_query ?? item.question ?? item.keyword ?? ""),
       platform: String(item.platform ?? ""),
       model_name: String(item.model_name ?? ""),
       ai_search_volume: Number(item.ai_search_volume ?? 0),

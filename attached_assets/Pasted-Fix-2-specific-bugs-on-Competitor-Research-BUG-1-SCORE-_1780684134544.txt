@@ -1,0 +1,158 @@
+Fix 2 specific bugs on Competitor Research.
+
+BUG 1: SCORE STILL WRONG (69 vs should be 82+)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+netflix has 2.4M mentions but scores 69.
+Visibility Overview scores same domain 82+.
+
+The competitor research score function is 
+different from visibility overview.
+
+Find calculateVisibilityScore or equivalent 
+in competitor research backend file.
+
+console.log exactly which function is being called:
+console.log('Score function result:', score)
+console.log('Mentions used:', mentions)
+console.log('Citations used:', citations)
+
+Then replace with this exact formula:
+const mentionScore = Math.min(
+  Math.log10(Math.max(mentions, 1)) / 
+  Math.log10(10000000) * 70, 70
+)
+const citationBonus = citations > 0
+  ? Math.min(Math.log10(citations) / 6 * 20, 20)
+  : 0
+const pageBonus = citedPages > 0
+  ? Math.min(citedPages / 100 * 10, 10)
+  : 0
+const score = Math.min(100, Math.round(
+  mentionScore + citationBonus + pageBonus
+))
+
+With 2.4M mentions, 0 citations:
+mentionScore = log10(2400000)/log10(10000000)*70
+             = 6.38/7 * 70 = 63.8
+citationBonus = 0
+pageBonus = 0
+Total = 64
+
+Hmm — same formula gives 64 not 82.
+Visibility Overview must be getting citations.
+
+Check: does Visibility Overview fetch citations
+separately and pass them to score formula?
+
+If yes — do the same in Competitor Research:
+Run domain aggregated_metrics call for citations
+alongside the keyword mentions call.
+Pass both to calculateVisibilityScore().
+
+BUG 2: STRONG = 0
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Strong shows 0. Looking at the table:
+- "yankee" shows netflix 7.5M, primevideo "-"
+  This should be UNIQUE not Strong
+
+- "streaming services" shows both 4.1M each
+  This is correctly SHARED
+
+Strong should be: YOU appear AND competitor 
+appears BUT you have significantly more volume.
+
+None of the current 155 topics qualify as Strong
+because when both appear, volumes are equal (4.1M).
+
+This is because DataForSEO returns same 
+ai_search_volume for both brands on shared topics
+— the volume is for the topic, not per-brand.
+
+Fix Strong classification using search result 
+RANK POSITION as proxy for strength:
+
+// Your topic appears at rank 5, competitor at rank 50
+// = you are stronger on this topic
+
+const yourRankMap = {}
+yourTopics.forEach((t, idx) => {
+  const key = (t.se_query||t.question||t.keyword||'')
+    .toLowerCase().trim()
+  yourRankMap[key] = idx + 1  // 1-based rank
+})
+
+const compRankMap = {}
+competitorTopics.forEach((t, idx) => {
+  const key = (t.se_query||t.question||t.keyword||'')
+    .toLowerCase().trim()
+  compRankMap[key] = idx + 1
+})
+
+allTopics.forEach(topic => {
+  const key = topic.topic.toLowerCase().trim()
+  const yr = yourRankMap[key] || 9999
+  const cr = compRankMap[key] || 9999
+
+  if (yr < 9999 && cr === 9999) {
+    topic.status = 'unique'    // only you
+  } else if (yr === 9999 && cr < 9999) {
+    topic.status = 'missing'   // only competitor
+  } else if (yr < cr * 0.6) {
+    topic.status = 'strong'    // you rank much higher
+  } else if (cr < yr * 0.6) {
+    topic.status = 'weak'      // competitor ranks much higher
+  } else {
+    topic.status = 'shared'    // roughly equal rank
+  }
+})
+
+With 100 topics from each brand:
+- Topics ranked 1-30 in yours but not in 
+  competitor top 100 = unique
+- Topics ranked 1-30 in competitor but not 
+  in your top 100 = missing  
+- Topics in both but your rank much better = strong
+- Topics in both but competitor rank much better = weak
+
+This should give Strong > 0.
+
+BUG 3: TREND CHART ONLY SHOWS MIDDLE SECTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Chart shows lines only in middle (Dec-May)
+but not touching left and right edges.
+X-axis should span full width Jan-Jun.
+
+Fix Chart.js configuration:
+scales: {
+  x: {
+    type: 'category',
+    ticks: {
+      maxRotation: 0,
+      autoSkip: true,
+      maxTicksLimit: 6
+    }
+  },
+  y: {
+    beginAtZero: false,
+    ticks: { 
+      callback: v => v >= 1000000 
+        ? (v/1000000).toFixed(1)+'M' 
+        : v >= 1000 ? (v/1000).toFixed(0)+'K' : v
+    }
+  }
+}
+
+Also ensure first and last data points align 
+with chart edges by setting:
+layout: { padding: { left: 0, right: 0 } }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DO NOT clear cache.
+Test netflix vs primevideo after fix.
+Expected:
+- Score 80+ for netflix
+- Strong > 0 (at least 5-10 topics)
+- Chart lines touching both edges

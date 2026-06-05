@@ -57,7 +57,7 @@ const DOMAIN_COLORS = [P, "#10B981", "#F59E0B", "#EF4444"];
 function TrendChart({ trend }: { trend: TrendSeries[] }) {
   if (!trend.length) return null;
 
-  const W = 560; const H = 160; const PX = 36; const PY = 12;
+  const W = 560; const H = 160; const PX = 6; const PY = 12;
   const cw = W - PX * 2; const ch = H - PY * 2 - 20;
 
   // Collect all score points
@@ -108,9 +108,11 @@ function TrendChart({ trend }: { trend: TrendSeries[] }) {
               strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
           );
         })}
-        {/* Month labels */}
+        {/* Month labels - first/last anchored to edges so text doesn't clip */}
         {labelPositions.map((x, i) => (
-          <text key={i} x={x} y={H - 4} textAnchor="middle" fontSize={10} fill={MUTED}>{deduped[i]}</text>
+          <text key={i} x={x} y={H - 4}
+            textAnchor={i === 0 ? "start" : i === deduped.length - 1 ? "end" : "middle"}
+            fontSize={10} fill={MUTED}>{deduped[i]}</text>
         ))}
       </svg>
       <div style={{ display: "flex", gap: 16, marginTop: 8, flexWrap: "wrap" }}>

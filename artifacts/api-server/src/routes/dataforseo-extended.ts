@@ -951,12 +951,13 @@ router.post("/dataforseo/competitor-research", requireAuth, async (req, res): Pr
     const domainFetches = allDomains.map(async (domain, idx) => {
       const brandName = extractBrandName(domain);
       const candidates = brandKeywordCandidates(brandName);
-      const [kw1G, kw1C, kw2G, kw2C, pages, domG, domC] = await Promise.all([
+      const [kw1G, kw1C, kw2G, kw2C, pagesG, pagesC, domG, domC] = await Promise.all([
         getLlmKeywordAggMetrics(candidates[0]!, sixMonthsAgo, today, "google"),
         getLlmKeywordAggMetrics(candidates[0]!, sixMonthsAgo, today, "chat_gpt"),
         candidates[1] ? getLlmKeywordAggMetrics(candidates[1], sixMonthsAgo, today, "google") : Promise.resolve(null),
         candidates[1] ? getLlmKeywordAggMetrics(candidates[1], sixMonthsAgo, today, "chat_gpt") : Promise.resolve(null),
-        getLlmTopPagesList(domain, sixMonthsAgo, today, 20),
+        getLlmTopPagesList(domain, sixMonthsAgo, today, 50, "google"),
+        getLlmTopPagesList(domain, sixMonthsAgo, today, 50, "chat_gpt"),
         getLlmAggregatedMetrics(domain, sixMonthsAgo, today, "google"),
         getLlmAggregatedMetrics(domain, sixMonthsAgo, today, "chat_gpt"),
       ]);
@@ -966,7 +967,10 @@ router.post("/dataforseo/competitor-research", requireAuth, async (req, res): Pr
       const bestKeyword = useKw2 ? candidates[1]! : candidates[0]!;
       const mentions  = useKw2 ? kw2Total : kw1Total;
       const citations = domG.mentions + domC.mentions;
-      const citedPages = pages.pages.length;
+      // Merge pages from both platforms, deduplicate by URL (matches visibility-overview logic)
+      const pageUrlSet = new Set<string>();
+      for (const p of [...pagesG.pages, ...pagesC.pages]) if (p.url) pageUrlSet.add(p.url);
+      const citedPages = pageUrlSet.size;
       const score = calcScore(mentions, citations, citedPages);
       req.log.info({ domain, brandName, mentions, citations, citedPages, score }, "competitor-research: domain metrics");
       return { domain, brandName, bestKeyword, mentions, citations, citedPages, score, isYou: idx === 0 };
@@ -1004,16 +1008,16 @@ router.post("/dataforseo/competitor-research", requireAuth, async (req, res): Pr
       compTopics: compTopics.items.length,
     }, "competitor-research: secondary data");
 
-    // Build rank maps (index in search results = prominence rank)
+    // Build rank maps (1-based: rank 1 = most prominent in results)
     const yourRankMap = new Map<string, number>();
     yourTopics.items.forEach((item, idx) => {
       const key = item.question.toLowerCase().trim();
-      if (key) yourRankMap.set(key, idx);
+      if (key) yourRankMap.set(key, idx + 1);
     });
     const compRankMap = new Map<string, number>();
     compTopics.items.forEach((item, idx) => {
       const key = item.question.toLowerCase().trim();
-      if (key) compRankMap.set(key, idx);
+      if (key) compRankMap.set(key, idx + 1);
     });
 
     // Merge topics for gap table
@@ -1047,11 +1051,11 @@ router.post("/dataforseo/competitor-research", requireAuth, async (req, res): Pr
     const classifyStatus = (key: string, yourPresent: number, compPresent: number): TopicStatus => {
       if (yourPresent === 0 && compPresent > 0) return "missing";
       if (yourPresent > 0 && compPresent === 0) return "unique";
-      // Both present: compare rank position (lower index = more prominent in results)
-      const yourRank = yourRankMap.get(key) ?? 999;
-      const compRank = compRankMap.get(key) ?? 999;
-      if (compRank < yourRank * 0.5) return "weak";   // competitor ranks much higher
-      if (yourRank < compRank * 0.5) return "strong"; // you rank much higher
+      // Both present: compare rank position (lower rank number = more prominent in results)
+      const yourRank = yourRankMap.get(key) ?? 9999;
+      const compRank = compRankMap.get(key) ?? 9999;
+      if (compRank < yourRank * 0.6) return "weak";   // competitor ranks significantly higher
+      if (yourRank < compRank * 0.6) return "strong"; // you rank significantly higher
       return "shared";
     };
 
