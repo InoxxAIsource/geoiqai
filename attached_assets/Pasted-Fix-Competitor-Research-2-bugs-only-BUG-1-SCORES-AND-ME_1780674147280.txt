@@ -1,0 +1,67 @@
+Fix Competitor Research — 2 bugs only.
+
+BUG 1: SCORES AND MENTIONS TOO LOW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Netflix shows 22K mentions but should be 1.6M+.
+Root cause: location filter IN (India) is being 
+applied to Competitor Research API calls.
+
+Find ALL DataForSEO calls in competitor research 
+backend route/function. Remove location_code 
+from every payload:
+
+Search for: location_code
+Remove any line containing location_code in 
+the competitor research API calls.
+
+Also verify date range — must be 6 months:
+const sixMonthsAgo = new Date(
+  Date.now() - 180*24*60*60*1000
+).toISOString().split('T')[0]
+// Should be "2025-12-07" not "2026-05-07"
+
+console.log('Date range:', sixMonthsAgo, 'to', today)
+console.log('Netflix mentions after fix:', netflixMentions)
+
+Expected after fix: netflix 1.6M+ mentions, score 80+
+
+BUG 2: TREND CHART EMPTY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the cross_aggregated_metrics call for trend.
+Add console.log:
+console.log('Trend items:', 
+  trendResponse.tasks[0].result[0]?.items?.length)
+console.log('First trend item:', 
+  JSON.stringify(trendResponse.tasks[0].result[0]?.items?.[0]))
+
+The call must use keyword target not domain:
+[{
+  "target": [{ 
+    "keyword": "netflix",
+    "search_scope": ["answer"]
+  }],
+  "group_by": "date",
+  "date_from": "2025-12-07",
+  "date_to": "2026-06-05",
+  "language_code": "en"
+}]
+
+If items array has data but chart is empty,
+the chart is not mapping the data correctly.
+Check: items[0] field names — is it:
+- items[0].date or items[0].aggregation_key?
+- items[0].mentions or items[0].total.mentions?
+
+Map correctly to chart data points:
+const chartData = items.map(item => ({
+  date: item.date || item.aggregation_key,
+  mentions: item.mentions || item.total?.mentions || 0
+}))
+
+Run for both brands, plot 2 lines.
+Clear cache after fix:
+DELETE FROM dataforseo_cache 
+WHERE cache_key LIKE '%netflix%competitor%'
+OR cache_key LIKE '%primevideo%competitor%'

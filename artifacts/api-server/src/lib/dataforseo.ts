@@ -2697,36 +2697,51 @@ export async function getLlmCrossAggByGroup(
 
   try {
     const auth = getAuthHeader();
+    const payload = [{
+      target: [{ keyword: brandName, search_scope: ["answer"] }],
+      date_from: dateFrom,
+      date_to: dateTo,
+      group_by: groupBy,
+      language_code: "en",
+    }];
+    logger.info({ brandName, groupBy, dateFrom, dateTo }, "llm_cross_agg: request");
     const resp = await fetch(`${DATAFORSEO_BASE}/v3/ai_optimization/llm_mentions/cross_aggregated_metrics/live`, {
       method: "POST",
       headers: auth,
-      body: JSON.stringify([{
-        target: [{ keyword: brandName, search_scope: ["answer"] }],
-        date_from: dateFrom,
-        date_to: dateTo,
-        group_by: groupBy,
-      }]),
+      body: JSON.stringify(payload),
     });
     const data = await resp.json() as Record<string, unknown>;
     const tasks = (data.tasks as Array<Record<string, unknown>>) ?? [];
     const task = tasks[0];
     const taskResult = (task?.result as Array<Record<string, unknown>>)?.[0];
+    const rawItems = (taskResult?.items as Array<Record<string, unknown>>) ?? [];
+    logger.info({
+      brandName,
+      statusCode: task?.status_code,
+      statusMsg: task?.status_message,
+      itemCount: rawItems.length,
+      firstItem: rawItems[0] ?? null,
+    }, "llm_cross_agg: response");
     if (!taskResult) return empty;
 
-    const rawItems = (taskResult.items as Array<Record<string, unknown>>) ?? [];
     const items: LlmCrossAggGroupItem[] = rawItems.map(item => {
+      // DataForSEO may return mentions at item.total.mentions or item.mentions directly
       const tt = (item.total as Record<string, number>) ?? {};
       return {
-        aggregationKey: String(item.aggregation_key ?? ""),
-        mentions: Number(tt.mentions ?? 0),
-        aiSearchVolume: Number(tt.ai_search_volume ?? tt.impressions ?? 0),
+        aggregationKey: String(item.aggregation_key ?? item.date ?? ""),
+        mentions: Number(tt.mentions ?? item.mentions ?? 0),
+        aiSearchVolume: Number(tt.ai_search_volume ?? tt.impressions ?? item.ai_search_volume ?? 0),
       };
     });
 
     const res: LlmCrossAggByGroupResult = { items, cached: false };
-    await setDfCache(cacheKey, res as unknown as Record<string, unknown>, "0.001");
+    // Only cache if we got real data - don't cache empty results so retries work
+    if (items.length > 0) {
+      await setDfCache(cacheKey, res as unknown as Record<string, unknown>, "0.001");
+    }
     return res;
-  } catch {
+  } catch (err) {
+    logger.error({ brandName, groupBy, err }, "llm_cross_agg: error");
     return empty;
   }
 }

@@ -606,9 +606,9 @@ const PLATFORM_COLORS: Record<string, string> = {
 /** Extract short brand name from a domain. "netflix.com" -> "netflix" */
 function extractBrandName(domain: string): string {
   return domain
+    .toLowerCase()                               // lowercase first so regex matches uppercase TLDs
     .replace(/^www\./, "")
     .replace(/\.[a-z]{2,}(\.[a-z]{2})?$/, "")
-    .toLowerCase()
     .trim();
 }
 
@@ -927,7 +927,10 @@ router.post("/dataforseo/competitor-research", requireAuth, async (req, res): Pr
   };
   if (!yourDomain) { res.status(400).json({ error: "yourDomain is required" }); return; }
 
-  const allDomains = [yourDomain, ...(Array.isArray(competitorDomains) ? competitorDomains.slice(0, 3) : [])].filter(Boolean);
+  // Normalize to lowercase so extractBrandName regex strips TLDs correctly
+  const allDomains = [yourDomain, ...(Array.isArray(competitorDomains) ? competitorDomains.slice(0, 3) : [])]
+    .filter(Boolean)
+    .map(d => d.toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? d);
   const today = new Date().toISOString().split("T")[0]!;
   const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]!;
 
