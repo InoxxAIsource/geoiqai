@@ -1157,6 +1157,137 @@ router.post("/dataforseo/topic-prompts", requireAuth, async (req, res): Promise<
   res.json(result);
 });
 
+// ─── Prompt Research — brand/domain-level AI prompt discovery ────────────────
+router.post("/dataforseo/prompt-research", requireAuth, async (req, res): Promise<void> => {
+  const { input } = req.body as { input?: string };
+  if (!input?.trim()) { res.status(400).json({ error: "input is required" }); return; }
+
+  // Normalize to brand name: strip protocol, www, TLD
+  const brandName = input
+    .trim()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/.*$/, "")
+    .replace(/\.[a-z]{2,6}(\.[a-z]{2})?$/i, "")
+    .toLowerCase()
+    .trim() || input.trim().toLowerCase();
+
+  const today = new Date().toISOString().split("T")[0]!;
+  const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]!;
+
+  req.log.info({ input, brandName }, "prompt-research: start");
+
+  try {
+    const [googleResult, chatgptResult] = await Promise.all([
+      getLlmSearchTopics(brandName, sixMonthsAgo, today, "include", 100, "google"),
+      getLlmSearchTopics(brandName, sixMonthsAgo, today, "include", 100, "chat_gpt"),
+    ]);
+
+    const allItems = [...googleResult.items, ...chatgptResult.items];
+    req.log.info({ brandName, google: googleResult.items.length, chatgpt: chatgptResult.items.length, total: allItems.length }, "prompt-research: items fetched");
+
+    // Cluster into topics by first 3 words of the query
+    interface TopicBucket {
+      topic: string;
+      prompts: typeof allItems;
+      totalAiVolume: number;
+      brands: Set<string>;
+      sources: Set<string>;
+    }
+    const topicMap = new Map<string, TopicBucket>();
+    for (const item of allItems) {
+      if (!item.question) continue;
+      const words = item.question.toLowerCase().split(/\s+/).filter(Boolean);
+      const topicKey = words.slice(0, 3).join(" ");
+      if (!topicKey) continue;
+      if (!topicMap.has(topicKey)) {
+        topicMap.set(topicKey, { topic: item.question, prompts: [], totalAiVolume: 0, brands: new Set(), sources: new Set() });
+      }
+      const bucket = topicMap.get(topicKey)!;
+      bucket.prompts.push(item);
+      bucket.totalAiVolume += item.ai_search_volume;
+      for (const b of item.brandEntities) if (b) bucket.brands.add(b);
+      for (const url of item.sources) {
+        try { const d = new URL(url).hostname.replace(/^www\./, ""); if (d) bucket.sources.add(d); } catch { /* skip */ }
+      }
+    }
+
+    // Global brand + source aggregates
+    const brandCountMap = new Map<string, { count: number; topics: string[] }>();
+    const sourceCountMap = new Map<string, { count: number; topics: string[] }>();
+    for (const bucket of topicMap.values()) {
+      for (const b of bucket.brands) {
+        const e = brandCountMap.get(b) ?? { count: 0, topics: [] };
+        e.count++; if (e.topics.length < 3) e.topics.push(bucket.topic);
+        brandCountMap.set(b, e);
+      }
+      for (const s of bucket.sources) {
+        const e = sourceCountMap.get(s) ?? { count: 0, topics: [] };
+        e.count++; if (e.topics.length < 3) e.topics.push(bucket.topic);
+        sourceCountMap.set(s, e);
+      }
+    }
+
+    // Intent classification via AI
+    const top20 = allItems.slice(0, 20).map(i => i.question).filter(Boolean);
+    let intent = { informational: 57, navigational: 16, commercial: 13, transactional: 10, task: 4 };
+    if (top20.length > 0) {
+      try {
+        const completion = await compOpenai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: `Classify these AI search queries by intent. Return JSON only with these exact keys: { "informational": number, "navigational": number, "commercial": number, "transactional": number, "task": number }. Values are whole-number percentages summing to 100.\n\nQueries:\n${top20.join("\n")}` }],
+          max_tokens: 80,
+          temperature: 0.2,
+          response_format: { type: "json_object" },
+        });
+        const raw = JSON.parse(completion.choices[0]?.message?.content ?? "{}") as Record<string, number>;
+        if (typeof raw.informational === "number") {
+          intent = { informational: raw.informational ?? 0, navigational: raw.navigational ?? 0, commercial: raw.commercial ?? 0, transactional: raw.transactional ?? 0, task: raw.task ?? 0 };
+        }
+      } catch { /* keep defaults */ }
+    }
+
+    const totalAiVolume = allItems.reduce((s, i) => s + i.ai_search_volume, 0);
+
+    const topics = [...topicMap.values()]
+      .map(b => ({
+        topic: b.topic,
+        totalAiVolume: b.totalAiVolume,
+        promptCount: b.prompts.length,
+        prompts: b.prompts.map(p => ({ question: p.question, platform: p.platform, ai_search_volume: p.ai_search_volume, sources: p.sources.slice(0, 5), brands: p.brandEntities.slice(0, 5) })),
+        brands: [...b.brands].slice(0, 10),
+        sources: [...b.sources].slice(0, 10),
+      }))
+      .sort((a, b) => b.totalAiVolume - a.totalAiVolume)
+      .slice(0, 100);
+
+    const brands = [...brandCountMap.entries()].sort((a, b) => b[1].count - a[1].count).slice(0, 100).map(([name, v]) => ({ name, mentions: v.count, topTopics: v.topics }));
+    const sourceDomains = [...sourceCountMap.entries()].sort((a, b) => b[1].count - a[1].count).slice(0, 100).map(([domain, v]) => ({ domain, mentions: v.count, topics: v.topics }));
+
+    req.log.info({ brandName, totalItems: allItems.length, totalTopics: topics.length, totalBrands: brands.length, totalSources: sourceDomains.length, totalAiVolume }, "prompt-research: done");
+
+    res.json({
+      brandName,
+      totalAiVolume,
+      totalTopics: topics.length,
+      totalPrompts: allItems.length,
+      totalBrands: brands.length,
+      totalSources: sourceDomains.length,
+      intent,
+      topics,
+      prompts: allItems.slice(0, 200).map(i => ({ question: i.question, platform: i.platform, ai_search_volume: i.ai_search_volume, sources: i.sources.slice(0, 3), brands: i.brandEntities.slice(0, 3) })),
+      brands,
+      sourceDomains,
+      dateFrom: sixMonthsAgo,
+      dateTo: today,
+      cached: googleResult.cached && chatgptResult.cached,
+    });
+  } catch (err) {
+    req.log.error({ err }, "prompt-research error");
+    res.status(500).json({ error: "Could not load prompt research data. Please try again." });
+  }
+});
+
 // ─── Monitor Prompt (save to prompt_tracking) ────────────────────────────────
 router.post("/dataforseo/monitor-prompt", requireAuth, async (req, res): Promise<void> => {
   const user = (req as AuthRequest).user;

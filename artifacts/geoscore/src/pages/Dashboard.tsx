@@ -444,7 +444,7 @@ export function Dashboard() {
           )}
 
           {activeNav === "prompt-research" && (
-            <PromptResearch initialDomain={activeDomain} />
+            <PromptResearch initialDomain={activeDomain} plan={user?.plan ?? "free"} />
           )}
 
           {activeNav === "brand-performance" && (

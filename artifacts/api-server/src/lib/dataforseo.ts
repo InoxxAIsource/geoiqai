@@ -2525,6 +2525,8 @@ export interface LlmSearchTopic {
   ai_search_volume: number;
   location_code: number;
   sources: string[]; // cited source URLs for this topic
+  brandEntities: string[]; // brand names mentioned in AI responses for this query
+  monthlySearches: Array<{ year: number; month: number; count: number }>;
 }
 
 export interface LlmSearchTopicsResult {
@@ -2539,13 +2541,14 @@ export async function getLlmSearchTopics(
   dateTo: string,
   filter: "include" | "exclude" = "include",
   limit = 50,
+  platform: "google" | "chat_gpt" = "google",
 ): Promise<LlmSearchTopicsResult> {
   const empty: LlmSearchTopicsResult = { items: [], totalCount: 0, cached: false };
   const login = process.env.DATAFORSEO_LOGIN ?? "";
   const password = process.env.DATAFORSEO_PASSWORD ?? "";
   if (!login || !password) return empty;
 
-  const cacheKey = `llm_topics_kw:${keyword}:${dateFrom}:${dateTo}:${filter}:${limit}`;
+  const cacheKey = `llm_topics_kw:${platform}:${keyword}:${dateFrom}:${dateTo}:${filter}:${limit}`;
   const cached = await getDfCache(cacheKey);
   if (cached) return { ...(cached as unknown as LlmSearchTopicsResult), cached: true };
 
@@ -2556,7 +2559,7 @@ export async function getLlmSearchTopics(
       headers: auth,
       body: JSON.stringify([{
         target: [{ keyword, search_filter: filter, search_scope: ["answer"] }],
-        platform: "google",
+        platform,
         date_from: dateFrom,
         date_to: dateTo,
         order_by: ["ai_search_volume,desc"],
@@ -2572,13 +2575,18 @@ export async function getLlmSearchTopics(
     const items = (taskResult.items as Array<Record<string, unknown>>) ?? [];
     const topics: LlmSearchTopic[] = items.map(item => ({
       question: String(item.se_query ?? item.question ?? item.keyword ?? ""),
-      platform: String(item.platform ?? ""),
+      platform: String(item.platform ?? platform),
       model_name: String(item.model_name ?? ""),
       ai_search_volume: Number(item.ai_search_volume ?? 0),
       location_code: Number(item.location_code ?? 2840),
       sources: ((item.sources as Array<Record<string, unknown>>) ?? [])
         .map(s => String(s.url ?? ""))
         .filter(Boolean),
+      brandEntities: ((item.brand_entities as Array<Record<string, unknown>>) ?? [])
+        .map(b => String(b.name ?? ""))
+        .filter(Boolean),
+      monthlySearches: ((item.monthly_searches as Array<Record<string, unknown>>) ?? [])
+        .map(m => ({ year: Number(m.year ?? 0), month: Number(m.month ?? 0), count: Number(m.count ?? m.search_volume ?? 0) })),
     }));
 
     const res: LlmSearchTopicsResult = { items: topics, totalCount, cached: false };

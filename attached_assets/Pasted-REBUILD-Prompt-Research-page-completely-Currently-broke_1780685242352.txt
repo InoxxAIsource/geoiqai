@@ -1,0 +1,301 @@
+REBUILD Prompt Research page completely.
+Currently broken — returns 1 keyword with 0 volume.
+Root cause: using wrong API endpoint.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 1: UNDERSTAND WHAT THIS PAGE DOES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Prompt Research = given a domain or brand,
+find all related AI search topics, the prompts
+users ask in those topics, brands mentioned,
+and source domains AI cites.
+
+Input: user types "netflix.com" or "netflix"
+Output: topics, prompts, brands, sources
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 2: FIX THE BACKEND API CALL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current code calls keywords_data or similar.
+DELETE the current search API call entirely.
+
+Replace with LLM Mentions search endpoint:
+
+// Extract brand name from input
+const brandName = input
+  .replace(/^www\./, '')
+  .replace(/\.[a-z]{2,}(\.[a-z]{2})?$/, '')
+  .toLowerCase().trim()
+// "netflix.com" → "netflix"
+// "chatgpt brand monitoring" → stays as is
+
+// Run for Google platform
+const googleResults = await dfsPost(
+  '/v3/ai_optimization/llm_mentions/search/live',
+  [{
+    "target": [{
+      "keyword": brandName,
+      "search_scope": ["answer"]
+    }],
+    "platform": "google",
+    "date_from": sixMonthsAgo,
+    "date_to": today,
+    "language_code": "en",
+    "order_by": ["ai_search_volume,desc"],
+    "limit": 100
+  }]
+)
+
+// Run for ChatGPT platform
+const chatgptResults = await dfsPost(
+  '/v3/ai_optimization/llm_mentions/search/live',
+  [{
+    "target": [{
+      "keyword": brandName,
+      "search_scope": ["answer"]
+    }],
+    "platform": "chat_gpt",
+    "date_from": sixMonthsAgo,
+    "date_to": today,
+    "language_code": "en",
+    "order_by": ["ai_search_volume,desc"],
+    "limit": 100
+  }]
+)
+
+// Combine items from both
+const allItems = [
+  ...(googleResults.tasks[0].result[0]?.items || []),
+  ...(chatgptResults.tasks[0].result[0]?.items || [])
+]
+
+const totalCount = 
+  (googleResults.tasks[0].result[0]?.total_count || 0) +
+  (chatgptResults.tasks[0].result[0]?.total_count || 0)
+
+console.log('Total items:', allItems.length)
+console.log('First item keys:', Object.keys(allItems[0] || {}))
+console.log('First item:', JSON.stringify(allItems[0]))
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 3: BUILD TOPIC CLUSTERS FROM ITEMS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Group individual prompts/items into topic clusters.
+Each item has se_query or question — cluster 
+similar queries together.
+
+Simple clustering by first 3 words:
+const topicMap = {}
+
+allItems.forEach(item => {
+  const query = item.se_query || item.question || 
+    item.keyword || ''
+  
+  // Simple topic key = first 3 words
+  const words = query.toLowerCase().split(' ')
+  const topicKey = words.slice(0, 3).join(' ')
+  
+  if (!topicMap[topicKey]) {
+    topicMap[topicKey] = {
+      topic: query,  // use first query as topic name
+      prompts: [],
+      totalAiVolume: 0,
+      brands: new Set(),
+      sources: new Set(),
+      monthlySearches: []
+    }
+  }
+  
+  topicMap[topicKey].prompts.push(item)
+  topicMap[topicKey].totalAiVolume += 
+    item.ai_search_volume || 0
+    
+  // Collect brands from brand_entities
+  const brandEntities = item.brand_entities || []
+  brandEntities.forEach(b => {
+    if (b.name) topicMap[topicKey].brands.add(b.name)
+  })
+  
+  // Collect sources
+  const sources = item.sources || []
+  sources.forEach(s => {
+    try {
+      const domain = new URL(s.url).hostname
+        .replace('www.','')
+      topicMap[topicKey].sources.add(domain)
+    } catch(e) {}
+  })
+  
+  // Monthly trend data
+  if (item.monthly_searches) {
+    topicMap[topicKey].monthlySearches = 
+      item.monthly_searches
+  }
+})
+
+const topicsList = Object.values(topicMap)
+  .sort((a,b) => b.totalAiVolume - a.totalAiVolume)
+  .slice(0, 100)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 4: CALCULATE SUMMARY METRICS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+From allItems calculate:
+
+// Total AI Volume
+const totalAiVolume = allItems.reduce(
+  (sum, item) => sum + (item.ai_search_volume || 0), 0
+)
+
+// All unique brands mentioned
+const allBrands = new Set()
+allItems.forEach(item => {
+  (item.brand_entities || []).forEach(b => {
+    if (b.name) allBrands.add(b.name.toLowerCase())
+  })
+})
+
+// All unique source domains
+const allSources = new Set()
+allItems.forEach(item => {
+  (item.sources || []).forEach(s => {
+    try {
+      const d = new URL(s.url).hostname.replace('www.','')
+      allSources.add(d)
+    } catch(e) {}
+  })
+})
+
+// Intent classification using Claude API
+// Send top 20 queries to Claude for classification
+const intentPrompt = `
+Classify these search queries by intent.
+Return JSON only: { informational: %, navigational: %, 
+commercial: %, transactional: %, task: % }
+Queries: ${allItems.slice(0,20).map(i => 
+  i.se_query || i.question).join('\n')}
+`
+const intentData = await callClaude(intentPrompt)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 5: BUILD THE UI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Layout matches Semrush Prompt Research:
+
+TOP SUMMARY ROW (4 cards):
+┌──────────────────┬──────────────────────────────┐
+│ Related Topics   │ Intent breakdown             │
+│ AI Volume        │ Informational 57%            │
+│ 30.1M            │ Navigational  16%            │
+│ [sparkline]      │ Commercial    13%            │
+│                  │ Transactional 10%            │
+│ Topics: 1K       │ Task          4%             │
+│ Prompts: 56.4K   │                              │
+├──────────────────┼───────────────┬──────────────┤
+│ Brands Mentioned │ Source Domains│              │
+│ 17.8K            │ 21.9K         │              │
+│ TOP: netflix     │ TOP: youtube  │              │
+│ youtube · hulu   │ netflix.com   │              │
+│                  │ reddit.com    │              │
+└──────────────────┴───────────────┴──────────────┘
+
+TABS ROW:
+Topics 1K | Prompts 56.4K | Brands 17.8K | Source Domains 21.9K
+
+TOPICS TAB (default):
+Table columns: Topic | Relevance | AI Volume | Intent | [sparkline] | Monitor
+
+Relevance = "High" if topic contains brand name
+           "Medium" if related
+           "Low" if tangential
+(compute from string similarity to brand name)
+
+AI Volume = topicMap[topic].totalAiVolume
+Intent = from Claude classification
+Sparkline = monthly_searches array → mini chart
+Monitor button → save topic to Prompt Tracking
+
+PROMPTS TAB:
+Show individual prompts (se_query items)
+Columns: Prompt | Platform | AI Volume | Brands | Sources | Monitor
+
+BRANDS TAB:
+All unique brands from brand_entities
+Columns: Brand | Mentions | Top Topics
+
+SOURCE DOMAINS TAB:
+All unique source domains from sources[]
+Columns: Domain | Mentions | Topics | Est. Traffic
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 6: EXPANDABLE TOPIC ROWS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Same as Competitor Research — click > to expand.
+Show the individual prompts under each topic:
+
+Prompt | AI Response preview | Platform | AI Volume | Monitor
+
+No extra API call needed — prompts are already 
+in the topicMap[topic].prompts array from Step 3.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 7: SUGGESTION CHIPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Below search input show 4 clickable chips:
+"Try: [chip1] [chip2] [chip3] [chip4]"
+
+Generate chips from brand name:
+chips = [
+  brandName + " alternatives",
+  brandName + " pricing",  
+  "best " + brandName + " features",
+  brandName + " vs competitors"
+]
+
+On chip click: run search with that text.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 8: CACHE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+cache_key: "prompt_research:{brandName}:{dateFrom}:{dateTo}"
+TTL: 7 days
+
+Check cache before API call.
+Show "Cached" badge if serving cached data.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST AFTER BUILD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Search "netflix.com":
+Expected:
+- Total AI Volume: 10M+ (not dash)
+- Topics: 20+ clustered topics
+- Prompts: 100+ individual queries
+- Brands: 10+ brands found
+- Sources: 10+ domains
+- Intent breakdown: percentages showing
+- Topics table: real topics not "netflix.com"
+- Expandable rows showing prompts
+
+Search "geoiqai.com":
+- May return fewer results (smaller brand)
+- Should still show some data
+- Should not crash or show 0 for everything
+
+console.log after search:
+console.log('Brand searched:', brandName)
+console.log('Total items:', allItems.length)
+console.log('Total AI volume:', totalAiVolume)
+console.log('Topics clustered:', topicsList.length)
+console.log('Brands found:', allBrands.size)
+console.log('Sources found:', allSources.size)
+console.log('Sample item:', JSON.stringify(allItems[0]))
