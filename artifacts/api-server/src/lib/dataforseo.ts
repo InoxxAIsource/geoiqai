@@ -84,6 +84,36 @@ async function cacheKeywords(domain: string, keywords: KeywordData[], locationCo
  * Product modifiers are genuine buyer-intent terms that indicate a specific product category,
  * NOT general usage words like "app", "free", "ask", "check".
  */
+/**
+ * Returns true if a keyword looks like a domain slug, brand slug, or adult content
+ * rather than a genuine search query. Applied on top of isGenericAiOnly.
+ *
+ * Catches junk like "thehomesport", "baddiehub", "strip chat" that DataForSEO
+ * Google Ads keywords_for_site sometimes returns for large domains whose users
+ * research many unrelated niches.
+ */
+export function isSuspectKeyword(keyword: string): boolean {
+  const kl = keyword.toLowerCase().trim();
+
+  // Adult / explicit content filter
+  const EXPLICIT = ["strip", "nude", "porn", "xxx", " sex", "escort", "onlyfan", "cam girl", "cam chat"];
+  if (EXPLICIT.some(t => kl.includes(t))) return true;
+
+  // Single compound word that looks like a website slug / brand name.
+  // Real search queries are usually multiple words OR a very short common term.
+  const words = kl.split(/\s+/);
+  if (words.length === 1 && (words[0]?.length ?? 0) > 8) {
+    // Keep it if it starts or ends with a common search-intent term
+    const INTENT_AFFIXES = ["best", "free", "top", "tool", "how", "what", "vs", "review", "price", "cheap", "online", "buy", "compare"];
+    const hasIntent = INTENT_AFFIXES.some(w => kl.startsWith(w) || kl.endsWith(w));
+    if (!hasIntent) return true; // Looks like a domain slug (e.g. "thehomesport")
+  }
+
+  // Two-word phrases where both words sound like a brand compound (gaming/adult site names)
+  // e.g. "crazy games", "baddie hub" — hard to auto-detect; we catch explicit ones above
+  return false;
+}
+
 export function isGenericAiOnly(keyword: string): boolean {
   const kl = keyword.toLowerCase().trim();
   const AI_SYSTEM_NAMES = [
@@ -144,7 +174,7 @@ export async function getDomainKeywords(domain: string, niche?: string, brandNam
 
   // Step 1: ranked_keywords — actual organic rankings, highest relevance signal
   const rankedResult = await fetchRankedKeywords(domain, locationCode);
-  const filteredRanked = rankedResult.filter(k => !isGenericAiOnly(k.keyword));
+  const filteredRanked = rankedResult.filter(k => !isGenericAiOnly(k.keyword) && !isSuspectKeyword(k.keyword));
   if (filteredRanked.length >= 3) {
     await cacheKeywords(domain, filteredRanked, locationCode);
     return filteredRanked;
@@ -153,8 +183,10 @@ export async function getDomainKeywords(domain: string, niche?: string, brandNam
   // Step 2: keywords_for_site — ad-relevance signal; excellent for established domains
   // (ahrefs.com: returns "seo tools", "backlink checker" etc.)
   // For new AI-niche domains the results are generic and get filtered to 0.
+  // Note: for large domains this can return off-topic keywords from adjacent niches;
+  // isSuspectKeyword() filters those out.
   const googleAdsResult = await fetchKeywordsForSiteGoogleAds(domain, locationCode);
-  const filteredAds = googleAdsResult.filter(k => !isGenericAiOnly(k.keyword));
+  const filteredAds = googleAdsResult.filter(k => !isGenericAiOnly(k.keyword) && !isSuspectKeyword(k.keyword));
   if (filteredAds.length >= 3) {
     await cacheKeywords(domain, filteredAds, locationCode);
     return filteredAds;
@@ -2028,6 +2060,139 @@ export async function getLlmCrossAggregated(
       // Log non-timeout errors only
     }
     return empty;
+  }
+}
+
+// ─── AI Keyword Discovery (keywords for keywords) ─────────────────────────────
+
+export interface KwForKwItem {
+  keyword: string;
+  aiSearchVolume: number;
+  difficulty: number | null;
+  searchIntent: string | null;
+}
+
+export interface KwForKwResult {
+  items: KwForKwItem[];
+  estimatedCostUsd: number;
+  cached: boolean;
+}
+
+/**
+ * DataForSEO AI keyword discovery: given a seed keyword, returns related keywords
+ * with AI search volume. Used by Prompt Research to turn a topic into a keyword list.
+ *
+ * Endpoint: /v3/ai_optimization/ai_keyword_data/keywords_for_keywords/live
+ * Falls back to empty when no credentials or API returns nothing.
+ */
+export async function getKeywordsForKeywords(
+  keywords: string[],
+  locationCode = 2840,
+): Promise<KwForKwResult> {
+  const empty: KwForKwResult = { items: [], estimatedCostUsd: 0, cached: false };
+
+  const login = process.env.DATAFORSEO_LOGIN ?? "";
+  const password = process.env.DATAFORSEO_PASSWORD ?? "";
+  if (!login || !password || keywords.length === 0) return empty;
+
+  const top3 = keywords.slice(0, 3);
+  const cacheKey = `kw_for_kw:${locationCode}:${top3.map(k => k.slice(0, 30).replace(/\s+/g, "_")).join("|")}`;
+
+  const cached = await getDfCache(cacheKey);
+  if (cached) return { ...(cached as unknown as KwForKwResult), cached: true };
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+    const resp = await fetch(`${DATAFORSEO_BASE}/v3/ai_optimization/ai_keyword_data/keywords_for_keywords/live`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: getAuthHeader(),
+      body: JSON.stringify([{
+        keywords: top3,
+        location_code: locationCode,
+        language_code: "en",
+      }]),
+    });
+    clearTimeout(timeout);
+
+    if (!resp.ok) {
+      logger.warn({ status: resp.status }, "[DataForSEO] keywords_for_keywords non-OK response");
+      return empty;
+    }
+
+    const data = (await resp.json()) as Record<string, unknown>;
+    const tasks = (data.tasks as Array<Record<string, unknown>>) ?? [];
+    const totalCost = tasks.reduce((s, t) => s + Number((t as Record<string, unknown>).cost ?? 0), 0);
+
+    const rawItems = (((tasks[0]?.result as Array<Record<string, unknown>>)?.[0])?.items as Array<Record<string, unknown>>) ?? [];
+
+    const items: KwForKwItem[] = rawItems.slice(0, 20).map(item => ({
+      keyword: String(item.keyword ?? ""),
+      aiSearchVolume: Number(item.ai_search_volume ?? item.search_volume ?? 0),
+      difficulty: item.keyword_difficulty != null ? Number(item.keyword_difficulty) : null,
+      searchIntent: item.search_intent ? String(item.search_intent) : null,
+    })).filter(i => i.keyword);
+
+    const result: KwForKwResult = { items, estimatedCostUsd: totalCost, cached: false };
+    await setDfCache(cacheKey, result as unknown as Record<string, unknown>, totalCost.toFixed(5));
+    logger.info({ count: items.length, cost: totalCost }, "[DataForSEO] keywords_for_keywords done");
+    return result;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!msg.includes("abort")) logger.warn({ err, keywords }, "[DataForSEO] keywords_for_keywords failed");
+    return empty;
+  }
+}
+
+// ─── DataForSEO Account Balance ─────────────────────────────────────────────────
+
+export interface DfAccountInfo {
+  connected: boolean;
+  hasCredentials: boolean;
+  balance: number | null;
+  login: string | null;
+  error?: string;
+}
+
+/**
+ * Check DataForSEO credentials and return account balance.
+ * Used by the API status endpoint and sidebar status pill.
+ */
+export async function getDfAccountInfo(): Promise<DfAccountInfo> {
+  const login = process.env.DATAFORSEO_LOGIN ?? "";
+  const password = process.env.DATAFORSEO_PASSWORD ?? "";
+
+  if (!login || !password) {
+    return { connected: false, hasCredentials: false, balance: null, login: null };
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const resp = await fetch(`${DATAFORSEO_BASE}/v3/appendix/user_data`, {
+      method: "GET",
+      signal: controller.signal,
+      headers: getAuthHeader(),
+    });
+    clearTimeout(timeout);
+
+    if (!resp.ok) {
+      return { connected: false, hasCredentials: true, balance: null, login, error: `HTTP ${resp.status}` };
+    }
+
+    const data = (await resp.json()) as Record<string, unknown>;
+    const tasks = (data.tasks as Array<Record<string, unknown>>) ?? [];
+    const result = (tasks[0]?.result as Array<Record<string, unknown>>)?.[0];
+
+    // DataForSEO user_data endpoint returns rates/limits info but not a simple money balance.
+    // We just verify connectivity here; balance is not available from this endpoint.
+    const balance = result?.money_balance != null ? Number(result.money_balance) : null;
+
+    return { connected: true, hasCredentials: true, balance, login };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { connected: false, hasCredentials: true, balance: null, login, error: msg };
   }
 }
 

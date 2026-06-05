@@ -1,0 +1,147 @@
+URGENT FIX: DataForSEO API is not working correctly 
+in GeoIQ dashboard. Fix these specific issues:
+
+━━━━━━━━━━━━━━━━━━━━━━
+STEP 1: TEST THE CONNECTION FIRST
+━━━━━━━━━━━━━━━━━━━━━━
+
+Add a temporary test endpoint GET /api/test-dataforseo
+that calls DataForSEO and returns raw JSON so we can 
+see if credentials work.
+
+In dataforseo.js, call testConnection() and log:
+- Are DATAFORSEO_LOGIN and DATAFORSEO_PASSWORD set?
+- What does the balance check return?
+- Print the raw response
+
+━━━━━━━━━━━━━━━━━━━━━━
+STEP 2: FIX VISIBILITY OVERVIEW (showing 0/No Data)
+━━━━━━━━━━━━━━━━━━━━━━
+
+The Visibility Overview page calls DataForSEO 
+llm_mentions aggregated_metrics API.
+
+Current problem: returning empty/0 for all domains.
+
+Fix:
+1. Check the date range being sent — it must be:
+   date_from: 30 days ago in format "2026-05-06"
+   date_to: today "2026-06-05"
+   NOT null, NOT undefined
+
+2. The target must be domain only, no https://:
+   CORRECT: "semrush.com"
+   WRONG: "https://semrush.com" or "www.semrush.com"
+
+3. Add console.log to show exact payload being sent 
+   to DataForSEO and exact response received
+
+4. If DataForSEO returns empty result for a domain,
+   show this message instead of 0:
+   "DataForSEO has no LLM mention data for this 
+   domain yet. This is normal for newer or smaller 
+   domains. Try a well-known domain like 
+   hubspot.com to verify the connection."
+
+━━━━━━━━━━━━━━━━━━━━━━
+STEP 3: FIX BRAND PERFORMANCE (wrong narrative data)
+━━━━━━━━━━━━━━━━━━━━━━
+
+Top Narrative Drivers currently shows:
+- thehomesport
+- baddiehub  
+- crazy games
+- strip chat
+
+This is WRONG. These are not related to semrush.com.
+This means the narrative drivers are reading from 
+wrong data source or using hash-based fake data.
+
+Fix:
+1. Find where narrative_drivers data comes from 
+   in the backend
+2. If it is using deterministic hashing or any 
+   fake/estimated data — REMOVE IT COMPLETELY
+3. Replace with this message until real data works:
+   "Narrative drivers require a full AI audit scan. 
+   Click 'Run Audit' to generate real topic data."
+4. Do NOT show fake competitor names or random topics
+
+━━━━━━━━━━━━━━━━━━━━━━
+STEP 4: FIX PROMPT RESEARCH (returning 0 keywords)
+━━━━━━━━━━━━━━━━━━━━━━
+
+Prompt Research calls DataForSEO AI keyword data API.
+Currently returns 0 for "ChatGPT brand monitoring".
+
+Fix:
+1. Check the exact endpoint being called:
+   Should be: /v3/ai_optimization/ai_keyword_data/
+   keywords_for_keywords/live
+   
+2. The payload must include:
+   { keywords: ["ChatGPT brand monitoring"],
+     language_code: "en" }
+   
+3. Add fallback: if DataForSEO returns 0 results,
+   try the standard keyword volume endpoint:
+   /v3/keywords_data/google/search_volume/live
+
+4. If still empty, show:
+   "No AI-specific volume data found for this term.
+   Try: 'ai visibility tools' or 'geo optimization'"
+
+━━━━━━━━━━━━━━━━━━━━━━
+STEP 5: FIX COMPETITOR RESEARCH (all 0 scores)
+━━━━━━━━━━━━━━━━━━━━━━
+
+Competitor comparison shows 0 for all domains.
+
+Fix:
+1. When user clicks Analyze, run the same audit 
+   flow that Visibility Overview uses — but for 
+   each competitor domain
+   
+2. Call llmAggregatedMetrics() for each domain:
+   - your domain
+   - competitor 1
+   - competitor 2
+   
+3. Store results in Supabase competitor_audits table
+   with: domain, score, mentions, citations, 
+   audit_date
+
+4. If API returns 0/empty for a well-known domain 
+   like semrush.com, log the raw API response to 
+   console so we can debug
+
+━━━━━━━━━━━━━━━━━━━━━━
+STEP 6: ADD GLOBAL API STATUS INDICATOR
+━━━━━━━━━━━━━━━━━━━━━━
+
+In the sidebar bottom, add a small status pill:
+
+If DataForSEO credentials missing or failing:
+  🔴 "DataForSEO: Disconnected"
+  
+If connected and balance > 0:
+  🟢 "DataForSEO: Connected · $XX balance"
+  
+If connected but API returning empty results:
+  🟡 "DataForSEO: Connected · No data"
+
+Call GET /api/test-dataforseo on page load to 
+set this status.
+
+━━━━━━━━━━━━━━━━━━━━━━
+STEP 7: WHAT TO DO IF CREDENTIALS ARE MISSING
+━━━━━━━━━━━━━━━━━━━━━━
+
+Check Replit Secrets tab for:
+- DATAFORSEO_LOGIN
+- DATAFORSEO_PASSWORD
+
+If missing, add them from your DataForSEO account:
+dashboard.dataforseo.com → API Access → Credentials
+
+Then restart the Replit server.

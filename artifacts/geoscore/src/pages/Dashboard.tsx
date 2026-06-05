@@ -95,6 +95,8 @@ export function Dashboard() {
   const [newBrandDomain, setNewBrandDomain] = useState("");
   const [newBrandName, setNewBrandName] = useState("");
   const [showSettings, setShowSettings] = useState(false);
+  const [dfStatus, setDfStatus] = useState<"checking" | "connected" | "disconnected" | "error">("checking");
+  const [dfBalance, setDfBalance] = useState<number | null>(null);
 
   const { data: user } = useGetMe({ query: { enabled: auth } as never });
   const { data: brands, isLoading: loadingBrands } = useGetMonitoredBrands({ query: { enabled: auth } as never });
@@ -114,6 +116,25 @@ export function Dashboard() {
   useEffect(() => {
     if (!auth) setLocation("/login");
   }, [auth]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/dataforseo/status")
+      .then(r => r.json())
+      .then((data: { connected?: boolean; balance?: number | null; hasCredentials?: boolean }) => {
+        if (cancelled) return;
+        if (data.connected) {
+          setDfStatus("connected");
+          setDfBalance(data.balance ?? null);
+        } else if (data.hasCredentials) {
+          setDfStatus("error");
+        } else {
+          setDfStatus("disconnected");
+        }
+      })
+      .catch(() => { if (!cancelled) setDfStatus("error"); });
+    return () => { cancelled = true; };
+  }, []);
 
   const { data: scores } = useGetBrandScores(selectedBrand?.id ?? "", {
     query: { enabled: !!selectedBrand?.id && auth } as never,
@@ -292,6 +313,27 @@ export function Dashboard() {
             </div>
           ))}
         </nav>
+
+        {/* DataForSEO status pill */}
+        {dfStatus !== "checking" && (() => {
+          const statusMap = {
+            connected: { dot: "#10B981", label: "DataForSEO connected", sub: dfBalance != null ? `$${dfBalance.toFixed(2)} balance` : null },
+            disconnected: { dot: "#9CA3AF", label: "DataForSEO not connected", sub: "Add API credentials" },
+            error: { dot: "#F59E0B", label: "DataForSEO error", sub: "Check credentials" },
+          } as const;
+          const s = statusMap[dfStatus as keyof typeof statusMap];
+          return (
+            <div style={{ padding: "8px 14px", borderTop: `1px solid ${BORDER}` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 10px", background: "#F9FAFB", borderRadius: 7, border: `1px solid ${BORDER}` }}>
+                <div style={{ width: 7, height: 7, borderRadius: "50%", background: s.dot, flexShrink: 0 }} />
+                <div style={{ flex: 1, overflow: "hidden" }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "#374151", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.label}</div>
+                  {s.sub && <div style={{ fontSize: 10, color: MUTED }}>{s.sub}</div>}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* User / Settings */}
         <div style={{ borderTop: `1px solid ${BORDER}`, padding: "12px 14px" }}>

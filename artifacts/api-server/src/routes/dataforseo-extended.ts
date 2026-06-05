@@ -12,13 +12,67 @@ import {
   getChatGptScraper,
   getGeminiScraper,
   getAiKeywordVolume,
+  getKeywordsForKeywords,
+  getDfAccountInfo,
   filterRankedKeywords,
   buildCategoryFallbackKeywords,
 } from "../lib/dataforseo";
-import { db, citationsTable } from "@workspace/db";
+import { db, citationsTable, keywordCacheTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 
 const router = Router();
+
+// ─── DataForSEO connection test (public, no auth) ────────────────────────────
+// Call this to verify credentials are set and working. Returns raw account info.
+router.get("/test-dataforseo", async (_req, res): Promise<void> => {
+  const login = process.env.DATAFORSEO_LOGIN ?? "";
+  const password = process.env.DATAFORSEO_PASSWORD ?? "";
+
+  const credInfo = {
+    DATAFORSEO_LOGIN_set: !!login,
+    DATAFORSEO_PASSWORD_set: !!password,
+    login_preview: login ? `${login.slice(0, 3)}***` : "(not set)",
+  };
+
+  if (!login || !password) {
+    res.json({
+      status: "disconnected",
+      reason: "DATAFORSEO_LOGIN and/or DATAFORSEO_PASSWORD environment variables are not set.",
+      credentials: credInfo,
+    });
+    return;
+  }
+
+  const info = await getDfAccountInfo();
+
+  res.json({
+    status: info.connected ? "connected" : "error",
+    credentials: credInfo,
+    balance: info.balance,
+    error: info.error ?? null,
+    tip: !info.connected
+      ? "Check that DATAFORSEO_LOGIN is your email and DATAFORSEO_PASSWORD is your API password from dashboard.dataforseo.com"
+      : null,
+  });
+});
+
+// ─── DataForSEO status - lightweight ping for sidebar indicator (public) ──────
+router.get("/dataforseo/status", async (_req, res): Promise<void> => {
+  const info = await getDfAccountInfo();
+  res.json(info);
+});
+
+// ─── Clear keyword cache for a domain (auth required) ─────────────────────────
+router.delete("/dataforseo/keyword-cache", requireAuth, async (req, res): Promise<void> => {
+  const { domain } = req.query as { domain?: string };
+  if (!domain) { res.status(400).json({ error: "domain is required" }); return; }
+  try {
+    await db.delete(keywordCacheTable).where(eq(keywordCacheTable.domain, domain));
+    res.json({ ok: true, domain });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to clear keyword cache" });
+  }
+});
 
 // ─── Public quick site health check (no auth) ────────────────────────────────
 // Fetches the homepage, measures TTFB, reads security headers, detects tech stack.
@@ -436,7 +490,10 @@ router.post("/dataforseo/gemini-scraper", requireAuth, async (req, res): Promise
   res.json(result);
 });
 
-// AI Keyword Search Volume - how many people search these keywords inside AI tools
+// AI Keyword Search Volume - look up AI search volume for known keywords
+// When <= 3 keywords are passed (typical for Prompt Research topic search), we first
+// call keywords_for_keywords/live to discover related keywords, then return those.
+// When > 3 keywords are passed (explicit volume lookup), we skip discovery.
 router.post("/dataforseo/ai-keyword-volume", requireAuth, async (req, res): Promise<void> => {
   const user = (req as AuthRequest).user;
   if (user.plan === "free") {
@@ -444,18 +501,38 @@ router.post("/dataforseo/ai-keyword-volume", requireAuth, async (req, res): Prom
     return;
   }
 
-  const { keywords, domain } = req.body as { keywords?: string[]; domain?: string };
+  const { keywords, domain, mode } = req.body as { keywords?: string[]; domain?: string; mode?: "volume" | "discover" };
   if (!Array.isArray(keywords) || keywords.length === 0) {
     res.status(400).json({ error: "keywords[] is required" });
     return;
   }
 
   const locationCode = domain ? getLocationCode(domain) : 2840;
-  req.log.info({ keywords: keywords.length, locationCode }, "ai-keyword-volume request");
+  req.log.info({ keywords: keywords.length, locationCode, mode }, "ai-keyword-volume request");
+
+  // Discovery mode: 1-3 seed keywords -> find related keywords with AI volume
+  const useDiscovery = mode === "discover" || (mode !== "volume" && keywords.length <= 3);
+
+  if (useDiscovery) {
+    const discResult = await getKeywordsForKeywords(keywords, locationCode);
+    req.log.info({ count: discResult.items.length, cost: discResult.estimatedCostUsd, cached: discResult.cached }, "ai-keyword-volume discover done");
+
+    if (discResult.items.length > 0) {
+      res.json({
+        keywords: discResult.items,
+        estimatedCostUsd: discResult.estimatedCostUsd,
+        cached: discResult.cached,
+        mode: "discover",
+      });
+      return;
+    }
+    // If discovery returned nothing, fall through to volume lookup as fallback
+    req.log.warn({ keywords }, "keywords_for_keywords returned 0 items, falling back to volume lookup");
+  }
 
   const result = await getAiKeywordVolume(keywords, locationCode);
-  req.log.info({ keywords: keywords.length, cost: result.estimatedCostUsd, cached: result.cached }, "ai-keyword-volume done");
-  res.json(result);
+  req.log.info({ count: result.items?.length ?? 0, cost: result.estimatedCostUsd, cached: result.cached }, "ai-keyword-volume done");
+  res.json({ keywords: result.items, estimatedCostUsd: result.estimatedCostUsd, cached: result.cached, mode: "volume" });
 });
 
 // Site-specific keywords - ranked keywords filtered to remove brand-name terms
