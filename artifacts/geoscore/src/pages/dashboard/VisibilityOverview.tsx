@@ -47,16 +47,16 @@ function fmt(n: number): string {
 function scoreLabel(s: number) {
   if (s >= 81) return { label: "Great", color: "#16A34A" };
   if (s >= 61) return { label: "Good", color: "#15803D" };
-  if (s >= 31) return { label: "Medium", color: "#D97706" };
+  if (s >= 41) return { label: "Medium", color: "#D97706" };
   if (s > 0)   return { label: "Low", color: "#DC2626" };
   return { label: "No Data", color: "#9CA3AF" };
 }
 
 function scoreDesc(s: number) {
-  if (s >= 81) return "Frequently cited by AI platforms across many topics.";
+  if (s >= 81) return "Frequently mentioned and often preferred by LLMs.";
   if (s >= 61) return "Cited regularly in AI-generated answers.";
-  if (s >= 31) return "Appears occasionally in LLM outputs.";
-  if (s > 0)   return "Rarely appears in AI-generated answers.";
+  if (s >= 41) return "Appears occasionally in LLM outputs.";
+  if (s > 0)   return "Rarely appears in AI answers.";
   return "No LLM mention data found for this domain yet.";
 }
 
@@ -404,7 +404,7 @@ export function VisibilityOverview({
                       <div style={{ flex: 1, height: 8, background: "#F3F4F6", borderRadius: 4, overflow: "hidden" }}>
                         <div style={{ width: `${p.pct}%`, height: "100%", background: p.color, borderRadius: 4, transition: "width 0.6s" }} />
                       </div>
-                      <div style={{ width: 40, textAlign: "right", fontSize: 12, color: MUTED }}>{p.pct}%</div>
+                      <div style={{ width: 48, textAlign: "right", fontSize: 12, color: MUTED }}>{p.pct.toFixed(1)}%</div>
                       <div style={{ width: 48, textAlign: "right", fontSize: 13, fontWeight: 600, color: "#111827" }}>{fmt(p.mentions)}</div>
                     </div>
                   ))

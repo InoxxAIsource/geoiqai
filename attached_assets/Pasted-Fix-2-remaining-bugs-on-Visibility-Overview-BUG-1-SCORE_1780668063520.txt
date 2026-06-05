@@ -1,0 +1,92 @@
+Fix 2 remaining bugs on Visibility Overview.
+
+BUG 1: SCORE STILL WRONG FOR WIKIPEDIA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+wikipedia.org: 6M mentions, 892 citations = 52/100
+Should be 85+. Log formula is still under-scoring.
+
+console.log these intermediate values:
+const mentionScore = Math.min(
+  Math.log10(Math.max(6000000, 1)) / 
+  Math.log10(10000000) * 40, 40
+)
+const citationRatio = 892 / 6000000  // = 0.000149
+const citationScore = Math.min(
+  Math.log10(Math.max(0.000149 * 100000, 1)) / 5 * 40, 40
+)
+console.log('mentionScore:', mentionScore)
+console.log('citationScore:', citationScore)
+
+The citation ratio 0.000149 * 100000 = 14.9
+log10(14.9) = 1.17
+1.17/5 * 40 = 9.4 — way too low
+
+Fix citation score formula:
+// Scale: 1 citation per 100 mentions = perfect score
+const citationPer100 = (citations / Math.max(mentions,1)) * 100
+const citationScore = Math.min(
+  Math.log10(Math.max(citationPer100 * 1000, 1)) / 4 * 40,
+  40
+)
+
+Also fix score labels:
+0-20:  "Low"    — red    — "Rarely appears in AI answers"
+21-40: "Low"    — red    — "Rarely appears in AI answers"  
+41-60: "Medium" — amber  — "Appears occasionally in LLM outputs"
+61-80: "Good"   — green  — "Cited regularly in AI-generated answers"
+81-100:"Great"  — bright green — "Frequently mentioned and often preferred by LLMs"
+
+Expected scores after fix:
+- wikipedia.org  (6M mentions, 892 citations) → 85-92
+- primevideo.com (1.6M mentions, ~50 citations) → 65-72  
+- namecheap.com  (27K mentions, 0 citations) → 25-35
+- geoiqai.com    (small, new domain) → 5-15
+
+BUG 2: CHATGPT SHOWING 0% IN DISTRIBUTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ChatGPT has 13.2K mentions but shows 0%.
+AI Overview has 6.0M and shows 100%.
+
+The % calculation divides by total but 
+6M dominates so ChatGPT rounds to 0%.
+
+Fix: show actual % with 1 decimal place,
+never round to 0% if value > 0:
+
+const total = platforms.reduce((s,p) => s + p.mentions, 0)
+platforms.forEach(p => {
+  const rawPct = (p.mentions / total) * 100
+  // Never show 0% if has mentions
+  p.pct = p.mentions > 0 
+    ? Math.max(rawPct, 0.1).toFixed(1) + '%'
+    : '0%'
+})
+
+Display:
+AI Overview (Google) ████████████ 97.8%  6.0M
+ChatGPT              ▌             2.2%  13.2K
+
+BUG 3: SCROLL DOWN AND SCREENSHOT TOPICS TAB
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After deploying score fix, clear cache:
+DELETE FROM dataforseo_cache WHERE 1=1
+
+Rescan wikipedia.org and scroll to 
+Topics & Sources section.
+
+Performing Topics should show:
+- encyclopedia articles
+- "what is..." queries  
+- historical topics
+NOT "tpu tubes" or "weather"
+
+If topics still show garbage — the brand 
+keyword filter is still not working.
+Add this console.log to the search call:
+console.log('Topic search payload:', 
+  JSON.stringify(topicPayload))
+console.log('First topic returned:', 
+  topics[0]?.question || topics[0]?.topic)

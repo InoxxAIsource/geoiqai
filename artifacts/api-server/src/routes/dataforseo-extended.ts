@@ -851,13 +851,13 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
 
     // Score formula: log-scale so large domains don't trivially max out
     // mentionScore(40): log10(mentions) / log10(10M) * 40
-    // citationScore(40): log10(citationRatio*100000) / 5 * 40 (ratio of citations to mentions)
+    // citationScore(40): log10(citationsper100 * 1000) / 4 * 40 — 1 citation per 100 mentions = full score
     // pageScore(20): citedPages / 50 * 20
     const mentionScore = mentions === 0 ? 0
       : Math.min(Math.log10(Math.max(mentions, 1)) / Math.log10(10_000_000) * 40, 40);
-    const citationRatio = citations / Math.max(mentions, 1);
+    const citationPer100 = (citations / Math.max(mentions, 1)) * 100;
     const citationScore = citations === 0 ? 0
-      : Math.min(Math.log10(Math.max(citationRatio * 100_000, 1)) / 5 * 40, 40);
+      : Math.min(Math.log10(Math.max(citationPer100 * 1000, 1)) / 4 * 40, 40);
     const pageScore = Math.min(citedPagesCount / 50 * 20, 20);
     const score = (mentions + citations) === 0 ? 0
       : Math.min(100, Math.round(mentionScore + citationScore + pageScore));
@@ -868,7 +868,7 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
       { key: "google",   mentions: googleMentions,  ai_search_volume: kwGoogle.aiSearchVolume },
       { key: "chat_gpt", mentions: chatgptMentions, ai_search_volume: kwChatgpt.aiSearchVolume },
     ].filter(p => p.mentions > 0);
-    const maxPlatMentions = Math.max(...rawPlatforms.map(p => p.mentions), 1);
+    const totalPlatMentions = Math.max(rawPlatforms.reduce((s, p) => s + p.mentions, 0), 1);
     const platformData = rawPlatforms
       .sort((a, b) => b.mentions - a.mentions)
       .map(p => ({
@@ -877,7 +877,8 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
         color: PLATFORM_COLORS[p.key] ?? "#6B7280",
         mentions: p.mentions,
         ai_search_volume: p.ai_search_volume,
-        pct: Math.round((p.mentions / maxPlatMentions) * 100),
+        // Actual % of total; never round to 0 if mentions > 0
+        pct: p.mentions > 0 ? Math.max(parseFloat(((p.mentions / totalPlatMentions) * 100).toFixed(1)), 0.1) : 0,
       }));
 
     // Countries: from keyword agg total breakdown (google platform preferred for volume)
