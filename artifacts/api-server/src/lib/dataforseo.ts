@@ -2745,3 +2745,87 @@ export async function getLlmCrossAggByGroup(
     return empty;
   }
 }
+
+// ─── LLM Topic Prompts (expand a topic row to show individual prompts) ─────────
+
+export interface TopicPromptItem {
+  prompt: string;
+  answer: string;
+  sources: string[];
+  brandEntities: Array<{ name: string }>;
+  fanOutQueries: string[];
+  aiSearchVolume: number;
+}
+
+export interface TopicPromptsResult {
+  items: TopicPromptItem[];
+  cached: boolean;
+}
+
+export async function getLlmTopicPrompts(
+  topicName: string,
+  dateFrom: string,
+  dateTo: string,
+  platform = "google",
+  limit = 20,
+): Promise<TopicPromptsResult> {
+  const empty: TopicPromptsResult = { items: [], cached: false };
+  const login = process.env.DATAFORSEO_LOGIN ?? "";
+  const password = process.env.DATAFORSEO_PASSWORD ?? "";
+  if (!login || !password) return empty;
+
+  const cacheKey = `topic_expand:${topicName}:${platform}:${dateFrom}:${dateTo}`;
+  const cached = await getDfCache(cacheKey);
+  if (cached) return { ...(cached as unknown as TopicPromptsResult), cached: true };
+
+  try {
+    const auth = getAuthHeader();
+    logger.info({ topicName, platform }, "topic-prompts: request");
+    const resp = await fetch(`${DATAFORSEO_BASE}/v3/ai_optimization/llm_mentions/search/live`, {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify([{
+        target: [{ keyword: topicName, search_scope: ["answer"] }],
+        platform,
+        date_from: dateFrom,
+        date_to: dateTo,
+        language_code: "en",
+        order_by: ["ai_search_volume,desc"],
+        limit,
+      }]),
+    });
+    const data = await resp.json() as Record<string, unknown>;
+    const tasks = (data.tasks as Array<Record<string, unknown>>) ?? [];
+    const taskResult = (tasks[0]?.result as Array<Record<string, unknown>>)?.[0];
+    const statusCode = Number((tasks[0] as Record<string, unknown>)?.status_code ?? 0);
+    const rawItems = (taskResult?.items as Array<Record<string, unknown>>) ?? [];
+    logger.info({ topicName, statusCode, itemCount: rawItems.length }, "topic-prompts: response");
+    if (!taskResult) return empty;
+
+    const items: TopicPromptItem[] = rawItems.map(item => {
+      const rawSources = (item.sources as Array<Record<string, unknown>>) ?? [];
+      const rawEntities = (item.brand_entities as Array<Record<string, unknown>>) ?? [];
+      const rawFanOut = (item.fan_out_queries as Array<unknown>) ?? [];
+      return {
+        prompt: String(item.se_query ?? item.question ?? item.keyword ?? ""),
+        answer: String(item.answer ?? ""),
+        sources: rawSources.map(s => String(s.url ?? "")).filter(Boolean),
+        brandEntities: rawEntities.map(b => ({ name: String(b.name ?? "") })).filter(b => b.name),
+        fanOutQueries: rawFanOut
+          .slice(0, 5)
+          .map(q => String((q as Record<string, unknown>)?.se_query ?? (q as Record<string, unknown>)?.question ?? q ?? ""))
+          .filter(Boolean),
+        aiSearchVolume: Number(item.ai_search_volume ?? 0),
+      };
+    });
+
+    const res: TopicPromptsResult = { items, cached: false };
+    if (items.length > 0) {
+      await setDfCache(cacheKey, res as unknown as Record<string, unknown>, "0.002");
+    }
+    return res;
+  } catch (err) {
+    logger.error({ topicName, err }, "topic-prompts: error");
+    return empty;
+  }
+}

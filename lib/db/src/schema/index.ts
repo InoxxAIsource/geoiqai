@@ -14,3 +14,4 @@ export * from "./email_verification_tokens";
 export * from "./integrations_waitlist";
 export * from "./dataforseo_cache";
 export * from "./competitor_audits";
+export * from "./prompt_tracking";

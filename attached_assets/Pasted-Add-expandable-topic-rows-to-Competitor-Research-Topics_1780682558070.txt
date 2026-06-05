@@ -1,0 +1,278 @@
+Add expandable topic rows to Competitor Research Topics table.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE: EXPANDABLE TOPIC ROWS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Each topic row in the Topics and Prompts table 
+has a > arrow on the left. When clicked, expand 
+to show the actual prompts under that topic.
+
+STEP 1: On topic row click, fetch prompts:
+
+POST /v3/ai_optimization/llm_mentions/search/live
+[{
+  "target": [{
+    "keyword": topicName,
+    "search_scope": ["answer"]
+  }],
+  "platform": "google",
+  "date_from": sixMonthsAgo,
+  "date_to": today,
+  "language_code": "en",
+  "order_by": ["ai_search_volume,desc"],
+  "limit": 10
+}]
+
+Only trigger API call on FIRST click.
+Subsequent clicks use cached data — no API call.
+
+STEP 2: Map response fields to UI:
+
+For each item in result[0].items:
+
+Prompt = item.se_query || item.question || item.keyword
+AI Response = item.answer?.substring(0, 150) + "..."
+Full answer = item.answer (shown on "View full response" click)
+Sources count = item.sources?.length || 0
+
+Brand mentions from brand_entities array:
+const brands = item.brand_entities || []
+const yourBrandMentioned = brands.some(b => 
+  b.name?.toLowerCase().includes(yourBrandName.toLowerCase())
+) || item.answer?.toLowerCase().includes(yourBrandName.toLowerCase())
+
+const competitorMentioned = brands.some(b =>
+  b.name?.toLowerCase().includes(competitorBrandName.toLowerCase())
+) || item.answer?.toLowerCase().includes(competitorBrandName.toLowerCase())
+
+const mentionedCount = (yourBrandMentioned ? 1 : 0) + 
+                       (competitorMentioned ? 1 : 0)
+const mentionedRatio = mentionedCount + "/2"
+
+Brands count = item.brand_entities?.length || 
+  count of brand names found in answer text
+
+Fan-out queries = item.fan_out_queries?.slice(0,3) || []
+Show as small grey tags below AI response:
+"Related: query1 · query2 · query3"
+This is unique — Semrush does not show this.
+
+STEP 3: Expanded row UI layout:
+
+When > is clicked, show sub-table below topic row:
+
+┌─────────────────────────────────────────────────────────┐
+│ PROMPT          │ AI RESPONSE      │ MENTIONED │ BRANDS │ SOURCES │ ACTIONS │
+├─────────────────────────────────────────────────────────┤
+│ nfl games this  │ For the weekend  │ 2/2       │ 42     │ 7       │ [Create Content] │
+│ weekend tv      │ of Sept 20...    │           │        │         │ [Find Contacts]  │
+│ schedule        │ View full ↗      │           │        │         │ [Monitor]        │
+│                 │ Related: nfl · football · schedule    │         │                  │
+├─────────────────────────────────────────────────────────┤
+│ first week of   │ The 2026 NFL     │ 1/2       │ 40     │ 4       │ [Create Content] │
+│ nfl season      │ regular season...│           │        │         │ [Find Contacts]  │
+│                 │ View full ↗      │           │        │         │ [Monitor]        │
+└─────────────────────────────────────────────────────────┘
+[Show 5 more]
+
+Highlight MENTIONED cell:
+- "2/2" = green background (both brands mentioned)
+- "1/2" = yellow background (one brand mentioned)
+- "0/2" = red background (no brand mentioned)
+
+STEP 4: "View full response" click:
+Show modal or inline expansion with full 
+item.answer text. Include all sources as 
+clickable links.
+
+STEP 5: Action buttons per prompt row:
+
+[Create Content] button:
+→ Navigate to Content Creation page
+→ Pre-fill with this prompt text
+→ Pass: { prompt: promptText, topic: topicName }
+
+[Find Contacts] button:
+→ Navigate to AI PR Toolkit journalist finder
+→ Pre-fill topic search with topicName
+
+[Monitor] button:
+→ Save prompt to Prompt Tracking in Supabase:
+  INSERT INTO prompt_tracking (
+    user_id, prompt, platform, topic,
+    your_domain, competitor_domain, created_at
+  ) VALUES (...)
+→ Show toast notification: "Added to Prompt Tracking ✓"
+→ Button changes to "Monitoring ✓" green state
+
+STEP 6: "Show 5 more" button:
+Show first 5 prompts by default.
+"Show 5 more" loads next 5 from cached results.
+Max 20 prompts shown per topic.
+
+STEP 7: Cache ALL expanded topic data:
+
+cache_key: "topic_expand:{topicName}:{platform}:{dateFrom}:{dateTo}"
+TTL: 7 days
+
+Before API call:
+1. Check Supabase dataforseo_cache for this key
+2. If found and not expired: use cached data
+3. If not found: call API, save to cache, use data
+
+console.log on each expansion:
+console.log('Topic expand:', topicName)
+console.log('Cache hit:', !!cachedData)
+console.log('Prompts returned:', items?.length)
+console.log('First prompt:', items?.[0]?.se_query)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ALSO FIX: STRONG = 0 BUG
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Strong and Weak show 0 because classification 
+is comparing ai_search_volume which is the same 
+for both brands on shared topics.
+
+Fix classification using topic rank position:
+
+After merging your topics and competitor topics:
+
+const yourTopicKeys = new Set(
+  yourTopics.map(t => 
+    (t.se_query || t.question || t.keyword || '')
+    .toLowerCase().trim()
+  )
+)
+
+const compTopicKeys = new Set(
+  competitorTopics.map(t => 
+    (t.se_query || t.question || t.keyword || '')
+    .toLowerCase().trim()
+  )
+)
+
+// Get rank (index) of topic in each brand's list
+const yourRankMap = {}
+yourTopics.forEach((t, i) => {
+  const key = (t.se_query || t.question || t.keyword || '')
+    .toLowerCase().trim()
+  yourRankMap[key] = i + 1
+})
+
+const compRankMap = {}
+competitorTopics.forEach((t, i) => {
+  const key = (t.se_query || t.question || t.keyword || '')
+    .toLowerCase().trim()
+  compRankMap[key] = i + 1
+})
+
+// Classify
+allTopics.forEach(topic => {
+  const key = topic.topic.toLowerCase().trim()
+  const yourRank = yourRankMap[key] || 999
+  const compRank = compRankMap[key] || 999
+  const yourVol = yourVolMap[key] || 0
+  const compVol = compVolMap[key] || 0
+
+  if (yourRank < 999 && compRank === 999) {
+    topic.status = 'unique'
+  } else if (yourRank === 999 && compRank < 999) {
+    topic.status = 'missing'
+  } else if (yourRank < compRank && yourVol > compVol * 1.5) {
+    topic.status = 'strong'
+  } else if (compRank < yourRank && compVol > yourVol * 1.5) {
+    topic.status = 'weak'
+  } else {
+    topic.status = 'shared'
+  }
+})
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ALSO FIX: SCORE FORMULA SYNC
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Competitor Research shows netflix 69 but 
+Visibility Overview shows netflix 82+ for 
+same 2.4M mentions. They must be identical.
+
+Move score formula to shared utility:
+
+// utils/scoreCalculator.js or shared function
+function calculateVisibilityScore(
+  mentions, citations = 0, citedPages = 0
+) {
+  const mentionScore = Math.min(
+    Math.log10(Math.max(mentions, 1)) / 
+    Math.log10(10000000) * 70, 70
+  )
+  const citationBonus = citations > 0
+    ? Math.min(Math.log10(citations) / 6 * 20, 20)
+    : 0
+  const pageBonus = citedPages > 0
+    ? Math.min(citedPages / 100 * 10, 10)
+    : 0
+  return Math.min(100, Math.round(
+    mentionScore + citationBonus + pageBonus
+  ))
+}
+
+Import and use this SAME function in both:
+- Visibility Overview backend
+- Competitor Research backend
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+GATE FEATURE FOR FREE USERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Topic row expansion is paid-only feature.
+
+For free plan users:
+- Show > arrow but it is locked (grey, disabled)
+- On click show tooltip: 
+  "Expand prompts available on Starter plan"
+- Show upgrade CTA below topics table
+
+For paid users (Starter/Agency plan):
+- Full expand works as described above
+
+Check user plan from Supabase user_subscriptions 
+or existing plan check logic.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST AFTER BUILDING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Test netflix.com vs primevideo.com:
+
+1. Click > on "NFL and College Football" row
+   Expected:
+   - 5-10 NFL prompt rows appear below
+   - Each has prompt text, AI response preview
+   - Mentioned ratio shows (2/2, 1/2 etc)
+   - Sources count shows per row
+   - Fan-out query tags show below response
+   - Create Content / Find Contacts / Monitor buttons
+
+2. Click Monitor on first prompt
+   Expected: toast shows "Added to Prompt Tracking ✓"
+   Go to Prompt Tracking page — prompt should appear
+
+3. Click Create Content on first prompt
+   Expected: navigates to Content Creation 
+   with prompt pre-filled
+
+4. Click same topic row again
+   Expected: no new API call (uses cache)
+   Check console: "Cache hit: true"
+
+5. Verify Strong > 0 after classification fix
+
+6. Verify netflix score matches Visibility Overview
+   Both should show same score for same domain
+
+Do NOT clear full cache.
+Only clear specific competitor cache if needed:
+DELETE FROM dataforseo_cache 
+WHERE cache_key LIKE '%topic_expand%netflix%'

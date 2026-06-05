@@ -436,7 +436,11 @@ export function Dashboard() {
           )}
 
           {activeNav === "competitor-research" && (
-            <CompetitorResearch initialDomain={activeDomain} />
+            <CompetitorResearch
+              initialDomain={activeDomain}
+              plan={user?.plan ?? "free"}
+              onNavigate={(nav) => setActiveNav(nav as NavId)}
+            />
           )}
 
           {activeNav === "prompt-research" && (

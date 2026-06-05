@@ -20,9 +20,10 @@ import {
   getLlmTopPagesList,
   getLlmSearchTopics,
   getLlmKeywordAggMetrics,
+  getLlmTopicPrompts,
 } from "../lib/dataforseo";
 import { runAuditEngine } from "../lib/audit-engine";
-import { db, citationsTable, keywordCacheTable, auditsTable } from "@workspace/db";
+import { db, citationsTable, keywordCacheTable, auditsTable, promptTrackingTable } from "@workspace/db";
 import { eq, and, desc, gt } from "drizzle-orm";
 import OpenAI from "openai";
 
@@ -1128,6 +1129,51 @@ Write exactly 2 sentences. Sentence 1: which specific topic the competitor leads
     req.log.error({ err }, "competitor-research error");
     res.status(500).json({ error: "Could not load competitor data. Please try again." });
   }
+});
+
+// ─── Topic Prompts (expand a topic row - paid only) ──────────────────────────
+router.post("/dataforseo/topic-prompts", requireAuth, async (req, res): Promise<void> => {
+  const user = (req as AuthRequest).user;
+  if (user.plan === "free") {
+    res.status(403).json({ error: "upgrade", message: "Expand prompts available on Starter plan." });
+    return;
+  }
+  const { topicName, dateFrom, dateTo, platform = "google" } = req.body as {
+    topicName?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    platform?: string;
+  };
+  if (!topicName || !dateFrom || !dateTo) {
+    res.status(400).json({ error: "topicName, dateFrom, and dateTo are required" });
+    return;
+  }
+  const result = await getLlmTopicPrompts(topicName, dateFrom, dateTo, platform);
+  req.log.info({ topicName, itemCount: result.items.length, cached: result.cached }, "topic-prompts: done");
+  res.json(result);
+});
+
+// ─── Monitor Prompt (save to prompt_tracking) ────────────────────────────────
+router.post("/dataforseo/monitor-prompt", requireAuth, async (req, res): Promise<void> => {
+  const user = (req as AuthRequest).user;
+  const { prompt, platform = "google", topic, yourDomain, competitorDomain } = req.body as {
+    prompt?: string;
+    platform?: string;
+    topic?: string;
+    yourDomain?: string;
+    competitorDomain?: string;
+  };
+  if (!prompt) { res.status(400).json({ error: "prompt is required" }); return; }
+  await db.insert(promptTrackingTable).values({
+    userId: user.id,
+    prompt,
+    platform,
+    topic: topic ?? null,
+    yourDomain: yourDomain ?? null,
+    competitorDomain: competitorDomain ?? null,
+  });
+  req.log.info({ topic, prompt: prompt.slice(0, 60) }, "monitor-prompt: saved");
+  res.json({ ok: true });
 });
 
 export default router;

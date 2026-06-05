@@ -1,6 +1,6 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { getToken } from "@/lib/auth";
-import { X, Plus, AlertCircle, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, Plus, AlertCircle, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, Lock } from "lucide-react";
 
 const P = "#4F46E5";
 const BORDER = "#E5E7EB";
@@ -33,6 +33,14 @@ interface TopicRow {
 }
 interface TopicCounts { all: number; missing: number; weak: number; shared: number; strong: number; unique: number }
 interface SourceRow { domain: string; count: number }
+interface PromptItem {
+  prompt: string;
+  answer: string;
+  sources: string[];
+  brandEntities: Array<{ name: string }>;
+  fanOutQueries: string[];
+  aiSearchVolume: number;
+}
 interface CompData {
   domains: DomainResult[];
   trend: TrendSeries[];
@@ -143,12 +151,14 @@ const ROW_BG: Record<TopicStatus, string> = {
   unique:  "#F0FDF4",
 };
 
-function TopicsTable({ topics, counts, yourDomain, compDomain, sources = [] }: {
+function TopicsTable({ topics, counts, yourDomain, compDomain, sources = [], plan, onNavigate }: {
   topics: TopicRow[];
   counts: TopicCounts;
   yourDomain: string;
   compDomain?: string;
   sources: SourceRow[];
+  plan: string;
+  onNavigate?: (nav: string) => void;
 }) {
   const [tab, setTab] = useState<"topics" | "sources">("topics");
   const [filter, setFilter] = useState<TopicFilter>("all");
@@ -156,6 +166,62 @@ function TopicsTable({ topics, counts, yourDomain, compDomain, sources = [] }: {
   const [sortVolDir, setSortVolDir] = useState<"desc" | "asc">("desc");
   const [page, setPage] = useState(0);
   const PER_PAGE = 20;
+
+  const [expandedData, setExpandedData] = useState<Map<string, PromptItem[]>>(new Map());
+  const [loadingSet, setLoadingSet] = useState<Set<string>>(new Set());
+  const [openSet, setOpenSet] = useState<Set<string>>(new Set());
+  const [shownCount, setShownCount] = useState<Map<string, number>>(new Map());
+  const [fullAnswer, setFullAnswer] = useState<{ answer: string; sources: string[] } | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const [monitoredSet, setMonitoredSet] = useState<Set<string>>(new Set());
+  const isPaid = plan !== "free";
+
+  const today = new Date().toISOString().split("T")[0]!;
+  const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]!;
+  const yourBrandName = yourDomain.replace(/\.[^.]+$/, "").toLowerCase();
+  const compBrandName = compDomain ? compDomain.replace(/\.[^.]+$/, "").toLowerCase() : "";
+
+  const handleExpand = async (topicKey: string) => {
+    if (!isPaid) return;
+    const isOpen = openSet.has(topicKey);
+    setOpenSet(prev => { const s = new Set(prev); isOpen ? s.delete(topicKey) : s.add(topicKey); return s; });
+    if (isOpen || expandedData.has(topicKey)) return;
+    setLoadingSet(prev => new Set([...prev, topicKey]));
+    try {
+      const token = getToken();
+      const r = await fetch("/api/dataforseo/topic-prompts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ topicName: topicKey, dateFrom: sixMonthsAgo, dateTo: today, platform: "google" }),
+      });
+      const d = await r.json() as { items?: PromptItem[]; error?: string };
+      setExpandedData(prev => new Map([...prev, [topicKey, d.items ?? []]]));
+      setShownCount(prev => new Map([...prev, [topicKey, 5]]));
+    } catch { setExpandedData(prev => new Map([...prev, [topicKey, []]])); }
+    finally { setLoadingSet(prev => { const s = new Set(prev); s.delete(topicKey); return s; }); }
+  };
+
+  const handleMonitor = async (prompt: string, topicKey: string) => {
+    try {
+      const token = getToken();
+      await fetch("/api/dataforseo/monitor-prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ prompt, topic: topicKey, yourDomain, competitorDomain: compDomain, platform: "google" }),
+      });
+      setMonitoredSet(prev => new Set([...prev, prompt]));
+      setToast("Added to Prompt Tracking");
+      setTimeout(() => setToast(null), 3000);
+    } catch { /* fail silently */ }
+  };
+
+  const getMentionInfo = (p: PromptItem) => {
+    const a = p.answer.toLowerCase();
+    const names = p.brandEntities.map(b => b.name.toLowerCase());
+    const y = names.some(n => n.includes(yourBrandName)) || a.includes(yourBrandName);
+    const c = compBrandName ? names.some(n => n.includes(compBrandName)) || a.includes(compBrandName) : false;
+    return { count: (y ? 1 : 0) + (c ? 1 : 0), total: compBrandName ? 2 : 1 };
+  };
 
   const exportCsv = () => {
     const rows = [
@@ -272,6 +338,7 @@ function TopicsTable({ topics, counts, yourDomain, compDomain, sources = [] }: {
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: "#F9FAFB" }}>
+                    <th style={{ padding: "8px 8px", width: 30, borderBottom: `1px solid ${BORDER}` }}></th>
                     <th style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}` }}>Topic</th>
                     <th style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 600, color: P, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}`, whiteSpace: "nowrap" }}>{yourDomain}</th>
                     {compDomain && (
@@ -284,22 +351,136 @@ function TopicsTable({ topics, counts, yourDomain, compDomain, sources = [] }: {
                   </tr>
                 </thead>
                 <tbody>
-                  {visible.map((row, i) => (
-                    <tr key={i} style={{ background: ROW_BG[row.status] }}>
-                      <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, maxWidth: 400, lineHeight: 1.4 }}>{row.topic}</td>
-                      <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, textAlign: "right", fontWeight: 600, color: row.yourMentions > 0 ? SUCCESS : MUTED }}>
-                        {row.yourMentions > 0 ? fmtVol(row.yourAiVolume || row.aiVolume) : <span style={{ color: "#D1D5DB" }}>-</span>}
-                      </td>
-                      {compDomain && (
-                        <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, textAlign: "right", fontWeight: 600, color: row.compMentions > 0 ? "#10B981" : MUTED }}>
-                          {row.compMentions > 0 ? fmtVol(row.compAiVolume || row.aiVolume) : <span style={{ color: "#D1D5DB" }}>-</span>}
-                        </td>
-                      )}
-                      <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, textAlign: "right", fontWeight: 600, color: "#111827", whiteSpace: "nowrap" }}>
-                        {fmtVol(row.aiVolume)}
-                      </td>
-                    </tr>
-                  ))}
+                  {visible.map((row) => {
+                    const topicKey = row.topic.toLowerCase().trim();
+                    const isOpen = openSet.has(topicKey);
+                    const isLoading = loadingSet.has(topicKey);
+                    const prompts = expandedData.get(topicKey) ?? [];
+                    const shown = shownCount.get(topicKey) ?? 5;
+                    const colCount = compDomain ? 5 : 4;
+                    return (
+                      <React.Fragment key={topicKey}>
+                        <tr style={{ background: ROW_BG[row.status] }}>
+                          <td style={{ padding: "6px 6px 6px 10px", borderBottom: `1px solid ${BORDER}`, width: 30 }}>
+                            {isPaid ? (
+                              <button onClick={() => handleExpand(topicKey)}
+                                style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex", alignItems: "center", color: isOpen ? P : MUTED, borderRadius: 4 }}>
+                                {isLoading
+                                  ? <span style={{ fontSize: 9, color: MUTED, letterSpacing: 1 }}>...</span>
+                                  : isOpen
+                                    ? <ChevronDown size={13} />
+                                    : <ChevronRight size={13} />}
+                              </button>
+                            ) : (
+                              <span title="Expand prompts available on Starter plan"
+                                style={{ display: "flex", alignItems: "center", padding: 2, color: "#D1D5DB" }}>
+                                <Lock size={11} />
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, maxWidth: 400, lineHeight: 1.4 }}>{row.topic}</td>
+                          <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, textAlign: "right", fontWeight: 600, color: row.yourMentions > 0 ? SUCCESS : MUTED }}>
+                            {row.yourMentions > 0 ? fmtVol(row.yourAiVolume || row.aiVolume) : <span style={{ color: "#D1D5DB" }}>-</span>}
+                          </td>
+                          {compDomain && (
+                            <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, textAlign: "right", fontWeight: 600, color: row.compMentions > 0 ? "#10B981" : MUTED }}>
+                              {row.compMentions > 0 ? fmtVol(row.compAiVolume || row.aiVolume) : <span style={{ color: "#D1D5DB" }}>-</span>}
+                            </td>
+                          )}
+                          <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, textAlign: "right", fontWeight: 600, color: "#111827", whiteSpace: "nowrap" }}>
+                            {fmtVol(row.aiVolume)}
+                          </td>
+                        </tr>
+                        {isOpen && (
+                          <tr>
+                            <td colSpan={colCount} style={{ padding: 0, background: "#F8FAFF", borderBottom: `1px solid ${BORDER}` }}>
+                              {prompts.length === 0 ? (
+                                <div style={{ padding: "14px 16px", fontSize: 12, color: MUTED, textAlign: "center" }}>
+                                  No prompts found for this topic in the selected period.
+                                </div>
+                              ) : (
+                                <div style={{ overflowX: "auto" }}>
+                                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                                    <thead>
+                                      <tr style={{ background: "#EEF2FF" }}>
+                                        <th style={{ padding: "6px 12px", textAlign: "left", fontWeight: 600, color: MUTED, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap", width: "28%" }}>Prompt</th>
+                                        <th style={{ padding: "6px 12px", textAlign: "left", fontWeight: 600, color: MUTED, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>AI Response</th>
+                                        <th style={{ padding: "6px 12px", textAlign: "center", fontWeight: 600, color: MUTED, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>Mentioned</th>
+                                        <th style={{ padding: "6px 12px", textAlign: "right", fontWeight: 600, color: MUTED, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>Sources</th>
+                                        <th style={{ padding: "6px 12px", textAlign: "left", fontWeight: 600, color: MUTED, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>Actions</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {prompts.slice(0, shown).map((p, pi) => {
+                                        const { count, total } = getMentionInfo(p);
+                                        const mColor = count === total ? SUCCESS : count > 0 ? WARNING : DANGER;
+                                        const mBg = count === total ? "#F0FDF4" : count > 0 ? "#FFFBEB" : "#FFF5F5";
+                                        const isMonitored = monitoredSet.has(p.prompt);
+                                        return (
+                                          <tr key={pi} style={{ borderTop: `1px solid ${BORDER}` }}>
+                                            <td style={{ padding: "10px 12px", verticalAlign: "top", maxWidth: 220 }}>
+                                              <div style={{ lineHeight: 1.5, color: "#111827" }}>{p.prompt}</div>
+                                              {p.fanOutQueries.length > 0 && (
+                                                <div style={{ marginTop: 4, fontSize: 10, color: MUTED }}>
+                                                  Related: {p.fanOutQueries.join(" · ")}
+                                                </div>
+                                              )}
+                                            </td>
+                                            <td style={{ padding: "10px 12px", verticalAlign: "top", maxWidth: 300 }}>
+                                              <div style={{ lineHeight: 1.5, color: "#374151" }}>
+                                                {p.answer
+                                                  ? p.answer.substring(0, 160) + (p.answer.length > 160 ? "..." : "")
+                                                  : <span style={{ color: MUTED }}>No response recorded</span>}
+                                              </div>
+                                              {p.answer.length > 160 && (
+                                                <button onClick={() => setFullAnswer({ answer: p.answer, sources: p.sources })}
+                                                  style={{ marginTop: 4, background: "none", border: "none", cursor: "pointer", fontSize: 11, color: P, padding: 0 }}>
+                                                  View full response
+                                                </button>
+                                              )}
+                                            </td>
+                                            <td style={{ padding: "10px 12px", textAlign: "center", verticalAlign: "top" }}>
+                                              <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 12, background: mBg, color: mColor, fontWeight: 700, fontSize: 12 }}>
+                                                {count}/{total}
+                                              </span>
+                                            </td>
+                                            <td style={{ padding: "10px 12px", textAlign: "right", verticalAlign: "top", fontWeight: 600, color: "#111827" }}>
+                                              {p.sources.length}
+                                            </td>
+                                            <td style={{ padding: "10px 12px", verticalAlign: "top" }}>
+                                              <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                                                {onNavigate && (
+                                                  <button onClick={() => onNavigate("content-creation")}
+                                                    style={{ padding: "3px 8px", fontSize: 11, fontWeight: 600, border: `1px solid ${BORDER}`, borderRadius: 4, background: "white", cursor: "pointer", whiteSpace: "nowrap", color: "#374151" }}>
+                                                    Content
+                                                  </button>
+                                                )}
+                                                <button onClick={() => handleMonitor(p.prompt, topicKey)}
+                                                  disabled={isMonitored}
+                                                  style={{ padding: "3px 8px", fontSize: 11, fontWeight: 600, border: `1px solid ${isMonitored ? "#BBF7D0" : BORDER}`, borderRadius: 4, background: isMonitored ? "#F0FDF4" : "white", cursor: isMonitored ? "default" : "pointer", whiteSpace: "nowrap", color: isMonitored ? SUCCESS : "#374151" }}>
+                                                  {isMonitored ? "Monitoring" : "Monitor"}
+                                                </button>
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                  {prompts.length > shown && (
+                                    <button onClick={() => setShownCount(prev => new Map([...prev, [topicKey, Math.min(shown + 5, 20)]]))}
+                                      style={{ display: "block", width: "100%", padding: "8px", fontSize: 12, color: P, background: "none", border: "none", borderTop: `1px solid ${BORDER}`, cursor: "pointer", textAlign: "center" }}>
+                                      Show {Math.min(5, Math.min(prompts.length, 20) - shown)} more prompts
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
               {totalPages > 1 && (
@@ -317,6 +498,36 @@ function TopicsTable({ topics, counts, yourDomain, compDomain, sources = [] }: {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Toast notification */}
+      {toast && (
+        <div style={{ position: "fixed", bottom: 24, right: 24, background: "#111827", color: "white", padding: "10px 18px", borderRadius: 8, fontSize: 13, fontWeight: 500, zIndex: 1000, boxShadow: "0 4px 16px rgba(0,0,0,0.18)" }}>
+          {toast}
+        </div>
+      )}
+
+      {/* Full answer modal */}
+      {fullAnswer && (
+        <div onClick={() => setFullAnswer(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, padding: "24px 28px", maxWidth: 640, width: "100%", maxHeight: "70vh", overflowY: "auto", boxShadow: "0 8px 40px rgba(0,0,0,0.18)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>Full AI Response</div>
+              <button onClick={() => setFullAnswer(null)} style={{ background: "none", border: "none", cursor: "pointer", color: MUTED, display: "flex" }}>
+                <X size={16} />
+              </button>
+            </div>
+            <p style={{ fontSize: 13, color: "#374151", lineHeight: 1.7, margin: 0 }}>{fullAnswer.answer}</p>
+            {fullAnswer.sources.length > 0 && (
+              <div style={{ marginTop: 16, borderTop: `1px solid ${BORDER}`, paddingTop: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Sources</div>
+                {fullAnswer.sources.map((s, i) => (
+                  <div key={i}><a href={s} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: P, wordBreak: "break-all" }}>{s}</a></div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -417,7 +628,11 @@ function LoadingSteps({ domains }: { domains: string[] }) {
 }
 
 /* ───── Main Component ───── */
-export function CompetitorResearch({ initialDomain }: { initialDomain: string }) {
+export function CompetitorResearch({ initialDomain, plan = "free", onNavigate }: {
+  initialDomain: string;
+  plan?: string;
+  onNavigate?: (nav: string) => void;
+}) {
   const [mainDomain, setMainDomain] = useState(initialDomain);
   const [competitors, setCompetitors] = useState([""]);
   const [data, setData] = useState<CompData | null>(null);
@@ -617,6 +832,8 @@ export function CompetitorResearch({ initialDomain }: { initialDomain: string })
                 yourDomain={yourDomain}
                 compDomain={compDomain}
                 sources={data.sources ?? []}
+                plan={plan}
+                onNavigate={onNavigate}
               />
             )}
           </div>
