@@ -1,0 +1,275 @@
+REBUILD Competitor Research page completely.
+Currently shows 0 for all domains after 
+clicking Analyze. 
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 1: FIX SCORES (most critical)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When Analyze is clicked, extract brand names 
+from both domains:
+const yourBrand = extractBrand('netflix.com')      // "netflix"
+const competitorBrand = extractBrand('primevideo.com') // "primevideo"
+
+function extractBrand(domain) {
+  return domain
+    .replace(/^www\./, '')
+    .replace(/\.[a-z]{2,}(\.[a-z]{2})?$/, '')
+    .toLowerCase().trim()
+}
+
+Run aggregated_metrics for BOTH brands in parallel:
+
+const [yourData, competitorData] = await Promise.all([
+  dfsPost('/v3/ai_optimization/llm_mentions/aggregated_metrics/live', [{
+    "target": [{ "keyword": yourBrand, "search_scope": ["answer"] }],
+    "date_from": sixMonthsAgo,
+    "date_to": today,
+    "language_code": "en"
+  }]),
+  dfsPost('/v3/ai_optimization/llm_mentions/aggregated_metrics/live', [{
+    "target": [{ "keyword": competitorBrand, "search_scope": ["answer"] }],
+    "date_from": sixMonthsAgo,
+    "date_to": today,
+    "language_code": "en"
+  }])
+])
+
+Extract mentions from each:
+const yourMentions = yourData.tasks[0].result[0]?.metrics?.mentions || 0
+const competitorMentions = competitorData.tasks[0].result[0]?.metrics?.mentions || 0
+
+Calculate scores using SAME formula as Visibility Overview:
+const yourScore = calculateScore(yourMentions, yourCitations, yourPages)
+const competitorScore = calculateScore(competitorMentions, compCitations, compPages)
+
+Show score cards:
+YOU              COMPETITOR
+87               71
+netflix.com      primevideo.com
+
+console.log('YOUR mentions:', yourMentions)
+console.log('COMPETITOR mentions:', competitorMentions)
+console.log('YOUR score:', yourScore)
+console.log('COMPETITOR score:', competitorScore)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 2: FIX TREND CHART
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Run cross_aggregated grouped by date for 
+BOTH brands simultaneously:
+
+const [yourTrend, competitorTrend] = await Promise.all([
+  dfsPost('/v3/ai_optimization/llm_mentions/cross_aggregated_metrics/live', [{
+    "target": [{ "keyword": yourBrand, "search_scope": ["answer"] }],
+    "date_from": sixMonthsAgo,
+    "date_to": today,
+    "group_by": "date",
+    "language_code": "en"
+  }]),
+  dfsPost('/v3/ai_optimization/llm_mentions/cross_aggregated_metrics/live', [{
+    "target": [{ "keyword": competitorBrand, "search_scope": ["answer"] }],
+    "date_from": sixMonthsAgo,
+    "date_to": today,
+    "group_by": "date",
+    "language_code": "en"
+  }])
+])
+
+Plot 2 lines on chart:
+- Blue line = YOU (netflix.com score over time)
+- Green line = COMPETITOR (primevideo.com score over time)
+X-axis: Jan 2026 → Jun 2026
+Y-axis: 0-100 (score)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 3: TOPICS & PROMPTS TABLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Run search for both brands:
+
+const [yourTopics, competitorTopics] = await Promise.all([
+  dfsPost('/v3/ai_optimization/llm_mentions/search/live', [{
+    "target": [{ 
+      "keyword": yourBrand,
+      "search_filter": "include",
+      "search_scope": ["answer"]
+    }],
+    "date_from": sixMonthsAgo,
+    "date_to": today,
+    "language_code": "en",
+    "order_by": ["ai_search_volume,desc"],
+    "limit": 100
+  }]),
+  dfsPost('/v3/ai_optimization/llm_mentions/search/live', [{
+    "target": [{
+      "keyword": competitorBrand,
+      "search_filter": "include", 
+      "search_scope": ["answer"]
+    }],
+    "date_from": sixMonthsAgo,
+    "date_to": today,
+    "language_code": "en",
+    "order_by": ["ai_search_volume,desc"],
+    "limit": 100
+  }])
+])
+
+Extract topic/question from each item:
+const yourTopicMap = {}
+yourTopics.tasks[0].result[0]?.items?.forEach(item => {
+  const topic = item.se_query || item.question || item.keyword || ''
+  if (topic) yourTopicMap[topic.toLowerCase()] = {
+    topic,
+    yourMentions: 1,
+    aiVolume: item.ai_search_volume || 0
+  }
+})
+
+const mergedTopics = {}
+
+// Add your topics
+Object.entries(yourTopicMap).forEach(([key, data]) => {
+  mergedTopics[key] = { 
+    topic: data.topic,
+    yourMentions: data.yourMentions,
+    competitorMentions: 0,
+    aiVolume: data.aiVolume
+  }
+})
+
+// Add competitor topics
+competitorTopics.tasks[0].result[0]?.items?.forEach(item => {
+  const topic = (item.se_query || item.question || item.keyword || '').toLowerCase()
+  if (!topic) return
+  if (mergedTopics[topic]) {
+    mergedTopics[topic].competitorMentions = 1
+  } else {
+    mergedTopics[topic] = {
+      topic: item.se_query || item.question || item.keyword,
+      yourMentions: 0,
+      competitorMentions: 1,
+      aiVolume: item.ai_search_volume || 0
+    }
+  }
+})
+
+// Classify each topic
+const topicList = Object.values(mergedTopics).map(t => ({
+  ...t,
+  status: t.yourMentions > 0 && t.competitorMentions === 0 ? 'unique' :
+          t.yourMentions === 0 && t.competitorMentions > 0 ? 'missing' :
+          t.yourMentions > 0 && t.competitorMentions > 0 ? 'shared' : 'unknown'
+}))
+
+const counts = {
+  all: topicList.length,
+  missing: topicList.filter(t => t.status === 'missing').length,
+  shared: topicList.filter(t => t.status === 'shared').length,
+  unique: topicList.filter(t => t.status === 'unique').length
+}
+
+Show filter chips:
+[All 273] [Missing 36] [Shared 18] [Unique 151]
+
+Table columns:
+Topic | YOUR Mentions | COMPETITOR Mentions | AI Volume
+
+Highlight MISSING rows in red background (faint)
+Highlight UNIQUE rows in green background (faint)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 4: COMPETITOR INSIGHTS PANEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After data loads, call Claude API:
+
+const insightPrompt = `
+You are a GEO analyst. Compare these two brands:
+
+YOUR brand: ${yourDomain}
+- AI Mentions: ${yourMentions}
+- AI Score: ${yourScore}
+- Top topics: ${yourTopTopics.join(', ')}
+
+COMPETITOR: ${competitorDomain}  
+- AI Mentions: ${competitorMentions}
+- AI Score: ${competitorScore}
+- Top topics: ${competitorTopTopics.join(', ')}
+
+Write 2-3 sentences of competitor insight:
+1. Which specific topic competitor leads in
+2. What the user should do to close the gap
+3. Estimated improvement possible
+
+Be specific, actionable, short. 
+No fluff. No "Great question!".
+`
+
+const insight = await callClaude(insightPrompt)
+
+Show in right panel:
+"COMPETITOR INSIGHTS
+[insight text]
+
+Go to topic →"
+
+With prev/next arrows if multiple insights (1/3)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 5: LOADING STATE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When Analyze clicked, show progress:
+"Analyzing netflix.com vs primevideo.com...
+⟳ Fetching AI visibility scores...
+⟳ Loading topic comparison...
+⟳ Generating competitor insights..."
+
+All API calls run with Promise.all() in parallel.
+Show spinner on Analyze button while loading.
+Disable Analyze button during loading.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 6: CACHE RESULTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Cache key: 
+"competitor:{yourDomain}:{competitorDomain}:{dateRange}"
+
+TTL: 7 days (same as visibility overview)
+
+Check cache before every API call.
+Show "Cached" badge if serving cached data.
+Add "Rescan" button to force fresh data.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 7: SOURCES TAB
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add "Sources" tab next to "Topics & Prompts":
+
+Run top_pages for both domains:
+[{ "target": [{ "domain": yourDomain }], 
+   "date_from": sixMonthsAgo, 
+   "date_to": today, "limit": 50 }]
+
+Show table:
+Domain | Your Mentions | Competitor Mentions | Prompts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST AFTER BUILD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Test: netflix.com vs primevideo.com
+Expected:
+- Both scores non-zero (80+ and 70+)
+- Trend chart shows 2 lines Jan-Jun
+- Topics table populated with real topics
+- Missing/Shared/Unique counts showing
+- Competitor Insights panel has real text
+- Not "0" anywhere
+
+If scores still 0 after fix:
+console.log raw DataForSEO response for both brands

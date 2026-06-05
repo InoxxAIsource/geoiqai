@@ -20,10 +20,12 @@ import {
   getLlmTopPagesList,
   getLlmSearchTopics,
   getLlmKeywordAggMetrics,
+  getLlmCrossAggByGroup,
 } from "../lib/dataforseo";
 import { runAuditEngine } from "../lib/audit-engine";
 import { db, citationsTable, keywordCacheTable, auditsTable } from "@workspace/db";
 import { eq, and, desc, gt } from "drizzle-orm";
+import OpenAI from "openai";
 
 const router = Router();
 
@@ -902,5 +904,156 @@ router.get("/dataforseo/brand-performance", requireAuth, async (req, res): Promi
 });
 
 void requirePaid;
+
+// ─── Competitor Research — compare brand AI visibility across domains ─────────
+const compOpenai = new OpenAI({
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "https://api.openai.com/v1",
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY ?? "no-key",
+  timeout: 20000,
+  maxRetries: 0,
+});
+
+function calcScore(mentions: number, citedPages: number): number {
+  if (mentions === 0) return 0;
+  const mentionScore = Math.min(Math.log10(Math.max(mentions, 1)) / Math.log10(10_000_000) * 70, 70);
+  const pageBonus = citedPages > 0 ? Math.min(citedPages / 100 * 10, 10) : 0;
+  return Math.min(100, Math.round(mentionScore + pageBonus));
+}
+
+router.post("/dataforseo/competitor-research", requireAuth, async (req, res): Promise<void> => {
+  const { yourDomain, competitorDomains } = req.body as {
+    yourDomain?: string;
+    competitorDomains?: string[];
+  };
+  if (!yourDomain) { res.status(400).json({ error: "yourDomain is required" }); return; }
+
+  const allDomains = [yourDomain, ...(Array.isArray(competitorDomains) ? competitorDomains.slice(0, 3) : [])].filter(Boolean);
+  const today = new Date().toISOString().split("T")[0]!;
+  const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]!;
+
+  req.log.info({ domains: allDomains }, "competitor-research: start");
+
+  try {
+    // Per-domain: fetch mentions + pages in parallel across all domains
+    const domainFetches = allDomains.map(async (domain, idx) => {
+      const brandName = extractBrandName(domain);
+      const candidates = brandKeywordCandidates(brandName);
+      const [kw1G, kw1C, kw2G, kw2C, pages] = await Promise.all([
+        getLlmKeywordAggMetrics(candidates[0]!, sixMonthsAgo, today, "google"),
+        getLlmKeywordAggMetrics(candidates[0]!, sixMonthsAgo, today, "chat_gpt"),
+        candidates[1] ? getLlmKeywordAggMetrics(candidates[1], sixMonthsAgo, today, "google") : Promise.resolve(null),
+        candidates[1] ? getLlmKeywordAggMetrics(candidates[1], sixMonthsAgo, today, "chat_gpt") : Promise.resolve(null),
+        getLlmTopPagesList(domain, sixMonthsAgo, today, 20),
+      ]);
+      const kw1Total = kw1G.mentions + kw1C.mentions;
+      const kw2Total = (kw2G?.mentions ?? 0) + (kw2C?.mentions ?? 0);
+      const bestKeyword = kw2Total > kw1Total ? candidates[1]! : candidates[0]!;
+      const mentions = Math.max(kw1Total, kw2Total);
+      const citedPages = pages.pages.length;
+      const score = calcScore(mentions, citedPages);
+      return { domain, brandName, bestKeyword, mentions, citedPages, score, isYou: idx === 0 };
+    });
+
+    const domainResults = await Promise.all(domainFetches);
+
+    // Trend data + topics (parallel)
+    const yourBrand = domainResults[0]!.bestKeyword;
+    const compBrand = domainResults[1]?.bestKeyword;
+
+    const [trendResults, yourTopics, compTopics] = await Promise.all([
+      Promise.all(domainResults.map(d => getLlmCrossAggByGroup(d.bestKeyword, sixMonthsAgo, today, "date"))),
+      getLlmSearchTopics(yourBrand, sixMonthsAgo, today, "include", 100),
+      compBrand
+        ? getLlmSearchTopics(compBrand, sixMonthsAgo, today, "include", 100)
+        : Promise.resolve({ items: [], totalCount: 0, cached: false }),
+    ]);
+
+    // Build trend series: convert monthly mentions to score
+    const trendSeries = trendResults.map((t, i) => ({
+      domain: allDomains[i]!,
+      points: t.items.map(item => ({
+        date: item.aggregationKey,
+        mentions: item.mentions,
+        score: calcScore(item.mentions * 30, domainResults[i]!.citedPages), // scale weekly->monthly estimate
+      })),
+    }));
+
+    // Merge topics for gap table
+    const topicMap = new Map<string, { topic: string; yourMentions: number; compMentions: number; aiVolume: number }>();
+    for (const item of yourTopics.items) {
+      const key = item.question.toLowerCase().trim();
+      if (!key) continue;
+      topicMap.set(key, { topic: item.question, yourMentions: 1, compMentions: 0, aiVolume: item.ai_search_volume });
+    }
+    for (const item of compTopics.items) {
+      const key = item.question.toLowerCase().trim();
+      if (!key) continue;
+      const existing = topicMap.get(key);
+      if (existing) {
+        existing.compMentions = 1;
+      } else {
+        topicMap.set(key, { topic: item.question, yourMentions: 0, compMentions: 1, aiVolume: item.ai_search_volume });
+      }
+    }
+    const topicList = [...topicMap.values()]
+      .map(t => ({
+        ...t,
+        status: (t.yourMentions > 0 && t.compMentions === 0 ? "unique"
+          : t.yourMentions === 0 && t.compMentions > 0 ? "missing"
+          : "shared") as "unique" | "missing" | "shared",
+      }))
+      .sort((a, b) => b.aiVolume - a.aiVolume);
+
+    const topicCounts = {
+      all: topicList.length,
+      missing: topicList.filter(t => t.status === "missing").length,
+      shared: topicList.filter(t => t.status === "shared").length,
+      unique: topicList.filter(t => t.status === "unique").length,
+    };
+
+    // Generate insights
+    let insights: string[] = [];
+    try {
+      const you = domainResults[0]!;
+      const comp = domainResults[1];
+      if (comp) {
+        const topMissing = topicList.filter(t => t.status === "missing").slice(0, 3).map(t => t.topic);
+        const topUnique = topicList.filter(t => t.status === "unique").slice(0, 3).map(t => t.topic);
+        const prompt = `You are a GEO analyst. Compare these two brands based on AI mention data.
+
+Your brand: ${you.domain} - AI Mentions: ${you.mentions.toLocaleString()}, Score: ${you.score}/100
+Competitor: ${comp.domain} - AI Mentions: ${comp.mentions.toLocaleString()}, Score: ${comp.score}/100
+
+Topics competitor leads in (your brand is missing): ${topMissing.join(", ") || "none found"}
+Topics only your brand appears in: ${topUnique.join(", ") || "none found"}
+
+Write exactly 3 short insight sentences (one per line, no bullets, no numbering):
+1. Which specific topic or area the competitor leads in and why it matters
+2. One concrete action to close the gap
+3. Estimated improvement possible if the gap is closed
+
+Be direct and specific. No filler words. Write like a senior analyst talking to a founder.`;
+
+        const completion = await compOpenai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 200,
+          temperature: 0.4,
+        });
+        const text = completion.choices[0]?.message?.content?.trim() ?? "";
+        insights = text.split("\n").map(s => s.trim()).filter(Boolean).slice(0, 3);
+      }
+    } catch (err) {
+      req.log.warn({ err }, "competitor-research: insights generation failed");
+    }
+
+    req.log.info({ domains: allDomains, scores: domainResults.map(d => d.score), topics: topicList.length }, "competitor-research: done");
+
+    res.json({ domains: domainResults, trend: trendSeries, topics: topicList, topicCounts, insights, cached: false });
+  } catch (err) {
+    req.log.error({ err }, "competitor-research error");
+    res.status(500).json({ error: "Could not load competitor data. Please try again." });
+  }
+});
 
 export default router;
