@@ -341,7 +341,10 @@ export function VisibilityOverview({
 
             {/* score gauge card */}
             <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "28px 24px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 16 }}>AI Visibility Score</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 16, display: "flex", alignItems: "center", gap: 5 }}>
+                AI Visibility Score
+                <span title="Score based on AI mention frequency and citation rate across Google AI Overview and ChatGPT. Scale: 0-100." style={{ cursor: "help", color: "#9CA3AF", fontSize: 13, lineHeight: 1 }}>&#9432;</span>
+              </div>
               <ScoreGauge score={d.score} />
               {d.score === 0 && d.hasData === false && (
                 <div style={{ marginTop: 12, fontSize: 11, color: "#D97706", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 6, padding: "4px 12px", textAlign: "center" }}>

@@ -849,10 +849,10 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
       domainChatgptMentions: domainChatgpt.mentions,
     }, "visibility-overview: raw results");
 
-    // Score formula: mentions carry 60%, citations bonus 30%, cited pages bonus 10%
-    const mentionScore  = Math.min(Math.log10(Math.max(mentions, 1)) / Math.log10(5_000_000) * 60, 60);
-    const citationBonus = Math.min(Math.log10(Math.max(citations, 1)) / Math.log10(1_000) * 30, 30);
-    const pageBonus     = Math.min(Math.log10(Math.max(citedPagesCount, 1)) / Math.log10(100) * 10, 10);
+    // Score formula (final): mentions 70pts log-scale, citations bonus 20pts, pages bonus 10pts
+    const mentionScore  = Math.min(Math.log10(Math.max(mentions, 1)) / Math.log10(10_000_000) * 70, 70);
+    const citationBonus = citations > 0 ? Math.min(Math.log10(citations) / 6 * 20, 20) : 0;
+    const pageBonus     = citedPagesCount > 0 ? Math.min(citedPagesCount / 100 * 10, 10) : 0;
     const score = mentions === 0 ? 0 : Math.min(100, Math.round(mentionScore + citationBonus + pageBonus));
     req.log.info({ mentions, citations, citedPages: citedPagesCount, mentionScore, citationBonus, pageBonus, finalScore: score }, "SCORE DEBUG");
 
