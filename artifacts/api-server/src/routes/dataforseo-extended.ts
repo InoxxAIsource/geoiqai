@@ -1063,7 +1063,7 @@ router.post("/dataforseo/competitor-research", requireAuth, async (req, res): Pr
     // Aggregate cited source domains from topics
     const sourceMap = new Map<string, number>();
     for (const item of yourTopics.items) {
-      for (const url of item.sources) {
+      for (const url of item.sources ?? []) {
         try {
           const domain = new URL(url).hostname.replace(/^www\./, "");
           if (domain) sourceMap.set(domain, (sourceMap.get(domain) ?? 0) + 1);
