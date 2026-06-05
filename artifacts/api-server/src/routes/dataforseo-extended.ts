@@ -857,7 +857,8 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
       : Math.min(Math.log10(Math.max(mentions, 1)) / Math.log10(10_000_000) * 40, 40);
     const citationPer100 = (citations / Math.max(mentions, 1)) * 100;
     const citationScore = citations === 0 ? 0
-      : Math.min(Math.log10(Math.max(citationPer100 * 1000, 1)) / 4 * 40, 40);
+      : Math.min(Math.log10(Math.max(citationPer100 * 10000, 1)) / 2 * 40, 40);
+    req.log.info({ mentions, citations, citedPages: citedPagesCount, citationPer100, mentionScore, citationScore, pageScore: Math.min(citedPagesCount / 50 * 20, 20), finalScore: Math.min(100, Math.round(mentionScore + citationScore + Math.min(citedPagesCount / 50 * 20, 20))) }, "SCORE DEBUG");
     const pageScore = Math.min(citedPagesCount / 50 * 20, 20);
     const score = (mentions + citations) === 0 ? 0
       : Math.min(100, Math.round(mentionScore + citationScore + pageScore));
