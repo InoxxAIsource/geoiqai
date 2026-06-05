@@ -2553,6 +2553,7 @@ export async function getLlmSearchTopics(
       headers: auth,
       body: JSON.stringify([{
         target: [{ keyword, search_filter: filter, search_scope: ["answer"] }],
+        platform: "google",
         date_from: dateFrom,
         date_to: dateTo,
         order_by: ["ai_search_volume,desc"],

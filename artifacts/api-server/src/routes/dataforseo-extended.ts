@@ -849,11 +849,16 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
       domainChatgptMentions: domainChatgpt.mentions,
     }, "visibility-overview: raw results");
 
-    // Score formula (spec): mention(40) + citation(40) + page(20)
-    // 200K mentions = full mention score; 100K citations = full citation score; 5K pages = full page score
-    const mentionScore  = Math.min(mentions  / 200_000, 1) * 40;
-    const citationScore = Math.min(citations / 100_000, 1) * 40;
-    const pageScore     = Math.min(citedPagesCount / 5_000, 1) * 20;
+    // Score formula: log-scale so large domains don't trivially max out
+    // mentionScore(40): log10(mentions) / log10(10M) * 40
+    // citationScore(40): log10(citationRatio*100000) / 5 * 40 (ratio of citations to mentions)
+    // pageScore(20): citedPages / 50 * 20
+    const mentionScore = mentions === 0 ? 0
+      : Math.min(Math.log10(Math.max(mentions, 1)) / Math.log10(10_000_000) * 40, 40);
+    const citationRatio = citations / Math.max(mentions, 1);
+    const citationScore = citations === 0 ? 0
+      : Math.min(Math.log10(Math.max(citationRatio * 100_000, 1)) / 5 * 40, 40);
+    const pageScore = Math.min(citedPagesCount / 50 * 20, 20);
     const score = (mentions + citations) === 0 ? 0
       : Math.min(100, Math.round(mentionScore + citationScore + pageScore));
 

@@ -1,0 +1,148 @@
+Fix 4 bugs on Visibility Overview. 
+Do not touch any other page.
+
+BUG 1: SCORE FORMULA WRONG
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+wikipedia.org has 6M mentions, 892 citations 
+but scores only 40/100. Formula is wrong.
+
+Replace current score formula with this:
+
+const mentions   = totalMentions     // e.g. 6,000,000
+const citations  = totalCitations    // e.g. 892
+const citedPages = totalCitedPages   // e.g. 10
+
+// Mention score: log scale so large domains 
+// don't max out but small ones still score
+const mentionScore = Math.min(
+  Math.log10(Math.max(mentions, 1)) / Math.log10(10000000) * 40, 
+  40
+)
+
+// Citation score: ratio of citations to mentions
+// Wikipedia: 892/6M = 0.015% which is normal
+// Scale so 0.01%+ = good score
+const citationRatio = citations / Math.max(mentions, 1)
+const citationScore = Math.min(
+  Math.log10(Math.max(citationRatio * 100000, 1)) / 5 * 40,
+  40
+)
+
+// Page score
+const pageScore = Math.min(citedPages / 50 * 20, 20)
+
+const score = Math.min(100, Math.round(
+  mentionScore + citationScore + pageScore
+))
+
+Expected results with this formula:
+- wikipedia.org (6M mentions, 892 citations): ~85-90
+- primevideo.com (1.6M mentions, low citations): ~65-70
+- namecheap.com (27K mentions, 0 citations): ~35-40
+- geoiqai.com (small, new): ~5-15
+
+BUG 2: TOPIC OPPORTUNITIES SHOWING WRONG DATA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+"tpu tubes", "weather", "h master" are generic 
+AI Overview queries — NOT related to wikipedia.
+
+Root cause: The search/live call for Topic 
+Opportunities is missing the brand keyword filter.
+It's calling the API with no target, returning 
+global top queries instead.
+
+Find the Topic Opportunities API call.
+It currently looks like this (WRONG):
+[{
+  "date_from": "...",
+  "date_to": "...",
+  "order_by": ["ai_search_volume,desc"],
+  "limit": 50
+}]
+
+Fix it — MUST include keyword target:
+[{
+  "target": [{
+    "keyword": brandName,
+    "search_filter": "exclude",
+    "search_scope": ["answer"]
+  }],
+  "platform": "google",
+  "date_from": "2025-12-07",
+  "date_to": "2026-06-05",
+  "order_by": ["ai_search_volume,desc"],
+  "limit": 50
+}]
+
+search_filter "exclude" = topics where brand 
+is NOT mentioned = opportunities to grow.
+
+For Performing Topics tab use "include":
+[{
+  "target": [{
+    "keyword": brandName,
+    "search_filter": "include",
+    "search_scope": ["answer"]
+  }],
+  "platform": "google",
+  "date_from": "2025-12-07",
+  "date_to": "2026-06-05",
+  "order_by": ["ai_search_volume,desc"],
+  "limit": 50
+}]
+
+For wikipedia this should return topics like:
+"history of...", "what is...", "who invented..."
+NOT "tpu tubes" or "weather"
+
+BUG 3: CITED PAGES AND CITED SOURCES CAPPED AT 10
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Change limit from 10 to 50 on:
+- top_pages endpoint: "limit": 50
+- Cited Sources tab: "limit": 50
+
+Also add pagination controls:
+Show "1-10 of 50" with Prev/Next buttons
+Load next 10 on click.
+
+BUG 4: DUPLICATE TOPICS IN TABLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+"tpu tubes" and "weather" appear twice each.
+
+After fetching topics, deduplicate by topic name:
+
+const seen = new Set()
+const uniqueTopics = topics.filter(t => {
+  const key = (t.topic || t.keyword || '').toLowerCase().trim()
+  if (seen.has(key)) return false
+  seen.add(key)
+  return true
+})
+
+Use uniqueTopics for display.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AFTER FIXING — TEST THESE DOMAINS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. wikipedia.org
+   Expected score: 80-95
+   Topics should be: history, knowledge, 
+   encyclopedia related — NOT weather/tpu
+
+2. primevideo.com  
+   Expected score: 60-75
+   Topics should be: streaming, movies, shows
+
+3. namecheap.com
+   Expected score: 30-45
+   Topics: domain registration, hosting
+
+Clear Supabase cache before testing:
+DELETE FROM dataforseo_cache WHERE 1=1
+
+Then rescan each domain and screenshot.

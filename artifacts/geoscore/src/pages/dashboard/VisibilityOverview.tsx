@@ -234,6 +234,8 @@ export function VisibilityOverview({
   const [showModal, setShowModal] = useState(!domain);
   const [lastDomain, setLastDomain] = useState<string | undefined>(domain || undefined);
   const [topicsTab, setTopicsTab] = useState<"performing" | "opportunities" | "pages" | "sources">("performing");
+  const [pagesPage, setPagesPage] = useState(0);
+  const [sourcesPage, setSourcesPage] = useState(0);
 
   const fetchData = useCallback((d: string, force = false) => {
     if (force) setRescanning(true); else setLoading(true);
@@ -457,86 +459,138 @@ export function VisibilityOverview({
                 ]}
               />
               <div style={{ marginTop: 16 }}>
-                {topicsTab === "performing" && (
-                  <>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px 100px", gap: 8, padding: "6px 0", borderBottom: `1px solid ${BORDER}`, marginBottom: 4 }}>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase" }}>Topic / Prompt</span>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", textAlign: "right" }}>Platform</span>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", textAlign: "right" }}>AI Volume</span>
-                    </div>
-                    {d.performingTopics.length === 0 ? (
-                      <div style={{ textAlign: "center", padding: "32px 0", color: MUTED, fontSize: 13 }}>No performing topics found.</div>
-                    ) : (
-                      d.performingTopics.slice(0, 25).map((t, i) => (
-                        <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px", gap: 8, padding: "10px 0", borderBottom: `1px solid ${BORDER}`, alignItems: "center" }}>
-                          <span style={{ fontSize: 13, color: "#374151", lineHeight: 1.4 }}>{t.question}</span>
-                          <span style={{ fontSize: 12, color: MUTED, textAlign: "right" }}>{modelDisplayName(t.model_name || t.platform)}</span>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: P, textAlign: "right" }}>{fmt(t.ai_search_volume)}</span>
-                        </div>
-                      ))
-                    )}
-                  </>
-                )}
-                {topicsTab === "opportunities" && (
-                  <>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px", gap: 8, padding: "6px 0", borderBottom: `1px solid ${BORDER}`, marginBottom: 4 }}>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase" }}>Topic / Prompt</span>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", textAlign: "right" }}>Platform</span>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", textAlign: "right" }}>AI Volume</span>
-                    </div>
-                    {d.topicOpportunities.length === 0 ? (
-                      <div style={{ textAlign: "center", padding: "32px 0", color: MUTED, fontSize: 13 }}>No opportunities data found.</div>
-                    ) : (
-                      d.topicOpportunities.slice(0, 25).map((t, i) => (
-                        <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px", gap: 8, padding: "10px 0", borderBottom: `1px solid ${BORDER}`, alignItems: "center" }}>
-                          <span style={{ fontSize: 13, color: "#374151", lineHeight: 1.4 }}>{t.question}</span>
-                          <span style={{ fontSize: 12, color: MUTED, textAlign: "right" }}>{modelDisplayName(t.model_name || t.platform)}</span>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: "#D97706", textAlign: "right" }}>{fmt(t.ai_search_volume)}</span>
-                        </div>
-                      ))
-                    )}
-                  </>
-                )}
-                {topicsTab === "pages" && (
-                  <>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px", gap: 8, padding: "6px 0", borderBottom: `1px solid ${BORDER}`, marginBottom: 4 }}>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase" }}>URL</span>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", textAlign: "right" }}>Mentions</span>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", textAlign: "right" }}>AI Volume</span>
-                    </div>
-                    {d.citedPages.length === 0 ? (
-                      <div style={{ textAlign: "center", padding: "32px 0", color: MUTED, fontSize: 13 }}>No cited pages found.</div>
-                    ) : (
-                      d.citedPages.slice(0, 25).map((p, i) => (
-                        <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px", gap: 8, padding: "10px 0", borderBottom: `1px solid ${BORDER}`, alignItems: "center" }}>
-                          <a href={p.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: P, textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.url}</a>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: "#374151", textAlign: "right" }}>{fmt(p.mentions)}</span>
-                          <span style={{ fontSize: 13, color: MUTED, textAlign: "right" }}>{fmt(p.ai_search_volume)}</span>
-                        </div>
-                      ))
-                    )}
-                  </>
-                )}
-                {topicsTab === "sources" && (
-                  <>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px", gap: 8, padding: "6px 0", borderBottom: `1px solid ${BORDER}`, marginBottom: 4 }}>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase" }}>Domain</span>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", textAlign: "right" }}>Mentions</span>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", textAlign: "right" }}>AI Volume</span>
-                    </div>
-                    {d.citedSources.length === 0 ? (
-                      <div style={{ textAlign: "center", padding: "32px 0", color: MUTED, fontSize: 13 }}>No cited sources found.</div>
-                    ) : (
-                      d.citedSources.slice(0, 25).map((s, i) => (
-                        <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px", gap: 8, padding: "10px 0", borderBottom: `1px solid ${BORDER}`, alignItems: "center" }}>
-                          <span style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>{s.domain}</span>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: P, textAlign: "right" }}>{fmt(s.mentions)}</span>
-                          <span style={{ fontSize: 13, color: MUTED, textAlign: "right" }}>{fmt(s.ai_search_volume)}</span>
-                        </div>
-                      ))
-                    )}
-                  </>
-                )}
+                {topicsTab === "performing" && (() => {
+                  const seen = new Set<string>();
+                  const unique = d.performingTopics.filter(t => {
+                    const key = (t.question || "").toLowerCase().trim();
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                  });
+                  return (
+                    <>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px", gap: 8, padding: "6px 0", borderBottom: `1px solid ${BORDER}`, marginBottom: 4 }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase" }}>Topic / Prompt</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", textAlign: "right" }}>Platform</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", textAlign: "right" }}>AI Volume</span>
+                      </div>
+                      {unique.length === 0 ? (
+                        <div style={{ textAlign: "center", padding: "32px 0", color: MUTED, fontSize: 13 }}>No performing topics found.</div>
+                      ) : (
+                        unique.slice(0, 25).map((t, i) => (
+                          <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px", gap: 8, padding: "10px 0", borderBottom: `1px solid ${BORDER}`, alignItems: "center" }}>
+                            <span style={{ fontSize: 13, color: "#374151", lineHeight: 1.4 }}>{t.question}</span>
+                            <span style={{ fontSize: 12, color: MUTED, textAlign: "right" }}>{modelDisplayName(t.model_name || t.platform)}</span>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: P, textAlign: "right" }}>{fmt(t.ai_search_volume)}</span>
+                          </div>
+                        ))
+                      )}
+                    </>
+                  );
+                })()}
+                {topicsTab === "opportunities" && (() => {
+                  const seen = new Set<string>();
+                  const unique = d.topicOpportunities.filter(t => {
+                    const key = (t.question || "").toLowerCase().trim();
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                  });
+                  return (
+                    <>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px", gap: 8, padding: "6px 0", borderBottom: `1px solid ${BORDER}`, marginBottom: 4 }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase" }}>Topic / Prompt</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", textAlign: "right" }}>Platform</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", textAlign: "right" }}>AI Volume</span>
+                      </div>
+                      {unique.length === 0 ? (
+                        <div style={{ textAlign: "center", padding: "32px 0", color: MUTED, fontSize: 13 }}>No opportunities data found.</div>
+                      ) : (
+                        unique.slice(0, 25).map((t, i) => (
+                          <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px", gap: 8, padding: "10px 0", borderBottom: `1px solid ${BORDER}`, alignItems: "center" }}>
+                            <span style={{ fontSize: 13, color: "#374151", lineHeight: 1.4 }}>{t.question}</span>
+                            <span style={{ fontSize: 12, color: MUTED, textAlign: "right" }}>{modelDisplayName(t.model_name || t.platform)}</span>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: "#D97706", textAlign: "right" }}>{fmt(t.ai_search_volume)}</span>
+                          </div>
+                        ))
+                      )}
+                    </>
+                  );
+                })()}
+                {topicsTab === "pages" && (() => {
+                  const PAGE_SIZE = 10;
+                  const total = d.citedPages.length;
+                  const start = pagesPage * PAGE_SIZE;
+                  const slice = d.citedPages.slice(start, start + PAGE_SIZE);
+                  return (
+                    <>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px", gap: 8, padding: "6px 0", borderBottom: `1px solid ${BORDER}`, marginBottom: 4 }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase" }}>URL</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", textAlign: "right" }}>Mentions</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", textAlign: "right" }}>AI Volume</span>
+                      </div>
+                      {total === 0 ? (
+                        <div style={{ textAlign: "center", padding: "32px 0", color: MUTED, fontSize: 13 }}>No cited pages found.</div>
+                      ) : (
+                        <>
+                          {slice.map((p, i) => (
+                            <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px", gap: 8, padding: "10px 0", borderBottom: `1px solid ${BORDER}`, alignItems: "center" }}>
+                              <a href={p.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: P, textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.url}</a>
+                              <span style={{ fontSize: 13, fontWeight: 600, color: "#374151", textAlign: "right" }}>{fmt(p.mentions)}</span>
+                              <span style={{ fontSize: 13, color: MUTED, textAlign: "right" }}>{fmt(p.ai_search_volume)}</span>
+                            </div>
+                          ))}
+                          {total > PAGE_SIZE && (
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 12, marginTop: 4 }}>
+                              <span style={{ fontSize: 12, color: MUTED }}>{start + 1}-{Math.min(start + PAGE_SIZE, total)} of {total}</span>
+                              <div style={{ display: "flex", gap: 8 }}>
+                                <button onClick={() => setPagesPage(p => Math.max(0, p - 1))} disabled={pagesPage === 0} style={{ fontSize: 12, padding: "4px 12px", border: `1px solid ${BORDER}`, borderRadius: 6, background: "white", color: pagesPage === 0 ? MUTED : "#374151", cursor: pagesPage === 0 ? "default" : "pointer" }}>Prev</button>
+                                <button onClick={() => setPagesPage(p => p + 1)} disabled={start + PAGE_SIZE >= total} style={{ fontSize: 12, padding: "4px 12px", border: `1px solid ${BORDER}`, borderRadius: 6, background: "white", color: start + PAGE_SIZE >= total ? MUTED : "#374151", cursor: start + PAGE_SIZE >= total ? "default" : "pointer" }}>Next</button>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </>
+                  );
+                })()}
+                {topicsTab === "sources" && (() => {
+                  const PAGE_SIZE = 10;
+                  const total = d.citedSources.length;
+                  const start = sourcesPage * PAGE_SIZE;
+                  const slice = d.citedSources.slice(start, start + PAGE_SIZE);
+                  return (
+                    <>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px", gap: 8, padding: "6px 0", borderBottom: `1px solid ${BORDER}`, marginBottom: 4 }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase" }}>Domain</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", textAlign: "right" }}>Mentions</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", textAlign: "right" }}>AI Volume</span>
+                      </div>
+                      {total === 0 ? (
+                        <div style={{ textAlign: "center", padding: "32px 0", color: MUTED, fontSize: 13 }}>No cited sources found.</div>
+                      ) : (
+                        <>
+                          {slice.map((s, i) => (
+                            <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px", gap: 8, padding: "10px 0", borderBottom: `1px solid ${BORDER}`, alignItems: "center" }}>
+                              <span style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>{s.domain}</span>
+                              <span style={{ fontSize: 13, fontWeight: 600, color: P, textAlign: "right" }}>{fmt(s.mentions)}</span>
+                              <span style={{ fontSize: 13, color: MUTED, textAlign: "right" }}>{fmt(s.ai_search_volume)}</span>
+                            </div>
+                          ))}
+                          {total > PAGE_SIZE && (
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 12, marginTop: 4 }}>
+                              <span style={{ fontSize: 12, color: MUTED }}>{start + 1}-{Math.min(start + PAGE_SIZE, total)} of {total}</span>
+                              <div style={{ display: "flex", gap: 8 }}>
+                                <button onClick={() => setSourcesPage(p => Math.max(0, p - 1))} disabled={sourcesPage === 0} style={{ fontSize: 12, padding: "4px 12px", border: `1px solid ${BORDER}`, borderRadius: 6, background: "white", color: sourcesPage === 0 ? MUTED : "#374151", cursor: sourcesPage === 0 ? "default" : "pointer" }}>Prev</button>
+                                <button onClick={() => setSourcesPage(p => p + 1)} disabled={start + PAGE_SIZE >= total} style={{ fontSize: 12, padding: "4px 12px", border: `1px solid ${BORDER}`, borderRadius: 6, background: "white", color: start + PAGE_SIZE >= total ? MUTED : "#374151", cursor: start + PAGE_SIZE >= total ? "default" : "pointer" }}>Next</button>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </div>
           )}
