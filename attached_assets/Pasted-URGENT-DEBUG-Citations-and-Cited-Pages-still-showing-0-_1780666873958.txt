@@ -1,0 +1,103 @@
+URGENT DEBUG: Citations and Cited Pages still 
+showing 0 for namecheap.com after previous fix.
+
+Add this temporary debug endpoint:
+GET /api/debug/citations?domain=namecheap.com
+
+This endpoint must run these exact calls and 
+return the COMPLETE raw JSON — do not parse, 
+do not filter, return everything:
+
+// TEST 1: Domain as string target
+const test1 = await dfsPost(
+  '/v3/ai_optimization/llm_mentions/aggregated_metrics/live',
+  [{
+    "target": "namecheap.com",
+    "platform": "google",
+    "date_from": "2025-12-07",
+    "date_to": "2026-06-05",
+    "language_code": "en"
+  }]
+)
+console.log('TEST1 status:', test1.tasks[0].status_code)
+console.log('TEST1 result:', JSON.stringify(test1.tasks[0].result))
+
+// TEST 2: Domain as array object with search_scope sources
+const test2 = await dfsPost(
+  '/v3/ai_optimization/llm_mentions/aggregated_metrics/live',
+  [{
+    "target": [{ 
+      "domain": "namecheap.com",
+      "search_scope": ["sources"]
+    }],
+    "platform": "google",
+    "date_from": "2025-12-07",
+    "date_to": "2026-06-05",
+    "language_code": "en"
+  }]
+)
+console.log('TEST2 status:', test2.tasks[0].status_code)
+console.log('TEST2 result:', JSON.stringify(test2.tasks[0].result))
+
+// TEST 3: Domain as array object WITHOUT search_scope
+const test3 = await dfsPost(
+  '/v3/ai_optimization/llm_mentions/aggregated_metrics/live',
+  [{
+    "target": [{ 
+      "domain": "namecheap.com"
+    }],
+    "platform": "google",
+    "date_from": "2025-12-07",
+    "date_to": "2026-06-05",
+    "language_code": "en"
+  }]
+)
+console.log('TEST3 status:', test3.tasks[0].status_code)
+console.log('TEST3 result:', JSON.stringify(test3.tasks[0].result))
+
+// TEST 4: ChatGPT platform with domain
+const test4 = await dfsPost(
+  '/v3/ai_optimization/llm_mentions/aggregated_metrics/live',
+  [{
+    "target": [{ 
+      "domain": "namecheap.com"
+    }],
+    "platform": "chat_gpt",
+    "date_from": "2025-12-07",
+    "date_to": "2026-06-05",
+    "language_code": "en"
+  }]
+)
+console.log('TEST4 status:', test4.tasks[0].status_code)
+console.log('TEST4 result:', JSON.stringify(test4.tasks[0].result))
+
+// TEST 5: top_pages endpoint
+const test5 = await dfsPost(
+  '/v3/ai_optimization/llm_mentions/top_pages/live',
+  [{
+    "target": [{ 
+      "domain": "namecheap.com"
+    }],
+    "platform": "google",
+    "date_from": "2025-12-07",
+    "date_to": "2026-06-05",
+    "language_code": "en",
+    "limit": 10
+  }]
+)
+console.log('TEST5 top_pages status:', test5.tasks[0].status_code)
+console.log('TEST5 top_pages result:', JSON.stringify(test5.tasks[0].result))
+
+Return all 5 test results as JSON to browser.
+
+Also fix "Other (region 2756)" — add to 
+location_code map:
+2756 → 🇨🇭 Switzerland
+2788 → 🇹🇳 Tunisia  
+2818 → 🇪🇬 Egypt
+2608 → 🇵🇭 Philippines
+2104 → 🇲🇲 Myanmar
+2050 → 🇧🇩 Bangladesh
+
+For any code NOT in the map show:
+"🌐 Other" not "Other (region XXXX)"

@@ -116,6 +116,81 @@ router.get("/debug/dataforseo", async (_req, res): Promise<void> => {
   res.json(out);
 });
 
+// ─── Citation debug endpoint — runs 5 raw API calls, returns complete JSON ─────
+router.get("/debug/citations", async (req, res): Promise<void> => {
+  const domain = String((req.query as { domain?: string }).domain ?? "namecheap.com");
+  const login = process.env.DATAFORSEO_LOGIN ?? "";
+  const password = process.env.DATAFORSEO_PASSWORD ?? "";
+  const auth = Buffer.from(`${login}:${password}`).toString("base64");
+  const headers = { "Authorization": `Basic ${auth}`, "Content-Type": "application/json" };
+  const BASE = "https://api.dataforseo.com/v3/ai_optimization/llm_mentions";
+
+  async function dfsPost(path: string, body: unknown) {
+    const r = await fetch(`https://api.dataforseo.com${path}`, {
+      method: "POST", headers, body: JSON.stringify(body),
+    });
+    return r.json();
+  }
+
+  const today = new Date().toISOString().split("T")[0]!;
+  const dateFrom = "2025-12-07";
+  const dateTo = today;
+  void BASE;
+
+  const [test1, test2, test3, test4, test5] = await Promise.all([
+    // TEST 1: domain as plain string target
+    dfsPost("/v3/ai_optimization/llm_mentions/aggregated_metrics/live", [{
+      target: domain,
+      platform: "google",
+      date_from: dateFrom,
+      date_to: dateTo,
+      language_code: "en",
+    }]),
+    // TEST 2: domain as array object with search_scope sources
+    dfsPost("/v3/ai_optimization/llm_mentions/aggregated_metrics/live", [{
+      target: [{ domain, search_scope: ["sources"] }],
+      platform: "google",
+      date_from: dateFrom,
+      date_to: dateTo,
+      language_code: "en",
+    }]),
+    // TEST 3: domain as array object WITHOUT search_scope
+    dfsPost("/v3/ai_optimization/llm_mentions/aggregated_metrics/live", [{
+      target: [{ domain }],
+      platform: "google",
+      date_from: dateFrom,
+      date_to: dateTo,
+      language_code: "en",
+    }]),
+    // TEST 4: chat_gpt platform with domain
+    dfsPost("/v3/ai_optimization/llm_mentions/aggregated_metrics/live", [{
+      target: [{ domain }],
+      platform: "chat_gpt",
+      date_from: dateFrom,
+      date_to: dateTo,
+      language_code: "en",
+    }]),
+    // TEST 5: top_pages endpoint
+    dfsPost("/v3/ai_optimization/llm_mentions/top_pages/live", [{
+      target: [{ domain }],
+      platform: "google",
+      date_from: dateFrom,
+      date_to: dateTo,
+      language_code: "en",
+      limit: 10,
+    }]),
+  ]);
+
+  res.json({
+    domain,
+    test1_domain_string_google: test1,
+    test2_domain_obj_scope_sources_google: test2,
+    test3_domain_obj_no_scope_google: test3,
+    test4_domain_obj_chat_gpt: test4,
+    test5_top_pages_google: test5,
+  });
+});
+
 // ─── Clear keyword cache for a domain (auth required) ─────────────────────────
 router.delete("/dataforseo/keyword-cache", requireAuth, async (req, res): Promise<void> => {
   const { domain } = req.query as { domain?: string };
@@ -633,7 +708,8 @@ const LOCATION_NAMES: Record<number, string> = {
   2208: "Denmark", 2246: "Finland", 2804: "Ukraine", 2792: "Turkey",
   2818: "Egypt", 2704: "Vietnam", 2710: "South Africa",
   2566: "Nigeria", 2104: "Myanmar", 2050: "Bangladesh", 2144: "Sri Lanka",
-  2524: "Nepal", 2608: "Worldwide (other)", 2012: "Algeria",
+  2524: "Nepal", 2608: "Philippines", 2012: "Algeria",
+  2756: "Switzerland", 2788: "Tunisia",
 };
 
 const PLATFORM_NAMES: Record<string, string> = {
@@ -808,7 +884,7 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
       .slice(0, 10)
       .map(l => ({
         code: Number(l.key),
-        name: LOCATION_NAMES[Number(l.key)] ?? `Other (region ${l.key})`,
+        name: LOCATION_NAMES[Number(l.key)] ?? "🌐 Other",
         mentions: l.mentions,
         pct: Math.round((l.mentions / totalLocMentions) * 100),
       }));
