@@ -221,9 +221,14 @@ function exportCSV(topics: TopicCluster[], brandName: string) {
 }
 
 /* ───── Topics table ───── */
+type SortField = "relevance" | "volume";
+type SortDir = "asc" | "desc";
+
 function TopicsTable({ topics, brandName, plan }: { topics: TopicCluster[]; brandName: string; plan: string }) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [filter, setFilter] = useState("");
+  const [sortField, setSortField] = useState<SortField>("relevance");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [monitoredPrompts, setMonitoredPrompts] = useState<Set<string>>(new Set());
 
   const toggle = (i: number) => {
@@ -231,9 +236,33 @@ function TopicsTable({ topics, brandName, plan }: { topics: TopicCluster[]; bran
     setExpanded(prev => { const n = new Set(prev); n.has(i) ? n.delete(i) : n.add(i); return n; });
   };
 
-  const filtered = filter.trim()
+  const cycleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir(d => d === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDir("asc");
+    }
+  };
+
+  const REL_ORDER: Record<Relevance, number> = { High: 0, Medium: 1, Low: 2 };
+
+  const baseList = filter.trim()
     ? topics.filter(t => t.topic.toLowerCase().includes(filter.toLowerCase()))
     : topics;
+
+  const filtered = [...baseList].sort((a, b) => {
+    const aRel = REL_ORDER[getRelevance(a.topic, brandName)];
+    const bRel = REL_ORDER[getRelevance(b.topic, brandName)];
+    if (sortField === "relevance") {
+      const diff = aRel - bRel;
+      const sorted = sortDir === "asc" ? diff : -diff;
+      return sorted !== 0 ? sorted : b.totalAiVolume - a.totalAiVolume;
+    }
+    // volume sort
+    const diff = b.totalAiVolume - a.totalAiVolume;
+    return sortDir === "asc" ? diff : -diff;
+  });
 
   const savePrompt = async (prompt: string, topic: string) => {
     if (monitoredPrompts.has(prompt)) return;
@@ -272,12 +301,16 @@ function TopicsTable({ topics, brandName, plan }: { topics: TopicCluster[]; bran
           <thead>
             <tr>
               <th style={{ width: 30, padding: "8px 6px", borderBottom: `1px solid ${BORDER}` }} />
-              <th style={{ padding: "8px 12px", textAlign: "left",  fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}` }}>Topic</th>
-              <th style={{ padding: "8px 12px", textAlign: "center", fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}`, whiteSpace: "nowrap" }}>Relevance</th>
+              <th style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}` }}>Topic</th>
+              <th onClick={() => cycleSort("relevance")} style={{ padding: "8px 12px", textAlign: "center", fontSize: 11, fontWeight: 600, color: sortField === "relevance" ? P : MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}`, whiteSpace: "nowrap", cursor: "pointer", userSelect: "none" }}>
+                Relevance {sortField === "relevance" ? (sortDir === "asc" ? " ↑" : " ↓") : ""}
+              </th>
               <th style={{ padding: "8px 12px", textAlign: "center", fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}` }}>Intent</th>
-              <th style={{ padding: "8px 12px", textAlign: "right",  fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}`, whiteSpace: "nowrap" }}>Trend</th>
-              <th style={{ padding: "8px 12px", textAlign: "right",  fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}`, whiteSpace: "nowrap" }}>AI Volume</th>
-              <th style={{ padding: "8px 12px", textAlign: "right",  fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}`, whiteSpace: "nowrap" }}>Prompts</th>
+              <th style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}`, whiteSpace: "nowrap" }}>Trend</th>
+              <th onClick={() => cycleSort("volume")} style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 600, color: sortField === "volume" ? P : MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}`, whiteSpace: "nowrap", cursor: "pointer", userSelect: "none" }}>
+                AI Volume {sortField === "volume" ? (sortDir === "asc" ? " ↑" : " ↓") : ""}
+              </th>
+              <th style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}`, whiteSpace: "nowrap" }}>Prompts</th>
               <th style={{ padding: "8px 12px", borderBottom: `1px solid ${BORDER}` }} />
             </tr>
           </thead>
@@ -478,20 +511,50 @@ export function PromptResearch({ initialDomain, plan }: { initialDomain: string;
           </div>
 
           {/* Summary cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 20 }}>
+            {/* AI Volume */}
             <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "14px 16px" }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Total AI Volume</div>
-              <div style={{ fontSize: 26, fontWeight: 700, marginBottom: 4 }}>{fmt(data.totalAiVolume)}</div>
-              <div style={{ fontSize: 11, color: MUTED }}>{data.totalTopics} topics / {data.totalPrompts} prompts</div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>AI Volume</div>
+              <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 2 }}>{fmt(data.totalAiVolume)}</div>
+              <div style={{ fontSize: 11, color: MUTED }}>last 6 months</div>
             </div>
-            <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "14px 16px", gridColumn: "span 2" }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Intent Breakdown</div>
+            {/* Topics + Prompts */}
+            <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "14px 16px" }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Topics + Prompts</div>
+              <div style={{ fontSize: 13, marginBottom: 3 }}>
+                <span style={{ fontWeight: 700 }}>{data.totalTopics}</span>
+                <span style={{ color: MUTED, marginLeft: 4 }}>topics</span>
+              </div>
+              <div style={{ fontSize: 13, marginBottom: 4 }}>
+                <span style={{ fontWeight: 700 }}>{data.totalPrompts}</span>
+                <span style={{ color: MUTED, marginLeft: 4 }}>prompts</span>
+              </div>
+              <div style={{ fontSize: 10, color: "#9CA3AF", background: BG, borderRadius: 4, padding: "2px 6px", display: "inline-block" }}>sample</div>
+            </div>
+            {/* Intent */}
+            <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "14px 16px" }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Intent</div>
               <IntentBar intent={data.intent} />
             </div>
+            {/* Brands */}
             <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "14px 16px" }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Brands + Sources</div>
-              <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 2 }}>{data.totalBrands.toLocaleString()}</div>
-              <div style={{ fontSize: 11, color: MUTED }}>{data.totalSources.toLocaleString()} source domains</div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Brands</div>
+              <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>{data.totalBrands.toLocaleString()}</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                {data.brands.slice(0, 3).map(b => (
+                  <span key={b.name} style={{ fontSize: 11, background: "#EEF2FF", color: P, borderRadius: 8, padding: "2px 7px", fontWeight: 500 }}>{b.name}</span>
+                ))}
+              </div>
+            </div>
+            {/* Sources */}
+            <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "14px 16px" }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Sources</div>
+              <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>{data.totalSources.toLocaleString()}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                {data.sourceDomains.slice(0, 3).map(s => (
+                  <span key={s.domain} style={{ fontSize: 11, color: MUTED }}>{s.domain}</span>
+                ))}
+              </div>
             </div>
           </div>
 

@@ -1,0 +1,132 @@
+Fix 3 specific bugs on Prompt Research.
+
+BUG 1: GENERIC WORDS APPEARING AS BRANDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Brands tab shows: "The", "Some", "Top", "Video"
+These are not brands — they are generic words
+being incorrectly extracted from answer text.
+
+Fix brand extraction to filter out noise:
+
+// Blocklist of common non-brand words
+const NON_BRANDS = new Set([
+  'the', 'a', 'an', 'some', 'top', 'best', 
+  'new', 'free', 'video', 'streaming', 'service',
+  'services', 'platform', 'app', 'content',
+  'media', 'online', 'digital', 'watch',
+  'movies', 'shows', 'series', 'episodes',
+  'subscription', 'plan', 'price', 'cost',
+  'how', 'what', 'why', 'when', 'where',
+  'and', 'or', 'but', 'for', 'with', 'from'
+])
+
+// Only keep real brand names
+function isRealBrand(name) {
+  if (!name || name.length < 3) return false
+  if (NON_BRANDS.has(name.toLowerCase())) return false
+  if (/^\d+$/.test(name)) return false // pure numbers
+  if (name.split(' ').length > 4) return false // too long
+  return true
+}
+
+// Filter brands list
+const cleanBrandsList = brandsList
+  .filter(b => isRealBrand(b.name))
+  .slice(0, 100)
+
+Expected brands for "netflix streaming":
+Netflix, Disney, Hulu, Amazon Prime, 
+Crunchyroll, Paramount, HBO, Apple TV, 
+YouTube, Peacock — NOT "The", "Some", "Top"
+
+BUG 2: WRONG DEFAULT SORT — SHOW BRAND-RELEVANT TOPICS FIRST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Topics tab shows "Nfl Games" first (9.1M volume)
+but "Streaming Services" and "Streaming Service"
+are more relevant to netflix.
+
+Semrush shows "Netflix and Streaming Services" 
+first — sorted by RELEVANCE not AI Volume.
+
+Fix default sort to Relevance first, then AI Volume:
+
+// Sort: High relevance first, then by AI volume
+topicsList.sort((a, b) => {
+  const relevanceOrder = { 'High': 0, 'Medium': 1, 'Low': 2 }
+  const aRel = relevanceOrder[a.relevance] ?? 1
+  const bRel = relevanceOrder[b.relevance] ?? 1
+  
+  if (aRel !== bRel) return aRel - bRel  // relevance first
+  return b.totalAiVolume - a.totalAiVolume // then volume
+})
+
+Also fix the Relevance sort button — clicking 
+"Relevance" column header should toggle between
+High→Low and Low→High.
+
+BUG 3: SUMMARY CARDS LAYOUT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current: 3 merged cards
+Semrush: 5 separate metric blocks
+
+Fix layout to match:
+
+┌─────────────────┬──────────────────┬────────────────┬─────────────────┬──────────────┐
+│ AI Volume       │ Topics & Prompts │ Intent         │ Brands          │ Sources      │
+│ 114.5M          │ Topics: 100      │ [color bar]    │ 100             │ 100          │
+│ [sparkline]     │ Prompts: 200     │ Info 40%       │ TOP: Netflix    │ TOP: youtube │
+│                 │                  │ Nav  20%       │ Disney · Hulu   │ netflix.com  │
+│                 │                  │ Com  30%       │                 │ reddit.com   │
+└─────────────────┴──────────────────┴────────────────┴─────────────────┴──────────────┘
+
+Show top 3 brands inline: Netflix · Disney · Hulu
+Show top 3 sources inline: youtube.com · netflix.com · reddit.com
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ALSO: INCREASE API LIMIT TO GET MORE DATA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Currently fetching limit: 100 per platform.
+This gives 200 total items (100 google + 100 chatgpt)
+which clusters into ~100 topics.
+
+Semrush shows 1K topics and 56K prompts because
+they have a much larger database.
+
+We cannot match 1K topics with DataForSEO limit 100.
+But we can increase to show accurate counts:
+
+Change display text from:
+"100 topics / 200 prompts"
+TO:
+"100 topics / 200 prompts (sample)"
+
+And add tooltip:
+"Showing top 100 topics by AI volume. 
+Full dataset available on Agency plan."
+
+This sets correct expectations vs Semrush.
+Do not fake the count to show 1K.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST AFTER FIX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Search "netflix streaming":
+Expected:
+- Topics sorted by Relevance first:
+  "Streaming Services" or "Netflix" topics at top
+  NOT "Nfl Games" at top
+- Brands shows: Netflix, Disney, Hulu, 
+  Amazon Prime, Crunchyroll, Paramount
+  NOT "The", "Some", "Top", "Video"
+- 5 separate summary cards
+- Correct counts with "(sample)" label
+
+Do NOT clear cache.
+Delete only prompt research cache if needed:
+DELETE FROM dataforseo_cache
+WHERE cache_key LIKE '%prompt_research%netflix%'

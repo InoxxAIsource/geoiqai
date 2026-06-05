@@ -1198,11 +1198,27 @@ router.post("/dataforseo/prompt-research", requireAuth, async (req, res): Promis
     req.log.info({ brandName, brandRelevant: brandRelevantItems.length, usingAll: itemsForTopics === allItems }, "prompt-research: brand filter");
 
     // Extract brands from answer text when brand_entities is empty
+    const NON_BRANDS = new Set([
+      "the", "a", "an", "some", "top", "best", "new", "free", "video",
+      "streaming", "service", "services", "platform", "app", "content",
+      "media", "online", "digital", "watch", "movies", "shows", "series",
+      "episodes", "subscription", "plan", "price", "cost", "how", "what",
+      "why", "when", "where", "and", "or", "but", "for", "with", "from",
+      "that", "this", "these", "those", "can", "will", "you", "your",
+      "their", "there", "here", "also", "more", "most", "other", "users",
+      "people", "way", "ways", "like", "just", "even", "also", "still",
+      "many", "much", "use", "used", "get", "has", "have", "had",
+    ]);
     function extractBrandsFromText(text: string): string[] {
       if (!text) return [];
       const words = text.match(/\b[A-Z][a-z]{2,}(?:\s[A-Z][a-z]{2,})?\b/g) ?? [];
       const freq: Record<string, number> = {};
-      for (const w of words) freq[w] = (freq[w] ?? 0) + 1;
+      for (const w of words) {
+        if (NON_BRANDS.has(w.toLowerCase())) continue;
+        if (/^\d+$/.test(w)) continue;
+        if (w.split(" ").length > 4) continue;
+        freq[w] = (freq[w] ?? 0) + 1;
+      }
       return Object.entries(freq)
         .filter(([, c]) => c > 1)
         .sort((a, b) => b[1] - a[1])
