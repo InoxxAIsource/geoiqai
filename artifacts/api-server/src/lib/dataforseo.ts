@@ -13,7 +13,9 @@ const kgOpenai = new OpenAI({
   maxRetries: 0,
 });
 
-const DATAFORSEO_BASE = "https://api.dataforseo.com";
+const DATAFORSEO_BASE = process.env.DATAFORSEO_SANDBOX === "true"
+  ? "https://sandbox.dataforseo.com"
+  : "https://api.dataforseo.com";
 
 function getAuthHeader(): Record<string, string> {
   const login = process.env.DATAFORSEO_LOGIN ?? "";
@@ -1375,7 +1377,7 @@ async function setDfCache(
   costUsd?: string,
 ): Promise<void> {
   try {
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     await db
       .insert(dataforseoCacheTable)
       .values({ key, data, costUsd: costUsd ?? null, expiresAt })
