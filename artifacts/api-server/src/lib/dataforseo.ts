@@ -1977,7 +1977,7 @@ export async function getLlmCrossAggregated(
       const bare = domain.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? domain;
       return {
         aggregation_key: bare,
-        target: [{ domain: bare, search_filter: "include", search_scope: ["answer", "sources"] }],
+        target: [{ domain: bare, search_filter: "include", search_scope: ["any", "sources", "search_results"] }],
       };
     }),
     keywords: top5kw,

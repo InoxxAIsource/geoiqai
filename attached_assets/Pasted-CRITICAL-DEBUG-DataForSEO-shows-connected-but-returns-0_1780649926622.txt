@@ -1,0 +1,258 @@
+CRITICAL DEBUG: DataForSEO shows "connected" but 
+returns 0 data for all domains including major ones 
+like godaddy.com and namecheap.com.
+
+This is a deep audit and fix task. Follow every 
+step in order.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 1: CREATE A DEBUG ENDPOINT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add this route to the backend (Express/FastAPI):
+
+GET /api/debug/dataforseo
+
+This endpoint must:
+
+1. Log and return whether credentials exist:
+   {
+     login_set: !!process.env.DATAFORSEO_LOGIN,
+     password_set: !!process.env.DATAFORSEO_PASSWORD,
+     login_preview: process.env.DATAFORSEO_LOGIN?.slice(0,5)
+   }
+
+2. Call DataForSEO account balance check:
+   GET https://api.dataforseo.com/v3/appendix/user_data
+   Return the RAW full JSON response — do not parse 
+   or filter it. We need to see the exact response.
+
+3. Call DataForSEO LLM mentions with a test domain:
+   POST https://api.dataforseo.com/v3/ai_optimization/llm_mentions/aggregated_metrics/live
+   
+   Payload:
+   [{
+     "target": "godaddy.com",
+     "date_from": "2026-01-01",
+     "date_to": "2026-06-05",
+     "language_code": "en"
+   }]
+   
+   Return the COMPLETE raw JSON response including:
+   - status_code
+   - status_message  
+   - tasks[0].status_code
+   - tasks[0].status_message
+   - tasks[0].result (full)
+   
+   DO NOT hide errors. Return everything.
+
+4. Also try the search endpoint:
+   POST https://api.dataforseo.com/v3/ai_optimization/llm_mentions/search/live
+   Payload: [{ "target": "godaddy.com", "date_from": "2026-01-01", "date_to": "2026-06-05", "language_code": "en", "limit": 10 }]
+   Return full raw response.
+
+Visit /api/debug/dataforseo and paste the 
+response here so we can see exactly what 
+DataForSEO is returning.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 2: CHECK WHICH DATAFORSEO PLAN IS ACTIVE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The DataForSEO LLM Mentions API (/v3/ai_optimization/)
+is a SEPARATE paid product from the standard API.
+
+It requires:
+- Active DataForSEO account (any plan)
+- AI Optimization endpoints enabled on the account
+- Sufficient balance ($0.0025 per request minimum)
+
+In the /api/debug/dataforseo response, look at:
+tasks[0].status_code
+
+If status_code is:
+- 20000 = success, data is real
+- 40501 = "Task Not Found" = endpoint not enabled
+- 40401 = "authentication failed" = wrong credentials
+- 20100 = "task created" = async mode, need different endpoint
+- 20000 but result is empty = domain has no LLM data yet
+
+Log whichever error code appears.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 3: IMPLEMENT FALLBACK DATA STRATEGY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Since DataForSEO LLM Mentions may not be enabled,
+implement a dual-track approach:
+
+TRACK A — DataForSEO LLM API (primary, when available):
+Use /v3/ai_optimization/llm_mentions/aggregated_metrics/live
+for visibility score, mentions, citations, cited pages.
+
+TRACK B — Direct LLM Scraper fallback (always works):
+Use /v3/ai_optimization/chat_gpt/llm_scraper/live
+This sends prompts to real ChatGPT/Gemini and checks 
+if the domain appears in the response.
+
+Implement TRACK B now as the working fallback:
+
+For any domain audit, send these 5 prompts to 
+DataForSEO LLM Scraper for ChatGPT:
+
+Prompt 1: "What is {domain}? Tell me about this company."
+Prompt 2: "Is {domain} a reputable company?"
+Prompt 3: "What are the main competitors of {domain}?"
+Prompt 4: "What do people say about {domain}?"
+Prompt 5: "Would you recommend {domain}?"
+
+For each prompt response:
+- Check if domain name appears in the answer (mentioned = true/false)
+- Check if the URL is cited as a source (cited = true/false)
+- Extract sentiment: positive / neutral / negative
+
+Calculate score from results:
+- Each "mentioned = true": +15 points
+- Each "cited = true": +5 points  
+- Positive sentiment: +5 points
+- Max score: 100
+
+This gives REAL data from actual LLM calls — 
+no fake hashing, no estimates.
+
+Store results in Supabase:
+table: domain_audits
+columns: domain, score, mentions, citations, 
+sentiment, prompts_checked, audit_date, raw_responses
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 4: FIX THE VISIBILITY OVERVIEW PAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current bug: Shows "No Data" even after API call.
+
+Root causes to fix:
+
+BUG 1 — Location filter killing results:
+Current code likely sends location_code for India.
+DataForSEO LLM Mentions does NOT support 
+location_code filtering in the same way.
+FIX: Remove location_code from the payload entirely.
+Send only: target, date_from, date_to, language_code
+
+BUG 2 — Date range too short:
+If sending last 30 days only, many domains won't 
+have enough LLM mention data indexed.
+FIX: Always send date_from as 6 months ago:
+date_from = new Date(Date.now() - 180*24*60*60*1000)
+             .toISOString().split('T')[0]
+
+BUG 3 — Showing 0 instead of "no data" state:
+If API returns empty result array, show:
+"DataForSEO has no LLM mention history for this 
+domain. This is normal for smaller or newer domains.
+We'll use direct LLM scanning instead."
+Then trigger TRACK B fallback automatically.
+
+BUG 4 — "Cached" label but data not refreshing:
+If result is cached with 0 score, add a 
+"Force rescan" button that clears the cache 
+in Supabase and re-runs the audit.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 5: FIX COMPETITOR RESEARCH PAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current bug: Both domains show 0 after clicking Analyze.
+
+Fix:
+1. When Analyze is clicked, run the full audit 
+   (TRACK A → TRACK B fallback) for each domain 
+   in parallel using Promise.all()
+
+2. Show a loading spinner with text:
+   "Scanning godaddy.com across ChatGPT, Gemini, 
+    Perplexity... (this takes 30-60 seconds)"
+
+3. After scan completes, display real scores side by side
+
+4. If one domain has more data than another, 
+   show the gap clearly:
+   "godaddy.com scores 71 vs namecheap.com 58 — 
+    godaddy leads by 13 points on ChatGPT"
+
+5. Store competitor scan results in Supabase:
+   table: competitor_scans
+   columns: user_domain, competitor_domain, 
+   user_score, competitor_score, scan_date, 
+   gap_analysis (JSON)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 6: FIX THE SCORE CALCULATION BUG
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Currently score = 0 for everything because the 
+DataForSEO aggregated metrics returns empty.
+
+New score calculation using TRACK B:
+
+function calculateScore(llmResults) {
+  let score = 0;
+  const maxPerPrompt = 20; // 5 prompts × 20 = 100
+  
+  llmResults.forEach(result => {
+    let promptScore = 0;
+    if (result.mentioned) promptScore += 12;
+    if (result.cited) promptScore += 5;
+    if (result.sentiment === 'positive') promptScore += 3;
+    score += Math.min(promptScore, maxPerPrompt);
+  });
+  
+  return Math.min(Math.round(score), 100);
+}
+
+Apply this to:
+- Visibility Overview score gauge
+- Competitor Research score cards
+- Brand Performance scores per platform
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 7: ADD REAL-TIME SCAN PROGRESS UI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When a user triggers an audit or competitor analysis,
+show a real-time progress panel instead of blank:
+
+[Scanning godaddy.com]
+✓ ChatGPT — checking 5 prompts... done (71/100)
+⟳ Gemini — checking 5 prompts... 
+○ Perplexity — queued
+○ Claude — queued
+○ Grok — queued
+
+Use Server-Sent Events (SSE) or polling every 
+3 seconds to update the UI as each LLM completes.
+
+Endpoint: GET /api/audit/progress?domain=godaddy.com&job_id=xyz
+Returns: { completed: ['chatgpt'], pending: ['gemini','perplexity'], results: {...} }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 8: VERIFY THE FIX WITH TEST DOMAINS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After implementing all fixes, test with these 3 domains:
+1. godaddy.com (large, should score 70+)
+2. namecheap.com (large, should score 60+)  
+3. geoiqai.com (your own domain)
+
+All 3 should now return non-zero scores.
+
+If godaddy.com still returns 0 after TRACK B 
+direct LLM scraping — the DataForSEO LLM Scraper 
+endpoint itself is not enabled on the account.
+
+In that case, add a note in the Replit console:
+"DataForSEO AI Optimization APIs not enabled. 
+Go to dataforseo.com → billing → enable 
+AI Optimization product."

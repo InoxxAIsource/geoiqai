@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend,
 } from "recharts";
 import { getToken } from "@/lib/auth";
-import { Globe, ChevronDown, FileDown, HelpCircle, BookOpen, Users, Zap, AlertCircle } from "lucide-react";
+import { Globe, ChevronDown, FileDown, HelpCircle, RefreshCw, AlertCircle, BookOpen, Users, Zap } from "lucide-react";
 
 const P = "#4F46E5";
 const BORDER = "#E5E7EB";
@@ -45,6 +45,8 @@ interface ApiResponse {
   llm?: ApiLLMRow[];
   trend?: ApiTrendPoint[];
   cached?: boolean;
+  auditDate?: string;
+  source?: string;
   error?: string;
 }
 
@@ -53,6 +55,12 @@ function fmt(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
   if (n >= 1_000) return (n / 1_000).toFixed(1) + "K";
   return String(n);
+}
+
+function fmtDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  } catch { return iso; }
 }
 
 function getScoreLabel(s: number) {
@@ -347,7 +355,9 @@ export function VisibilityOverview({
   onDomainChange?: (d: string) => void;
 }) {
   const [data, setData] = useState<VisibilityData | null>(null);
+  const [auditDate, setAuditDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(!!domain);
+  const [rescanning, setRescanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(!domain);
   const [metricTab, setMetricTab] = useState<"main" | "monthly" | "ai">("main");
@@ -364,31 +374,40 @@ export function VisibilityOverview({
     if (!domain) setShowModal(true);
   }, [domain]);
 
-  useEffect(() => {
-    if (!domain) return;
-    setLoading(true);
+  const fetchData = useCallback((d: string, p: string, force = false) => {
+    const isForce = force;
+    if (isForce) setRescanning(true); else setLoading(true);
     setError(null);
-    setLastDomain(domain);
     const token = getToken();
-    fetch(
-      `/api/dataforseo/visibility-overview?domain=${encodeURIComponent(domain)}&period=${localPeriod}`,
-      { headers: token ? { Authorization: `Bearer ${token}` } : {} },
-    )
+    const url = `/api/dataforseo/visibility-overview?domain=${encodeURIComponent(d)}&period=${p}${isForce ? "&force=true" : ""}`;
+    fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
       .then(r => r.json())
       .then((raw: ApiResponse) => {
         if (raw.error) {
           setError(raw.error);
         } else {
-          setData(adaptResponse(raw, domain));
+          setData(adaptResponse(raw, d));
+          setAuditDate(raw.auditDate ?? null);
         }
       })
       .catch(() => setError("Failed to load visibility data. Please try again."))
-      .finally(() => setLoading(false));
-  }, [domain, localPeriod]);
+      .finally(() => { setLoading(false); setRescanning(false); });
+  }, []);
+
+  useEffect(() => {
+    if (!domain) return;
+    setLastDomain(domain);
+    fetchData(domain, localPeriod, false);
+  }, [domain, localPeriod, fetchData]);
 
   const handleDomainSubmit = (d: string) => {
     setShowModal(false);
     if (onDomainChange) onDomainChange(d);
+  };
+
+  const handleRescan = () => {
+    if (!domain || rescanning) return;
+    fetchData(domain, localPeriod, true);
   };
 
   const d = data;
@@ -421,7 +440,22 @@ export function VisibilityOverview({
             ? <>Visibility Overview: <span style={{ color: P }}>{domain}</span></>
             : <span style={{ color: MUTED, fontWeight: 400, fontSize: 18 }}>Enter a domain to get started</span>}
         </h1>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {domain && auditDate && (
+            <span style={{ fontSize: 11, color: MUTED }}>
+              Scanned {fmtDate(auditDate)}
+            </span>
+          )}
+          {domain && (
+            <button
+              onClick={handleRescan}
+              disabled={rescanning || loading}
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", border: `1px solid ${rescanning ? P : BORDER}`, borderRadius: 7, background: rescanning ? "#EEF2FF" : "white", fontSize: 12, color: rescanning ? P : MUTED, cursor: rescanning ? "not-allowed" : "pointer", transition: "all 0.15s" }}
+            >
+              <RefreshCw size={12} style={{ animation: rescanning ? "spin 0.8s linear infinite" : "none" }} />
+              {rescanning ? "Scanning..." : "Rescan"}
+            </button>
+          )}
           {domain && (
             <button
               onClick={() => setShowModal(true)}
@@ -434,7 +468,7 @@ export function VisibilityOverview({
             <HelpCircle size={13} /> How it works
           </button>
           <button style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", border: `1px solid ${BORDER}`, borderRadius: 7, background: "white", fontSize: 12, color: MUTED, cursor: "pointer" }}>
-            <FileDown size={13} /> Export to PDF
+            <FileDown size={13} /> Export
           </button>
         </div>
       </div>
@@ -457,21 +491,23 @@ export function VisibilityOverview({
         <button style={{ padding: "5px 13px", fontSize: 12, border: `1px solid ${BORDER}`, borderRadius: 6, background: "white", color: "#374151", cursor: "pointer" }}>
           {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
         </button>
-        {d?.cached && (
-          <span style={{ marginLeft: "auto", background: "#F0FDF4", color: "#166534", padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>Cached</span>
+        {d?.cached && auditDate && (
+          <span style={{ marginLeft: "auto", background: "#F0FDF4", color: "#166534", padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>
+            From scan on {fmtDate(auditDate)}
+          </span>
         )}
       </div>
 
       {/* loading */}
-      {loading && (
+      {(loading || rescanning) && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 80, gap: 14, color: MUTED, fontSize: 14 }}>
           <div style={{ width: 22, height: 22, border: `2.5px solid #E5E7EB`, borderTopColor: P, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-          Fetching AI visibility data for {domain}...
+          {rescanning ? `Running a fresh AI audit for ${domain}... this takes about 15 seconds` : `Running AI audit for ${domain}...`}
         </div>
       )}
 
       {/* error */}
-      {!loading && error && (
+      {!loading && !rescanning && error && (
         <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "20px 24px", display: "flex", alignItems: "center", gap: 12 }}>
           <AlertCircle size={18} color="#DC2626" />
           <div>
@@ -481,8 +517,8 @@ export function VisibilityOverview({
         </div>
       )}
 
-      {/* report - only shown when domain is set and not loading */}
-      {!loading && !error && domain && (
+      {/* report - shown when domain is set and initial load is done (rescan keeps old data visible) */}
+      {!loading && domain && (
         <>
           {/* main 2-column layout */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 16, marginBottom: 16, alignItems: "start" }}>
