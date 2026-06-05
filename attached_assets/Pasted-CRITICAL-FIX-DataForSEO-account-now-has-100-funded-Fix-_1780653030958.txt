@@ -1,0 +1,170 @@
+CRITICAL FIX: DataForSEO account now has $100 funded. 
+Fix all data fetching on Visibility Overview page.
+
+STEP 1 — ADD DEBUG ENDPOINT FIRST:
+
+Add GET /api/debug/llm-test route to backend.
+Call these 4 DataForSEO endpoints and return 
+complete raw JSON response for all 4:
+
+Call 1 — Account check:
+GET https://api.dataforseo.com/v3/appendix/user_data
+Auth: Basic base64(DATAFORSEO_LOGIN:DATAFORSEO_PASSWORD)
+
+Call 2 — Aggregated metrics:
+POST https://api.dataforseo.com/v3/ai_optimization/llm_mentions/aggregated_metrics/live
+Body: [{ "target": "netflix.com", "date_from": "2026-01-01", "date_to": "2026-06-05", "language_code": "en" }]
+
+Call 3 — Cross aggregated by LLM:
+POST https://api.dataforseo.com/v3/ai_optimization/llm_mentions/cross_aggregated_metrics/live
+Body: [{ "target": "netflix.com", "date_from": "2026-01-01", "date_to": "2026-06-05", "group_by": "llm_name", "language_code": "en" }]
+
+Call 4 — Top pages:
+POST https://api.dataforseo.com/v3/ai_optimization/llm_mentions/top_pages/live
+Body: [{ "target": "netflix.com", "date_from": "2026-01-01", "date_to": "2026-06-05", "language_code": "en", "limit": 10 }]
+
+Return all 4 raw responses as JSON. 
+Do not filter or parse. Show everything including 
+status_code, status_message, and full result array.
+
+STEP 2 — ONCE DEBUG SHOWS STATUS 20000, DO THIS:
+
+Fix Visibility Overview page to call all endpoints 
+in parallel and show real data:
+
+const [aggData, trendData, llmData, countryData, pagesData] = await Promise.all([
+  // 1. aggregated_metrics — for score + KPIs
+  dfsPost('/v3/ai_optimization/llm_mentions/aggregated_metrics/live', 
+    [{ target: domain, date_from: sixMonthsAgo, date_to: today, language_code: "en" }]),
+  
+  // 2. cross_aggregated by date — for trend chart
+  dfsPost('/v3/ai_optimization/llm_mentions/cross_aggregated_metrics/live',
+    [{ target: domain, date_from: sixMonthsAgo, date_to: today, group_by: "date", language_code: "en" }]),
+  
+  // 3. cross_aggregated by llm_name — for Distribution by LLM
+  dfsPost('/v3/ai_optimization/llm_mentions/cross_aggregated_metrics/live',
+    [{ target: domain, date_from: sixMonthsAgo, date_to: today, group_by: "llm_name", language_code: "en" }]),
+  
+  // 4. cross_aggregated by location_code — for Mentions by Country
+  dfsPost('/v3/ai_optimization/llm_mentions/cross_aggregated_metrics/live',
+    [{ target: domain, date_from: sixMonthsAgo, date_to: today, group_by: "location_code", language_code: "en" }]),
+  
+  // 5. top_pages — for Cited Pages tab
+  dfsPost('/v3/ai_optimization/llm_mentions/top_pages/live',
+    [{ target: domain, date_from: sixMonthsAgo, date_to: today, language_code: "en", limit: 50 }])
+])
+
+Where sixMonthsAgo = new Date(Date.now() - 180*24*60*60*1000).toISOString().split('T')[0]
+And today = new Date().toISOString().split('T')[0]
+And domain = cleaned domain string with no https:// or www
+
+STEP 3 — MAP DATA TO UI:
+
+From aggData result[0]:
+- mentions → show in KPI card "Mentions"
+- citations → show in KPI card "Citations"  
+- cited_pages → show in KPI card "Cited Pages"
+- Calculate score:
+  const score = Math.min(100, Math.round(
+    Math.min(mentions/500, 1)*40 +
+    Math.min(citations/Math.max(mentions,1), 1)*40 +
+    Math.min(cited_pages/50, 1)*20
+  ))
+- Score 0-30: label "Low", color red
+- Score 31-60: label "Medium", color amber
+- Score 61-80: label "Good", color green
+- Score 81-100: label "Great", color bright green
+
+From trendData: plot 3-line chart (mentions/citations/cited_pages over time)
+
+From llmData: render horizontal bar rows showing 
+% share per LLM platform (ChatGPT, Gemini, Perplexity etc)
+
+From countryData: render table with flag, country name, 
+% share, mention count
+
+From pagesData: render table with URL and prompt count
+
+STEP 4 — ADD TOPICS & SOURCES SECTION:
+
+Below Distribution by LLM, add 4 tabs:
+
+Tab "Performing Topics":
+POST /v3/ai_optimization/llm_mentions/search/live
+Body: [{
+  "target": [{ "domain": "{domain}", "search_filter": "include", "search_scope": ["sources"] }],
+  "date_from": "2026-01-01", "date_to": "2026-06-05",
+  "language_code": "en", "order_by": ["ai_search_volume,desc"], "limit": 50
+}]
+Show table: Topic | Mentions | AI Volume
+
+Tab "Topic Opportunities":
+Same endpoint but "search_filter": "exclude"
+Show table: Topic | AI Volume | Gap
+
+Tab "Cited Pages":
+Use pagesData from top_pages call above
+Show table: URL | Number of Prompts
+
+Tab "Cited Sources":
+Parse sources[] from search endpoint results
+Show table: Domain | Mentions | Prompts
+
+STEP 5 — CACHING IN SUPABASE:
+
+Create table dataforseo_cache:
+- cache_key text UNIQUE  (format: "domain:endpoint:date_from:date_to")
+- response jsonb
+- created_at timestamptz
+- expires_at timestamptz
+
+Before every DataForSEO call:
+1. Check cache WHERE cache_key = key AND expires_at > now()
+2. If hit: return cached response, show "Cached" badge
+3. If miss: call API, save to cache, return fresh data
+
+TTL: 24 hours for all endpoints.
+Add "Rescan" button that deletes cache row and refetches.
+
+STEP 6 — COMPETITOR RESEARCH FIX:
+
+Use cross_aggregated_metrics with multiple targets:
+Body: [{
+  "targets": ["godaddy.com", "namecheap.com"],
+  "date_from": "2026-01-01", "date_to": "2026-06-05",
+  "group_by": "domain", "language_code": "en"
+}]
+Returns scores for both domains in 1 API call.
+Show side-by-side score cards with real numbers.
+
+STEP 7 — DELETE ALL FAKE DATA:
+
+Search entire codebase and DELETE any code using:
+- Math.random() for generating scores
+- hashCode() or djb2() or any hash function for scores
+- Hardcoded strings: "thehomesport", "baddiehub", 
+  "crazy games", "strip chat"
+- Any fake competitor names
+
+Replace with empty state: "No data available yet"
+
+STEP 8 — EMPTY STATE HANDLING:
+
+If DataForSEO returns empty result for a domain:
+Show: "No LLM mention data found for this domain. 
+DataForSEO indexes 200M+ AI responses but this domain 
+may be too new or small. Try netflix.com or hubspot.com 
+to verify the connection is working."
+Never show 0 as if it were a real score.
+
+STEP 9 — TEST WITH THESE DOMAINS:
+
+After all fixes, test:
+1. netflix.com — must show non-zero score
+2. hubspot.com — must show non-zero score  
+3. godaddy.com — must show non-zero score
+4. geoiqai.com — will likely show 0, that is OK
+
+If netflix.com still shows 0 after this fix,
+console.log the full raw DataForSEO response 
+so we can debug further.

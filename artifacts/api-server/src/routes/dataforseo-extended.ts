@@ -16,6 +16,9 @@ import {
   getDfAccountInfo,
   filterRankedKeywords,
   buildCategoryFallbackKeywords,
+  getLlmAggregatedMetrics,
+  getLlmTopPagesList,
+  getLlmSearchTopics,
 } from "../lib/dataforseo";
 import { runAuditEngine } from "../lib/audit-engine";
 import { db, citationsTable, keywordCacheTable, auditsTable } from "@workspace/db";
@@ -618,136 +621,122 @@ router.post("/dataforseo/site-keywords", requireAuth, async (req, res): Promise<
   res.json({ keywords: fallback.map(toIntentKeyword), source: "fallback" });
 });
 
-// Visibility Overview - aggregated LLM mentions for a domain
+// ─── Location code to country name mapping ────────────────────────────────────
+const LOCATION_NAMES: Record<number, string> = {
+  2840: "United States", 2826: "United Kingdom", 2356: "India", 2124: "Canada",
+  2036: "Australia", 2276: "Germany", 2250: "France", 2724: "Spain",
+  2380: "Italy", 2392: "Japan", 2076: "Brazil", 2484: "Mexico",
+  2566: "Pakistan", 2682: "Saudi Arabia", 2158: "Taiwan", 2410: "South Korea",
+  2702: "Singapore", 2458: "Malaysia", 2360: "Indonesia", 2764: "Thailand",
+  2616: "Poland", 2528: "Netherlands", 2752: "Sweden", 2578: "Norway",
+  2208: "Denmark", 2246: "Finland", 2804: "Ukraine", 2792: "Turkey",
+  2818: "Egypt", 2704: "Vietnam", 2710: "South Africa",
+};
+
+const PLATFORM_NAMES: Record<string, string> = {
+  google: "AI Overview (Google)", chat_gpt: "ChatGPT", gemini: "Gemini",
+  perplexity: "Perplexity", claude: "Claude", ai_mode: "AI Mode (Google)",
+  copilot: "Microsoft Copilot", bing: "Bing AI",
+};
+
+const PLATFORM_COLORS: Record<string, string> = {
+  google: "#4285F4", chat_gpt: "#10A37F", gemini: "#8B5CF6",
+  perplexity: "#5B21B6", claude: "#CC785C", ai_mode: "#34A853",
+  copilot: "#0078D4", bing: "#008373",
+};
+
+// Visibility Overview - uses DataForSEO LLM Mentions API (funded account required)
 router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Promise<void> => {
-  const { domain, period, force } = req.query as { domain?: string; period?: string; force?: string };
+  const { domain } = req.query as { domain?: string };
   if (!domain) { res.status(400).json({ error: "domain is required" }); return; }
 
-  function trendLabels(p: string) {
-    if (p === "6m") return ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-    if (p === "all") return ["Q1 24", "Q2 24", "Q3 24", "Q4 24", "Q1 25", "Q2 25"];
-    return ["Week 1", "Week 2", "Week 3", "Week 4"];
-  }
-
-  function buildResponse(
-    score: number, cgScore: number, gemScore: number, perpScore: number,
-    cached: boolean, auditDate: string | null,
-  ) {
-    const labels = trendLabels(period ?? "1m");
-    const trend = labels.map((label, i) => ({
-      label,
-      mentions: Math.max(0, Math.round(score + (i - labels.length) * 2)),
-      citations: Math.max(0, Math.round(score * 0.8 + (i - labels.length) * 1.5)),
-    }));
-    const llm = [
-      { name: "ChatGPT", mentionsPct: cgScore, citedPct: Math.round(cgScore * 0.8) },
-      { name: "Gemini", mentionsPct: gemScore, citedPct: Math.round(gemScore * 0.75) },
-      { name: "Perplexity", mentionsPct: perpScore, citedPct: Math.round(perpScore * 0.85) },
-      { name: "Claude", mentionsPct: Math.round(score * 0.7), citedPct: Math.round(score * 0.5) },
-    ];
-    return {
-      domain, score,
-      mentions: Math.round(score * 2.4),
-      citations: Math.round(score * 1.8),
-      citedPages: Math.round(score * 0.4),
-      mentionsChange: score > 40 ? "+12%" : score > 15 ? "+5%" : "+1%",
-      citationsChange: score > 40 ? "+8%" : score > 15 ? "+3%" : "0%",
-      citedPagesChange: score > 40 ? "+5%" : "+1%",
-      llm, trend, topics: [], citedPagesList: [],
-      cached, auditDate,
-      source: "audit-engine",
-    };
-  }
+  const bareD = domain.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? domain;
+  const today = new Date().toISOString().split("T")[0]!;
+  const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]!;
 
   try {
-    // Step 1: Look for a recent audit (7-day TTL) unless force=true
-    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const bareD = domain.replace(/^www\./, "");
+    const [aggData, pagesData, performingData, opportunitiesData] = await Promise.all([
+      getLlmAggregatedMetrics(bareD, sixMonthsAgo, today),
+      getLlmTopPagesList(bareD, sixMonthsAgo, today, 50),
+      getLlmSearchTopics(bareD, sixMonthsAgo, today, "include", 50),
+      getLlmSearchTopics(bareD, sixMonthsAgo, today, "exclude", 30),
+    ]);
 
-    if (force !== "true") {
-      const [existing] = await db.select({
-        scoreTotal: auditsTable.scoreTotal,
-        scoreChatgpt: auditsTable.scoreChatgpt,
-        scoreGemini: auditsTable.scoreGemini,
-        scorePerplexity: auditsTable.scorePerplexity,
-        createdAt: auditsTable.createdAt,
-      })
-        .from(auditsTable)
-        .where(and(eq(auditsTable.domain, bareD), gt(auditsTable.createdAt, cutoff)))
-        .orderBy(desc(auditsTable.createdAt))
-        .limit(1);
+    const total = aggData.total;
+    const platforms = total?.platform ?? [];
+    const totalMentions = platforms.reduce((s, p) => s + ((p as { mentions: number }).mentions || 0), 0);
+    const totalAiSearchVolume = platforms.reduce((s, p) => s + ((p as { ai_search_volume: number }).ai_search_volume || 0), 0);
+    const citedPagesCount = pagesData.pages.length;
 
-      if (existing) {
-        req.log.info({ domain, score: existing.scoreTotal }, "visibility-overview: using cached audit");
-        res.json(buildResponse(
-          existing.scoreTotal, existing.scoreChatgpt, existing.scoreGemini, existing.scorePerplexity,
-          true, existing.createdAt?.toISOString() ?? null,
-        ));
-        return;
-      }
-    }
-
-    // Step 2: No recent audit found - run the audit engine directly (real AI calls)
-    req.log.info({ domain, force }, "visibility-overview: running fresh audit");
-    const result = await runAuditEngine(bareD, null, null, null);
-
-    const score = (result.chatgpt.score + result.gemini.score + result.perplexity.score) > 0
-      ? Math.round((result.chatgpt.score + result.gemini.score + result.perplexity.score) / 3)
-      : 0;
-
-    // Persist to audits table so next page load is instant
-    try {
-      await db.insert(auditsTable).values({
-        url: bareD,
-        domain: bareD,
-        brandName: result.brandName,
-        category: result.category,
-        market: result.market,
-        scoreTotal: score,
-        scoreChatgpt: result.chatgpt.score,
-        scoreGemini: result.gemini.score,
-        scorePerplexity: result.perplexity.score,
-        chatgptFound: result.chatgpt.found,
-        geminiFound: result.gemini.found,
-        perplexityFound: result.perplexity.found,
-        chatgptDetail: result.chatgpt.detail,
-        geminiDetail: result.gemini.detail,
-        perplexityDetail: result.perplexity.detail,
-        competitorsFound: result.chatgpt.competitors,
-        keywordsUsed: result.keywordsUsed,
-        rawResults: {
-          chatgpt: result.rawChatgptResponse,
-          gemini: result.rawGeminiResponse,
-          perplexity: result.rawPerplexityResponse,
-        } as unknown as Record<string, unknown>,
-        isPaid: false,
-      });
-    } catch (insertErr) {
-      // Non-fatal: audit ran successfully, just couldn't persist
-      req.log.warn({ insertErr }, "visibility-overview: failed to persist audit result");
-    }
-
-    res.json(buildResponse(
-      score, result.chatgpt.score, result.gemini.score, result.perplexity.score,
-      false, new Date().toISOString(),
+    const score = totalMentions === 0 ? 0 : Math.min(100, Math.round(
+      Math.min(totalMentions / 500, 1) * 40 +
+      Math.min(totalAiSearchVolume / Math.max(totalMentions, 1), 1) * 40 +
+      Math.min(citedPagesCount / 50, 1) * 20,
     ));
-  } catch (err) {
-    req.log.error({ err, domain }, "visibility-overview: audit engine error");
-    const labels = trendLabels(period ?? "1m");
-    res.status(500).json({
-      domain, score: 0, mentions: 0, citations: 0, citedPages: 0,
-      mentionsChange: "", citationsChange: "", citedPagesChange: "",
-      llm: [
-        { name: "ChatGPT", mentionsPct: 0, citedPct: 0 },
-        { name: "Gemini", mentionsPct: 0, citedPct: 0 },
-        { name: "Perplexity", mentionsPct: 0, citedPct: 0 },
-        { name: "Claude", mentionsPct: 0, citedPct: 0 },
-      ],
-      topics: [], citedPagesList: [],
-      trend: labels.map(label => ({ label, citations: 0, mentions: 0 })),
-      error: "Audit engine failed. Please try again.",
-      source: "error",
+
+    const maxPlatformMentions = Math.max(...platforms.map(p => (p as { mentions: number }).mentions), 1);
+    const platformData = [...platforms]
+      .sort((a, b) => (b as { mentions: number }).mentions - (a as { mentions: number }).mentions)
+      .map(p => {
+        const pp = p as { key: string; mentions: number; ai_search_volume: number };
+        return {
+          key: pp.key,
+          displayName: PLATFORM_NAMES[pp.key] ?? pp.key,
+          color: PLATFORM_COLORS[pp.key] ?? "#6B7280",
+          mentions: pp.mentions,
+          ai_search_volume: pp.ai_search_volume,
+          pct: Math.round((pp.mentions / maxPlatformMentions) * 100),
+        };
+      });
+
+    const locations = total?.location ?? [];
+    const totalLocationMentions = Math.max(locations.reduce((s, l) => s + ((l as { mentions: number }).mentions || 0), 0), 1);
+    const countries = [...locations]
+      .sort((a, b) => (b as { mentions: number }).mentions - (a as { mentions: number }).mentions)
+      .slice(0, 10)
+      .map(l => {
+        const ll = l as { key: string; mentions: number };
+        return {
+          code: Number(ll.key),
+          name: LOCATION_NAMES[Number(ll.key)] ?? `Region ${ll.key}`,
+          mentions: ll.mentions,
+          pct: Math.round((ll.mentions / totalLocationMentions) * 100),
+        };
+      });
+
+    const sourcesDomain = total?.sources_domain ?? [];
+    const citedSources = [...sourcesDomain]
+      .sort((a, b) => (b as { mentions: number }).mentions - (a as { mentions: number }).mentions)
+      .slice(0, 20)
+      .map(s => {
+        const ss = s as { key: string; mentions: number; ai_search_volume: number };
+        return { domain: ss.key, mentions: ss.mentions, ai_search_volume: ss.ai_search_volume };
+      });
+
+    req.log.info({ domain: bareD, score, totalMentions, cached: aggData.cached }, "visibility-overview");
+
+    res.json({
+      domain: bareD,
+      score,
+      mentions: totalMentions,
+      aiSearchVolume: totalAiSearchVolume,
+      citedPagesCount,
+      hasData: totalMentions > 0,
+      platforms: platformData,
+      countries,
+      citedSources,
+      citedPages: pagesData.pages.slice(0, 50),
+      performingTopics: performingData.items,
+      performingTopicsCount: performingData.totalCount,
+      topicOpportunities: opportunitiesData.items,
+      topicOpportunitiesCount: opportunitiesData.totalCount,
+      dateFrom: sixMonthsAgo,
+      dateTo: today,
+      cached: aggData.cached && pagesData.cached,
     });
+  } catch (err) {
+    req.log.error({ err, domain }, "visibility-overview error");
+    res.status(500).json({ error: "Failed to load visibility data. Please try again." });
   }
 });
 

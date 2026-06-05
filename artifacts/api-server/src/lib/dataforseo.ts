@@ -2361,3 +2361,198 @@ export async function getGoogleAiOverviewForAudit(
     return unavailable;
   }
 }
+
+// ─── LLM Aggregated Metrics ────────────────────────────────────────────────────
+
+interface LlmGroupElement {
+  type: string;
+  key: string;
+  mentions: number;
+  ai_search_volume: number;
+  impressions: number | null;
+}
+
+interface LlmAggTotal {
+  location: LlmGroupElement[] | null;
+  language: LlmGroupElement[] | null;
+  platform: LlmGroupElement[] | null;
+  sources_domain: LlmGroupElement[] | null;
+  search_results_domain: LlmGroupElement[] | null;
+}
+
+export interface LlmAggResult {
+  total: LlmAggTotal | null;
+  cached: boolean;
+}
+
+export async function getLlmAggregatedMetrics(
+  domain: string,
+  dateFrom: string,
+  dateTo: string,
+): Promise<LlmAggResult> {
+  const empty: LlmAggResult = { total: null, cached: false };
+  const login = process.env.DATAFORSEO_LOGIN ?? "";
+  const password = process.env.DATAFORSEO_PASSWORD ?? "";
+  if (!login || !password) return empty;
+
+  const cacheKey = `llm_agg:${domain}:${dateFrom}:${dateTo}`;
+  const cached = await getDfCache(cacheKey);
+  if (cached) return { ...(cached as unknown as LlmAggResult), cached: true };
+
+  try {
+    const auth = getAuthHeader();
+    const resp = await fetch(`${DATAFORSEO_BASE}/v3/ai_optimization/llm_mentions/aggregated_metrics/live`, {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify([{
+        target: [{ domain, search_filter: "include" }],
+        date_from: dateFrom,
+        date_to: dateTo,
+        language_code: "en",
+      }]),
+    });
+    const data = await resp.json() as Record<string, unknown>;
+    const tasks = (data.tasks as Array<Record<string, unknown>>) ?? [];
+    const taskResult = (tasks[0]?.result as Array<Record<string, unknown>>)?.[0];
+    const statusCode = tasks[0]?.status_code;
+    if (statusCode !== 20000 || !taskResult) return empty;
+    await setDfCache(cacheKey, taskResult as Record<string, unknown>, "0.001");
+    return { total: (taskResult.total as LlmAggTotal) ?? null, cached: false };
+  } catch {
+    return empty;
+  }
+}
+
+// ─── LLM Top Pages ─────────────────────────────────────────────────────────────
+
+export interface LlmTopPage {
+  url: string;
+  mentions: number;
+  ai_search_volume: number;
+}
+
+export interface LlmTopPagesResult {
+  pages: LlmTopPage[];
+  totalCount: number;
+  cached: boolean;
+}
+
+export async function getLlmTopPagesList(
+  domain: string,
+  dateFrom: string,
+  dateTo: string,
+  limit = 50,
+): Promise<LlmTopPagesResult> {
+  const empty: LlmTopPagesResult = { pages: [], totalCount: 0, cached: false };
+  const login = process.env.DATAFORSEO_LOGIN ?? "";
+  const password = process.env.DATAFORSEO_PASSWORD ?? "";
+  if (!login || !password) return empty;
+
+  const cacheKey = `llm_pages:${domain}:${dateFrom}:${dateTo}:${limit}`;
+  const cached = await getDfCache(cacheKey);
+  if (cached) return { ...(cached as unknown as LlmTopPagesResult), cached: true };
+
+  try {
+    const auth = getAuthHeader();
+    const resp = await fetch(`${DATAFORSEO_BASE}/v3/ai_optimization/llm_mentions/top_pages/live`, {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify([{
+        target: [{ domain, search_filter: "include" }],
+        date_from: dateFrom,
+        date_to: dateTo,
+        language_code: "en",
+        limit,
+      }]),
+    });
+    const data = await resp.json() as Record<string, unknown>;
+    const tasks = (data.tasks as Array<Record<string, unknown>>) ?? [];
+    const taskResult = (tasks[0]?.result as Array<Record<string, unknown>>)?.[0];
+    if (!taskResult) return empty;
+
+    const items = (taskResult.items as Array<Record<string, unknown>>) ?? [];
+    const pages: LlmTopPage[] = items.map(item => {
+      const platforms = (item.platform as Array<Record<string, unknown>>) ?? [];
+      return {
+        url: String(item.key ?? ""),
+        mentions: platforms.reduce((s, p) => s + (Number(p.mentions) || 0), 0),
+        ai_search_volume: platforms.reduce((s, p) => s + (Number(p.ai_search_volume) || 0), 0),
+      };
+    });
+
+    const res: LlmTopPagesResult = { pages, totalCount: pages.length, cached: false };
+    await setDfCache(cacheKey, res as unknown as Record<string, unknown>, "0.001");
+    return res;
+  } catch {
+    return empty;
+  }
+}
+
+// ─── LLM Search Topics ─────────────────────────────────────────────────────────
+
+export interface LlmSearchTopic {
+  question: string;
+  platform: string;
+  model_name: string;
+  ai_search_volume: number;
+  location_code: number;
+}
+
+export interface LlmSearchTopicsResult {
+  items: LlmSearchTopic[];
+  totalCount: number;
+  cached: boolean;
+}
+
+export async function getLlmSearchTopics(
+  domain: string,
+  dateFrom: string,
+  dateTo: string,
+  filter: "include" | "exclude" = "include",
+  limit = 50,
+): Promise<LlmSearchTopicsResult> {
+  const empty: LlmSearchTopicsResult = { items: [], totalCount: 0, cached: false };
+  const login = process.env.DATAFORSEO_LOGIN ?? "";
+  const password = process.env.DATAFORSEO_PASSWORD ?? "";
+  if (!login || !password) return empty;
+
+  const cacheKey = `llm_topics:${domain}:${dateFrom}:${dateTo}:${filter}:${limit}`;
+  const cached = await getDfCache(cacheKey);
+  if (cached) return { ...(cached as unknown as LlmSearchTopicsResult), cached: true };
+
+  try {
+    const auth = getAuthHeader();
+    const resp = await fetch(`${DATAFORSEO_BASE}/v3/ai_optimization/llm_mentions/search/live`, {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify([{
+        target: [{ domain, search_filter: filter, search_scope: ["sources"] }],
+        date_from: dateFrom,
+        date_to: dateTo,
+        language_code: "en",
+        order_by: ["ai_search_volume,desc"],
+        limit,
+      }]),
+    });
+    const data = await resp.json() as Record<string, unknown>;
+    const tasks = (data.tasks as Array<Record<string, unknown>>) ?? [];
+    const taskResult = (tasks[0]?.result as Array<Record<string, unknown>>)?.[0];
+    if (!taskResult) return empty;
+
+    const totalCount = Number(taskResult.total_count ?? 0);
+    const items = (taskResult.items as Array<Record<string, unknown>>) ?? [];
+    const topics: LlmSearchTopic[] = items.map(item => ({
+      question: String(item.question ?? ""),
+      platform: String(item.platform ?? ""),
+      model_name: String(item.model_name ?? ""),
+      ai_search_volume: Number(item.ai_search_volume ?? 0),
+      location_code: Number(item.location_code ?? 2840),
+    }));
+
+    const res: LlmSearchTopicsResult = { items: topics, totalCount, cached: false };
+    await setDfCache(cacheKey, res as unknown as Record<string, unknown>, "0.002");
+    return res;
+  } catch {
+    return empty;
+  }
+}
