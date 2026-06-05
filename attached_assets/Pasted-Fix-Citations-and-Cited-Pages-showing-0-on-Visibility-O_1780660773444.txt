@@ -1,0 +1,224 @@
+Fix Citations and Cited Pages showing 0 on 
+Visibility Overview. Also fix platform labels.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 1: CITATIONS — Run domain call for BOTH platforms
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DataForSEO requires separate calls per platform.
+Run aggregated_metrics twice for domain target:
+
+// Call for Google AI Overview citations
+const googleCitations = await dfsPost(
+  '/v3/ai_optimization/llm_mentions/aggregated_metrics/live',
+  [{
+    "target": [{ 
+      "domain": "primevideo.com",
+      "search_scope": ["sources"]
+    }],
+    "platform": "google",
+    "date_from": "2025-12-07",
+    "date_to": "2026-06-05",
+    "language_code": "en"
+  }]
+)
+
+// Call for ChatGPT citations  
+const chatgptCitations = await dfsPost(
+  '/v3/ai_optimization/llm_mentions/aggregated_metrics/live',
+  [{
+    "target": [{
+      "domain": "primevideo.com", 
+      "search_scope": ["sources"]
+    }],
+    "platform": "chat_gpt",
+    "date_from": "2025-12-07",
+    "date_to": "2026-06-05",
+    "language_code": "en"
+  }]
+)
+
+// Combine both
+const totalCitations = 
+  (googleCitations.tasks[0].result[0]?.metrics?.mentions || 0) +
+  (chatgptCitations.tasks[0].result[0]?.metrics?.mentions || 0)
+
+const totalCitedPages = 
+  (googleCitations.tasks[0].result[0]?.metrics?.cited_pages || 0) +
+  (chatgptCitations.tasks[0].result[0]?.metrics?.cited_pages || 0)
+
+console.log('Google citations:', googleCitations.tasks[0].result[0]?.metrics)
+console.log('ChatGPT citations:', chatgptCitations.tasks[0].result[0]?.metrics)
+console.log('Total citations:', totalCitations)
+console.log('Total cited pages:', totalCitedPages)
+
+Show in KPI cards:
+Citations = totalCitations
+Cited Pages = totalCitedPages
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 2: CITED PAGES — Run top_pages endpoint
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Run top_pages for both platforms:
+
+const googlePages = await dfsPost(
+  '/v3/ai_optimization/llm_mentions/top_pages/live',
+  [{
+    "target": [{ "domain": "primevideo.com" }],
+    "platform": "google",
+    "date_from": "2025-12-07",
+    "date_to": "2026-06-05",
+    "language_code": "en",
+    "limit": 50
+  }]
+)
+
+const chatgptPages = await dfsPost(
+  '/v3/ai_optimization/llm_mentions/top_pages/live',
+  [{
+    "target": [{ "domain": "primevideo.com" }],
+    "platform": "chat_gpt",
+    "date_from": "2025-12-07",
+    "date_to": "2026-06-05",
+    "language_code": "en",
+    "limit": 50
+  }]
+)
+
+// Merge both page lists
+const allPages = [
+  ...(googlePages.tasks[0].result[0]?.items || []),
+  ...(chatgptPages.tasks[0].result[0]?.items || [])
+]
+
+// Deduplicate by URL, sum prompt counts
+const pageMap = {}
+allPages.forEach(p => {
+  const url = p.page_url || p.url
+  if (pageMap[url]) {
+    pageMap[url].prompts += p.mentions || p.prompts || 0
+  } else {
+    pageMap[url] = { 
+      url, 
+      prompts: p.mentions || p.prompts || 0 
+    }
+  }
+})
+
+const citedPagesList = Object.values(pageMap)
+  .sort((a,b) => b.prompts - a.prompts)
+
+Show in Cited Pages tab:
+URL | Number of Prompts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 3: PLATFORM LABELS — Only show what exists
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+IMPORTANT: DataForSEO LLM Mentions API currently 
+ONLY has data for 2 platforms:
+- "google" = Google AI Overview
+- "chat_gpt" = ChatGPT (US, GPT-5)
+
+Gemini and AI Mode are NOT available in DataForSEO.
+Do NOT show empty rows for Gemini/AI Mode.
+
+Fix Distribution by LLM to only show platforms 
+that have data > 0:
+
+const platforms = [
+  { key: "google", label: "AI Overview (Google)", color: "#4285f4" },
+  { key: "chat_gpt", label: "ChatGPT", color: "#10a37f" }
+]
+
+For each platform, run cross_aggregated_metrics:
+[{
+  "target": [{ 
+    "keyword": brandName,
+    "search_scope": ["answer"]
+  }],
+  "platform": platform.key,
+  "date_from": "2025-12-07",
+  "date_to": "2026-06-05",
+  "group_by": "llm_name"
+}]
+
+Calculate % share between the 2 platforms.
+Show only rows where mentions > 0.
+
+Add a note under the chart:
+"Data source: Google AI Overview + ChatGPT (GPT-5)
+Gemini and AI Mode data coming soon."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 4: KEYWORD MENTIONS — Also run per platform
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current keyword call has no platform filter.
+Run it for both platforms and sum:
+
+const googleMentions = await dfsPost(
+  '/v3/ai_optimization/llm_mentions/aggregated_metrics/live',
+  [{
+    "target": [{ 
+      "keyword": brandName,
+      "search_scope": ["answer"]
+    }],
+    "platform": "google",
+    "date_from": "2025-12-07",
+    "date_to": "2026-06-05"
+  }]
+)
+
+const chatgptMentions = await dfsPost(
+  '/v3/ai_optimization/llm_mentions/aggregated_metrics/live', 
+  [{
+    "target": [{
+      "keyword": brandName,
+      "search_scope": ["answer"]
+    }],
+    "platform": "chat_gpt",
+    "date_from": "2025-12-07",
+    "date_to": "2026-06-05"
+  }]
+)
+
+const totalMentions = 
+  (googleMentions.tasks[0].result[0]?.metrics?.mentions || 0) +
+  (chatgptMentions.tasks[0].result[0]?.metrics?.mentions || 0)
+
+const totalAIVolume =
+  (googleMentions.tasks[0].result[0]?.metrics?.impressions || 0) +
+  (chatgptMentions.tasks[0].result[0]?.metrics?.impressions || 0)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 5: SCORE RECALCULATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Now that we have real citations, update score:
+
+const mentionScore  = Math.min(totalMentions / 200000, 1) * 40
+const citationScore = Math.min(totalCitations / 100000, 1) * 40
+const pageScore     = Math.min(totalCitedPages / 5000, 1) * 20
+const score = Math.min(100, Math.round(
+  mentionScore + citationScore + pageScore
+))
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AFTER FIX — CLEAR CACHE AND TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Delete cached data for primevideo.com:
+DELETE FROM dataforseo_cache 
+WHERE cache_key LIKE '%primevideo%'
+
+Rescan primevideo.com. Expected results:
+- Citations: real number (not 0)
+- Cited Pages: real number (not 0)  
+- Distribution by LLM: 2 platforms clearly labeled
+- Note under chart about Gemini coming soon
+- Score: updated based on all 3 metrics
+
+console.log every API response so we can 
+debug if anything still shows 0.

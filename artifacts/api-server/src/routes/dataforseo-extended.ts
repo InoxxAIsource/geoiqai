@@ -20,7 +20,6 @@ import {
   getLlmTopPagesList,
   getLlmSearchTopics,
   getLlmKeywordAggMetrics,
-  getLlmCrossAggByGroup,
 } from "../lib/dataforseo";
 import { runAuditEngine } from "../lib/audit-engine";
 import { db, citationsTable, keywordCacheTable, auditsTable } from "@workspace/db";
@@ -707,95 +706,104 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
   req.log.info({ domain: bareD, brandName, candidates }, "visibility-overview: starting");
 
   try {
-    // Round 1: keyword candidate selection + domain + pages (all parallel)
-    // We try up to 2 keyword variants and pick the one with the most mentions
+    // Round 1: all parallel — keyword candidates per platform + domain citations + cited pages
+    // DataForSEO only has data for 2 platforms: "google" (AI Overview) and "chat_gpt" (ChatGPT)
     const round1 = await Promise.all([
-      getLlmKeywordAggMetrics(candidates[0]!, sixMonthsAgo, today),              // keyword candidate 1
-      candidates[1] ? getLlmKeywordAggMetrics(candidates[1], sixMonthsAgo, today) : Promise.resolve(null), // candidate 2
-      getLlmAggregatedMetrics(bareD, sixMonthsAgo, today),                       // domain URL citations
-      getLlmTopPagesList(bareD, sixMonthsAgo, today, 50),                        // cited pages
+      getLlmKeywordAggMetrics(candidates[0]!, sixMonthsAgo, today, "google"),
+      getLlmKeywordAggMetrics(candidates[0]!, sixMonthsAgo, today, "chat_gpt"),
+      candidates[1] ? getLlmKeywordAggMetrics(candidates[1], sixMonthsAgo, today, "google")    : Promise.resolve(null),
+      candidates[1] ? getLlmKeywordAggMetrics(candidates[1], sixMonthsAgo, today, "chat_gpt")  : Promise.resolve(null),
+      getLlmAggregatedMetrics(bareD, sixMonthsAgo, today, "google"),
+      getLlmAggregatedMetrics(bareD, sixMonthsAgo, today, "chat_gpt"),
+      getLlmTopPagesList(bareD, sixMonthsAgo, today, 50, "google"),
+      getLlmTopPagesList(bareD, sixMonthsAgo, today, 50, "chat_gpt"),
     ]);
-    const [kwAgg1, kwAgg2, domainAgg, pagesData] = round1;
+    const [kw1Google, kw1Chatgpt, kw2Google, kw2Chatgpt, domainGoogle, domainChatgpt, pagesGoogle, pagesChatgpt] = round1;
 
-    // Pick best keyword variant by mentions count
-    const kwAgg = (kwAgg2 && kwAgg2.mentions > kwAgg1.mentions) ? kwAgg2 : kwAgg1;
-    const bestKeyword = (kwAgg2 && kwAgg2.mentions > kwAgg1.mentions) ? candidates[1]! : candidates[0]!;
+    // Pick best keyword: compare total mentions across both platforms
+    const kw1Total = kw1Google.mentions + kw1Chatgpt.mentions;
+    const kw2Total = (kw2Google?.mentions ?? 0) + (kw2Chatgpt?.mentions ?? 0);
+    const useKw2 = kw2Total > kw1Total;
+    const bestKeyword = useKw2 ? candidates[1]! : candidates[0]!;
+    const kwGoogle = useKw2 ? kw2Google! : kw1Google;
+    const kwChatgpt = useKw2 ? kw2Chatgpt! : kw1Chatgpt;
 
-    // Round 2: topics + LLM distribution using the best keyword (parallel)
-    const [performingData, opportunitiesData, llmDist] = await Promise.all([
-      getLlmSearchTopics(bestKeyword, sixMonthsAgo, today, "include", 50),   // performing topics
-      getLlmSearchTopics(bestKeyword, sixMonthsAgo, today, "exclude", 30),   // topic opportunities
-      getLlmCrossAggByGroup(bestKeyword, sixMonthsAgo, today, "llm_name"),   // per-LLM breakdown
+    // Round 2: topics using the best keyword (parallel)
+    const [performingData, opportunitiesData] = await Promise.all([
+      getLlmSearchTopics(bestKeyword, sixMonthsAgo, today, "include", 50),
+      getLlmSearchTopics(bestKeyword, sixMonthsAgo, today, "exclude", 30),
     ]);
 
-    // CALL A: brand keyword mentions (keyword appearing in AI answer text)
-    const mentions = kwAgg.mentions;
-    const aiSearchVolume = kwAgg.aiSearchVolume;
-    const kwTotal = kwAgg.total;
+    // Keyword mentions: sum from both platforms
+    const googleMentions  = kwGoogle.mentions;
+    const chatgptMentions = kwChatgpt.mentions;
+    const mentions        = googleMentions + chatgptMentions;
+    const aiSearchVolume  = kwGoogle.aiSearchVolume + kwChatgpt.aiSearchVolume;
 
-    // CALL B: domain URL citations
-    const domainTotal = domainAgg.total;
-    const domainPlatforms = domainTotal?.platform ?? [];
-    const citations = domainPlatforms.reduce((s, p) => s + ((p as { mentions: number }).mentions || 0), 0);
-    const citedPagesCount = pagesData.pages.length;
+    // Domain citations: sum from both platforms (from search_scope: ["sources"])
+    const citations   = domainGoogle.mentions + domainChatgpt.mentions;
+    const citedPagesFromMetrics = domainGoogle.citedPages + domainChatgpt.citedPages;
+
+    // Cited pages: merge both platform page lists, deduplicate by URL, sum mentions
+    const allPages = [...pagesGoogle.pages, ...pagesChatgpt.pages];
+    const pageMap = new Map<string, { url: string; mentions: number; ai_search_volume: number }>();
+    for (const page of allPages) {
+      const existing = pageMap.get(page.url);
+      if (existing) {
+        existing.mentions += page.mentions;
+        existing.ai_search_volume += page.ai_search_volume;
+      } else {
+        pageMap.set(page.url, { ...page });
+      }
+    }
+    const mergedPages = [...pageMap.values()].sort((a, b) => b.mentions - a.mentions);
+    const citedPagesCount = citedPagesFromMetrics > 0 ? citedPagesFromMetrics : mergedPages.length;
 
     req.log.info({
       brandName,
       bestKeyword,
+      kw1Total,
+      kw2Total,
+      googleMentions,
+      chatgptMentions,
       mentions,
-      aiSearchVolume,
       citations,
       citedPagesCount,
-      llmDistItems: llmDist.items.map(i => ({ key: i.aggregationKey, mentions: i.mentions })),
-      kwPlatforms: (kwTotal?.platform ?? []).map((p: unknown) => {
-        const pp = p as { key: string; mentions: number };
-        return { key: pp.key, mentions: pp.mentions };
-      }),
-      kwLocations: (kwTotal?.location ?? []).length,
+      domainGoogleMentions: domainGoogle.mentions,
+      domainChatgptMentions: domainChatgpt.mentions,
     }, "visibility-overview: raw results");
 
-    // Score formula: log-scale on keyword mentions (primary signal)
-    // 1K ~28, 10K ~44, 100K ~60, 1M ~78, 2M+ ~83
-    const mentionScore = mentions > 0
-      ? Math.min(Math.log10(mentions) / Math.log10(5000000) * 85, 85)
-      : 0;
-    // Bonus from domain citations (log scale, up to 10 pts)
-    const citationBonus = citations > 0
-      ? Math.min(Math.log10(citations) / Math.log10(10000) * 10, 10)
-      : 0;
-    // Bonus from cited pages (up to 5 pts)
-    const pageBonus = Math.min(citedPagesCount / 100, 1) * 5;
+    // Score formula (spec): mention(40) + citation(40) + page(20)
+    // 200K mentions = full mention score; 100K citations = full citation score; 5K pages = full page score
+    const mentionScore  = Math.min(mentions  / 200_000, 1) * 40;
+    const citationScore = Math.min(citations / 100_000, 1) * 40;
+    const pageScore     = Math.min(citedPagesCount / 5_000, 1) * 20;
     const score = (mentions + citations) === 0 ? 0
-      : Math.min(100, Math.round(mentionScore + citationBonus + pageBonus));
+      : Math.min(100, Math.round(mentionScore + citationScore + pageScore));
 
-    // Platforms: prefer cross_agg result (more platforms), fall back to kwAgg.total.platform
-    const crossAggItems = llmDist.items.length > 0
-      ? llmDist.items.map(i => ({ key: i.aggregationKey, mentions: i.mentions, ai_search_volume: i.aiSearchVolume }))
-      : null;
-    const kwPlatforms = (kwTotal?.platform ?? []) as Array<{ key: string; mentions: number; ai_search_volume: number }>;
-    const rawPlatforms = crossAggItems
-      ?? (kwPlatforms.length > 0 ? kwPlatforms : domainPlatforms.map(p => {
-          const pp = p as { key: string; mentions: number; ai_search_volume: number };
-          return { key: pp.key, mentions: pp.mentions, ai_search_volume: pp.ai_search_volume };
-        }));
+    // Platform distribution: directly from per-platform keyword calls
+    // Only show platforms with data > 0 (DataForSEO only has google + chat_gpt)
+    const rawPlatforms = [
+      { key: "google",   mentions: googleMentions,  ai_search_volume: kwGoogle.aiSearchVolume },
+      { key: "chat_gpt", mentions: chatgptMentions, ai_search_volume: kwChatgpt.aiSearchVolume },
+    ].filter(p => p.mentions > 0);
     const maxPlatMentions = Math.max(...rawPlatforms.map(p => p.mentions), 1);
-    const platformData = [...rawPlatforms]
+    const platformData = rawPlatforms
       .sort((a, b) => b.mentions - a.mentions)
       .map(p => ({
         key: p.key,
         displayName: PLATFORM_NAMES[p.key] ?? p.key,
         color: PLATFORM_COLORS[p.key] ?? "#6B7280",
         mentions: p.mentions,
-        ai_search_volume: p.ai_search_volume ?? 0,
+        ai_search_volume: p.ai_search_volume,
         pct: Math.round((p.mentions / maxPlatMentions) * 100),
       }));
 
-    // Countries from keyword breakdown (fallback to domain location)
+    // Countries: from keyword agg total breakdown (google platform preferred for volume)
+    const kwTotal = kwGoogle.total ?? kwChatgpt.total;
     const kwLocations = (kwTotal?.location ?? []) as Array<{ key: string; mentions: number }>;
-    const rawLocations = kwLocations.length > 0 ? kwLocations
-      : (domainTotal?.location ?? []) as Array<{ key: string; mentions: number }>;
-    const totalLocMentions = Math.max(rawLocations.reduce((s, l) => s + (l.mentions || 0), 0), 1);
-    const countries = [...rawLocations]
+    const totalLocMentions = Math.max(kwLocations.reduce((s, l) => s + (l.mentions || 0), 0), 1);
+    const countries = [...kwLocations]
       .sort((a, b) => b.mentions - a.mentions)
       .slice(0, 10)
       .map(l => ({
@@ -805,7 +813,8 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
         pct: Math.round((l.mentions / totalLocMentions) * 100),
       }));
 
-    // Cited sources from domain breakdown (domain-based, more relevant than keyword sources)
+    // Cited sources from domain breakdown
+    const domainTotal = domainGoogle.total ?? domainChatgpt.total;
     const sourcesDomain = (domainTotal?.sources_domain ?? []) as Array<{ key: string; mentions: number; ai_search_volume: number }>;
     const citedSources = [...sourcesDomain]
       .sort((a, b) => b.mentions - a.mentions)
@@ -813,7 +822,7 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
       .map(s => ({ domain: s.key, mentions: s.mentions, ai_search_volume: s.ai_search_volume }));
 
     const hasData = mentions > 0 || citations > 0;
-    req.log.info({ domain: bareD, brandName, bestKeyword, score, mentions, citations, citedPagesCount, hasData }, "visibility-overview: done");
+    req.log.info({ domain: bareD, bestKeyword, score, mentions, citations, citedPagesCount, hasData }, "visibility-overview: done");
 
     res.json({
       domain: bareD,
@@ -825,16 +834,18 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
       citedPagesCount,
       hasData,
       platforms: platformData,
+      // Note shown in UI under the platform chart
+      platformsNote: "Data source: Google AI Overview + ChatGPT (GPT-5). Gemini and Perplexity data coming soon.",
       countries,
       citedSources,
-      citedPages: pagesData.pages.slice(0, 50),
+      citedPages: mergedPages.slice(0, 50),
       performingTopics: performingData.items,
       performingTopicsCount: performingData.totalCount,
       topicOpportunities: opportunitiesData.items,
       topicOpportunitiesCount: opportunitiesData.totalCount,
       dateFrom: sixMonthsAgo,
       dateTo: today,
-      cached: kwAgg.cached && domainAgg.cached,
+      cached: false,
     });
   } catch (err) {
     req.log.error({ err, domain }, "visibility-overview error");

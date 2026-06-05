@@ -23,6 +23,7 @@ interface VisibilityData {
   citedPagesCount: number;
   hasData: boolean;
   platforms: PlatformRow[];
+  platformsNote?: string;
   countries: CountryRow[];
   citedSources: CitedSource[];
   citedPages: CitedPage[];
@@ -401,6 +402,9 @@ export function VisibilityOverview({
                       <div style={{ width: 48, textAlign: "right", fontSize: 13, fontWeight: 600, color: "#111827" }}>{fmt(p.mentions)}</div>
                     </div>
                   ))
+                )}
+                {d.platformsNote && (
+                  <div style={{ marginTop: 12, fontSize: 11, color: MUTED, lineHeight: 1.5 }}>{d.platformsNote}</div>
                 )}
               </div>
 

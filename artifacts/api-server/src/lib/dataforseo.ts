@@ -2382,42 +2382,64 @@ interface LlmAggTotal {
 
 export interface LlmAggResult {
   total: LlmAggTotal | null;
+  mentions: number;      // direct: times this domain was cited in AI answers
+  citedPages: number;    // direct: number of unique URLs cited
   cached: boolean;
 }
 
+/**
+ * Fetches domain citation metrics from the LLM Mentions API.
+ * When platform is specified ("google" | "chat_gpt"), fetches for that platform only.
+ * Returns both the full total breakdown and direct mention/citedPages counts.
+ */
 export async function getLlmAggregatedMetrics(
   domain: string,
   dateFrom: string,
   dateTo: string,
+  platform?: "google" | "chat_gpt",
 ): Promise<LlmAggResult> {
-  const empty: LlmAggResult = { total: null, cached: false };
+  const empty: LlmAggResult = { total: null, mentions: 0, citedPages: 0, cached: false };
   const login = process.env.DATAFORSEO_LOGIN ?? "";
   const password = process.env.DATAFORSEO_PASSWORD ?? "";
   if (!login || !password) return empty;
 
-  const cacheKey = `llm_agg:${domain}:${dateFrom}:${dateTo}`;
+  const cacheKey = `llm_agg:${platform ?? "all"}:${domain}:${dateFrom}:${dateTo}`;
   const cached = await getDfCache(cacheKey);
   if (cached) return { ...(cached as unknown as LlmAggResult), cached: true };
 
   try {
     const auth = getAuthHeader();
+    const body: Record<string, unknown> = {
+      target: [{ domain, search_scope: ["sources"] }],
+      date_from: dateFrom,
+      date_to: dateTo,
+      language_code: "en",
+    };
+    if (platform) body.platform = platform;
+
     const resp = await fetch(`${DATAFORSEO_BASE}/v3/ai_optimization/llm_mentions/aggregated_metrics/live`, {
       method: "POST",
       headers: auth,
-      body: JSON.stringify([{
-        target: [{ domain, search_filter: "include" }],
-        date_from: dateFrom,
-        date_to: dateTo,
-        include_subdomains: true,
-      }]),
+      body: JSON.stringify([body]),
     });
     const data = await resp.json() as Record<string, unknown>;
     const tasks = (data.tasks as Array<Record<string, unknown>>) ?? [];
-    const taskResult = (tasks[0]?.result as Array<Record<string, unknown>>)?.[0];
-    const statusCode = tasks[0]?.status_code;
+    const task = tasks[0];
+    const taskResult = (task?.result as Array<Record<string, unknown>>)?.[0];
+    const statusCode = Number(task?.status_code ?? 0);
     if (statusCode !== 20000 || !taskResult) return empty;
-    await setDfCache(cacheKey, taskResult as Record<string, unknown>, "0.001");
-    return { total: (taskResult.total as LlmAggTotal) ?? null, cached: false };
+
+    // DataForSEO always returns result[0].total (never result[0].metrics for domain targets).
+    // When platform is specified, total.platform[] has exactly one entry for that platform.
+    const total = taskResult.total as LlmAggTotal | undefined;
+    const platforms = (total?.platform ?? []) as Array<{ key: string; mentions: number }>;
+    const mentions = platforms.reduce((s, p) => s + (p.mentions || 0), 0);
+    // cited_pages is not returned by aggregated_metrics; use top_pages count separately
+    const citedPages = 0;
+
+    const res: LlmAggResult = { total: total ?? null, mentions, citedPages, cached: false };
+    await setDfCache(cacheKey, res as unknown as Record<string, unknown>, "0.001");
+    return res;
   } catch {
     return empty;
   }
@@ -2442,28 +2464,32 @@ export async function getLlmTopPagesList(
   dateFrom: string,
   dateTo: string,
   limit = 50,
+  platform?: "google" | "chat_gpt",
 ): Promise<LlmTopPagesResult> {
   const empty: LlmTopPagesResult = { pages: [], totalCount: 0, cached: false };
   const login = process.env.DATAFORSEO_LOGIN ?? "";
   const password = process.env.DATAFORSEO_PASSWORD ?? "";
   if (!login || !password) return empty;
 
-  const cacheKey = `llm_pages:${domain}:${dateFrom}:${dateTo}:${limit}`;
+  const cacheKey = `llm_pages:${platform ?? "all"}:${domain}:${dateFrom}:${dateTo}:${limit}`;
   const cached = await getDfCache(cacheKey);
   if (cached) return { ...(cached as unknown as LlmTopPagesResult), cached: true };
 
   try {
     const auth = getAuthHeader();
+    const body: Record<string, unknown> = {
+      target: [{ domain, search_filter: "include" }],
+      date_from: dateFrom,
+      date_to: dateTo,
+      language_code: "en",
+      limit,
+    };
+    if (platform) body.platform = platform;
+
     const resp = await fetch(`${DATAFORSEO_BASE}/v3/ai_optimization/llm_mentions/top_pages/live`, {
       method: "POST",
       headers: auth,
-      body: JSON.stringify([{
-        target: [{ domain, search_filter: "include" }],
-        date_from: dateFrom,
-        date_to: dateTo,
-        include_subdomains: true,
-        limit,
-      }]),
+      body: JSON.stringify([body]),
     });
     const data = await resp.json() as Record<string, unknown>;
     const tasks = (data.tasks as Array<Record<string, unknown>>) ?? [];
@@ -2578,26 +2604,30 @@ export async function getLlmKeywordAggMetrics(
   brandName: string,
   dateFrom: string,
   dateTo: string,
+  platform?: "google" | "chat_gpt",
 ): Promise<LlmKeywordAggResult> {
   const empty: LlmKeywordAggResult = { total: null, mentions: 0, aiSearchVolume: 0, cached: false };
   const login = process.env.DATAFORSEO_LOGIN ?? "";
   const password = process.env.DATAFORSEO_PASSWORD ?? "";
   if (!login || !password || !brandName) return empty;
 
-  const cacheKey = `llm_kw_agg:${brandName}:${dateFrom}:${dateTo}`;
+  const cacheKey = `llm_kw_agg:${platform ?? "all"}:${brandName}:${dateFrom}:${dateTo}`;
   const cached = await getDfCache(cacheKey);
   if (cached) return { ...(cached as unknown as LlmKeywordAggResult), cached: true };
 
   try {
     const auth = getAuthHeader();
+    const body: Record<string, unknown> = {
+      target: [{ keyword: brandName, search_scope: ["answer"] }],
+      date_from: dateFrom,
+      date_to: dateTo,
+    };
+    if (platform) body.platform = platform;
+
     const resp = await fetch(`${DATAFORSEO_BASE}/v3/ai_optimization/llm_mentions/aggregated_metrics/live`, {
       method: "POST",
       headers: auth,
-      body: JSON.stringify([{
-        target: [{ keyword: brandName, search_scope: ["answer"] }],
-        date_from: dateFrom,
-        date_to: dateTo,
-      }]),
+      body: JSON.stringify([body]),
     });
     const data = await resp.json() as Record<string, unknown>;
     const tasks = (data.tasks as Array<Record<string, unknown>>) ?? [];
@@ -2608,14 +2638,11 @@ export async function getLlmKeywordAggMetrics(
 
     const total = taskResult.total as LlmAggTotal | undefined;
 
-    // mentions = sum of platform[].mentions (keyword appearing in AI answer text per LLM)
-    const platforms = total?.platform ?? [];
-    const mentions = (platforms as Array<{ mentions: number }>).reduce((s, p) => s + (p.mentions || 0), 0);
-
-    // AI search volume from language["en"].ai_search_volume
-    const langArr = (total?.language ?? []) as Array<{ key: string; ai_search_volume?: number }>;
-    const enLang = langArr.find(l => String(l.key) === "en") ?? langArr[0];
-    const aiSearchVolume = enLang?.ai_search_volume ?? 0;
+    // DataForSEO always uses result[0].total (never metrics).
+    // When platform is specified, total.platform[] has exactly one entry.
+    const platformArr = (total?.platform ?? []) as Array<{ key: string; mentions: number; ai_search_volume?: number }>;
+    const mentions = platformArr.reduce((s, p) => s + (p.mentions || 0), 0);
+    const aiSearchVolume = platformArr.reduce((s, p) => s + (p.ai_search_volume || 0), 0);
 
     const res: LlmKeywordAggResult = { total: total ?? null, mentions, aiSearchVolume, cached: false };
     await setDfCache(cacheKey, res as unknown as Record<string, unknown>, "0.001");
