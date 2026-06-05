@@ -664,20 +664,30 @@ function extractBrandName(domain: string): string {
  * "hotstar" -> ["hotstar"]
  * "netflix" -> ["netflix"]
  */
+/**
+ * High-confidence suffixes: these words appear in genuine multi-word product names
+ * and almost never form the tail of a single-word brand.
+ *
+ * Examples of correct splits:
+ *   primevideo   -> prime video      disneyplus  -> disney plus
+ *   googlepay    -> google pay       googlemaps  -> google maps
+ *   appletv      -> apple tv         googleplay  -> google play
+ *   microsoftstore -> microsoft store  paramountplus -> paramount plus
+ *
+ * Deliberately excluded (too ambiguous, self-corrects via mention count anyway):
+ *   tube  (youtube), box (dropbox), hub (github), chat (snapchat),
+ *   mail  (hotmail), cloud (soundcloud), app (whatsapp), works (freshworks),
+ *   base, space, desk, book, news, line, link, go, now, max, live, pass
+ */
+const COMPOUND_SUFFIXES = ["video", "plus", "pay", "maps", "store", "music", "play", "tv", "shop"];
+
 function brandKeywordCandidates(brandName: string): string[] {
   const candidates = [brandName];
-  // Detect compound-word domains by checking for common words at end or start
-  const knownWords = [
-    "video", "media", "music", "store", "shop", "hub", "app", "box",
-    "plus", "now", "pass", "live", "pay", "go", "max", "tv", "tube",
-    "cloud", "mail", "maps", "meet", "chat", "news", "play", "voice",
-    "works", "book", "base", "space", "gate", "line", "link", "desk",
-  ];
-  for (const word of knownWords) {
-    if (brandName.endsWith(word) && brandName.length > word.length + 2) {
-      const prefix = brandName.slice(0, brandName.length - word.length);
-      candidates.push(`${prefix} ${word}`);
-      break;
+  for (const suffix of COMPOUND_SUFFIXES) {
+    // Prefix must be >= 3 chars so we don't split very short names
+    if (brandName.endsWith(suffix) && brandName.length - suffix.length >= 3) {
+      candidates.push(brandName.slice(0, -suffix.length) + " " + suffix);
+      break; // only one variant
     }
   }
   return candidates;
