@@ -849,19 +849,12 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
       domainChatgptMentions: domainChatgpt.mentions,
     }, "visibility-overview: raw results");
 
-    // Score formula: log-scale so large domains don't trivially max out
-    // mentionScore(40): log10(mentions) / log10(10M) * 40
-    // citationScore(40): log10(citationsper100 * 1000) / 4 * 40 — 1 citation per 100 mentions = full score
-    // pageScore(20): citedPages / 50 * 20
-    const mentionScore = mentions === 0 ? 0
-      : Math.min(Math.log10(Math.max(mentions, 1)) / Math.log10(10_000_000) * 40, 40);
-    const citationPer100 = (citations / Math.max(mentions, 1)) * 100;
-    const citationScore = citations === 0 ? 0
-      : Math.min(Math.log10(Math.max(citationPer100 * 10000, 1)) / 2 * 40, 40);
-    req.log.info({ mentions, citations, citedPages: citedPagesCount, citationPer100, mentionScore, citationScore, pageScore: Math.min(citedPagesCount / 50 * 20, 20), finalScore: Math.min(100, Math.round(mentionScore + citationScore + Math.min(citedPagesCount / 50 * 20, 20))) }, "SCORE DEBUG");
-    const pageScore = Math.min(citedPagesCount / 50 * 20, 20);
-    const score = (mentions + citations) === 0 ? 0
-      : Math.min(100, Math.round(mentionScore + citationScore + pageScore));
+    // Score formula: mentions carry 60%, citations bonus 30%, cited pages bonus 10%
+    const mentionScore  = Math.min(Math.log10(Math.max(mentions, 1)) / Math.log10(5_000_000) * 60, 60);
+    const citationBonus = Math.min(Math.log10(Math.max(citations, 1)) / Math.log10(1_000) * 30, 30);
+    const pageBonus     = Math.min(Math.log10(Math.max(citedPagesCount, 1)) / Math.log10(100) * 10, 10);
+    const score = mentions === 0 ? 0 : Math.min(100, Math.round(mentionScore + citationBonus + pageBonus));
+    req.log.info({ mentions, citations, citedPages: citedPagesCount, mentionScore, citationBonus, pageBonus, finalScore: score }, "SCORE DEBUG");
 
     // Platform distribution: directly from per-platform keyword calls
     // Only show platforms with data > 0 (DataForSEO only has google + chat_gpt)
