@@ -240,6 +240,66 @@ async function getCitedSourcesFromCache(domain: string): Promise<Array<{ domain:
   }
 }
 
+// ─── Suggest competitors ────────────────────────────────────────────────────────
+
+router.get("/brand-performance/suggest-competitors", requireAuth, async (req: AuthRequest, res): Promise<void> => {
+  const { domain } = req.query as { domain?: string };
+  if (!domain) { res.status(400).json({ error: "domain is required" }); return; }
+
+  const bareD = domain.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0]?.toLowerCase() ?? domain;
+  const brandName = extractBrandName(bareD);
+  const cacheKey = `brand_perf_competitors:${bareD}`;
+
+  // Cache check - 7 days
+  try {
+    const [row] = await db.select().from(dataforseoCacheTable).where(eq(dataforseoCacheTable.key, cacheKey)).limit(1);
+    if (row && row.expiresAt > new Date()) {
+      res.json(row.data);
+      return;
+    }
+  } catch { /* non-fatal */ }
+
+  // Sandbox mode
+  if (process.env.DATAFORSEO_SANDBOX === "true") {
+    res.json({ competitors: ["primevideo.com", "disneyplus.com", "hulu.com", "hbomax.com", "peacocktv.com"] });
+    return;
+  }
+
+  try {
+    const msg = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 256,
+      messages: [{
+        role: "user",
+        content: `What are the top 5 direct competitors of ${brandName} (${bareD})?
+Return ONLY a JSON array of their domain names, without www. prefix.
+Example: ["competitor1.com", "competitor2.com"]
+Return pure JSON only. No markdown. No backticks.`,
+      }],
+    });
+
+    const text = msg.content[0]?.type === "text" ? msg.content[0].text : "[]";
+    const competitors = parseClaudeJSON<string[]>(text) ?? [];
+    const result = { competitors: competitors.slice(0, 5) };
+
+    try {
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      await db
+        .insert(dataforseoCacheTable)
+        .values({ key: cacheKey, data: result as unknown as Record<string, unknown>, costUsd: "0.001", expiresAt })
+        .onConflictDoUpdate({
+          target: dataforseoCacheTable.key,
+          set: { data: result as unknown as Record<string, unknown>, cachedAt: new Date(), expiresAt },
+        });
+    } catch { /* non-fatal */ }
+
+    res.json(result);
+  } catch (err) {
+    req.log.error({ err, domain }, "suggest-competitors error");
+    res.json({ competitors: [] });
+  }
+});
+
 // ─── Route ─────────────────────────────────────────────────────────────────────
 
 router.post("/brand-performance", requireAuth, async (req: AuthRequest, res): Promise<void> => {
@@ -257,7 +317,8 @@ router.post("/brand-performance", requireAuth, async (req: AuthRequest, res): Pr
 
   const bareD = domain.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0]?.toLowerCase() ?? domain;
   const brandName = extractBrandName(bareD);
-  const cacheKey = `brand_perf_v2:${bareD}:${language}`;
+  const sortedCompetitors = [...competitors].sort();
+  const cacheKey = `brand_perf_v2:${bareD}:${sortedCompetitors.join(",") || "none"}:${language}`;
 
   try {
     // Paywall check

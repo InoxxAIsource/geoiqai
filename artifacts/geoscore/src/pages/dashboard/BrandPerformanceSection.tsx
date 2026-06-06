@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { getToken } from "@/lib/auth";
 import {
   PieChart, Pie, Cell, ScatterChart, Scatter, XAxis, YAxis, ZAxis,
@@ -19,6 +19,8 @@ const BG = "#F9FAFB";
 const BUBBLE_COLORS = [P, "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"];
 const DONUT_COLORS_SENTIMENT = [GREEN, "#9CA3AF", RED];
 const DONUT_COLORS_SOV = [P, "#10B981", "#F59E0B", "#EF4444", "#9CA3AF"];
+
+const MAX_COMPETITORS = 4;
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -94,6 +96,21 @@ function sentimentColor(s: string) {
   return { bg: "#FFFBEB", text: AMBER };
 }
 
+function stripDomain(raw: string): string {
+  return raw.trim().toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .split("/")[0] ?? raw.trim();
+}
+
+function isValidDomain(d: string): boolean {
+  return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i.test(d) && d.includes(".");
+}
+
+function extractDisplayName(domain: string): string {
+  return domain.replace(/\.[a-z]{2,}(\.[a-z]{2})?$/i, "");
+}
+
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
 function DonutChart({ data, colors, centerLabel, size = 160 }: {
@@ -122,7 +139,7 @@ function DonutChart({ data, colors, centerLabel, size = 160 }: {
 function TabFooter({ data }: { data: BrandPerformanceResult }) {
   return (
     <div style={{ marginTop: 24, paddingTop: 16, borderTop: `1px solid ${BORDER}`, fontSize: 12, color: MUTED }}>
-      Based on 20 AI-simulated responses · Last updated: {fmt(data.scannedAt)} · Powered by Claude AI · Next refresh available: {addDays(data.scannedAt, 30)}
+      Based on 20 AI-simulated responses - Last updated: {fmt(data.scannedAt)} - Powered by Claude AI - Next refresh available: {addDays(data.scannedAt, 30)}
       {data.isMock && (
         <span style={{ marginLeft: 8, color: AMBER, fontWeight: 600 }}>(Demo data - run a real scan to see your actual results)</span>
       )}
@@ -130,30 +147,31 @@ function TabFooter({ data }: { data: BrandPerformanceResult }) {
   );
 }
 
-function LoadingState() {
+function LoadingState({ label }: { label: string }) {
   const [step, setStep] = useState(0);
   const steps = [
-    "Generating brand prompts...",
+    label,
     "Analyzing AI responses...",
     "Building brand intelligence...",
     "Generating strategic insights...",
   ];
 
   useEffect(() => {
+    setStep(0);
     const timers = [
       setTimeout(() => setStep(1), 2000),
       setTimeout(() => setStep(2), 6000),
       setTimeout(() => setStep(3), 11000),
     ];
     return () => timers.forEach(clearTimeout);
-  }, []);
+  }, [label]);
 
   return (
     <div style={{ padding: "60px 24px", textAlign: "center" }}>
-      <div style={{ fontSize: 18, fontWeight: 700, color: "#111827", marginBottom: 8 }}>Analyzing brand perception...</div>
+      <div style={{ fontSize: 18, fontWeight: 700, color: "#111827", marginBottom: 8 }}>{label}</div>
       <div style={{ fontSize: 14, color: MUTED, marginBottom: 32 }}>This takes about 15-20 seconds</div>
       <div style={{ display: "inline-flex", flexDirection: "column", gap: 16, textAlign: "left" }}>
-        {steps.map((label, i) => {
+        {steps.map((stepLabel, i) => {
           const done = i < step;
           const active = i === step;
           return (
@@ -169,17 +187,17 @@ function LoadingState() {
                   </svg>
                 ) : active ? (
                   <div style={{ width: 10, height: 10, borderRadius: "50%", background: "white",
-                    animation: "pulse 1s ease-in-out infinite" }} />
+                    animation: "bpPulse 1s ease-in-out infinite" }} />
                 ) : null}
               </div>
               <span style={{ fontSize: 14, color: done ? "#111827" : active ? P : MUTED, fontWeight: active ? 600 : 400 }}>
-                {label}
+                {stepLabel}
               </span>
             </div>
           );
         })}
       </div>
-      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
+      <style>{`@keyframes bpPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
     </div>
   );
 }
@@ -203,6 +221,185 @@ function LockedState({ brandName, onUpgrade }: { brandName: string; onUpgrade?: 
           Upgrade to Starter
         </button>
       </div>
+    </div>
+  );
+}
+
+// ─── Competitor Input with suggestions ─────────────────────────────────────────
+
+function CompetitorInput({
+  domain,
+  competitors,
+  onAdd,
+  onRemove,
+  brandName,
+}: {
+  domain: string;
+  competitors: string[];
+  onAdd: (d: string) => void;
+  onRemove: (d: string) => void;
+  brandName: string;
+}) {
+  const [input, setInput] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [showMaxTooltip, setShowMaxTooltip] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const atMax = competitors.length >= MAX_COMPETITORS;
+
+  // Fetch suggestions once on mount
+  useEffect(() => {
+    if (!domain) return;
+    setLoadingSuggestions(true);
+    fetch(`/api/brand-performance/suggest-competitors?domain=${encodeURIComponent(domain)}`, {
+      headers: { Authorization: `Bearer ${getToken() ?? ""}` },
+    })
+      .then(r => r.json())
+      .then((body: { competitors?: string[] }) => {
+        setSuggestions(body.competitors ?? []);
+      })
+      .catch(() => setSuggestions([]))
+      .finally(() => setLoadingSuggestions(false));
+  }, [domain]);
+
+  const availableSuggestions = suggestions.filter(s => !competitors.includes(s));
+
+  const tryAdd = (raw: string) => {
+    const stripped = stripDomain(raw);
+    if (!stripped) return;
+    if (!isValidDomain(stripped)) {
+      setError(`Enter a domain like primevideo.com`);
+      return;
+    }
+    if (competitors.includes(stripped)) {
+      setError(`${stripped} is already added`);
+      return;
+    }
+    setError(null);
+    setInput("");
+    setShowDropdown(false);
+    onAdd(stripped);
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") { e.preventDefault(); tryAdd(input); }
+    if (e.key === "Escape") setShowDropdown(false);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
+        inputRef.current && !inputRef.current.contains(e.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+      {/* Brand pill */}
+      <span style={{ padding: "5px 14px", borderRadius: 999, background: P, color: "white", fontSize: 13, fontWeight: 700 }}>
+        {brandName}
+      </span>
+
+      {/* Competitor pills */}
+      {competitors.map(c => (
+        <span key={c} style={{ display: "flex", alignItems: "center", gap: 4, padding: "5px 12px", borderRadius: 999,
+          background: "#EEF2FF", color: P, fontSize: 13, fontWeight: 500 }}>
+          {extractDisplayName(c)}
+          <button onClick={() => onRemove(c)}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: P, display: "flex", alignItems: "center" }}>
+            <X size={12} />
+          </button>
+        </span>
+      ))}
+
+      {/* Add input or max indicator */}
+      {atMax ? (
+        <div style={{ position: "relative" }}
+          onMouseEnter={() => setShowMaxTooltip(true)}
+          onMouseLeave={() => setShowMaxTooltip(false)}>
+          <span style={{ fontSize: 12, color: MUTED, padding: "5px 12px", border: `1px dashed ${BORDER}`,
+            borderRadius: 999, cursor: "default", userSelect: "none" }}>
+            Max 4 competitors
+          </span>
+          {showMaxTooltip && (
+            <div style={{ position: "absolute", bottom: "calc(100% + 6px)", left: "50%", transform: "translateX(-50%)",
+              background: "#111827", color: "white", fontSize: 11, padding: "5px 10px", borderRadius: 6,
+              whiteSpace: "nowrap", pointerEvents: "none", zIndex: 20 }}>
+              Remove a competitor to add another
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={{ position: "relative" }}>
+          <div style={{ display: "flex", gap: 6 }}>
+            <input
+              ref={inputRef}
+              value={input}
+              onChange={e => { setInput(e.target.value); setError(null); }}
+              onFocus={() => setShowDropdown(true)}
+              onKeyDown={handleInputKeyDown}
+              placeholder="Add competitor domain"
+              style={{ padding: "5px 10px", borderRadius: 999,
+                border: `1px solid ${error ? RED : BORDER}`, fontSize: 13,
+                outline: "none", width: 188, color: "#111827",
+                boxShadow: error ? `0 0 0 2px ${RED}22` : "none",
+                transition: "border-color 0.15s, box-shadow 0.15s" }}
+            />
+            <button
+              onClick={() => tryAdd(input)}
+              style={{ padding: "5px 12px", borderRadius: 999, background: BG,
+                border: `1px solid ${BORDER}`, fontSize: 13, cursor: "pointer", color: "#374151",
+                fontWeight: 500 }}>
+              + Add
+            </button>
+          </div>
+
+          {/* Error message */}
+          {error && (
+            <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, fontSize: 11, color: RED, fontWeight: 500, whiteSpace: "nowrap" }}>
+              {error}
+            </div>
+          )}
+
+          {/* Suggestions dropdown */}
+          {showDropdown && (availableSuggestions.length > 0 || loadingSuggestions) && (
+            <div ref={dropdownRef} style={{
+              position: "absolute", top: "calc(100% + 8px)", left: 0, zIndex: 30,
+              background: "white", border: `1px solid ${BORDER}`, borderRadius: 10,
+              boxShadow: "0 8px 24px rgba(0,0,0,0.12)", minWidth: 220, overflow: "hidden",
+            }}>
+              <div style={{ padding: "8px 12px 6px", fontSize: 11, fontWeight: 600, color: MUTED,
+                borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 13 }}>&#128161;</span> Suggested competitors
+              </div>
+              {loadingSuggestions ? (
+                <div style={{ padding: "10px 14px", fontSize: 12, color: MUTED }}>Loading suggestions...</div>
+              ) : (
+                availableSuggestions.map(s => (
+                  <button key={s} onMouseDown={e => { e.preventDefault(); tryAdd(s); }}
+                    style={{ display: "block", width: "100%", textAlign: "left", padding: "9px 14px",
+                      fontSize: 13, color: "#374151", background: "none", border: "none", cursor: "pointer",
+                      borderBottom: `1px solid ${BORDER}` }}
+                    onMouseEnter={e => (e.currentTarget.style.background = BG)}
+                    onMouseLeave={e => (e.currentTarget.style.background = "none")}>
+                    {s}
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -312,10 +509,7 @@ function BusinessDriversTable({ data }: { data: BrandPerformanceResult }) {
           <tbody>
             {data.businessDrivers.map((d, i) => {
               const sc = sentimentColor(d.sentiment);
-              const allFreqs = [
-                d.yourFrequency,
-                ...competitors.map(c => d.competitorFrequencies?.[c] ?? 0),
-              ];
+              const allFreqs = [d.yourFrequency, ...competitors.map(c => d.competitorFrequencies?.[c] ?? 0)];
               const maxFreq = Math.max(...allFreqs);
 
               return (
@@ -413,7 +607,6 @@ function BrandPerformanceTab({ data, onTabChange }: { data: BrandPerformanceResu
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      {/* Row 1: Insights + Bubble Chart */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 4 }}>Insights</div>
@@ -485,7 +678,6 @@ function BrandPerformanceTab({ data, onTabChange }: { data: BrandPerformanceResu
         </div>
       </div>
 
-      {/* Row 2: Sentiment + SoV Donuts */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
@@ -556,10 +748,8 @@ function BrandPerformanceTab({ data, onTabChange }: { data: BrandPerformanceResu
         </div>
       </div>
 
-      {/* Business Drivers Table */}
       <BusinessDriversTable data={data} />
 
-      {/* Competitor Comparison Cards */}
       {data.competitorData.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
           {data.competitorData.map((comp, i) => {
@@ -612,7 +802,6 @@ function BrandPerformanceTab({ data, onTabChange }: { data: BrandPerformanceResu
         </div>
       )}
 
-      {/* Strategic Opportunities */}
       {data.strategicOpportunities.length > 0 && (
         <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 4 }}>AI Strategic Opportunities</div>
@@ -745,7 +934,6 @@ function PerceptionTab({ data }: { data: BrandPerformanceResult }) {
 
 function NarrativeTab({ data }: { data: BrandPerformanceResult }) {
   const [selectedAnswer, setSelectedAnswer] = useState<AnswerItem | null>(null);
-
   const totalMentions = (data.citedSources ?? []).reduce((s, c) => s + c.mentions, 0);
 
   return (
@@ -755,7 +943,6 @@ function NarrativeTab({ data }: { data: BrandPerformanceResult }) {
         <div style={{ fontSize: 14, color: MUTED }}>What shapes your brand's story in AI responses</div>
       </div>
 
-      {/* Narrative Drivers List */}
       <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 16 }}>Narrative Drivers</div>
         {data.narrativeDrivers.map((d, i) => (
@@ -775,7 +962,6 @@ function NarrativeTab({ data }: { data: BrandPerformanceResult }) {
         ))}
       </div>
 
-      {/* Top Cited Domains */}
       <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 4 }}>Top Cited Domains</div>
         <div style={{ fontSize: 13, color: MUTED, marginBottom: 16 }}>Sources AI cites when discussing your brand's category</div>
@@ -803,17 +989,13 @@ function NarrativeTab({ data }: { data: BrandPerformanceResult }) {
           </table>
         ) : (
           <div style={{ padding: "20px 0", textAlign: "center" }}>
-            <div style={{ fontSize: 13, color: MUTED, marginBottom: 12 }}>
+            <div style={{ fontSize: 13, color: MUTED }}>
               Run a Visibility Overview scan to see which domains AI cites in your category
             </div>
-            <span style={{ fontSize: 13, color: P, cursor: "pointer", fontWeight: 500 }}>
-              Go to Visibility Overview
-            </span>
           </div>
         )}
       </div>
 
-      {/* Answers Breakdown */}
       {data.answers && data.answers.length > 0 && (
         <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 4 }}>Breakdown by Questions</div>
@@ -861,7 +1043,6 @@ function NarrativeTab({ data }: { data: BrandPerformanceResult }) {
       )}
 
       {selectedAnswer && <AnswerPanel answer={selectedAnswer} onClose={() => setSelectedAnswer(null)} />}
-
       <TabFooter data={data} />
     </div>
   );
@@ -884,9 +1065,7 @@ function QuestionsTab({ data }: { data: BrandPerformanceResult }) {
     return acc;
   }, {});
 
-  const filtered = activeCategory === "all"
-    ? data.topQuestions
-    : (byCategory[activeCategory] ?? []);
+  const filtered = activeCategory === "all" ? data.topQuestions : (byCategory[activeCategory] ?? []);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -895,7 +1074,6 @@ function QuestionsTab({ data }: { data: BrandPerformanceResult }) {
         <div style={{ fontSize: 14, color: MUTED }}>Specific prompts where your brand appears in AI answers</div>
       </div>
 
-      {/* Category filter pills */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <button onClick={() => setActiveCategory("all")}
           style={{ padding: "5px 14px", borderRadius: 999, fontSize: 13, fontWeight: activeCategory === "all" ? 600 : 400,
@@ -967,15 +1145,18 @@ const TABS = [
 export function BrandPerformanceSection({ domain }: BrandPerformanceSectionProps) {
   const [data, setData] = useState<BrandPerformanceResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingLabel, setLoadingLabel] = useState("Analyzing brand perception...");
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState("performance");
   const [competitors, setCompetitors] = useState<string[]>([]);
-  const [competitorInput, setCompetitorInput] = useState("");
   const abortRef = useRef<AbortController | null>(null);
 
-  const fetchData = async (force = false, currentCompetitors = competitors) => {
+  const brandName = data?.brandName ?? extractDisplayName(domain.replace(/^www\./, "").split(".")[0] ?? domain);
+
+  const fetchData = useCallback(async (label: string, currentCompetitors: string[]) => {
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
+    setLoadingLabel(label);
     setLoading(true);
     setError(null);
     try {
@@ -985,7 +1166,7 @@ export function BrandPerformanceSection({ domain }: BrandPerformanceSectionProps
           "Content-Type": "application/json",
           Authorization: `Bearer ${getToken() ?? ""}`,
         },
-        body: JSON.stringify({ domain, competitors: currentCompetitors, language: "en", force }),
+        body: JSON.stringify({ domain, competitors: currentCompetitors, language: "en" }),
         signal: abortRef.current.signal,
       });
       if (!res.ok) {
@@ -1000,31 +1181,24 @@ export function BrandPerformanceSection({ domain }: BrandPerformanceSectionProps
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    if (domain) void fetchData();
-    return () => abortRef.current?.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [domain]);
 
-  const addCompetitor = () => {
-    const val = competitorInput.trim().toLowerCase().replace(/^www\./, "");
-    if (val && competitors.length < 4 && !competitors.includes(val)) {
-      const next = [...competitors, val];
-      setCompetitors(next);
-      setCompetitorInput("");
-      void fetchData(false, next);
-    }
-  };
+  useEffect(() => {
+    if (domain) void fetchData("Analyzing brand perception...", []);
+    return () => abortRef.current?.abort();
+  }, [domain, fetchData]);
 
-  const removeCompetitor = (c: string) => {
-    const next = competitors.filter(x => x !== c);
+  const handleAddCompetitor = (d: string) => {
+    const next = [...competitors, d];
     setCompetitors(next);
-    void fetchData(false, next);
+    void fetchData(`Updating analysis to include ${extractDisplayName(d)}...`, next);
   };
 
-  const brandName = data?.brandName ?? domain.replace(/\.[a-z]{2,}(\.[a-z]{2})?$/, "");
+  const handleRemoveCompetitor = (d: string) => {
+    const next = competitors.filter(x => x !== d);
+    setCompetitors(next);
+    void fetchData(next.length > 0 ? "Updating competitor comparison..." : "Analyzing brand perception...", next);
+  };
 
   return (
     <div style={{ padding: "0 0 40px" }}>
@@ -1036,43 +1210,19 @@ export function BrandPerformanceSection({ domain }: BrandPerformanceSectionProps
         <div style={{ fontSize: 14, color: MUTED }}>How AI systems perceive and position your brand</div>
       </div>
 
-      {/* Competitor pills */}
-      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
-        <span style={{ padding: "5px 14px", borderRadius: 999, background: P, color: "white", fontSize: 13, fontWeight: 700 }}>
-          {brandName}
-        </span>
-        {competitors.map(c => {
-          const displayName = c.replace(/\.[a-z]{2,}(\.[a-z]{2})?$/, "");
-          return (
-            <span key={c} style={{ display: "flex", alignItems: "center", gap: 4, padding: "5px 12px", borderRadius: 999,
-              background: "#EEF2FF", color: P, fontSize: 13, fontWeight: 500 }}>
-              {displayName}
-              <button onClick={() => removeCompetitor(c)}
-                style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: P, display: "flex" }}>
-                <X size={12} />
-              </button>
-            </span>
-          );
-        })}
-        {competitors.length < 4 && (
-          <form onSubmit={e => { e.preventDefault(); addCompetitor(); }} style={{ display: "flex", gap: 6 }}>
-            <input
-              value={competitorInput}
-              onChange={e => setCompetitorInput(e.target.value)}
-              placeholder="Add competitor domain"
-              style={{ padding: "5px 10px", borderRadius: 999, border: `1px solid ${BORDER}`, fontSize: 13,
-                outline: "none", width: 180, color: "#111827" }}
-            />
-            <button type="submit" style={{ padding: "5px 12px", borderRadius: 999, background: BG,
-              border: `1px solid ${BORDER}`, fontSize: 13, cursor: "pointer", color: "#374151" }}>
-              + Add
-            </button>
-          </form>
-        )}
+      {/* Competitor input */}
+      <div style={{ marginBottom: 20 }}>
+        <CompetitorInput
+          domain={domain}
+          competitors={competitors}
+          onAdd={handleAddCompetitor}
+          onRemove={handleRemoveCompetitor}
+          brandName={brandName}
+        />
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", borderBottom: `1px solid ${BORDER}`, marginBottom: 24, gap: 0 }}>
+      <div style={{ display: "flex", borderBottom: `1px solid ${BORDER}`, marginBottom: 24 }}>
         {TABS.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             style={{ padding: "10px 18px", fontSize: 14, fontWeight: tab === t.key ? 600 : 400,
@@ -1085,12 +1235,12 @@ export function BrandPerformanceSection({ domain }: BrandPerformanceSectionProps
       </div>
 
       {/* Content */}
-      {loading && <LoadingState />}
+      {loading && <LoadingState label={loadingLabel} />}
 
       {!loading && error && (
         <div style={{ padding: 24, textAlign: "center" }}>
           <div style={{ fontSize: 15, color: RED, marginBottom: 12 }}>{error}</div>
-          <button onClick={() => void fetchData()}
+          <button onClick={() => void fetchData("Analyzing brand perception...", competitors)}
             style={{ padding: "8px 18px", background: P, color: "white", border: "none",
               borderRadius: 8, fontSize: 14, cursor: "pointer", fontWeight: 600 }}>
             Retry
