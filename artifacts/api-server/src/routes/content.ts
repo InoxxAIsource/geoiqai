@@ -657,16 +657,7 @@ router.post("/content/repurpose", requireAuth, async (req: AuthRequest, res): Pr
   }
 
   const platformInstructions: Record<string, string> = {
-    twitter: `"twitter": {
-  "tweets": [
-    "Hook (must be a SPECIFIC claim, stat, or insight pulled directly from the page content below - NOT a generic statement about AI/SEO. Max 240 chars.)",
-    "1/ (specific insight from the content - reference the actual product, feature, or finding)",
-    "2/ (another concrete point from the content - include a number or stat if the content contains one)",
-    "3/ through 7/ (more specific points from the actual page content - write as the founder of this company in first person)",
-    "Final tweet: CTA with the URL ${domain ?? ""}"
-  ],
-  "imagePrompt": "Professional stock photo style image relevant to [replace with the specific company or topic from the content], no text or words in image, clean modern background, one sentence only"
-}`,
+    twitter: `"twitter": {"tweets": ["hook tweet", "1/ ...", "2/ ...", "3/ ...", "4/ ...", "5/ ...", "6/ ...", "7/ ...", "8/ CTA tweet with URL"], "imagePrompt": "professional stock photo relevant to topic, no text in image, one sentence"}`,
     linkedin: '"linkedin": {"content": "150-300 words, bold hook first line, line breaks every 2-3 lines, question at end"}',
     linkedinarticle: '"linkedinarticle": {"title": "...", "content": "full article with H2/H3 headers, 600+ words"}',
     email: '"email": {"subjects": ["s1","s2","s3"], "previewText": "...", "body": "200-400 words", "cta": "button text", "ps": "PS line"}',
