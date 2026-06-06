@@ -1,0 +1,106 @@
+Fix Content Repurposer — 2 critical issues:
+
+ISSUE 1: DALL-E IMAGE NOT GENERATING IN LIVE MODE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problem: Paid/logged-in users are getting the 
+sandbox placeholder instead of real DALL-E image.
+
+Fix:
+1. Check the sandbox mode condition — it should 
+   only be true when user is NOT logged in OR 
+   is on free tier. Paid dashboard users must 
+   always get real generation.
+
+2. The DALL-E call must fire for any authenticated 
+   paid user regardless of sandbox flag.
+
+3. Image generation flow for Twitter card:
+   
+   Step 1: Claude generates tweet text (existing)
+   
+   Step 2: Send this prompt to Claude:
+   "Write a DALL-E image prompt for this tweet: 
+   [tweet hook text]. 
+   Rules: professional stock photo style, 
+   no text in image, clean background, 
+   relevant to AI/tech/marketing theme. 
+   One sentence only."
+   
+   Step 3: Call OpenAI images API:
+   POST https://api.openai.com/v1/images/generations
+   {
+     model: "dall-e-3",
+     prompt: [claude's image prompt],
+     n: 1,
+     size: "1792x1024",
+     quality: "standard"
+   }
+   
+   Step 4: Display returned image URL in card
+   - Show loading spinner while generating
+   - Image fills full card width
+   - Rounded corners 8px
+   - If API fails → hide image section silently
+   
+4. In sandbox (free/not logged in): 
+   Keep placeholder as is. 
+   Only fix for authenticated paid users.
+
+ISSUE 2: CONTENT QUALITY — MAKE IT URL-SPECIFIC
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problem: Generated tweets are generic 
+("AI visibility is the new SEO") — same 
+output regardless of which URL is fetched.
+Semrush generates content specific to 
+the actual page content.
+
+Fix the Claude prompt for Twitter thread:
+
+Current (bad):
+"Write a Twitter thread about AI visibility"
+
+Replace with:
+---
+You are a B2B content strategist. 
+Write an 8-tweet Twitter thread based ONLY 
+on the specific content from this URL: [url]
+
+Fetched page content:
+[actual fetched text — first 2000 chars]
+
+Rules:
+- Hook tweet: specific claim or stat FROM 
+  the page, not generic
+- Tweets 1-7: specific insights from the 
+  actual content
+- Last tweet: CTA with the URL
+- Each tweet max 240 chars
+- No generic AI/SEO platitudes
+- Write as if the founder of this company 
+  is posting — first person, direct
+- Include at least 1 specific number or 
+  stat if present in content
+
+Return only the tweets, numbered.
+---
+
+This makes output unique per URL, not generic.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST AFTER FIX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Log in as paid user
+2. Fetch URL: clevertap.com
+3. Select X/Twitter thread
+4. Click Repurpose
+5. Tweets should reference ClearTap-specific 
+   content — NOT generic AI visibility copy
+6. Below tweets: real DALL-E image loads 
+   (not purple placeholder)
+7. Image should be professional, relevant 
+   to ClearTap's content
+
+Share screenshot of result.

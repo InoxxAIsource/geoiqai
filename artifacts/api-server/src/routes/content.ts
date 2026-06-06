@@ -645,7 +645,9 @@ router.post("/content/repurpose", requireAuth, async (req: AuthRequest, res): Pr
   if (!content?.trim()) { res.status(400).json({ error: "content is required" }); return; }
   if (!platforms?.length) { res.status(400).json({ error: "platforms is required" }); return; }
 
-  if (process.env.DATAFORSEO_SANDBOX === "true") {
+  const isPayingUser = req.user && req.user.plan !== "free";
+
+  if (process.env.DATAFORSEO_SANDBOX === "true" && !isPayingUser) {
     const results: Record<string, unknown> = {};
     for (const p of platforms) {
       if (MOCK_REPURPOSE_RESULTS[p]) results[p] = MOCK_REPURPOSE_RESULTS[p];
@@ -655,7 +657,16 @@ router.post("/content/repurpose", requireAuth, async (req: AuthRequest, res): Pr
   }
 
   const platformInstructions: Record<string, string> = {
-    twitter: '"twitter": {"tweets": ["hook tweet (no thread word)", "1/ ...", ...8-12 tweets total, last has CTA, max 280 chars each], "imagePrompt": "Professional clean illustration relevant to the content topic, no text or words in image, modern minimalist style, one sentence"}',
+    twitter: `"twitter": {
+  "tweets": [
+    "Hook (must be a SPECIFIC claim, stat, or insight pulled directly from the page content below - NOT a generic statement about AI/SEO. Max 240 chars.)",
+    "1/ (specific insight from the content - reference the actual product, feature, or finding)",
+    "2/ (another concrete point from the content - include a number or stat if the content contains one)",
+    "3/ through 7/ (more specific points from the actual page content - write as the founder of this company in first person)",
+    "Final tweet: CTA with the URL ${domain ?? ""}"
+  ],
+  "imagePrompt": "Professional stock photo style image relevant to [replace with the specific company or topic from the content], no text or words in image, clean modern background, one sentence only"
+}`,
     linkedin: '"linkedin": {"content": "150-300 words, bold hook first line, line breaks every 2-3 lines, question at end"}',
     linkedinarticle: '"linkedinarticle": {"title": "...", "content": "full article with H2/H3 headers, 600+ words"}',
     email: '"email": {"subjects": ["s1","s2","s3"], "previewText": "...", "body": "200-400 words", "cta": "button text", "ps": "PS line"}',
@@ -666,21 +677,27 @@ router.post("/content/repurpose", requireAuth, async (req: AuthRequest, res): Pr
     indiehackers: '"indiehackers": {"title": "...", "body": "milestone/story format, genuine founder voice, 300-500 words"}',
   };
 
-  const prompt = `Repurpose the following content for multiple social platforms.
+  const prompt = `You are a B2B content strategist. Repurpose the following page content for social platforms.
 
-Original content:
-${content.slice(0, 4000)}
+IMPORTANT: Base all content SPECIFICALLY on what is written below. Do NOT use generic AI/SEO platitudes. Reference the actual company, product features, specific numbers, and claims from this content.
 
-Brand/domain: ${domain ?? "the brand"}
+URL: ${domain ?? "the brand"}
 
-Generate content for these platforms: ${platforms.join(", ")}
+Page content (use this as your source - reference specific facts, features, and claims from it):
+---
+${content.slice(0, 3000)}
+---
+
+Generate content for: ${platforms.join(", ")}
+
+For Twitter specifically: the hook tweet must open with a specific claim or insight FROM the content above - not a generic statement. Write in first-person founder voice. Include at least one specific number or stat if the content contains one. Each tweet max 240 chars.
 
 Return ONLY valid JSON (no markdown, no code blocks):
 {
   ${platforms.map(p => platformInstructions[p] ?? `"${p}": {"content": "..."}`).join(",\n  ")}
 }
 
-Adapt tone and format for each platform. Be authentic.`;
+Adapt tone and format for each platform. Be specific to this company's actual content.`;
 
   try {
     const msg = await anthropic.messages.create({
