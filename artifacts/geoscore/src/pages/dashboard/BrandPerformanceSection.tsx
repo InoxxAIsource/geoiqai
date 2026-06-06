@@ -55,7 +55,15 @@ interface BrandPerformanceResult {
   shareOfVoice: number;
   sentiment: { favorable: number; neutral: number; negative: number; summary: string };
   businessDrivers: BrandDriverData[];
-  competitorData: Array<{ name: string; shareOfVoice: number; sentiment: number }>;
+  competitorData: Array<{
+    name: string;
+    shareOfVoice: number;
+    sentiment: number;
+    insightTitle?: string;
+    insightText?: string;
+    insightColor?: "green" | "amber" | "red";
+    businessDrivers?: Array<{ driver: string; competitorFreq: number; yourFreq: number }>;
+  }>;
   keyStrengths: string[];
   areasForImprovement: string[];
   narrativeDrivers: Array<{ topic: string; mentions: number; trend: "up" | "down" | "stable" }>;
@@ -751,51 +759,145 @@ function BrandPerformanceTab({ data, onTabChange }: { data: BrandPerformanceResu
       <BusinessDriversTable data={data} />
 
       {data.competitorData.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {data.competitorData.map((comp, i) => {
             const compLeadsSoV = comp.shareOfVoice > data.shareOfVoice;
             const compLeadsSentiment = comp.sentiment > data.sentiment.favorable;
+
+            // Compute insight if Claude didn't provide it (mock/sandbox mode shows generic text intentionally;
+            // real scan data produces brand-specific insights via the analysis prompt)
+            const youLeadBoth = !compLeadsSoV && !compLeadsSentiment;
+            const compLeadsBoth = compLeadsSoV && compLeadsSentiment;
+            const computedColor = youLeadBoth ? GREEN : compLeadsBoth ? RED : AMBER;
+            const insightColorMap = { green: GREEN, amber: AMBER, red: RED };
+            const insightColor = comp.insightColor ? insightColorMap[comp.insightColor] : computedColor;
+            const insightBgMap = { green: "#ECFDF5", amber: "#FFFBEB", red: "#FEF2F2" };
+            const insightBg = comp.insightColor ? insightBgMap[comp.insightColor] : (youLeadBoth ? "#ECFDF5" : compLeadsBoth ? "#FEF2F2" : "#FFFBEB");
+
+            const insightTitle = comp.insightTitle ?? (
+              youLeadBoth ? "You lead on both" :
+              compLeadsBoth ? "Gap to close" :
+              !compLeadsSoV ? "You lead visibility" : "Win on sentiment"
+            );
+
+            const insightText = comp.insightText ?? (() => {
+              const sovPart = compLeadsSoV
+                ? `${comp.name} leads share of voice ${comp.shareOfVoice}% vs your ${data.shareOfVoice}%`
+                : `You lead share of voice ${data.shareOfVoice}% vs ${comp.name}'s ${comp.shareOfVoice}%`;
+              const sentPart = compLeadsSentiment
+                ? `${comp.name} leads sentiment ${comp.sentiment}% vs your ${data.sentiment.favorable}%`
+                : `you lead sentiment ${data.sentiment.favorable}% vs ${comp.name}'s ${comp.sentiment}%`;
+              const action = youLeadBoth
+                ? "Keep publishing to extend your lead."
+                : compLeadsBoth
+                ? "Close the gap by increasing content volume and citation coverage."
+                : !compLeadsSoV
+                ? "Push sentiment-led proof to grow share."
+                : "Increase content volume to convert sentiment into visibility.";
+              return `${sovPart}; ${sentPart}. ${action}`;
+            })();
+
+            // Build driver table - prefer Claude-provided per-competitor drivers,
+            // fall back to computing from global businessDrivers competitorFrequencies
+            const driverRows: Array<{ driver: string; competitorFreq: number; yourFreq: number }> =
+              comp.businessDrivers && comp.businessDrivers.length > 0
+                ? comp.businessDrivers
+                : data.businessDrivers
+                    .filter(d => d.competitorFrequencies?.[comp.name] != null)
+                    .map(d => ({
+                      driver: d.driver,
+                      competitorFreq: d.competitorFrequencies![comp.name]!,
+                      yourFreq: d.yourFrequency,
+                    }));
+
             return (
               <div key={i} style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#111827", marginBottom: 2 }}>
+                {/* Header */}
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#111827", marginBottom: 10 }}>
                   {comp.name} vs {data.brandName}
                 </div>
-                <div style={{ fontSize: 12, color: MUTED, marginBottom: 16 }}>
-                  {compLeadsSoV ? `${comp.name} leads on visibility` : "You lead on visibility"}
+
+                {/* Insight badge */}
+                <div style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 16,
+                  padding: "10px 12px", background: insightBg, borderRadius: 8, borderLeft: `3px solid ${insightColor}` }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: insightColor, flexShrink: 0, marginTop: 4 }} />
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: insightColor, marginBottom: 2 }}>{insightTitle}</div>
+                    <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.5 }}>{insightText}</div>
+                  </div>
                 </div>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr>
-                      <th style={{ textAlign: "left", fontSize: 11, fontWeight: 600, color: MUTED, paddingBottom: 8 }}>Metric</th>
-                      <th style={{ textAlign: "center", fontSize: 11, fontWeight: 600, color: MUTED, paddingBottom: 8 }}>{comp.name}</th>
-                      <th style={{ textAlign: "center", fontSize: 11, fontWeight: 600, color: P, paddingBottom: 8 }}>{data.brandName}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr style={{ borderTop: `1px solid ${BORDER}` }}>
-                      <td style={{ fontSize: 12, color: "#374151", padding: "8px 0" }}>Share of Voice</td>
-                      <td style={{ textAlign: "center", fontSize: 13, fontWeight: 600, padding: "8px 4px" }}>
-                        {compLeadsSoV && <Trophy size={12} style={{ color: AMBER, display: "inline", marginRight: 2 }} />}
-                        {comp.shareOfVoice}%
-                      </td>
-                      <td style={{ textAlign: "center", fontSize: 13, fontWeight: 600, padding: "8px 4px" }}>
-                        {!compLeadsSoV && <Trophy size={12} style={{ color: AMBER, display: "inline", marginRight: 2 }} />}
-                        {data.shareOfVoice}%
-                      </td>
-                    </tr>
-                    <tr style={{ borderTop: `1px solid ${BORDER}` }}>
-                      <td style={{ fontSize: 12, color: "#374151", padding: "8px 0" }}>Favorable Sentiment</td>
-                      <td style={{ textAlign: "center", fontSize: 13, fontWeight: 600, padding: "8px 4px" }}>
-                        {compLeadsSentiment && <Trophy size={12} style={{ color: AMBER, display: "inline", marginRight: 2 }} />}
-                        {comp.sentiment}%
-                      </td>
-                      <td style={{ textAlign: "center", fontSize: 13, fontWeight: 600, padding: "8px 4px" }}>
-                        {!compLeadsSentiment && <Trophy size={12} style={{ color: AMBER, display: "inline", marginRight: 2 }} />}
-                        {data.sentiment.favorable}%
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+
+                {/* SoV + Sentiment summary row */}
+                <div style={{ display: "flex", gap: 12, marginBottom: driverRows.length > 0 ? 16 : 0 }}>
+                  {[
+                    { label: "Share of Voice", compVal: comp.shareOfVoice, yourVal: data.shareOfVoice, compLeads: compLeadsSoV },
+                    { label: "Sentiment", compVal: comp.sentiment, yourVal: data.sentiment.favorable, compLeads: compLeadsSentiment },
+                  ].map(({ label, compVal, yourVal, compLeads }) => (
+                    <div key={label} style={{ flex: 1, border: `1px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
+                      <div style={{ fontSize: 11, color: MUTED, marginBottom: 6 }}>{label}</div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ textAlign: "center" }}>
+                          <div style={{ fontSize: 11, color: MUTED, marginBottom: 2 }}>{comp.name}</div>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: compLeads ? "#111827" : MUTED }}>
+                            {compLeads && <Trophy size={11} style={{ color: AMBER, display: "inline", marginRight: 2 }} />}
+                            {compVal}%
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 11, color: MUTED }}>vs</div>
+                        <div style={{ textAlign: "center" }}>
+                          <div style={{ fontSize: 11, color: P, marginBottom: 2 }}>{data.brandName}</div>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: !compLeads ? "#111827" : MUTED }}>
+                            {!compLeads && <Trophy size={11} style={{ color: AMBER, display: "inline", marginRight: 2 }} />}
+                            {yourVal}%
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Business drivers table */}
+                {driverRows.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "#111827", marginBottom: 8 }}>Business Drivers</div>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr>
+                          <th style={{ textAlign: "left", padding: "6px 8px", fontSize: 11, fontWeight: 600, color: MUTED, borderBottom: `1px solid ${BORDER}` }}>Driver</th>
+                          <th style={{ textAlign: "center", padding: "6px 8px", fontSize: 11, fontWeight: 600, color: MUTED, borderBottom: `1px solid ${BORDER}` }}>{comp.name}</th>
+                          <th style={{ textAlign: "center", padding: "6px 8px", fontSize: 11, fontWeight: 600, color: P, borderBottom: `1px solid ${BORDER}` }}>{data.brandName}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {driverRows.map((row, j) => {
+                          const compWins = row.competitorFreq > row.yourFreq;
+                          const yourWins = row.yourFreq > row.competitorFreq;
+                          const compFc = freqColor(row.competitorFreq);
+                          const yourFc = freqColor(row.yourFreq);
+                          return (
+                            <tr key={j} style={{ borderBottom: `1px solid ${BORDER}` }}>
+                              <td style={{ padding: "7px 8px", fontSize: 12, color: "#374151" }}>{row.driver}</td>
+                              <td style={{ padding: "7px 8px", textAlign: "center" }}>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "3px 8px", borderRadius: 5,
+                                  background: compFc.bg, color: compFc.text, fontSize: 12, fontWeight: 600 }}>
+                                  {row.competitorFreq > 0 ? row.competitorFreq : "-"}
+                                  {compWins && <Trophy size={10} style={{ color: AMBER }} />}
+                                </span>
+                              </td>
+                              <td style={{ padding: "7px 8px", textAlign: "center" }}>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "3px 8px", borderRadius: 5,
+                                  background: yourFc.bg, color: yourFc.text, fontSize: 12, fontWeight: 600 }}>
+                                  {row.yourFreq > 0 ? row.yourFreq : "-"}
+                                  {yourWins && <Trophy size={10} style={{ color: AMBER }} />}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             );
           })}

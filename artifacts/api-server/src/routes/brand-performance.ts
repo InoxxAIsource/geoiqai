@@ -26,7 +26,15 @@ interface BrandPerformanceResult {
   shareOfVoice: number;
   sentiment: { favorable: number; neutral: number; negative: number; summary: string };
   businessDrivers: BrandDriverData[];
-  competitorData: Array<{ name: string; shareOfVoice: number; sentiment: number }>;
+  competitorData: Array<{
+    name: string;
+    shareOfVoice: number;
+    sentiment: number;
+    insightTitle?: string;
+    insightText?: string;
+    insightColor?: "green" | "amber" | "red";
+    businessDrivers?: Array<{ driver: string; competitorFreq: number; yourFreq: number }>;
+  }>;
   keyStrengths: string[];
   areasForImprovement: string[];
   narrativeDrivers: Array<{ topic: string; mentions: number; trend: "up" | "down" | "stable" }>;
@@ -471,7 +479,21 @@ Return ONLY this JSON structure. No markdown. No backticks. Pure JSON.
     }
   ],
   "competitorData": [
-    { "name": "Actual competitor brand name", "shareOfVoice": 32, "sentiment": 58 }
+    {
+      "name": "Actual competitor brand name",
+      "shareOfVoice": 32,
+      "sentiment": 58,
+      "insightTitle": "Win on sentiment" or "You lead both" or "Gap to close" or "Catching up fast",
+      "insightText": "One specific sentence with real numbers from this scan. Example: Primevideo leads share of voice 38% vs your 45%; you win sentiment 68% vs 52% — push sentiment-led proof to grow share.",
+      "insightColor": "green" if you lead both metrics, "amber" if mixed results, "red" if trailing both,
+      "businessDrivers": [
+        { "driver": "Content Quality", "competitorFreq": 7, "yourFreq": 9 },
+        { "driver": "Pricing Value", "competitorFreq": 8, "yourFreq": 6 },
+        { "driver": "User Experience", "competitorFreq": 6, "yourFreq": 8 },
+        { "driver": "Original Content", "competitorFreq": 5, "yourFreq": 9 },
+        { "driver": "Customer Support", "competitorFreq": 3, "yourFreq": 4 }
+      ]
+    }
   ],
   "keyStrengths": ["strength 1", "strength 2", "strength 3"],
   "areasForImprovement": ["area 1", "area 2"],
@@ -492,24 +514,48 @@ Return ONLY this JSON structure. No markdown. No backticks. Pure JSON.
   "strategicOpportunities": [
     {
       "timeframe": "urgent",
-      "title": "Opportunity title",
-      "description": "2-3 sentences with specific data points.",
-      "recommendations": ["recommendation 1", "recommendation 2", "recommendation 3"]
+      "title": "Close the Share of Voice gap on [specific topic from scan data]",
+      "description": "Reference specific numbers: e.g. 'Your brand scores X/20 on [Driver] while [Competitor] scores Y/20. This gap is widening because [reason from responses]. AI systems currently reference [Competitor] when users ask about [topic].'",
+      "recommendations": [
+        "2-3 sentence specific recommendation referencing actual prompts from the scan. Name the exact query.",
+        "2-3 sentence recommendation citing specific drivers or competitors from the data.",
+        "2-3 sentence recommendation about a specific channel or content type that would address this gap."
+      ]
+    },
+    {
+      "timeframe": "urgent",
+      "title": "Second urgent opportunity specific to this brand",
+      "description": "2-3 sentences with exact numbers from scan data.",
+      "recommendations": ["2-3 sentence rec 1", "2-3 sentence rec 2", "2-3 sentence rec 3"]
     },
     {
       "timeframe": "medium",
-      "title": "Second opportunity",
+      "title": "Medium-term opportunity unique to this brand",
+      "description": "2-3 sentences with specific data points.",
+      "recommendations": ["2-3 sentence rec 1", "2-3 sentence rec 2", "2-3 sentence rec 3"]
+    },
+    {
+      "timeframe": "medium",
+      "title": "Fourth opportunity",
       "description": "2-3 sentences description.",
-      "recommendations": ["recommendation 1", "recommendation 2", "recommendation 3"]
+      "recommendations": ["2-3 sentence rec 1", "2-3 sentence rec 2", "2-3 sentence rec 3"]
+    },
+    {
+      "timeframe": "medium",
+      "title": "Fifth opportunity",
+      "description": "2-3 sentences description.",
+      "recommendations": ["2-3 sentence rec 1", "2-3 sentence rec 2", "2-3 sentence rec 3"]
     }
   ]
 }
 
 IMPORTANT RULES:
 - businessDrivers: 4-6 items. For competitorFrequencies, use real competitor brand names as keys and estimate frequency 1-10.
-- competitorData: Use real brand names from competitors list, not generic "Competitor A/B".
+- competitorData: Use real brand names from competitors list, not generic "Competitor A/B". Every competitor object MUST include insightTitle, insightText (with real SoV and sentiment numbers), insightColor, and businessDrivers (5 items matching the main businessDrivers list).
 - topQuestions: Generate exactly 20 questions total - 8 branded, 6 comparison, 3 feature, 3 problem. category must be one of: branded, comparison, feature, problem.
-- All frequencies are 1-10. shareOfVoice and sentiment are 0-100 percent.`,
+- strategicOpportunities: Generate exactly 4-5 cards. Each recommendation must be 2-3 sentences, specific to this brand's actual data, naming competitors and exact numbers where relevant.
+- All frequencies are 1-10. shareOfVoice and sentiment are 0-100 percent.
+- insightColor: "green" = you lead both SoV and sentiment, "red" = competitor leads both, "amber" = mixed.`,
       }],
     });
 

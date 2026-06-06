@@ -1,0 +1,129 @@
+Fix 3 specific gaps on Brand Performance page.
+
+FIX 1: COMPETITOR CARD INSIGHT TEXT — MAKE SPECIFIC
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Currently showing: "You lead on visibility"
+Should show: "Primevideo leads 38% vs your 45%; 
+but you win sentiment 68% vs 52%. Push 
+sentiment-led messaging to grow share."
+
+Update Claude analysis prompt for competitor cards.
+Add this to the analysis prompt:
+
+"For each competitor in competitorData, 
+generate a specific 1-2 sentence insight:
+- If competitor shareOfVoice > yours: 
+  '[Competitor] leads [X]% vs your [Y]%; 
+   [action to close gap]'
+- If your shareOfVoice > theirs:
+  '[Competitor] trails [X]% vs your [Y]%; 
+   [action to extend lead]'  
+- Always mention the sentiment comparison
+- End with one specific action
+
+Add to each competitor object:
+{
+  name: 'primevideo',
+  shareOfVoice: 38,
+  sentiment: 52,
+  insightTitle: 'Catching up fast' or 'You lead' or 'Win on sentiment',
+  insightText: 'Primevideo 38% vs your 45%; sentiment 52% vs 68%. Push sentiment-led proof to win more share.',
+  insightColor: 'green' if you lead both, 'amber' if mixed, 'red' if trailing both
+}"
+
+Display insight at top of each card:
+[colored dot] [insightTitle in color]
+[insightText below]
+
+FIX 2: ADD BUSINESS DRIVERS TO COMPETITOR CARDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Each competitor card should show 
+Business Drivers by Frequency table 
+with 2 columns: competitor vs your brand.
+
+Update Claude analysis prompt to generate 
+per-competitor business driver frequencies:
+
+"For each competitor, estimate their 
+business driver frequencies based on 
+their known market positioning.
+Add to each competitor object:
+{
+  name: 'primevideo',
+  businessDrivers: [
+    { driver: 'Content Quality', competitorFreq: 7, yourFreq: 9 },
+    { driver: 'Pricing Value', competitorFreq: 8, yourFreq: 6 },
+    { driver: 'User Experience', competitorFreq: 6, yourFreq: 8 },
+    { driver: 'Original Content', competitorFreq: 5, yourFreq: 9 },
+    { driver: 'Customer Support', competitorFreq: 3, yourFreq: 4 }
+  ]
+}"
+
+In each competitor card show table:
+Business Driver | [Competitor] | [Your Brand]
+Content Quality |      7       |     9 🏆
+Pricing Value   |     8 🏆     |      6
+User Experience |      6       |     8 🏆
+
+Trophy on highest value per row.
+Dark blue cell for high (7+), medium blue (4-6),
+light blue (1-3).
+
+FIX 3: MORE SPECIFIC STRATEGIC OPPORTUNITIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Currently: 2 generic cards with 3 bullet points each
+Semrush: 5 detailed cards with specific data + 
+         3 recommendation paragraphs each
+
+Update Claude analysis prompt:
+
+"Generate 4-5 strategicOpportunities.
+Each must:
+- Reference specific numbers from the scan data
+- Name specific competitors where relevant
+- Give 3 detailed recommendations (2-3 sentences each)
+- Be unique to THIS brand not generic advice
+
+Example of good card:
+{
+  timeframe: 'urgent',
+  title: 'Close the Share of Voice gap on pricing topics',  
+  description: 'Your brand scores 6/20 on Pricing Value while primevideo scores 8/20. This gap is widening as subscription prices rise. AI systems currently reference primevideo when users ask about value streaming options.',
+  recommendations: [
+    'Create a dedicated pricing comparison page targeting the query \"is netflix worth it in 2026\" — this prompt appears in 8 of your 20 AI responses without a clear recommendation.',
+    'Publish a cost-per-content-hour analysis showing Netflix originals vs competitor libraries — this quantitative argument is missing from all current AI answers about Netflix pricing.',
+    'Submit pricing FAQ content to G2 and Reddit r/cordcutters where AI currently cites competitors 12x more than Netflix on value discussions.'
+  ]
+}
+
+Make all 4-5 cards this specific and detailed."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPORTANT: These fixes apply to REAL data mode.
+In sandbox/mock mode the generic text is fine
+since it is just demo data.
+
+When DATAFORSEO_SANDBOX=false and real Claude
+analysis runs, the prompts above will generate
+specific data-driven insights automatically.
+
+Add comment in code:
+// Mock data shows generic insights intentionally
+// Real scan data produces brand-specific insights
+// The prompt instructs Claude to use actual numbers
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TEST IN SANDBOX MODE:
+After fix, competitor cards should show:
+"Primevideo leads X% vs your Y%; 
+ sentiment Z% vs W%. Action text here."
+NOT: "You lead on visibility"
+
+Strategic opportunities should show 4-5 cards
+NOT 2 cards.
+
+Business drivers table should appear in each
+competitor card with 2 columns.
