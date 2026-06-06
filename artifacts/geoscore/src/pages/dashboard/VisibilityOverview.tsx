@@ -125,16 +125,19 @@ function ScoreGauge({ score }: { score: number }) {
 }
 
 /* ===== Domain input modal ===== */
-function DomainModal({ onDomain, lastDomain }: { onDomain: (d: string) => void; lastDomain?: string }) {
+function DomainModal({ onDomain, onClose, lastDomain }: { onDomain: (d: string) => void; onClose: () => void; lastDomain?: string }) {
   const [input, setInput] = useState("");
   const go = () => {
     const d = input.trim().replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
     if (d) onDomain(d);
   };
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(15,15,15,0.45)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ background: "white", borderRadius: 18, padding: "44px 48px 40px", maxWidth: 520, width: "90%", boxShadow: "0 24px 80px rgba(0,0,0,0.22)", position: "relative" }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(15,15,15,0.45)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 18, padding: "44px 48px 40px", maxWidth: 520, width: "90%", boxShadow: "0 24px 80px rgba(0,0,0,0.22)", position: "relative" }}>
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: `linear-gradient(90deg, ${P}, #8B5CF6, #10B981)`, borderRadius: "18px 18px 0 0" }} />
+        <button onClick={onClose} style={{ position: "absolute", top: 14, right: 14, background: "none", border: "none", cursor: "pointer", color: "#9CA3AF", display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: 6, fontSize: 18, lineHeight: 1 }} aria-label="Close">
+          &#x2715;
+        </button>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#EEF2FF", borderRadius: 20, padding: "4px 12px", fontSize: 11, fontWeight: 700, color: P, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 18 }}>
             AI Visibility
@@ -264,7 +267,7 @@ export function VisibilityOverview({
 
   return (
     <div style={{ maxWidth: 1200 }}>
-      {showModal && <DomainModal onDomain={handleDomain} lastDomain={lastDomain !== domain ? lastDomain : undefined} />}
+      {showModal && <DomainModal onDomain={handleDomain} onClose={() => setShowModal(false)} lastDomain={lastDomain !== domain ? lastDomain : undefined} />}
 
       {/* breadcrumb */}
       <div style={{ fontSize: 12, color: MUTED, marginBottom: 14, display: "flex", gap: 6, alignItems: "center" }}>
