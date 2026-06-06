@@ -697,8 +697,13 @@ Adapt tone and format for each platform. Be specific to this company's actual co
       messages: [{ role: "user", content: [{ type: "text", text: prompt }] }],
     });
     const raw = msg.content[0].type === "text" ? msg.content[0].text : "";
+    req.log.info({ rawLen: raw.length, rawPreview: raw.slice(0, 400) }, "repurpose: claude raw");
     const parsed = parseJSON<Record<string, unknown>>(raw);
-    if (!parsed) { res.status(500).json({ error: "Failed to parse AI response" }); return; }
+    if (!parsed) {
+      req.log.error({ raw: raw.slice(0, 800) }, "repurpose: JSON parse failed");
+      res.status(500).json({ error: "Failed to parse AI response" });
+      return;
+    }
 
     // Generate DALL-E image for Twitter if imagePrompt was returned
     if (parsed.twitter && typeof parsed.twitter === "object") {
