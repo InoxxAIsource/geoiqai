@@ -1387,4 +1387,54 @@ router.post("/dataforseo/monitor-prompt", requireAuth, async (req, res): Promise
   res.json({ ok: true });
 });
 
+// ─── Prompt Tracking Count ────────────────────────────────────────────────────
+router.get("/dataforseo/prompt-tracking/count", requireAuth, async (req, res): Promise<void> => {
+  const user = (req as AuthRequest).user;
+  const rows = await db
+    .select({ id: promptTrackingTable.id })
+    .from(promptTrackingTable)
+    .where(eq(promptTrackingTable.userId, user.id));
+  res.json({ count: rows.length });
+});
+
+// ─── Batch Monitor Prompts ────────────────────────────────────────────────────
+router.post("/dataforseo/monitor-prompt-batch", requireAuth, async (req, res): Promise<void> => {
+  const user = (req as AuthRequest).user;
+  const { prompts, platforms, topic, domain } = req.body as {
+    prompts?: string[];
+    platforms?: string[];
+    topic?: string;
+    domain?: string;
+  };
+  if (!prompts?.length || !platforms?.length) {
+    res.status(400).json({ error: "prompts and platforms are required" });
+    return;
+  }
+
+  const LIMIT = 50;
+  const existing = await db
+    .select({ id: promptTrackingTable.id })
+    .from(promptTrackingTable)
+    .where(eq(promptTrackingTable.userId, user.id));
+
+  const slots = LIMIT - existing.length;
+  if (slots <= 0) {
+    res.status(403).json({ error: "Prompt limit reached (50/50). Upgrade to Agency plan for unlimited tracking." });
+    return;
+  }
+
+  const rows: Array<{ userId: string; prompt: string; platform: string; topic: string | null; yourDomain: string | null }> = [];
+  outer: for (const prompt of prompts) {
+    for (const platform of platforms) {
+      if (rows.length >= slots) break outer;
+      rows.push({ userId: user.id, prompt: prompt.trim(), platform, topic: topic ?? null, yourDomain: domain ?? null });
+    }
+  }
+
+  if (rows.length > 0) await db.insert(promptTrackingTable).values(rows);
+
+  req.log.info({ topic, added: rows.length, platforms }, "monitor-prompt-batch: saved");
+  res.json({ ok: true, added: rows.length, slotsUsed: existing.length + rows.length, limit: LIMIT });
+});
+
 export default router;

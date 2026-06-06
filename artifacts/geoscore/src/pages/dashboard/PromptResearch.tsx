@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getToken } from "@/lib/auth";
-import { Search, ChevronRight, ChevronDown, BookmarkPlus, Check, Download, Filter } from "lucide-react";
+import { Search, ChevronRight, ChevronDown, BookmarkPlus, Check, Download, Filter, X } from "lucide-react";
 
 const P = "#4F46E5";
 const BORDER = "#E5E7EB";
@@ -179,28 +179,160 @@ function IntentBar({ intent }: { intent: IntentData }) {
   );
 }
 
-/* ───── Monitor button ───── */
-function MonitorBtn({ prompt, topic }: { prompt: string; topic?: string }) {
-  const [saved, setSaved] = useState(false);
+/* ───── localStorage helpers ───── */
+const LS_KEY = "geoiq_tracked_v2";
+function getTrackedSet(): Set<string> {
+  try { return new Set(JSON.parse(localStorage.getItem(LS_KEY) ?? "[]") as string[]); } catch { return new Set(); }
+}
+function markTracked(keys: string[]) {
+  const s = getTrackedSet();
+  keys.forEach(k => s.add(k));
+  localStorage.setItem(LS_KEY, JSON.stringify([...s]));
+}
+function isTracked(key: string): boolean { return getTrackedSet().has(key); }
+
+/* ───── Tracking Modal ───── */
+const PLATFORM_OPTIONS = [
+  { id: "google",     label: "Google AI Overview" },
+  { id: "chat_gpt",   label: "ChatGPT" },
+  { id: "gemini",     label: "Gemini" },
+  { id: "perplexity", label: "Perplexity" },
+] as const;
+
+interface TrackingModalProps {
+  initialPrompt: string;
+  topic: string;
+  domain: string;
+  onClose: () => void;
+  onSaved: (keys: string[]) => void;
+}
+
+function TrackingModal({ initialPrompt, topic, domain, onClose, onSaved }: TrackingModalProps) {
+  const [selected, setSelected] = useState<Record<string, boolean>>({ google: true, chat_gpt: true, gemini: false, perplexity: false });
+  const [promptText, setPromptText] = useState(initialPrompt);
+  const [count, setCount] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
-  const save = async () => {
-    if (saved || saving) return;
-    setSaving(true);
+  const [error, setError] = useState<string | null>(null);
+  const LIMIT = 50;
+
+  useEffect(() => {
+    const token = getToken();
+    fetch("/api/dataforseo/prompt-tracking/count", { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then(r => r.json()).then((d: { count: number }) => setCount(d.count)).catch(() => {});
+  }, []);
+
+  const togglePlatform = (id: string) => setSelected(s => ({ ...s, [id]: !s[id] }));
+  const chosenPlatforms = PLATFORM_OPTIONS.filter(p => selected[p.id]).map(p => p.id);
+  const prompts = promptText.split("\n").map(p => p.trim()).filter(Boolean);
+  const atLimit = count !== null && count >= LIMIT;
+
+  const handleTrack = async () => {
+    if (!chosenPlatforms.length || !prompts.length) return;
+    setSaving(true); setError(null);
     try {
       const token = getToken();
-      await fetch("/api/dataforseo/monitor-prompt", {
+      const r = await fetch("/api/dataforseo/monitor-prompt-batch", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ prompt, topic }),
+        body: JSON.stringify({ prompts, platforms: chosenPlatforms, topic, domain }),
       });
-      setSaved(true);
-    } catch { /* non-fatal */ } finally { setSaving(false); }
+      const data = await r.json() as { ok?: boolean; added?: number; error?: string };
+      if (data.error) throw new Error(data.error);
+      const keys = prompts.map(p => `${p}__${chosenPlatforms.join(",")}`);
+      onSaved(keys);
+      onClose();
+    } catch (err) { setError(err instanceof Error ? err.message : "Failed to save. Try again."); }
+    finally { setSaving(false); }
   };
-  if (saved) return <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: SUCCESS, fontWeight: 600 }}><Check size={12} /> Monitoring</span>;
+
   return (
-    <button onClick={save} disabled={saving} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: `1px solid ${BORDER}`, borderRadius: 6, padding: "3px 9px", fontSize: 11, color: MUTED, cursor: "pointer", whiteSpace: "nowrap" }}>
-      <BookmarkPlus size={11} />{saving ? "..." : "Monitor"}
-    </button>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 14, padding: "28px 32px", maxWidth: 480, width: "92%", boxShadow: "0 20px 60px rgba(0,0,0,0.18)", position: "relative" }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+          <div style={{ fontSize: 17, fontWeight: 700 }}>Add to Prompt Tracking</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: MUTED, display: "flex", padding: 4, borderRadius: 6 }}><X size={18} /></button>
+        </div>
+
+        {/* Platform selection */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 10 }}>Track on which AI platforms:</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {PLATFORM_OPTIONS.map(p => (
+              <label key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 13 }}>
+                <input type="checkbox" checked={!!selected[p.id]} onChange={() => togglePlatform(p.id)}
+                  style={{ width: 15, height: 15, accentColor: P, cursor: "pointer" }} />
+                {p.label}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Prompt textarea */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>Prompts to track (one per line)</div>
+            {count !== null && (
+              <div style={{ fontSize: 11, color: count >= LIMIT ? "#DC2626" : MUTED }}>
+                {count} / {LIMIT} prompts used
+              </div>
+            )}
+          </div>
+          <textarea value={promptText} onChange={e => setPromptText(e.target.value)}
+            rows={4}
+            style={{ width: "100%", border: `1.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px", fontSize: 13, resize: "vertical", outline: "none", boxSizing: "border-box", fontFamily: "inherit", color: "#111827" }} />
+          <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>{prompts.length} prompt{prompts.length !== 1 ? "s" : ""} detected</div>
+        </div>
+
+        {/* Limit warning */}
+        {atLimit && (
+          <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#991B1B", marginBottom: 14 }}>
+            Prompt limit reached (50/50). Upgrade to Agency plan for unlimited tracking.
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#991B1B", marginBottom: 14 }}>{error}</div>
+        )}
+
+        {/* Actions */}
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <button onClick={onClose} style={{ padding: "9px 18px", background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 13, color: MUTED, cursor: "pointer" }}>Cancel</button>
+          <button onClick={handleTrack} disabled={saving || atLimit || !chosenPlatforms.length || !prompts.length}
+            style={{ padding: "9px 20px", background: saving || atLimit || !chosenPlatforms.length ? "#A5B4FC" : P, color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: saving || atLimit ? "not-allowed" : "pointer" }}>
+            {saving ? "Saving..." : "Start Tracking"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ───── Monitor button - opens tracking modal ───── */
+function MonitorButton({ prompt, topic, domain }: { prompt: string; topic: string; domain: string }) {
+  const lsKey = `${prompt}__google,chat_gpt`;
+  const [tracked, setTracked] = useState(() => isTracked(lsKey));
+  const [open, setOpen] = useState(false);
+
+  if (tracked) {
+    return <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: SUCCESS, fontWeight: 600, whiteSpace: "nowrap" }}><Check size={12} /> Tracking</span>;
+  }
+  return (
+    <>
+      <button onClick={() => setOpen(true)} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: `1px solid ${BORDER}`, borderRadius: 6, padding: "3px 9px", fontSize: 11, color: MUTED, cursor: "pointer", whiteSpace: "nowrap" }}>
+        <BookmarkPlus size={11} /> Monitor
+      </button>
+      {open && (
+        <TrackingModal
+          initialPrompt={prompt}
+          topic={topic}
+          domain={domain}
+          onClose={() => setOpen(false)}
+          onSaved={keys => { markTracked(keys); setTracked(true); }}
+        />
+      )}
+    </>
   );
 }
 
@@ -224,13 +356,11 @@ function exportCSV(topics: TopicCluster[], brandName: string) {
 type SortField = "relevance" | "volume";
 type SortDir = "asc" | "desc";
 
-function TopicsTable({ topics, brandName, plan }: { topics: TopicCluster[]; brandName: string; plan: string }) {
+function TopicsTable({ topics, brandName, plan, domain }: { topics: TopicCluster[]; brandName: string; plan: string; domain: string }) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [filter, setFilter] = useState("");
   const [sortField, setSortField] = useState<SortField>("relevance");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
-  const [monitoredPrompts, setMonitoredPrompts] = useState<Set<string>>(new Set());
-
   const toggle = (i: number) => {
     if (plan === "free") return;
     setExpanded(prev => { const n = new Set(prev); n.has(i) ? n.delete(i) : n.add(i); return n; });
@@ -263,19 +393,6 @@ function TopicsTable({ topics, brandName, plan }: { topics: TopicCluster[]; bran
     const diff = b.totalAiVolume - a.totalAiVolume;
     return sortDir === "asc" ? diff : -diff;
   });
-
-  const savePrompt = async (prompt: string, topic: string) => {
-    if (monitoredPrompts.has(prompt)) return;
-    try {
-      const token = getToken();
-      await fetch("/api/dataforseo/monitor-prompt", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ prompt, topic }),
-      });
-      setMonitoredPrompts(prev => new Set(prev).add(prompt));
-    } catch { /* non-fatal */ }
-  };
 
   return (
     <div>
@@ -344,7 +461,7 @@ function TopicsTable({ topics, brandName, plan }: { topics: TopicCluster[]; bran
                     <td style={{ padding: "10px 12px", borderBottom: isOpen ? "none" : `1px solid ${BORDER}`, textAlign: "right", fontWeight: 700 }}>{fmt(row.totalAiVolume)}</td>
                     <td style={{ padding: "10px 12px", borderBottom: isOpen ? "none" : `1px solid ${BORDER}`, textAlign: "right", color: MUTED }}>{row.promptCount}</td>
                     <td style={{ padding: "10px 12px", borderBottom: isOpen ? "none" : `1px solid ${BORDER}` }}>
-                      <MonitorBtn prompt={row.topic} topic={row.topic} />
+                      <MonitorButton prompt={row.topic} topic={row.topic} domain={domain} />
                     </td>
                   </tr>
                   {isOpen && (
@@ -368,10 +485,7 @@ function TopicsTable({ topics, brandName, plan }: { topics: TopicCluster[]; bran
                                   <td style={{ padding: "7px 10px", borderBottom: `1px solid ${BORDER}`, textAlign: "right", fontWeight: 600 }}>{fmt(p.ai_search_volume)}</td>
                                   <td style={{ padding: "7px 10px", borderBottom: `1px solid ${BORDER}`, color: MUTED }}>{p.sources.length > 0 ? p.sources.length : "-"}</td>
                                   <td style={{ padding: "7px 10px", borderBottom: `1px solid ${BORDER}` }}>
-                                    {monitoredPrompts.has(p.question)
-                                      ? <span style={{ fontSize: 11, color: SUCCESS, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}><Check size={11} /> Monitoring</span>
-                                      : <button onClick={() => savePrompt(p.question, row.topic)} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: `1px solid ${BORDER}`, borderRadius: 6, padding: "3px 8px", fontSize: 11, color: MUTED, cursor: "pointer" }}><BookmarkPlus size={11} /> Monitor</button>
-                                    }
+                                    <MonitorButton prompt={p.question} topic={row.topic} domain={domain} />
                                   </td>
                                 </tr>
                               ))}
@@ -577,7 +691,7 @@ export function PromptResearch({ initialDomain, plan }: { initialDomain: string;
           <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, overflow: "hidden" }}>
 
             {activeTab === "topics" && (
-              <TopicsTable topics={data.topics} brandName={data.brandName} plan={plan} />
+              <TopicsTable topics={data.topics} brandName={data.brandName} plan={plan} domain={data.brandName} />
             )}
 
             {activeTab === "prompts" && (
@@ -600,7 +714,7 @@ export function PromptResearch({ initialDomain, plan }: { initialDomain: string;
                         <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, color: MUTED, fontSize: 12, maxWidth: 180 }}>{p.brands.length > 0 ? p.brands.slice(0, 3).join(", ") : "-"}</td>
                         <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, color: MUTED }}>{p.sources.length > 0 ? p.sources.length : "-"}</td>
                         <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}` }}>
-                          <MonitorBtn prompt={p.question} />
+                          <MonitorButton prompt={p.question} topic={p.question} domain={data.brandName} />
                         </td>
                       </tr>
                     ))}
