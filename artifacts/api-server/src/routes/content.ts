@@ -4,9 +4,9 @@ import { anthropic } from "@workspace/integrations-anthropic-ai";
 import OpenAI from "openai";
 import { db, dataforseoCacheTable, contentAnalysesTable } from "@workspace/db";
 
-const openaiImages = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? "no-key",
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+const xaiImages = new OpenAI({
+  apiKey: process.env.XAI_API_KEY ?? "no-key",
+  baseURL: "https://api.x.ai/v1",
 });
 import { like, desc, eq } from "drizzle-orm";
 
@@ -742,19 +742,19 @@ You MUST return ONLY valid JSON (no markdown, no code blocks, no explanation tex
       const tw = parsed.twitter as Record<string, unknown>;
       const imagePrompt = tw.imagePrompt as string | undefined;
       delete tw.imagePrompt;
+      req.log.info({ imagePrompt: imagePrompt ?? "MISSING" }, "repurpose: image generation");
       if (imagePrompt) {
         try {
-          const imgResp = await openaiImages.images.generate({
-            model: "dall-e-3",
+          const imgResp = await xaiImages.images.generate({
+            model: "grok-imagine-image",
             prompt: imagePrompt,
-            size: "1792x1024",
-            quality: "standard",
             n: 1,
           });
           const imgUrl = imgResp.data?.[0]?.url;
+          req.log.info({ imgUrl: imgUrl ?? "NONE", dataLen: imgResp.data?.length }, "repurpose: dall-e result");
           if (imgUrl) tw.imageUrl = imgUrl;
-        } catch {
-          // image is optional - silently skip if generation fails
+        } catch (imgErr) {
+          req.log.error({ err: imgErr instanceof Error ? imgErr.message : String(imgErr) }, "repurpose: dall-e failed");
         }
       }
     }
