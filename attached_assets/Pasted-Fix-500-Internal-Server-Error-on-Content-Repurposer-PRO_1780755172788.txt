@@ -1,0 +1,85 @@
+Fix 500 Internal Server Error on Content Repurposer.
+
+PROBLEM:
+Server crashes with 500 error when Repurpose 
+button is clicked. Never reaches Claude API.
+
+STEP 1: ADD ERROR LOGGING TO THE ROUTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the repurposer API route (likely 
+POST /api/repurpose or similar).
+
+Wrap entire handler in try-catch:
+
+app.post('/api/repurpose', async (req, res) => {
+  try {
+    console.log('Repurpose request received:', req.body);
+    
+    const { content, platform, url } = req.body;
+    
+    if (!content && !url) {
+      return res.status(400).json({ 
+        error: 'No content or URL provided' 
+      });
+    }
+    
+    // ... rest of handler
+    
+  } catch (error) {
+    console.error('Repurposer route error:', error);
+    console.error('Stack:', error.stack);
+    res.status(500).json({ 
+      error: error.message,
+      stack: error.stack 
+    });
+  }
+});
+
+STEP 2: CHECK MOST COMMON 500 CAUSES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Check each of these in the repurpose route:
+
+1. MISSING ENV VARIABLE
+   console.log('ANTHROPIC_KEY exists:', 
+     !!process.env.ANTHROPIC_API_KEY);
+   console.log('OPENAI_KEY exists:', 
+     !!process.env.OPENAI_API_KEY);
+
+2. URL FETCH FAILING
+   If url is provided, the fetch of that URL 
+   might be throwing uncaught error.
+   Wrap url fetch in its own try-catch:
+   
+   let fetchedContent = '';
+   if (url) {
+     try {
+       const resp = await fetch(url);
+       fetchedContent = await resp.text();
+     } catch (fetchErr) {
+       console.error('URL fetch failed:', fetchErr);
+       fetchedContent = url; // fallback to url as text
+     }
+   }
+
+3. UNDEFINED VARIABLE
+   Make sure 'content' variable is defined 
+   before passing to Claude prompt.
+   
+   const textToUse = fetchedContent || content || '';
+   if (!textToUse) {
+     return res.status(400).json({
+       error: 'No content to repurpose'
+     });
+   }
+
+STEP 3: CHECK REPLIT LOGS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After adding logs above, click Repurpose again.
+Check Replit console output — the error 
+message will now show the exact crash reason.
+
+Share the exact error text from Replit 
+console here so I can pinpoint the fix.

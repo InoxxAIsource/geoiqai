@@ -647,6 +647,38 @@ router.post("/content/repurpose", requireAuth, async (req: AuthRequest, res): Pr
 
   const isPayingUser = req.user && req.user.plan !== "free";
 
+  // Auto-fetch if content looks like a URL or bare domain (no spaces, short)
+  let processedContent = content.trim();
+  const looksLikeUrl = processedContent.length < 200 && !/\s/.test(processedContent) &&
+    (/^https?:\/\//i.test(processedContent) || /^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(\/.*)?$/.test(processedContent));
+  if (looksLikeUrl) {
+    try {
+      const fetchUrl = /^https?:\/\//i.test(processedContent) ? processedContent : `https://${processedContent}`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      const resp = await fetch(fetchUrl, {
+        signal: controller.signal,
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; GeoIQ/1.0)" },
+      });
+      clearTimeout(timeout);
+      if (resp.ok) {
+        const html = await resp.text();
+        const stripped = html
+          .replace(/<script[\s\S]*?<\/script>/gi, "")
+          .replace(/<style[\s\S]*?<\/style>/gi, "")
+          .replace(/<nav[\s\S]*?<\/nav>/gi, "")
+          .replace(/<header[\s\S]*?<\/header>/gi, "")
+          .replace(/<footer[\s\S]*?<\/footer>/gi, "");
+        const mainMatch = stripped.match(/<(?:main|article)[^>]*>([\s\S]*?)<\/(?:main|article)>/i);
+        const source = mainMatch ? mainMatch[1] : stripped;
+        const text = source.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 3000);
+        if (text.length > 100) processedContent = text;
+      }
+    } catch {
+      // fall through - use original content as best effort
+    }
+  }
+
   if (process.env.DATAFORSEO_SANDBOX === "true" && !isPayingUser) {
     const results: Record<string, unknown> = {};
     for (const p of platforms) {
@@ -668,27 +700,27 @@ router.post("/content/repurpose", requireAuth, async (req: AuthRequest, res): Pr
     indiehackers: '"indiehackers": {"title": "...", "body": "milestone/story format, genuine founder voice, 300-500 words"}',
   };
 
-  const prompt = `You are a B2B content strategist. Repurpose the following page content for social platforms.
+  const prompt = `You are a B2B content strategist. Repurpose the following content for social platforms.
 
-IMPORTANT: Base all content SPECIFICALLY on what is written below. Do NOT use generic AI/SEO platitudes. Reference the actual company, product features, specific numbers, and claims from this content.
+Brand/company: ${domain ?? "the brand"}
 
-URL: ${domain ?? "the brand"}
-
-Page content (use this as your source - reference specific facts, features, and claims from it):
+Content to repurpose:
 ---
-${content.slice(0, 3000)}
+${processedContent.slice(0, 3000)}
 ---
 
 Generate content for: ${platforms.join(", ")}
 
-For Twitter specifically: the hook tweet must open with a specific claim or insight FROM the content above - not a generic statement. Write in first-person founder voice. Include at least one specific number or stat if the content contains one. Each tweet max 240 chars.
+Guidelines:
+- Pull specific claims, stats, and product details from the content above when available
+- For Twitter: write in first-person founder voice, hook tweet should be a bold specific claim, each tweet max 240 chars
+- Always return valid JSON regardless of how much content is provided
+- If content is limited, write reasonable content about the brand based on context clues
 
-Return ONLY valid JSON (no markdown, no code blocks):
+You MUST return ONLY valid JSON (no markdown, no code blocks, no explanation text):
 {
   ${platforms.map(p => platformInstructions[p] ?? `"${p}": {"content": "..."}`).join(",\n  ")}
-}
-
-Adapt tone and format for each platform. Be specific to this company's actual content.`;
+}`;
 
   try {
     const msg = await anthropic.messages.create({
