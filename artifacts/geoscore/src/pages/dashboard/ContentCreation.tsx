@@ -372,11 +372,11 @@ function GeoOptimizerTab({ domain, onTopicSelect }: {
 
       {result && !loading && (
         <div>
-          {result.isMock && (
+          {result.isMock === true && (
             <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#FFFBEB",
               border: "1px solid #FDE68A", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600,
               color: "#92400E", marginBottom: 12 }}>
-              Demo analysis - paste real content for actual results
+              Sandbox mode - analysis is a preview only
             </div>
           )}
 

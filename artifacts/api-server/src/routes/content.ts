@@ -98,7 +98,7 @@ function getMockAnalysis(targetTopic: string): AnalysisResult {
     missingPrompts: [
       `what is ${targetTopic}`,
       `how to use ${targetTopic}`,
-      `best ${targetTopic} tools 2026`,
+      `best ${targetTopic} 2026`,
       `is ${targetTopic} worth it`,
     ],
     competitorTips: [
@@ -233,7 +233,7 @@ Return ONLY valid JSON (no markdown, no code blocks):
   "missingPrompts": [
     "what is ${targetTopic}",
     "how to use ${targetTopic}",
-    "best ${targetTopic} tools 2026",
+    "best ${targetTopic} 2026",
     "is ${targetTopic} worth it"
   ],
   "competitorTips": [
