@@ -1,0 +1,262 @@
+REBUILD Brand Performance page completely.
+Current data is fake — narrative drivers show 
+"snake game" and "ultimate fighting championship"
+for netflix.com which is completely wrong.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 1: REAL DATA COLLECTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When user loads Brand Performance for a domain,
+run these 10 prompts through DataForSEO 
+LLM Scraper (only if not cached):
+
+const prompts = [
+  `What is ${domain}? Tell me about this company.`,
+  `Would you recommend ${brandName}? What are its strengths?`,
+  `What are the main weaknesses of ${brandName}?`,
+  `Who are ${brandName}'s main competitors?`,
+  `What do customers say about ${brandName}?`,
+  `Is ${brandName} trustworthy and reliable?`,
+  `What is ${brandName} best known for?`,
+  `How does ${brandName} compare to alternatives?`,
+  `What problems does ${brandName} solve?`,
+  `What type of users is ${brandName} best for?`
+]
+
+For each prompt, call:
+POST /v3/ai_optimization/chat_gpt/llm_scraper/live
+[{
+  "prompt": promptText,
+  "language_code": "en"
+}]
+
+Run all 10 in parallel with Promise.all()
+Cost: ~$1.00 per brand (10 × $0.10)
+Cache for 7 days.
+
+Store raw responses in Supabase:
+table: brand_performance_scans
+columns: domain, prompt, response, 
+         scanned_at, platform
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 2: CLAUDE PROCESSES RESPONSES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Send all 10 responses to Claude API:
+
+const analysisPrompt = `
+You are a brand analyst. Analyze these 10 AI 
+responses about ${domain}.
+
+Responses:
+${responses.map((r,i) => `${i+1}. ${r.response}`).join('\n\n')}
+
+Return ONLY a JSON object with this exact structure:
+{
+  "sentiment": {
+    "positive": 65,
+    "neutral": 20, 
+    "negative": 15,
+    "summary": "Netflix is widely perceived as..."
+  },
+  "businessDrivers": [
+    { "driver": "Content Quality", "frequency": 8, "sentiment": "positive" },
+    { "driver": "Pricing Value", "frequency": 6, "sentiment": "mixed" },
+    { "driver": "Original Shows", "frequency": 7, "sentiment": "positive" },
+    { "driver": "User Interface", "frequency": 4, "sentiment": "positive" },
+    { "driver": "Password Sharing", "frequency": 5, "sentiment": "negative" }
+  ],
+  "competitorsMentioned": [
+    { "name": "Disney+", "mentions": 6 },
+    { "name": "HBO Max", "mentions": 4 },
+    { "name": "Amazon Prime", "mentions": 5 }
+  ],
+  "keyStrengths": ["Original content", "Global library", "UI/UX"],
+  "keyWeaknesses": ["Price increases", "Password sharing limits"],
+  "perception": "Netflix is the market leader in streaming...",
+  "narrativeDrivers": [
+    { "topic": "Original Netflix Content", "mentions": 8, "trend": "up" },
+    { "topic": "Subscription Pricing", "mentions": 6, "trend": "down" },
+    { "topic": "Content Library Size", "mentions": 7, "trend": "stable" }
+  ],
+  "topQuestions": [
+    "Is Netflix worth the subscription price?",
+    "How does Netflix compare to Disney+?",
+    "What are the best Netflix original series?"
+  ],
+  "insights": [
+    {
+      "title": "Content leads but price creates friction",
+      "description": "AI consistently highlights Netflix originals positively but flags recent price increases as a concern.",
+      "action": "Focus GEO strategy on content quality messaging"
+    }
+  ],
+  "shareOfVoice": 45,
+  "overallScore": 72
+}
+
+Return pure JSON only. No markdown. No explanation.
+`
+
+const analysis = await callClaude(analysisPrompt)
+const parsed = JSON.parse(analysis)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 3: BUILD THE UI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Layout with 4 tabs:
+Brand Performance | Perception | Narrative Drivers | Questions
+
+TAB 1: BRAND PERFORMANCE (default)
+
+Section A — AI Platform Scores (top left):
+4 circular gauges:
+Overall | ChatGPT | Gemini | Perplexity
+Use parsed.overallScore for Overall.
+For individual platforms: run same analysis 
+per platform (lazy load on tab click).
+
+Section B — Insights panel (top right):
+Show parsed.insights as numbered cards:
+1. [insight.title]
+   [insight.description]
+   [insight.action]
+
+Section C — Sentiment breakdown (top right):
+Horizontal bar: 
+🟢 Positive X% | ⚪ Neutral Y% | 🔴 Negative Z%
+Text: parsed.sentiment.summary
+
+Section D — Overall Sentiment donut chart:
+Favorable: positive%
+General/Neutral: neutral%
+Use Chart.js doughnut
+
+Section E — Share of Voice donut:
+Your brand % vs competitors %
+shareOfVoice = parsed.shareOfVoice
+Other = 100 - shareOfVoice
+Show competitor names from competitorsMentioned
+
+Section F — Key Business Drivers table:
+Rows: parsed.businessDrivers
+Columns: Driver name | Frequency bar | Sentiment badge
+
+Section G — Strategy Recommendations:
+3 cards with:
+- Timeframe badge (urgent/medium)
+- Title
+- Description  
+- Recommendations list
+Generate using Claude from the analysis data
+
+TAB 2: PERCEPTION
+Show: parsed.perception paragraph
+Show: parsed.keyStrengths as green badges
+Show: parsed.keyWeaknesses as red badges
+Show: parsed.competitorsMentioned table
+
+TAB 3: NARRATIVE DRIVERS
+Show: parsed.narrativeDrivers as list
+Each row: topic | estimated mentions | trend arrow
+trend: up=green↑, down=red↓, stable=grey→
+
+TAB 4: QUESTIONS
+Show: parsed.topQuestions as list
+Each question with "You rank" or "Not ranked" badge
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 4: COMPETITOR COMPARISON
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add competitor pills at top of page:
+[YOUR BRAND] [Competitor 1 ×] [Competitor 2 ×] [+ Add]
+
+When competitor added:
+Run same 10 prompts for competitor domain.
+Calculate their sentiment and business drivers.
+Show side-by-side comparison:
+
+YOUR BRAND vs COMPETITOR:
+Key Metrics:
+Share of Voice: 45% vs 32%
+Favorable Sentiment: 65% vs 48%
+
+Business Drivers by Frequency table:
+Driver | Your score | Competitor score | Leader
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 5: SANDBOX + CACHE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In sandbox mode: return mock brand analysis
+with realistic-looking data for netflix.com.
+
+Cache key: "brand_perf:{domain}:{platform}"
+TTL: 7 days
+
+Show "Based on 10 AI responses · Scanned Jun 5"
+at bottom of page.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MOCK DATA FOR SANDBOX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function getMockBrandPerformance(domain) {
+  return {
+    sentiment: { positive: 68, neutral: 22, negative: 10,
+      summary: domain + " is widely recognized as a leading platform. AI systems consistently highlight content quality and user experience." },
+    businessDrivers: [
+      { driver: "Content Quality", frequency: 8, sentiment: "positive" },
+      { driver: "Pricing & Value", frequency: 6, sentiment: "mixed" },
+      { driver: "User Experience", frequency: 7, sentiment: "positive" },
+      { driver: "Original Content", frequency: 9, sentiment: "positive" },
+      { driver: "Customer Support", frequency: 3, sentiment: "negative" }
+    ],
+    competitorsMentioned: [
+      { name: "Disney+", mentions: 6 },
+      { name: "HBO Max", mentions: 4 },
+      { name: "Amazon Prime", mentions: 5 }
+    ],
+    narrativeDrivers: [
+      { topic: "Original Content Leadership", mentions: 160, trend: "up" },
+      { topic: "Subscription Value", mentions: 120, trend: "down" },
+      { topic: "Content Library Size", mentions: 140, trend: "stable" }
+    ],
+    topQuestions: [
+      "Is " + domain + " worth the subscription?",
+      "How does " + domain + " compare to competitors?",
+      "What are the best features of " + domain + "?"
+    ],
+    insights: [{
+      title: "Strong content perception, pricing is the friction point",
+      description: "AI consistently recommends this brand for content quality but flags pricing as a concern.",
+      action: "Focus messaging on value-per-content-hour"
+    }],
+    shareOfVoice: 45,
+    overallScore: 72,
+    isMock: true
+  }
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DELETE ALL EXISTING BRAND PERFORMANCE CODE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The current implementation uses:
+- Deterministic hashing for fake scores
+- Random/fake narrative drivers
+- Hardcoded sentiment values
+
+Find and DELETE all of this.
+Replace entirely with the above implementation.
+
+Search codebase for:
+- "hashCode" or "djb2" → delete
+- "ultimate fighting" → delete  
+- "snake game" → delete
+- Any Math.random() used for scores → delete
+- Any fake competitor generation → delete

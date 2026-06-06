@@ -1355,9 +1355,11 @@ export async function runOnPageAudit(domain: string): Promise<OnPageAuditResult>
 
 // ─── Generic DataForSEO 24h cache helpers ──────────────────────────────────────
 
-function sandboxMode(): boolean {
+export function sandboxMode(): boolean {
   return process.env.DATAFORSEO_SANDBOX === "true";
 }
+
+export { getDfCache, setDfCache };
 
 async function getDfCache(key: string): Promise<Record<string, unknown> | null> {
   try {

@@ -21,6 +21,9 @@ import {
   getLlmSearchTopics,
   getLlmKeywordAggMetrics,
   getLlmTopicPrompts,
+  sandboxMode,
+  getDfCache,
+  setDfCache,
 } from "../lib/dataforseo";
 import { runAuditEngine } from "../lib/audit-engine";
 import { db, citationsTable, keywordCacheTable, auditsTable, promptTrackingTable } from "@workspace/db";
@@ -808,95 +811,224 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
   }
 });
 
-// Brand Performance - uses real audit data from audit engine
-router.get("/dataforseo/brand-performance", requireAuth, async (req, res): Promise<void> => {
+// ─── Brand Performance - AI perception analysis via 10 brand prompts ────────────
+
+interface BrandAnalysis {
+  domain: string;
+  brandName: string;
+  sentiment: { positive: number; neutral: number; negative: number; summary: string };
+  businessDrivers: Array<{ driver: string; frequency: number; sentiment: "positive" | "mixed" | "negative" }>;
+  competitorsMentioned: Array<{ name: string; mentions: number }>;
+  keyStrengths: string[];
+  keyWeaknesses: string[];
+  perception: string;
+  narrativeDrivers: Array<{ topic: string; mentions: number; trend: "up" | "down" | "stable" }>;
+  topQuestions: string[];
+  insights: Array<{ title: string; description: string; action: string }>;
+  shareOfVoice: number;
+  overallScore: number;
+  isMock?: boolean;
+  cached?: boolean;
+  scannedAt: string;
+  responseCount: number;
+}
+
+const brandAi = new OpenAI({
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "https://api.openai.com/v1",
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY ?? "no-key",
+  timeout: 60000,
+  maxRetries: 0,
+});
+
+function brandNameFromDomain(domain: string): string {
+  const bare = domain.replace(/^www\./, "").split(".")[0] ?? domain;
+  return bare.charAt(0).toUpperCase() + bare.slice(1);
+}
+
+function getMockBrandPerformance(domain: string, brandName: string): BrandAnalysis {
+  return {
+    domain, brandName,
+    sentiment: {
+      positive: 68, neutral: 22, negative: 10,
+      summary: `${brandName} is widely recognized as a leading platform. AI systems consistently highlight content quality and user experience.`,
+    },
+    businessDrivers: [
+      { driver: "Content Quality", frequency: 8, sentiment: "positive" },
+      { driver: "Pricing & Value", frequency: 6, sentiment: "mixed" },
+      { driver: "User Experience", frequency: 7, sentiment: "positive" },
+      { driver: "Original Content", frequency: 9, sentiment: "positive" },
+      { driver: "Customer Support", frequency: 3, sentiment: "negative" },
+    ],
+    competitorsMentioned: [
+      { name: "Disney+", mentions: 6 },
+      { name: "HBO Max", mentions: 4 },
+      { name: "Amazon Prime", mentions: 5 },
+    ],
+    keyStrengths: ["Extensive content library", "Strong original productions", "User-friendly interface"],
+    keyWeaknesses: ["Pricing concerns", "Limited offline access", "Customer support quality"],
+    perception: `${brandName} is widely recognized by AI systems as a leading service in its category. It is frequently recommended for content quality and ease of use, though pricing is often noted as a friction point.`,
+    narrativeDrivers: [
+      { topic: "Original Content Leadership", mentions: 160, trend: "up" },
+      { topic: "Subscription Value", mentions: 120, trend: "down" },
+      { topic: "Content Library Size", mentions: 140, trend: "stable" },
+    ],
+    topQuestions: [
+      `Is ${brandName} worth the subscription?`,
+      `How does ${brandName} compare to competitors?`,
+      `What are the best features of ${brandName}?`,
+    ],
+    insights: [
+      {
+        title: "Strong content perception, pricing creates friction",
+        description: "AI consistently recommends this brand for content quality but flags pricing as a concern across multiple response types.",
+        action: "Focus messaging on value-per-content-hour to counter pricing objections",
+      },
+      {
+        title: "High recommendation rate on direct brand queries",
+        description: "When asked directly about the brand, AI systems are positive. Indirect category queries show more competition.",
+        action: "Invest in entity recognition so AI cites you unprompted in category searches",
+      },
+    ],
+    shareOfVoice: 45,
+    overallScore: 72,
+    isMock: true,
+    scannedAt: new Date().toISOString(),
+    responseCount: 10,
+  };
+}
+
+async function runBrandPrompt(promptText: string): Promise<string> {
+  const login = process.env.DATAFORSEO_LOGIN ?? "";
+  const password = process.env.DATAFORSEO_PASSWORD ?? "";
+  if (!login || !password) return "";
+  const cred = Buffer.from(`${login}:${password}`).toString("base64");
+  try {
+    const resp = await fetch("https://api.dataforseo.com/v3/ai_optimization/chat_gpt/llm_scraper/live", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Basic ${cred}` },
+      body: JSON.stringify([{ prompt: promptText, language_code: "en" }]),
+      signal: AbortSignal.timeout(45000),
+    });
+    if (!resp.ok) return "";
+    const data = await resp.json() as Record<string, unknown>;
+    const tasks = (data.tasks as Array<Record<string, unknown>>) ?? [];
+    const result = (tasks[0]?.result as Array<Record<string, unknown>>)?.[0];
+    return String(result?.answer ?? result?.markdown ?? result?.text ?? "").slice(0, 1500);
+  } catch {
+    return "";
+  }
+}
+
+router.get("/dataforseo/brand-performance", requireAuth, async (req: AuthRequest, res): Promise<void> => {
   const { domain, force } = req.query as { domain?: string; force?: string };
   if (!domain) { res.status(400).json({ error: "domain is required" }); return; }
 
+  const bareD = domain.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? domain;
+  const brandName = brandNameFromDomain(bareD);
+  const cacheKey = `brand_perf:${bareD}`;
+
   try {
-    const bareD = domain.replace(/^www\./, "");
-    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-
-    // Try cached audit first
-    let scoreChatgpt = 0, scoreGemini = 0, scorePerplexity = 0, scoreTotal = 0;
-    let auditDate: string | null = null;
-    let fromCache = false;
-
+    // Cache check (7 days)
     if (force !== "true") {
-      const [existing] = await db.select({
-        scoreTotal: auditsTable.scoreTotal,
-        scoreChatgpt: auditsTable.scoreChatgpt,
-        scoreGemini: auditsTable.scoreGemini,
-        scorePerplexity: auditsTable.scorePerplexity,
-        createdAt: auditsTable.createdAt,
-      })
-        .from(auditsTable)
-        .where(and(eq(auditsTable.domain, bareD), gt(auditsTable.createdAt, cutoff)))
-        .orderBy(desc(auditsTable.createdAt))
-        .limit(1);
-
-      if (existing) {
-        scoreChatgpt = existing.scoreChatgpt;
-        scoreGemini = existing.scoreGemini;
-        scorePerplexity = existing.scorePerplexity;
-        scoreTotal = existing.scoreTotal;
-        auditDate = existing.createdAt?.toISOString() ?? null;
-        fromCache = true;
+      const cached = await getDfCache(cacheKey);
+      if (cached) {
+        res.json({ ...(cached as unknown as BrandAnalysis), cached: true });
+        return;
       }
     }
 
-    if (!fromCache) {
-      const result = await runAuditEngine(bareD, null, null, null);
-      scoreChatgpt = result.chatgpt.score;
-      scoreGemini = result.gemini.score;
-      scorePerplexity = result.perplexity.score;
-      scoreTotal = Math.round((scoreChatgpt + scoreGemini + scorePerplexity) / 3);
-      auditDate = new Date().toISOString();
-      // Persist
-      try {
-        await db.insert(auditsTable).values({
-          url: bareD, domain: bareD,
-          brandName: result.brandName, category: result.category, market: result.market,
-          scoreTotal, scoreChatgpt, scoreGemini, scorePerplexity,
-          chatgptFound: result.chatgpt.found, geminiFound: result.gemini.found,
-          perplexityFound: result.perplexity.found,
-          chatgptDetail: result.chatgpt.detail, geminiDetail: result.gemini.detail,
-          perplexityDetail: result.perplexity.detail,
-          competitorsFound: result.chatgpt.competitors, keywordsUsed: result.keywordsUsed,
-          rawResults: { chatgpt: result.rawChatgptResponse, gemini: result.rawGeminiResponse, perplexity: result.rawPerplexityResponse } as unknown as Record<string, unknown>,
-          isPaid: false,
-        });
-      } catch { /* non-fatal */ }
+    // Sandbox or no credentials: return mock
+    const login = process.env.DATAFORSEO_LOGIN ?? "";
+    const password = process.env.DATAFORSEO_PASSWORD ?? "";
+    if (sandboxMode() || !login || !password) {
+      res.json(getMockBrandPerformance(bareD, brandName));
+      return;
     }
 
-    // Keywords for narrative drivers
-    const kws = (await getDomainKeywords(bareD)).slice(0, 5).map(k => k.keyword);
+    // Run 10 brand prompts in parallel
+    const prompts = [
+      `What is ${bareD}? Tell me about this company.`,
+      `Would you recommend ${brandName}? What are its main strengths?`,
+      `What are the main weaknesses or drawbacks of ${brandName}?`,
+      `Who are ${brandName}'s main competitors?`,
+      `What do customers and users say about ${brandName}?`,
+      `Is ${brandName} trustworthy and reliable?`,
+      `What is ${brandName} best known for?`,
+      `How does ${brandName} compare to alternatives in its category?`,
+      `What problems does ${brandName} solve for its users?`,
+      `What type of users or businesses is ${brandName} best suited for?`,
+    ];
 
-    res.json({
-      domain: bareD,
-      overallScore: scoreTotal,
-      chatgpt: scoreChatgpt,
-      gemini: scoreGemini,
-      perplexity: scorePerplexity,
-      sentiment: { positive: scoreTotal > 50 ? 65 : 30, neutral: 25, negative: scoreTotal > 50 ? 10 : 45 },
-      narrativeDrivers: kws.map((kw, i) => ({
-        topic: kw,
-        mentions: Math.max(0, Math.round((scoreTotal * 5) - i * 20)),
-        trend: (["up", "flat", "up", "down", "up"] as const)[i] ?? "flat",
-      })),
-      topQuestions: kws.slice(0, 5).map((kw, i) => ({
-        question: `What are the best ${kw} tools for startups?`,
-        frequency: Math.max(0, Math.round((scoreTotal * 12) - i * 150)),
-        you: scoreTotal > 20 && i < 3,
-      })),
-      perceptionSummary: scoreTotal > 40
-        ? `AI systems recognize ${bareD} as a relevant player in this space, with ${scoreTotal}/100 visibility across ChatGPT, Gemini, and Perplexity. The brand is mainly associated with ${kws[0] ?? "your category"}.`
-        : scoreTotal > 10
-        ? `${bareD} has limited AI visibility (${scoreTotal}/100). It appears occasionally in AI responses but isn't consistently cited. Focus on entity recognition, structured data, and authoritative backlinks.`
-        : `${bareD} has very low AI visibility (${scoreTotal}/100). AI systems rarely mention this domain in relevant responses. Start with an llms.txt file, Organization schema markup, and getting listed on authoritative directories.`,
-      cached: fromCache,
-      auditDate,
-    });
+    req.log.info({ domain: bareD, promptCount: prompts.length }, "brand-performance: running prompts");
+    const responses = await Promise.all(prompts.map(p => runBrandPrompt(p)));
+    const validResponses = responses.filter(r => r.length > 20);
+    req.log.info({ domain: bareD, validCount: validResponses.length }, "brand-performance: prompts done");
+
+    if (validResponses.length < 2) {
+      req.log.warn({ domain: bareD }, "brand-performance: too few responses, falling back to mock");
+      res.json(getMockBrandPerformance(bareD, brandName));
+      return;
+    }
+
+    // LLM analysis of all responses
+    const analysisPrompt = `You are a brand intelligence analyst. Analyze these AI responses about ${brandName} (${bareD}).
+
+Responses:
+${validResponses.map((r, i) => `[${i + 1}] ${r}`).join("\n\n")}
+
+Return ONLY a JSON object:
+{
+  "sentiment": {"positive": 65, "neutral": 20, "negative": 15, "summary": "One clear sentence about overall AI perception."},
+  "businessDrivers": [{"driver": "Name", "frequency": 8, "sentiment": "positive"}],
+  "competitorsMentioned": [{"name": "Brand", "mentions": 4}],
+  "keyStrengths": ["strength1", "strength2", "strength3"],
+  "keyWeaknesses": ["weakness1", "weakness2"],
+  "perception": "2-3 sentence paragraph on how AI systems perceive this brand overall.",
+  "narrativeDrivers": [{"topic": "Topic Name", "mentions": 150, "trend": "up"}],
+  "topQuestions": ["question1?", "question2?", "question3?"],
+  "insights": [{"title": "Short title", "description": "1-2 sentences.", "action": "One actionable step."}],
+  "shareOfVoice": 45,
+  "overallScore": 72
+}
+Rules: businessDrivers 4-6 items, frequency 1-10, sentiment positive/mixed/negative. narrativeDrivers 3-5 items, mentions 100-5000, trend up/down/stable. insights 2-3 items. shareOfVoice 0-100, overallScore 0-100. Return only JSON.`;
+
+    let analysis: BrandAnalysis;
+    try {
+      const completion = await brandAi.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: analysisPrompt }],
+        temperature: 0.2,
+        max_tokens: 1800,
+        response_format: { type: "json_object" },
+      });
+      const raw = completion.choices[0]?.message?.content ?? "{}";
+      const parsed = JSON.parse(raw) as Partial<BrandAnalysis>;
+      analysis = {
+        domain: bareD, brandName,
+        sentiment: parsed.sentiment ?? { positive: 50, neutral: 30, negative: 20, summary: "" },
+        businessDrivers: parsed.businessDrivers ?? [],
+        competitorsMentioned: parsed.competitorsMentioned ?? [],
+        keyStrengths: parsed.keyStrengths ?? [],
+        keyWeaknesses: parsed.keyWeaknesses ?? [],
+        perception: parsed.perception ?? "",
+        narrativeDrivers: parsed.narrativeDrivers ?? [],
+        topQuestions: parsed.topQuestions ?? [],
+        insights: parsed.insights ?? [],
+        shareOfVoice: Number(parsed.shareOfVoice ?? 0),
+        overallScore: Number(parsed.overallScore ?? 0),
+        scannedAt: new Date().toISOString(),
+        responseCount: validResponses.length,
+      };
+    } catch (err) {
+      req.log.error({ err, domain: bareD }, "brand-performance: LLM analysis failed, using mock");
+      res.json(getMockBrandPerformance(bareD, brandName));
+      return;
+    }
+
+    // Cache for 7 days (~$1 per scan)
+    await setDfCache(cacheKey, analysis as unknown as Record<string, unknown>, "1.00");
+
+    res.json(analysis);
   } catch (err) {
     req.log.error({ err, domain }, "brand-performance error");
     res.status(500).json({ error: "Could not load brand performance data. Please try again." });
