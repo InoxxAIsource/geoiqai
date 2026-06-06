@@ -881,12 +881,33 @@ function PlatformCard({ platformId, platformLabel, data }: {
               </div>
             </div>
             {hookTweet && (
-              <button onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(hookTweet)}`, "_blank")}
-                style={{ padding: "7px 16px", background: "#1DA1F2", color: "white", border: "none",
-                  borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: "pointer",
-                  display: "flex", alignItems: "center", gap: 5 }}>
-                Share
-              </button>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                {imageUrl && (
+                  <button
+                    onClick={() => {
+                      fetch(imageUrl)
+                        .then(r => r.blob())
+                        .then(blob => {
+                          const a = document.createElement("a");
+                          a.href = URL.createObjectURL(blob);
+                          a.download = "tweet-image.jpg";
+                          a.click();
+                        })
+                        .catch(() => window.open(imageUrl, "_blank"));
+                    }}
+                    style={{ padding: "7px 14px", background: "white", color: "#374151",
+                      border: `1px solid ${BORDER}`, borderRadius: 20, fontSize: 12,
+                      fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                    <Download size={12} /> Save image
+                  </button>
+                )}
+                <button onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(hookTweet)}`, "_blank")}
+                  style={{ padding: "7px 16px", background: "#1DA1F2", color: "white", border: "none",
+                    borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: 5 }}>
+                  Share tweet
+                </button>
+              </div>
             )}
           </div>
 
@@ -906,7 +927,7 @@ function PlatformCard({ platformId, platformLabel, data }: {
               alignItems: "center", justifyContent: "center", gap: 8, color: "white", padding: 20 }}>
               <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.95 }}>AI image generates in live mode</div>
               <div style={{ fontSize: 11, opacity: 0.7, textAlign: "center", maxWidth: 240, lineHeight: 1.5 }}>
-                DALL-E 3 creates a relevant visual based on your content
+                AI creates a relevant visual based on your content
               </div>
               <div style={{ marginTop: 4, fontSize: 10, fontWeight: 700, background: "rgba(255,255,255,0.2)",
                 padding: "3px 10px", borderRadius: 20, letterSpacing: "0.05em" }}>DEMO</div>
@@ -917,9 +938,11 @@ function PlatformCard({ platformId, platformLabel, data }: {
           <div style={{ padding: "12px 18px", borderTop: `1px solid ${BORDER}`,
             display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <CopyBtn k="hook" text={hookTweet} label="Copy hook tweet" />
-            {threadTweets.length > 0 && (
+            {imageUrl ? (
+              <span style={{ fontSize: 11, color: MUTED }}>Save image, then attach it in the tweet compose window</span>
+            ) : threadTweets.length > 0 ? (
               <span style={{ fontSize: 11, color: MUTED }}>{threadTweets.length} more tweets in thread below</span>
-            )}
+            ) : null}
           </div>
         </div>
 
