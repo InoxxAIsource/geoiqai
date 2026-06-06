@@ -12,6 +12,7 @@ import integrationsRouter from "./integrations";
 import contentImprovementsRouter from "./content-improvements";
 import dataforseoExtendedRouter from "./dataforseo-extended";
 import adminRouter from "./admin";
+import brandPerformanceRouter from "./brand-performance";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(integrationsRouter);
 router.use(contentImprovementsRouter);
 router.use(dataforseoExtendedRouter);
 router.use(adminRouter);
+router.use(brandPerformanceRouter);
 
 export default router;

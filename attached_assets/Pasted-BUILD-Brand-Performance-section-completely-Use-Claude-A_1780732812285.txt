@@ -1,0 +1,613 @@
+BUILD Brand Performance section completely.
+Use Claude API directly — NOT DataForSEO LLM Scraper.
+Cost: ~$0.10 per brand scan via Claude API.
+Cache for 30 days to minimize repeat costs.
+
+DELETE all existing Brand Performance code first.
+Search and remove:
+- hashCode() or djb2() functions used for scores
+- Hardcoded: "snake game", "ultimate fighting championship"
+- Math.random() used for brand scores
+- Fake narrative driver generation
+Replace entirely with this implementation.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BACKEND: POST /api/brand-performance
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Input: { domain, competitors: [], language: "en" }
+
+STEP 1: Extract brand name
+const brandName = domain
+  .replace(/^www\./, '')
+  .replace(/\.[a-z]{2,}(\.[a-z]{2})?$/, '')
+  .toLowerCase().trim()
+// "netflix.com" → "netflix"
+
+STEP 2: Check cache first
+const cacheKey = `brand_perf:${domain}:${language}`
+const cached = await getCache(cacheKey)
+if (cached) {
+  console.log('Brand Performance cache hit:', domain)
+  return cached
+}
+
+STEP 3: Sandbox check
+if (process.env.DATAFORSEO_SANDBOX === 'true') {
+  console.log('Sandbox mode - returning mock brand data')
+  return getMockBrandData(domain, brandName)
+}
+
+STEP 4: Generate 20 synthetic prompts via Claude
+
+const promptGenResponse = await callClaude({
+  model: "claude-sonnet-4-20250514",
+  max_tokens: 1000,
+  messages: [{
+    role: "user",
+    content: `Generate exactly 20 prompts a buyer 
+would ask an AI assistant when evaluating ${brandName}.
+
+Cover these categories:
+- Product/service quality: 4 prompts
+- Pricing and value: 3 prompts
+- Vs competitors: 4 prompts
+- Reputation and trust: 3 prompts
+- Use cases and who it is for: 3 prompts
+- Weaknesses and problems: 3 prompts
+
+Return ONLY a JSON array of 20 strings.
+No markdown. No explanation. No backticks.
+Start with [ and end with ]`
+  }]
+})
+
+const prompts = JSON.parse(promptGenResponse)
+console.log('Generated prompts:', prompts.length)
+
+STEP 5: Claude answers all 20 prompts in ONE call
+
+const answersResponse = await callClaude({
+  model: "claude-sonnet-4-20250514",
+  max_tokens: 4000,
+  messages: [{
+    role: "user",
+    content: `You are a neutral AI assistant.
+Answer each of these 20 prompts about ${brandName}.
+Be balanced. Mention real competitors naturally.
+Keep each response 2-4 sentences.
+
+Prompts:
+${prompts.map((p, i) => `${i + 1}. ${p}`).join('\n')}
+
+Return ONLY a JSON array with exactly 20 objects:
+[{
+  "prompt": "the prompt text",
+  "response": "your answer",
+  "brandMentioned": true,
+  "sentiment": "positive",
+  "competitorsMentioned": ["name1"],
+  "keyThemes": ["theme1", "theme2"],
+  "isBrandRecommended": true
+}]
+
+Sentiment must be: positive, neutral, or negative.
+Return pure JSON only. No markdown. No backticks.`
+  }]
+})
+
+const answers = JSON.parse(answersResponse)
+console.log('Answers generated:', answers.length)
+
+STEP 6: Claude analyzes all answers in ONE call
+
+const analysisResponse = await callClaude({
+  model: "claude-sonnet-4-20250514",
+  max_tokens: 3000,
+  messages: [{
+    role: "user",
+    content: `You are a brand intelligence analyst.
+Analyze these 20 AI responses about ${brandName}.
+
+Responses:
+${JSON.stringify(answers)}
+
+Competitors being tracked: ${competitors.length > 0 ? competitors.join(', ') : 'none specified'}
+
+Return ONLY this JSON structure. 
+No markdown. No backticks. Pure JSON.
+
+{
+  "overallScore": 72,
+  "shareOfVoice": 45,
+  "sentiment": {
+    "favorable": 65,
+    "neutral": 25,
+    "negative": 10,
+    "summary": "2 sentence summary of how AI perceives this brand"
+  },
+  "businessDrivers": [
+    {
+      "driver": "Content Quality",
+      "yourFrequency": 8,
+      "sentiment": "positive",
+      "isLeader": true
+    },
+    {
+      "driver": "Pricing Value",
+      "yourFrequency": 5,
+      "sentiment": "mixed",
+      "isLeader": false
+    }
+  ],
+  "competitorData": [
+    {
+      "name": "Competitor Name",
+      "shareOfVoice": 32,
+      "sentiment": 58
+    }
+  ],
+  "keyStrengths": [
+    "strength 1",
+    "strength 2",
+    "strength 3"
+  ],
+  "areasForImprovement": [
+    "area 1",
+    "area 2"
+  ],
+  "narrativeDrivers": [
+    {
+      "topic": "Original Content",
+      "mentions": 12,
+      "trend": "up"
+    },
+    {
+      "topic": "Subscription Pricing",
+      "mentions": 8,
+      "trend": "down"
+    }
+  ],
+  "topQuestions": [
+    {
+      "question": "actual question text",
+      "brandMentioned": true,
+      "yourRank": 1
+    }
+  ],
+  "insights": [
+    {
+      "number": 1,
+      "title": "Short punchy insight title",
+      "description": "One sentence explaining what the data shows",
+      "action": "One sentence specific action to take",
+      "linkTo": "perception"
+    },
+    {
+      "number": 2,
+      "title": "Second insight title",
+      "description": "One sentence description",
+      "action": "One sentence action",
+      "linkTo": "narrative"
+    },
+    {
+      "number": 3,
+      "title": "Third insight title",
+      "description": "One sentence description",
+      "action": "One sentence action",
+      "linkTo": "questions"
+    }
+  ],
+  "strategicOpportunities": [
+    {
+      "timeframe": "urgent",
+      "title": "Opportunity title",
+      "description": "2-3 sentences with specific data points from the analysis",
+      "recommendations": [
+        "specific recommendation 1",
+        "specific recommendation 2",
+        "specific recommendation 3"
+      ]
+    },
+    {
+      "timeframe": "medium",
+      "title": "Second opportunity title",
+      "description": "2-3 sentences description",
+      "recommendations": [
+        "recommendation 1",
+        "recommendation 2",
+        "recommendation 3"
+      ]
+    }
+  ]
+}`
+  }]
+})
+
+const analysis = JSON.parse(analysisResponse)
+console.log('Analysis complete. Score:', analysis.overallScore)
+
+STEP 7: Build and cache final result
+
+const result = {
+  domain,
+  brandName,
+  ...analysis,
+  answers,
+  scannedAt: new Date().toISOString(),
+  methodology: "20 Claude AI synthetic responses",
+  isMock: false
+}
+
+await setCache(cacheKey, result, 30 * 24 * 60 * 60 * 1000)
+console.log('Brand Performance cached for 30 days:', domain)
+return result
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MOCK DATA FUNCTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function getMockBrandData(domain, brandName) {
+  return {
+    domain,
+    brandName,
+    overallScore: 72,
+    shareOfVoice: 45,
+    sentiment: {
+      favorable: 68,
+      neutral: 22,
+      negative: 10,
+      summary: brandName + " is widely recognized for quality and reliability. AI systems consistently highlight its strengths while noting areas for improvement around pricing."
+    },
+    businessDrivers: [
+      { driver: "Product Quality", yourFrequency: 9, sentiment: "positive", isLeader: true },
+      { driver: "Pricing Value", yourFrequency: 6, sentiment: "mixed", isLeader: false },
+      { driver: "User Experience", yourFrequency: 8, sentiment: "positive", isLeader: true },
+      { driver: "Customer Support", yourFrequency: 4, sentiment: "neutral", isLeader: false },
+      { driver: "Innovation", yourFrequency: 7, sentiment: "positive", isLeader: true }
+    ],
+    competitorData: [
+      { name: "Competitor A", shareOfVoice: 38, sentiment: 52 },
+      { name: "Competitor B", shareOfVoice: 28, sentiment: 61 },
+      { name: "Competitor C", shareOfVoice: 19, sentiment: 44 }
+    ],
+    keyStrengths: [
+      "Strong brand recognition",
+      "High quality product/service",
+      "Positive user experience"
+    ],
+    areasForImprovement: [
+      "Pricing competitiveness",
+      "Customer support responsiveness"
+    ],
+    narrativeDrivers: [
+      { topic: "Brand Quality", mentions: 14, trend: "up" },
+      { topic: "Value for Money", mentions: 10, trend: "down" },
+      { topic: "Innovation", mentions: 12, trend: "stable" }
+    ],
+    topQuestions: [
+      { question: "Is " + brandName + " worth it?", brandMentioned: true, yourRank: 1 },
+      { question: "How does " + brandName + " compare to alternatives?", brandMentioned: true, yourRank: 2 },
+      { question: "What are " + brandName + " weaknesses?", brandMentioned: true, yourRank: 1 }
+    ],
+    insights: [
+      {
+        number: 1,
+        title: "Strong perception, visibility gap",
+        description: "AI rates " + brandName + " highly but mentions it less often than competitors.",
+        action: "Increase content output targeting non-branded queries.",
+        linkTo: "narrative"
+      },
+      {
+        number: 2,
+        title: "Pricing narrative needs work",
+        description: "Pricing is the most common friction point in AI responses.",
+        action: "Create content addressing value and ROI directly.",
+        linkTo: "perception"
+      },
+      {
+        number: 3,
+        title: "Questions opportunity",
+        description: "Several high-volume questions go unanswered by your content.",
+        action: "Create FAQ content targeting these exact prompts.",
+        linkTo: "questions"
+      }
+    ],
+    strategicOpportunities: [
+      {
+        timeframe: "urgent",
+        title: "Close the Share of Voice gap",
+        description: "Your brand scores well on sentiment but trails competitors on raw visibility. This means buyers who find you tend to choose you, but many never see you.",
+        recommendations: [
+          "Publish content targeting 10 non-branded queries where competitors appear",
+          "Submit to high-authority directories (G2, Capterra, Crunchbase)",
+          "Build Reddit presence in relevant subreddits"
+        ]
+      },
+      {
+        timeframe: "medium",
+        title: "Convert positive perception into citations",
+        description: "High sentiment score means AI speaks well of your brand when prompted. Next step is getting cited proactively in unprompted responses.",
+        recommendations: [
+          "Add structured data markup to all product pages",
+          "Create authoritative comparison content",
+          "Build backlinks from AI-cited domains"
+        ]
+      }
+    ],
+    scannedAt: new Date().toISOString(),
+    methodology: "20 Claude AI synthetic responses",
+    isMock: true
+  }
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FRONTEND: BRAND PERFORMANCE PAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+On page load:
+1. Show loading spinner: "Analyzing brand perception..."
+2. Call POST /api/brand-performance
+3. Render result
+
+PAGE HEADER:
+"Brand Performance: [domain]"
+Subtitle: "How AI systems perceive and position your brand"
+
+Competitor pills row:
+[YOUR BRAND main] [+ Add competitor (up to 4)]
+
+When competitor added:
+Re-run analysis including competitor in prompts.
+Update all charts.
+
+4 TABS:
+[Brand Performance] [Perception] [Narrative Drivers] [Questions]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TAB 1: BRAND PERFORMANCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TOP ROW — 2 panels side by side:
+
+LEFT PANEL — Insights:
+Title: "Insights"
+Subtitle: "AI-generated strategy based on latest analysis"
+
+Show data.insights as numbered cards:
+Each card:
+  [number] [title in bold]
+  [description]
+  [action in italic]
+  Go to [linkTo] tab →
+
+RIGHT PANEL — Share of Voice vs Sentiment bubble chart:
+Title: "Share of Voice vs. Sentiment"
+Subtitle tag based on your position:
+  If your sentiment > avg but shareOfVoice < avg: 
+    "Loved, not seen" in purple
+  If your sentiment > avg and shareOfVoice > avg:
+    "Category leader" in green
+  If both below avg:
+    "Room to grow" in amber
+
+Chart: Chart.js bubble chart
+X axis: Share of Voice %
+Y axis: Sentiment Score %
+Your brand: blue bubble
+Competitors: different colors
+Bubble size: proportional to mention frequency
+
+MIDDLE ROW — 2 panels:
+
+LEFT — Overall Sentiment donut:
+Title: "Overall Sentiment"
+Subtitle tag: "Strong sentiment lead" if favorable > 60%
+Doughnut chart:
+  Green = favorable%
+  Grey = neutral%
+"Learn more in Perception →" button
+
+RIGHT — Share of Voice donut:
+Title: "Share of Voice"
+Subtitle tag: "Room to grow" if shareOfVoice < 20%
+Doughnut chart:
+  Blue = your shareOfVoice%
+  Other colors = competitors
+  Grey = Other
+"Learn more in Narrative Drivers →" button
+
+BOTTOM SECTION — Key Business Drivers:
+Title: "Key Business Drivers by Frequency"
+Subtitle tag: "Own [top driver]" if isLeader for top driver
+
+Heatmap table:
+Columns: Business Driver | YOUR BRAND | Competitor1 | Competitor2...
+Rows: each businessDriver
+
+Cell styling:
+  High frequency (7+): dark blue background
+  Medium (4-6): medium blue
+  Low (1-3): light blue
+  Zero: empty
+  Trophy icon on highest value in each row
+
+COMPETITOR COMPARISON CARDS:
+One card per competitor showing:
+  "[competitor] vs [your brand]" heading
+  Subtitle insight: "Walk Score leads" or "Win on sentiment"
+  
+  Key Metrics table:
+  Share of Voice: competitor% vs your%
+  (trophy on higher value)
+  Favorable Sentiment: competitor% vs your%
+  (trophy on higher value)
+  
+  Business Drivers by Frequency:
+  Same heatmap layout but just 2 columns
+
+STRATEGIC OPPORTUNITIES at bottom:
+Title: "AI Strategic Opportunities"
+Subtitle: "Based on the AI analysis of your brand"
+
+Cards layout (2-3 columns):
+Each card:
+  Top badge: [urgent timeframe] or [medium timeframe]
+  Title in bold
+  Description paragraph
+  "Recommendations:" heading
+  Bullet list of recommendations
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TAB 2: PERCEPTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Title: "Perception"
+Subtitle: "How AI platforms describe and rate your brand"
+
+Section: Overall Sentiment
+Same donut chart as Brand Performance tab
+
+Section: Key Sentiment Drivers
+Two columns:
+LEFT — Brand Strength Factors:
+  Green tag for each item in keyStrengths
+  
+RIGHT — Areas for Improvement:
+  Red tag for each item in areasForImprovement
+
+Section: AI Feature Descriptions
+Card showing sentiment.summary text
+Full paragraph about brand perception
+
+Section: Competitive Perception
+Bar chart comparing sentiment scores:
+Your brand vs each competitor
+Horizontal bars sorted by sentiment score
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TAB 3: NARRATIVE DRIVERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Title: "Narrative Drivers"
+Subtitle: "What shapes your brand's story in AI responses"
+
+Section: Narrative Drivers list
+For each item in narrativeDrivers:
+Row: [topic name] | [mention count] est. mentions | [trend arrow]
+  trend "up" = green ↑
+  trend "down" = red ↓
+  trend "stable" = grey →
+
+Section: Top Cited Domains
+Pull from Visibility Overview cached data:
+citedSources list showing which domains
+AI cites when discussing this brand's category.
+
+Show table: Domain | Citations | % Share
+
+Section: Breakdown by Questions
+Tabs: [Answers] [Citations]
+Table showing answers data:
+Prompt | Response preview | Brand mentioned | Competitors
+
+Chat bubble icon per row.
+Click → slide out Answers Panel showing:
+  Full prompt
+  Full AI response text
+  Sentiment badge
+  Competitors mentioned list
+  Key themes tags
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TAB 4: QUESTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Title: "Questions"
+Subtitle: "Specific prompts where your brand appears in AI answers"
+
+List of topQuestions:
+Each row:
+  Question text
+  RIGHT: "You rank" green badge if brandMentioned
+         "Not ranked" grey badge if not
+
+Below questions list:
+"These questions were generated based on 
+${brandName}'s category and competitive landscape."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LOADING + ERROR STATES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Loading state (shown while API runs ~10-15 seconds):
+Show progress steps:
+✓ Generating brand prompts...
+⟳ Analyzing AI responses...
+○ Building brand intelligence...
+○ Generating strategic insights...
+
+Error state:
+"Analysis failed. Please try again."
+[Retry] button
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FOOTER NOTE ON EVERY TAB
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Show at bottom of every tab:
+"Based on 20 AI-simulated responses · 
+Last updated: [scannedAt date] · 
+Powered by Claude AI · 
+Next refresh available: [scannedAt + 30 days]"
+
+If isMock is true show:
+"(Demo data — run a real scan to see your actual results)"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PAYWALL PLACEHOLDER (build now, activate later)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add a isPaidFeature flag to the route:
+const BRAND_PERFORMANCE_PAID = false
+// Set to true when ready to paywall
+
+if (BRAND_PERFORMANCE_PAID && userPlan === 'free') {
+  return res.json({
+    locked: true,
+    message: "Brand Performance requires Starter plan"
+  })
+}
+
+In frontend: if response.locked is true,
+show blurred preview of mock data with
+upgrade CTA overlay:
+"Unlock Brand Performance
+See how AI perceives your brand vs competitors.
+[Upgrade to Starter →]"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST AFTER BUILDING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+With DATAFORSEO_SANDBOX=true:
+1. Go to Brand Performance
+2. Enter netflix.com
+3. Should show mock data instantly
+4. All 4 tabs should render
+5. Bubble chart should show
+6. Business drivers heatmap should show
+7. Strategic opportunities cards should show
+
+Then set DATAFORSEO_SANDBOX=false:
+1. Enter netflix.com
+2. Should show loading progress steps
+3. After 15-20 seconds real Claude data appears
+4. Topics should be netflix-relevant
+5. Insights should mention actual netflix strengths/weaknesses
+
+console.log at each step:
+console.log('Step 1: Generating prompts...')
+console.log('Step 2: Getting answers...')
+console.log('Step 3: Analyzing...')
+console.log('Step 4: Done. Score:', analysis.overallScore)
