@@ -824,6 +824,7 @@ function PlatformCard({ platformId, platformLabel, data }: {
 }) {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [selectedIdx, setSelectedIdx] = useState(0);
+  const [threadExpanded, setThreadExpanded] = useState(false);
 
   const copy = (key: string, text: string) => {
     navigator.clipboard.writeText(text).catch(() => {});
@@ -849,67 +850,123 @@ function PlatformCard({ platformId, platformLabel, data }: {
     </div>
   );
 
-  return (
-    <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: 20, marginBottom: 12 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 14 }}>{platformLabel}</div>
+  // Twitter gets a fully custom layout - no outer card wrapper needed
+  if (platformId === "twitter") {
+    const tweets = (data.tweets as string[]) ?? [];
+    const imageUrl = data.imageUrl as string | undefined;
+    const imagePlaceholder = data.imagePlaceholder as boolean | undefined;
+    const allText = tweets.map((t, i) => (i === 0 ? t : `${i}/ ${t}`)).join("\n\n");
+    const hookTweet = tweets[0] ?? "";
+    const threadTweets = tweets.slice(1);
 
-      {platformId === "twitter" && (() => {
-        const tweets = (data.tweets as string[]) ?? [];
-        const imageUrl = data.imageUrl as string | undefined;
-        const imagePlaceholder = data.imagePlaceholder as boolean | undefined;
-        const allText = tweets.map((t, i) => (i === 0 ? t : `${i}/ ${t}`)).join("\n\n");
-        const hookTweet = tweets[0] ?? "";
-        return (
-          <div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
-              <CopyBtn k="all" text={allText} label="Copy all tweets" />
-              {hookTweet && (
-                <button
-                  onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(hookTweet)}`, "_blank")}
-                  style={{ padding: "5px 10px", background: "#1DA1F2", color: "white",
-                    border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600,
-                    cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                  Share <ArrowRight size={11} />
-                </button>
-              )}
+    return (
+      <div style={{ marginBottom: 12 }}>
+        {/* Main tweet preview card */}
+        <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 14,
+          overflow: "hidden", boxShadow: "0 2px 10px rgba(0,0,0,0.07)", marginBottom: 10 }}>
+
+          {/* Card header: X branding + Share */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "14px 18px", borderBottom: `1px solid ${BORDER}` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 34, height: 34, background: "#000", borderRadius: "50%",
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="white">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.254 5.622 5.91-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>X (Twitter)</div>
+                <div style={{ fontSize: 11, color: MUTED }}>Hook tweet + image</div>
+              </div>
             </div>
-            {tweets.map((tweet, i) => (
-              <div key={i} style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10,
-                boxShadow: "0 1px 4px rgba(0,0,0,0.06)", marginBottom: 8, overflow: "hidden" }}>
-                <div style={{ display: "flex", alignItems: "stretch" }}>
-                  <div style={{ width: 42, flexShrink: 0, background: i === 0 ? P : "#F3F4F6",
-                    display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: i === 0 ? "white" : "#6B7280" }}>
-                      {i === 0 ? "Hook" : `${i}/`}
-                    </span>
-                  </div>
-                  <div style={{ flex: 1, padding: "12px 14px", fontSize: 13, color: "#374151", lineHeight: 1.6 }}>
-                    {tweet}
-                  </div>
-                  <div style={{ padding: "10px 10px 0 0", flexShrink: 0 }}>
-                    <CopyBtn k={`t${i}`} text={tweet} />
-                  </div>
-                </div>
-              </div>
-            ))}
-            {imageUrl && (
-              <div style={{ marginTop: 12, borderRadius: 8, overflow: "hidden", border: `1px solid ${BORDER}` }}>
-                <img src={imageUrl} alt="AI-generated visual for thread"
-                  style={{ width: "100%", display: "block" }} />
-              </div>
+            {hookTweet && (
+              <button onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(hookTweet)}`, "_blank")}
+                style={{ padding: "7px 16px", background: "#1DA1F2", color: "white", border: "none",
+                  borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 5 }}>
+                Share
+              </button>
             )}
-            {!imageUrl && imagePlaceholder && (
-              <div style={{ marginTop: 12, background: "#F3F4F6", borderRadius: 8, border: `1px solid ${BORDER}`,
-                padding: "28px 0", display: "flex", flexDirection: "column", alignItems: "center",
-                justifyContent: "center", gap: 8 }}>
-                <div style={{ fontSize: 12, color: MUTED }}>AI image generates in live mode</div>
-                <div style={{ fontSize: 11, background: "#E5E7EB", color: "#6B7280", padding: "2px 8px",
-                  borderRadius: 4, fontWeight: 600 }}>Demo</div>
+          </div>
+
+          {/* Hook tweet text */}
+          <div style={{ padding: "16px 18px 14px", fontSize: 15, color: "#111827", lineHeight: 1.7, fontWeight: 400 }}>
+            {hookTweet}
+          </div>
+
+          {/* AI Image - edge to edge */}
+          {imageUrl && (
+            <img src={imageUrl} alt="AI-generated visual for this tweet"
+              style={{ width: "100%", display: "block", maxHeight: 420, objectFit: "cover" }} />
+          )}
+          {!imageUrl && imagePlaceholder && (
+            <div style={{ background: "linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #2563EB 100%)",
+              aspectRatio: "1.91 / 1", display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center", gap: 8, color: "white", padding: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.95 }}>AI image generates in live mode</div>
+              <div style={{ fontSize: 11, opacity: 0.7, textAlign: "center", maxWidth: 240, lineHeight: 1.5 }}>
+                DALL-E 3 creates a relevant visual based on your content
+              </div>
+              <div style={{ marginTop: 4, fontSize: 10, fontWeight: 700, background: "rgba(255,255,255,0.2)",
+                padding: "3px 10px", borderRadius: 20, letterSpacing: "0.05em" }}>DEMO</div>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div style={{ padding: "12px 18px", borderTop: `1px solid ${BORDER}`,
+            display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <CopyBtn k="hook" text={hookTweet} label="Copy hook tweet" />
+            {threadTweets.length > 0 && (
+              <span style={{ fontSize: 11, color: MUTED }}>{threadTweets.length} more tweets in thread below</span>
+            )}
+          </div>
+        </div>
+
+        {/* Full thread - collapsible */}
+        {threadTweets.length > 0 && (
+          <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, overflow: "hidden" }}>
+            <button onClick={() => setThreadExpanded(e => !e)}
+              style={{ width: "100%", padding: "12px 16px", display: "flex", alignItems: "center",
+                justifyContent: "space-between", background: "none", border: "none", cursor: "pointer" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>Full thread</span>
+                <span style={{ fontSize: 11, color: MUTED }}>({threadTweets.length} more tweets)</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <CopyBtn k="all" text={allText} label="Copy all" />
+                <ChevronDown size={14} color={MUTED}
+                  style={{ transform: threadExpanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", flexShrink: 0 }} />
+              </div>
+            </button>
+            {threadExpanded && (
+              <div style={{ borderTop: `1px solid ${BORDER}` }}>
+                {threadTweets.map((tweet, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "stretch",
+                    borderBottom: i < threadTweets.length - 1 ? `1px solid ${BORDER}` : "none" }}>
+                    <div style={{ width: 36, flexShrink: 0, display: "flex", alignItems: "flex-start",
+                      justifyContent: "center", paddingTop: 14 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: MUTED }}>{i + 1}/</span>
+                    </div>
+                    <div style={{ flex: 1, padding: "12px 0 12px", fontSize: 13, color: "#374151", lineHeight: 1.6 }}>
+                      {tweet}
+                    </div>
+                    <div style={{ padding: "10px 14px 0", flexShrink: 0 }}>
+                      <CopyBtn k={`t${i + 1}`} text={tweet} />
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
-        );
-      })()}
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: 20, marginBottom: 12 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 14 }}>{platformLabel}</div>
 
       {(platformId === "linkedin" || platformId === "instagram") && (() => {
         const content = (data.content as string) ?? "";
