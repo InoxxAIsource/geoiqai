@@ -182,6 +182,27 @@ router.post("/content/fetch-url", requireAuth, async (req: AuthRequest, res): Pr
   }
 });
 
+// ─── GET /api/content/proxy-image ────────────────────────────────────────────────
+
+router.get("/content/proxy-image", requireAuth, async (req: AuthRequest, res): Promise<void> => {
+  const { url } = req.query as { url?: string };
+  if (!url?.trim()) { res.status(400).json({ error: "url is required" }); return; }
+  try {
+    const upstream = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
+    if (!upstream.ok) { res.status(502).json({ error: "Could not fetch image" }); return; }
+    const contentType = upstream.headers.get("content-type") ?? "image/jpeg";
+    const ext = contentType.includes("png") ? "png" : "jpg";
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="tweet-image.${ext}"`);
+    res.setHeader("Cache-Control", "no-store");
+    const buf = await upstream.arrayBuffer();
+    res.send(Buffer.from(buf));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Download failed";
+    res.status(500).json({ error: msg });
+  }
+});
+
 // ─── POST /api/content/analyze ──────────────────────────────────────────────────
 
 router.post("/content/analyze", requireAuth, async (req: AuthRequest, res): Promise<void> => {

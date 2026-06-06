@@ -883,23 +883,15 @@ function PlatformCard({ platformId, platformLabel, data }: {
             {hookTweet && (
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 {imageUrl && (
-                  <button
-                    onClick={() => {
-                      fetch(imageUrl)
-                        .then(r => r.blob())
-                        .then(blob => {
-                          const a = document.createElement("a");
-                          a.href = URL.createObjectURL(blob);
-                          a.download = "tweet-image.jpg";
-                          a.click();
-                        })
-                        .catch(() => window.open(imageUrl, "_blank"));
-                    }}
+                  <a
+                    href={`/api/content/proxy-image?url=${encodeURIComponent(imageUrl)}`}
+                    download="tweet-image.jpg"
                     style={{ padding: "7px 14px", background: "white", color: "#374151",
                       border: `1px solid ${BORDER}`, borderRadius: 20, fontSize: 12,
-                      fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                      fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center",
+                      gap: 5, textDecoration: "none" }}>
                     <Download size={12} /> Save image
-                  </button>
+                  </a>
                 )}
                 <button onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(hookTweet)}`, "_blank")}
                   style={{ padding: "7px 16px", background: "#1DA1F2", color: "white", border: "none",
