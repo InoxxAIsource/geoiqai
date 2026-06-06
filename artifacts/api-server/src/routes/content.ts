@@ -130,10 +130,12 @@ router.post("/content/fetch-url", requireAuth, async (req: AuthRequest, res): Pr
   const { url } = req.body as { url?: string };
   if (!url?.trim()) { res.status(400).json({ error: "url is required" }); return; }
 
+  const normalizedUrl = /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`;
+
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
-    const response = await fetch(url, {
+    const response = await fetch(normalizedUrl, {
       signal: controller.signal,
       headers: { "User-Agent": "GeoIQ/1.0 (content analyzer)" },
     });
