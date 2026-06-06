@@ -1,0 +1,131 @@
+Fix 4 specific issues on Brand Performance page.
+
+FIX 1: REPLACE "Competitor A/B/C" WITH REAL NAMES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Currently showing "Competitor A", "Competitor B" etc.
+These should show real competitor domain names.
+
+When user adds competitor domain in the pill input:
+- Store actual domain: "primevideo.com"
+- Extract brand name: "primevideo"  
+- Use real name everywhere:
+  "Primevideo vs Netflix" not "Competitor A vs Netflix"
+
+In the analysis Claude prompt, replace:
+"Competitors being tracked: none specified"
+WITH actual competitor names:
+"Competitors being tracked: primevideo.com, hulu.com"
+
+Claude will then return real competitor names
+in competitorData array instead of generic names.
+
+FIX 2: ADD TOP CITED DOMAINS TO NARRATIVE DRIVERS TAB
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Below Narrative Drivers list, add section:
+"Top Cited Domains"
+"Sources AI cites when discussing your brand's category"
+
+Pull data from Visibility Overview cache:
+const visCache = await getCache(`vis2:${domain}:...`)
+const citedSources = visCache?.citedSources || []
+
+Show table:
+Domain | Citations | % Share | Trend
+
+If no Visibility Overview data yet, show:
+"Run a Visibility Overview scan to see 
+which domains AI cites in your category"
+[Go to Visibility Overview →]
+
+FIX 3: INCREASE QUESTIONS FROM 3 TO 20
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Currently Claude generates only 3 topQuestions.
+
+Update the analysis prompt to return 20 questions:
+
+Change in Claude analysis prompt:
+"topQuestions": [
+  20 objects, not just 3
+  Include mix of:
+  - Branded questions (8): "Is netflix worth it?"
+  - Comparison questions (6): "netflix vs disney+"  
+  - Feature questions (3): "does netflix have live sports?"
+  - Problem questions (3): "netflix alternatives cheaper"
+  Each with brandMentioned and yourRank
+]
+
+Show all 20 in Questions tab.
+Group them:
+[Branded 8] [Comparison 6] [Feature 3] [Problem 3]
+
+FIX 4: ADD ANSWERS PANEL TO NARRATIVE DRIVERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In Narrative Drivers tab, add 
+"Breakdown by Questions" section:
+
+Show table with answers data:
+Columns: Prompt | AI Response preview | Sentiment
+
+Each row has a chat bubble icon 💬
+Click → slide out panel from right side showing:
+  Full prompt text (bold)
+  Full AI response text
+  Sentiment badge (Positive/Neutral/Negative)
+  Competitors mentioned: [list]
+  Key themes: [tags]
+
+The answers data already exists in 
+brandData.answers array — just display it.
+
+FIX 5: COMPETITOR COMPARISON IN BUSINESS DRIVERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Key Business Drivers table currently shows
+only one column (Netflix).
+
+Semrush shows all competitors side by side.
+
+When competitors are added, update the 
+Claude analysis prompt to include:
+"For each business driver, estimate frequency
+for EACH competitor based on their positioning:
+{
+  driver: 'Content Quality',
+  yourFrequency: 9,
+  competitorFrequencies: {
+    'primevideo': 7,
+    'hulu': 5
+  },
+  isLeader: true
+}"
+
+Then show multi-column table:
+Driver | Netflix | Primevideo | Hulu | Leader
+Product Quality | 9 | 7 | 5 | 🏆 Netflix
+Pricing Value | 6 | 8 | 7 | 🏆 Primevideo
+
+DO NOT add new API calls for this.
+Claude estimates competitor frequencies 
+based on general knowledge. Free, no cost.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST AFTER FIXES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In sandbox mode:
+1. Go to Brand Performance
+2. Enter netflix.com
+3. Add competitor: primevideo.com
+4. Mock data should show "Primevideo" not "Competitor A"
+5. Questions tab should show 20 questions
+6. Narrative Drivers should show cited domains
+7. Click chat bubble → answers panel slides out
+8. Business Drivers table shows 2 columns
+
+Clear brand performance cache:
+DELETE FROM dataforseo_cache
+WHERE cache_key LIKE '%brand_perf%'

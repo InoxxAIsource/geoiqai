@@ -22,21 +22,46 @@ const DONUT_COLORS_SOV = [P, "#10B981", "#F59E0B", "#EF4444", "#9CA3AF"];
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
+interface BrandDriverData {
+  driver: string;
+  yourFrequency: number;
+  competitorFrequencies?: Record<string, number>;
+  sentiment: "positive" | "mixed" | "negative";
+  isLeader: boolean;
+}
+
+interface TopQuestion {
+  question: string;
+  brandMentioned: boolean;
+  yourRank: number;
+  category: string;
+}
+
+interface AnswerItem {
+  prompt: string;
+  response: string;
+  brandMentioned: boolean;
+  sentiment: string;
+  competitorsMentioned: string[];
+  keyThemes: string[];
+}
+
 interface BrandPerformanceResult {
   domain: string;
   brandName: string;
   overallScore: number;
   shareOfVoice: number;
   sentiment: { favorable: number; neutral: number; negative: number; summary: string };
-  businessDrivers: Array<{ driver: string; yourFrequency: number; sentiment: "positive" | "mixed" | "negative"; isLeader: boolean }>;
+  businessDrivers: BrandDriverData[];
   competitorData: Array<{ name: string; shareOfVoice: number; sentiment: number }>;
   keyStrengths: string[];
   areasForImprovement: string[];
   narrativeDrivers: Array<{ topic: string; mentions: number; trend: "up" | "down" | "stable" }>;
-  topQuestions: Array<{ question: string; brandMentioned: boolean; yourRank: number }>;
+  topQuestions: TopQuestion[];
   insights: Array<{ number: number; title: string; description: string; action: string; linkTo: string }>;
   strategicOpportunities: Array<{ timeframe: "urgent" | "medium"; title: string; description: string; recommendations: string[] }>;
-  answers?: Array<{ prompt: string; response: string; brandMentioned: boolean; sentiment: string; competitorsMentioned: string[]; keyThemes: string[] }>;
+  citedSources?: Array<{ domain: string; mentions: number }>;
+  answers?: AnswerItem[];
   isMock?: boolean;
   cached?: boolean;
   locked?: boolean;
@@ -60,7 +85,7 @@ function freqColor(n: number) {
   if (n >= 7) return { bg: "#1E3A8A", text: "#fff" };
   if (n >= 4) return { bg: "#3B82F6", text: "#fff" };
   if (n >= 1) return { bg: "#BFDBFE", text: "#1E40AF" };
-  return { bg: "transparent", text: MUTED };
+  return { bg: "#F3F4F6", text: MUTED };
 }
 
 function sentimentColor(s: string) {
@@ -136,8 +161,7 @@ function LoadingState() {
               <div style={{
                 width: 24, height: 24, borderRadius: "50%",
                 background: done ? GREEN : active ? P : BORDER,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
               }}>
                 {done ? (
                   <svg width={12} height={12} viewBox="0 0 12 12" fill="none">
@@ -168,9 +192,7 @@ function LockedState({ brandName, onUpgrade }: { brandName: string; onUpgrade?: 
       </div>
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column",
         alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.85)", borderRadius: 12 }}>
-        <div style={{ fontSize: 20, fontWeight: 700, color: "#111827", marginBottom: 8 }}>
-          Unlock Brand Performance
-        </div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: "#111827", marginBottom: 8 }}>Unlock Brand Performance</div>
         <div style={{ fontSize: 14, color: MUTED, marginBottom: 20, textAlign: "center", maxWidth: 360 }}>
           See how AI perceives {brandName} vs competitors across 20 synthetic queries.
         </div>
@@ -180,6 +202,173 @@ function LockedState({ brandName, onUpgrade }: { brandName: string; onUpgrade?: 
         }}>
           Upgrade to Starter
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Answers Slide-out Panel ────────────────────────────────────────────────────
+
+function AnswerPanel({ answer, onClose }: { answer: AnswerItem; onClose: () => void }) {
+  const sc = sentimentColor(answer.sentiment);
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", justifyContent: "flex-end" }}>
+      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.3)" }} onClick={onClose} />
+      <div style={{ position: "relative", width: 480, maxWidth: "90vw", background: "white",
+        height: "100%", padding: 24, overflowY: "auto", boxShadow: "-4px 0 24px rgba(0,0,0,0.12)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>AI Response Detail</div>
+          <button onClick={onClose}
+            style={{ background: "none", border: "none", cursor: "pointer", color: MUTED, padding: 4 }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Prompt</div>
+        <div style={{ fontSize: 14, color: "#111827", marginBottom: 20, padding: "12px 14px", background: BG, borderRadius: 8, fontWeight: 500 }}>
+          {answer.prompt}
+        </div>
+
+        <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>AI Response</div>
+        <div style={{ fontSize: 14, color: "#374151", marginBottom: 20, lineHeight: 1.7, padding: "12px 14px", background: BG, borderRadius: 8, borderLeft: `3px solid ${P}` }}>
+          {answer.response}
+        </div>
+
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          <span style={{ padding: "4px 10px", borderRadius: 999, fontSize: 12, fontWeight: 600, background: sc.bg, color: sc.text, textTransform: "capitalize" }}>
+            {answer.sentiment}
+          </span>
+          {answer.brandMentioned && (
+            <span style={{ padding: "4px 10px", borderRadius: 999, fontSize: 12, fontWeight: 600, background: "#EEF2FF", color: P }}>
+              Brand mentioned
+            </span>
+          )}
+        </div>
+
+        {answer.competitorsMentioned.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: MUTED, marginBottom: 8 }}>Competitors Mentioned</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {answer.competitorsMentioned.map((c, i) => (
+                <span key={i} style={{ padding: "3px 10px", borderRadius: 999, background: "#F3F4F6", fontSize: 12, color: "#374151" }}>{c}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {answer.keyThemes.length > 0 && (
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: MUTED, marginBottom: 8 }}>Key Themes</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {answer.keyThemes.map((t, i) => (
+                <span key={i} style={{ padding: "3px 10px", borderRadius: 999, background: "#EEF2FF", fontSize: 12, color: P }}>{t}</span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Business Drivers Table ────────────────────────────────────────────────────
+
+function BusinessDriversTable({ data }: { data: BrandPerformanceResult }) {
+  const competitors = data.competitorData.map(c => c.name);
+  const hasCompetitorFreqs = data.businessDrivers.some(d => d.competitorFrequencies && Object.keys(d.competitorFrequencies).length > 0);
+  const topDriver = data.businessDrivers.find(d => d.isLeader)?.driver;
+
+  return (
+    <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "#111827" }}>Key Business Drivers by Frequency</div>
+        {topDriver && (
+          <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 999, background: "#EEF2FF", color: P }}>
+            Own {topDriver}
+          </span>
+        )}
+      </div>
+      <div style={{ fontSize: 13, color: MUTED, marginBottom: 16 }}>How often each driver appears in AI responses</div>
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: hasCompetitorFreqs ? 500 : 300 }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: "left", padding: "8px 12px", fontSize: 12, fontWeight: 600, color: MUTED, borderBottom: `1px solid ${BORDER}` }}>
+                Business Driver
+              </th>
+              <th style={{ textAlign: "center", padding: "8px 12px", fontSize: 12, fontWeight: 600, color: P, borderBottom: `1px solid ${BORDER}` }}>
+                {data.brandName}
+              </th>
+              {hasCompetitorFreqs && competitors.map(c => (
+                <th key={c} style={{ textAlign: "center", padding: "8px 12px", fontSize: 12, fontWeight: 600, color: MUTED, borderBottom: `1px solid ${BORDER}` }}>
+                  {c}
+                </th>
+              ))}
+              <th style={{ textAlign: "center", padding: "8px 12px", fontSize: 12, fontWeight: 600, color: MUTED, borderBottom: `1px solid ${BORDER}` }}>
+                Sentiment
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.businessDrivers.map((d, i) => {
+              const sc = sentimentColor(d.sentiment);
+              const allFreqs = [
+                d.yourFrequency,
+                ...competitors.map(c => d.competitorFrequencies?.[c] ?? 0),
+              ];
+              const maxFreq = Math.max(...allFreqs);
+
+              return (
+                <tr key={i} style={{ borderBottom: `1px solid ${BORDER}` }}>
+                  <td style={{ padding: "10px 12px", fontSize: 13, color: "#111827" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      {d.isLeader && <Trophy size={14} style={{ color: AMBER, flexShrink: 0 }} />}
+                      {d.driver}
+                    </div>
+                  </td>
+                  <td style={{ padding: "10px 12px", textAlign: "center" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 12px", borderRadius: 6,
+                      ...freqColor(d.yourFrequency), fontSize: 13, fontWeight: 600, minWidth: 36, justifyContent: "center" }}>
+                      {d.yourFrequency > 0 ? d.yourFrequency : "-"}
+                      {d.yourFrequency === maxFreq && hasCompetitorFreqs && d.yourFrequency > 0 && (
+                        <Trophy size={11} style={{ color: AMBER }} />
+                      )}
+                    </span>
+                  </td>
+                  {hasCompetitorFreqs && competitors.map(c => {
+                    const freq = d.competitorFrequencies?.[c] ?? 0;
+                    const fc = freqColor(freq);
+                    return (
+                      <td key={c} style={{ padding: "10px 12px", textAlign: "center" }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 12px", borderRadius: 6,
+                          background: fc.bg, color: fc.text, fontSize: 13, fontWeight: 600, minWidth: 36, justifyContent: "center" }}>
+                          {freq > 0 ? freq : "-"}
+                          {freq === maxFreq && freq > 0 && freq !== d.yourFrequency && (
+                            <Trophy size={11} style={{ color: AMBER }} />
+                          )}
+                        </span>
+                      </td>
+                    );
+                  })}
+                  <td style={{ padding: "10px 12px", textAlign: "center" }}>
+                    <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 999,
+                      background: sc.bg, color: sc.text, fontSize: 12, fontWeight: 600, textTransform: "capitalize" }}>
+                      {d.sentiment}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ marginTop: 12, display: "flex", gap: 12, fontSize: 11, color: MUTED }}>
+        {[{ bg: "#1E3A8A", label: "High (7+)" }, { bg: "#3B82F6", label: "Medium (4-6)" }, { bg: "#BFDBFE", label: "Low (1-3)" }].map(item => (
+          <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <div style={{ width: 12, height: 12, borderRadius: 3, background: item.bg }} />
+            <span>{item.label}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -222,13 +411,10 @@ function BrandPerformanceTab({ data, onTabChange }: { data: BrandPerformanceResu
     { name: "Negative", value: data.sentiment.negative },
   ];
 
-  const topDriver = data.businessDrivers.find(d => d.isLeader)?.driver;
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {/* Row 1: Insights + Bubble Chart */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        {/* Insights */}
         <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 4 }}>Insights</div>
           <div style={{ fontSize: 13, color: MUTED, marginBottom: 16 }}>AI-generated strategy based on latest analysis</div>
@@ -255,7 +441,6 @@ function BrandPerformanceTab({ data, onTabChange }: { data: BrandPerformanceResu
           </div>
         </div>
 
-        {/* Bubble Chart */}
         <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
             <div style={{ fontSize: 16, fontWeight: 700, color: "#111827" }}>Share of Voice vs. Sentiment</div>
@@ -371,91 +556,29 @@ function BrandPerformanceTab({ data, onTabChange }: { data: BrandPerformanceResu
         </div>
       </div>
 
-      {/* Business Drivers Heatmap */}
-      <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: "#111827" }}>Key Business Drivers by Frequency</div>
-          {topDriver && (
-            <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 999, background: "#EEF2FF", color: P }}>
-              Own {topDriver}
-            </span>
-          )}
-        </div>
-        <div style={{ fontSize: 13, color: MUTED, marginBottom: 16 }}>How often each driver appears in AI responses about your brand</div>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: "left", padding: "8px 12px", fontSize: 12, fontWeight: 600, color: MUTED, borderBottom: `1px solid ${BORDER}` }}>
-                  Business Driver
-                </th>
-                <th style={{ textAlign: "center", padding: "8px 12px", fontSize: 12, fontWeight: 600, color: MUTED, borderBottom: `1px solid ${BORDER}` }}>
-                  {data.brandName}
-                </th>
-                <th style={{ textAlign: "center", padding: "8px 12px", fontSize: 12, fontWeight: 600, color: MUTED, borderBottom: `1px solid ${BORDER}` }}>
-                  Sentiment
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.businessDrivers.map((d, i) => {
-                const fc = freqColor(d.yourFrequency);
-                const sc = sentimentColor(d.sentiment);
-                return (
-                  <tr key={i} style={{ borderBottom: `1px solid ${BORDER}` }}>
-                    <td style={{ padding: "10px 12px", fontSize: 13, color: "#111827", display: "flex", alignItems: "center", gap: 6 }}>
-                      {d.isLeader && <Trophy size={14} style={{ color: AMBER, flexShrink: 0 }} />}
-                      {d.driver}
-                    </td>
-                    <td style={{ padding: "10px 12px", textAlign: "center" }}>
-                      <span style={{ display: "inline-block", padding: "4px 12px", borderRadius: 6,
-                        background: fc.bg, color: fc.text, fontSize: 13, fontWeight: 600, minWidth: 36 }}>
-                        {d.yourFrequency > 0 ? d.yourFrequency : "-"}
-                      </span>
-                    </td>
-                    <td style={{ padding: "10px 12px", textAlign: "center" }}>
-                      <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 999,
-                        background: sc.bg, color: sc.text, fontSize: 12, fontWeight: 600, textTransform: "capitalize" }}>
-                        {d.sentiment}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div style={{ marginTop: 12, display: "flex", gap: 12, fontSize: 11, color: MUTED }}>
-          {[{ bg: "#1E3A8A", t: "white", label: "High (7+)" }, { bg: "#3B82F6", t: "white", label: "Medium (4-6)" }, { bg: "#BFDBFE", t: "#1E40AF", label: "Low (1-3)" }].map(item => (
-            <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <div style={{ width: 12, height: 12, borderRadius: 3, background: item.bg }} />
-              <span>{item.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Business Drivers Table */}
+      <BusinessDriversTable data={data} />
 
       {/* Competitor Comparison Cards */}
       {data.competitorData.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
           {data.competitorData.map((comp, i) => {
-            const yourSoV = data.shareOfVoice;
-            const yourSentiment = data.sentiment.favorable;
-            const compLeadsSoV = comp.shareOfVoice > yourSoV;
-            const compLeadsSentiment = comp.sentiment > yourSentiment;
-            const insight = compLeadsSoV ? `${comp.name} leads on visibility` : `You lead on visibility`;
+            const compLeadsSoV = comp.shareOfVoice > data.shareOfVoice;
+            const compLeadsSentiment = comp.sentiment > data.sentiment.favorable;
             return (
               <div key={i} style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: "#111827", marginBottom: 2 }}>
                   {comp.name} vs {data.brandName}
                 </div>
-                <div style={{ fontSize: 12, color: MUTED, marginBottom: 16 }}>{insight}</div>
+                <div style={{ fontSize: 12, color: MUTED, marginBottom: 16 }}>
+                  {compLeadsSoV ? `${comp.name} leads on visibility` : "You lead on visibility"}
+                </div>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr>
                       <th style={{ textAlign: "left", fontSize: 11, fontWeight: 600, color: MUTED, paddingBottom: 8 }}>Metric</th>
                       <th style={{ textAlign: "center", fontSize: 11, fontWeight: 600, color: MUTED, paddingBottom: 8 }}>{comp.name}</th>
-                      <th style={{ textAlign: "center", fontSize: 11, fontWeight: 600, color: MUTED, paddingBottom: 8 }}>{data.brandName}</th>
+                      <th style={{ textAlign: "center", fontSize: 11, fontWeight: 600, color: P, paddingBottom: 8 }}>{data.brandName}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -467,7 +590,7 @@ function BrandPerformanceTab({ data, onTabChange }: { data: BrandPerformanceResu
                       </td>
                       <td style={{ textAlign: "center", fontSize: 13, fontWeight: 600, padding: "8px 4px" }}>
                         {!compLeadsSoV && <Trophy size={12} style={{ color: AMBER, display: "inline", marginRight: 2 }} />}
-                        {yourSoV}%
+                        {data.shareOfVoice}%
                       </td>
                     </tr>
                     <tr style={{ borderTop: `1px solid ${BORDER}` }}>
@@ -478,7 +601,7 @@ function BrandPerformanceTab({ data, onTabChange }: { data: BrandPerformanceResu
                       </td>
                       <td style={{ textAlign: "center", fontSize: 13, fontWeight: 600, padding: "8px 4px" }}>
                         {!compLeadsSentiment && <Trophy size={12} style={{ color: AMBER, display: "inline", marginRight: 2 }} />}
-                        {yourSentiment}%
+                        {data.sentiment.favorable}%
                       </td>
                     </tr>
                   </tbody>
@@ -538,10 +661,11 @@ function PerceptionTab({ data }: { data: BrandPerformanceResult }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ fontSize: 20, fontWeight: 700, color: "#111827" }}>Perception</div>
-      <div style={{ fontSize: 14, color: MUTED }}>How AI platforms describe and rate your brand</div>
+      <div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: "#111827" }}>Perception</div>
+        <div style={{ fontSize: 14, color: MUTED }}>How AI platforms describe and rate your brand</div>
+      </div>
 
-      {/* Sentiment donut */}
       <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 16 }}>Overall Sentiment</div>
         <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
@@ -564,7 +688,6 @@ function PerceptionTab({ data }: { data: BrandPerformanceResult }) {
         </div>
       </div>
 
-      {/* Key Sentiment Drivers */}
       <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 16 }}>Key Sentiment Drivers</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -587,7 +710,6 @@ function PerceptionTab({ data }: { data: BrandPerformanceResult }) {
         </div>
       </div>
 
-      {/* AI Feature Description */}
       <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 12 }}>AI Feature Description</div>
         <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, padding: "14px 16px",
@@ -596,7 +718,6 @@ function PerceptionTab({ data }: { data: BrandPerformanceResult }) {
         </div>
       </div>
 
-      {/* Competitive Perception Bar Chart */}
       {perceptionBarData.length > 1 && (
         <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 4 }}>Competitive Perception</div>
@@ -623,12 +744,16 @@ function PerceptionTab({ data }: { data: BrandPerformanceResult }) {
 // ─── Tab 3: Narrative Drivers ──────────────────────────────────────────────────
 
 function NarrativeTab({ data }: { data: BrandPerformanceResult }) {
-  const [selectedAnswer, setSelectedAnswer] = useState<BrandPerformanceResult["answers"] extends Array<infer T> ? T : never | null>(null);
+  const [selectedAnswer, setSelectedAnswer] = useState<AnswerItem | null>(null);
+
+  const totalMentions = (data.citedSources ?? []).reduce((s, c) => s + c.mentions, 0);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ fontSize: 20, fontWeight: 700, color: "#111827" }}>Narrative Drivers</div>
-      <div style={{ fontSize: 14, color: MUTED }}>What shapes your brand's story in AI responses</div>
+      <div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: "#111827" }}>Narrative Drivers</div>
+        <div style={{ fontSize: 14, color: MUTED }}>What shapes your brand's story in AI responses</div>
+      </div>
 
       {/* Narrative Drivers List */}
       <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
@@ -650,6 +775,44 @@ function NarrativeTab({ data }: { data: BrandPerformanceResult }) {
         ))}
       </div>
 
+      {/* Top Cited Domains */}
+      <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 4 }}>Top Cited Domains</div>
+        <div style={{ fontSize: 13, color: MUTED, marginBottom: 16 }}>Sources AI cites when discussing your brand's category</div>
+        {data.citedSources && data.citedSources.length > 0 ? (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                {["Domain", "Citations", "% Share"].map(h => (
+                  <th key={h} style={{ textAlign: h === "Domain" ? "left" : "right", padding: "8px 12px",
+                    fontSize: 12, fontWeight: 600, color: MUTED, borderBottom: `1px solid ${BORDER}` }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.citedSources.map((src, i) => (
+                <tr key={i} style={{ borderBottom: `1px solid ${BORDER}` }}>
+                  <td style={{ padding: "10px 12px", fontSize: 13, color: "#111827" }}>{src.domain}</td>
+                  <td style={{ padding: "10px 12px", textAlign: "right", fontSize: 13, color: "#374151" }}>{src.mentions.toLocaleString()}</td>
+                  <td style={{ padding: "10px 12px", textAlign: "right", fontSize: 13, color: "#374151" }}>
+                    {totalMentions > 0 ? Math.round((src.mentions / totalMentions) * 100) : 0}%
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div style={{ padding: "20px 0", textAlign: "center" }}>
+            <div style={{ fontSize: 13, color: MUTED, marginBottom: 12 }}>
+              Run a Visibility Overview scan to see which domains AI cites in your category
+            </div>
+            <span style={{ fontSize: 13, color: P, cursor: "pointer", fontWeight: 500 }}>
+              Go to Visibility Overview
+            </span>
+          </div>
+        )}
+      </div>
+
       {/* Answers Breakdown */}
       {data.answers && data.answers.length > 0 && (
         <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
@@ -659,7 +822,7 @@ function NarrativeTab({ data }: { data: BrandPerformanceResult }) {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
-                  {["Prompt", "Brand Mentioned", "Competitors", "Sentiment"].map(h => (
+                  {["Prompt", "AI Response", "Sentiment"].map(h => (
                     <th key={h} style={{ textAlign: "left", padding: "8px 12px", fontSize: 12, fontWeight: 600, color: MUTED, borderBottom: `1px solid ${BORDER}` }}>{h}</th>
                   ))}
                 </tr>
@@ -668,24 +831,20 @@ function NarrativeTab({ data }: { data: BrandPerformanceResult }) {
                 {data.answers.map((a, i) => {
                   const sc = sentimentColor(a.sentiment);
                   return (
-                    <tr key={i} onClick={() => setSelectedAnswer(a as never)}
-                      style={{ borderBottom: `1px solid ${BORDER}`, cursor: "pointer", transition: "background 0.15s" }}
+                    <tr key={i} onClick={() => setSelectedAnswer(a)}
+                      style={{ borderBottom: `1px solid ${BORDER}`, cursor: "pointer" }}
                       onMouseEnter={e => (e.currentTarget.style.background = BG)}
                       onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-                      <td style={{ padding: "10px 12px", fontSize: 12, color: "#374151", maxWidth: 300 }}>
+                      <td style={{ padding: "10px 12px", fontSize: 12, color: "#374151", maxWidth: 260 }}>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
                           <span style={{ flexShrink: 0, fontSize: 14 }}>&#128172;</span>
                           <span style={{ overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box",
                             WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{a.prompt}</span>
                         </div>
                       </td>
-                      <td style={{ padding: "10px 12px", textAlign: "center" }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: a.brandMentioned ? GREEN : MUTED }}>
-                          {a.brandMentioned ? "Yes" : "No"}
-                        </span>
-                      </td>
-                      <td style={{ padding: "10px 12px", fontSize: 12, color: MUTED }}>
-                        {a.competitorsMentioned?.slice(0, 2).join(", ") || "-"}
+                      <td style={{ padding: "10px 12px", fontSize: 12, color: MUTED, maxWidth: 320 }}>
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box",
+                          WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{a.response}</span>
                       </td>
                       <td style={{ padding: "10px 12px" }}>
                         <span style={{ padding: "3px 8px", borderRadius: 999, fontSize: 11, fontWeight: 600, background: sc.bg, color: sc.text, textTransform: "capitalize" }}>
@@ -701,62 +860,7 @@ function NarrativeTab({ data }: { data: BrandPerformanceResult }) {
         </div>
       )}
 
-      {/* Slide-out answer panel */}
-      {selectedAnswer && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", justifyContent: "flex-end" }}>
-          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.3)" }}
-            onClick={() => setSelectedAnswer(null)} />
-          <div style={{ position: "relative", width: 480, maxWidth: "90vw", background: "white",
-            height: "100%", padding: 24, overflowY: "auto", boxShadow: "-4px 0 24px rgba(0,0,0,0.12)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>AI Response</div>
-              <button onClick={() => setSelectedAnswer(null)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: MUTED, padding: 4 }}>
-                <X size={18} />
-              </button>
-            </div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Prompt</div>
-            <div style={{ fontSize: 14, color: "#111827", marginBottom: 20, padding: "12px 14px", background: BG, borderRadius: 8 }}>
-              {(selectedAnswer as { prompt: string }).prompt}
-            </div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>AI Response</div>
-            <div style={{ fontSize: 14, color: "#374151", marginBottom: 20, lineHeight: 1.7, padding: "12px 14px", background: BG, borderRadius: 8, borderLeft: `3px solid ${P}` }}>
-              {(selectedAnswer as { response: string }).response}
-            </div>
-            {(() => {
-              const a = selectedAnswer as { sentiment: string; competitorsMentioned: string[]; keyThemes: string[] };
-              const sc = sentimentColor(a.sentiment);
-              return (
-                <>
-                  <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-                    <span style={{ padding: "4px 10px", borderRadius: 999, fontSize: 12, fontWeight: 600, background: sc.bg, color: sc.text, textTransform: "capitalize" }}>{a.sentiment}</span>
-                  </div>
-                  {a.competitorsMentioned?.length > 0 && (
-                    <div style={{ marginBottom: 16 }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: MUTED, marginBottom: 8 }}>Competitors Mentioned</div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                        {a.competitorsMentioned.map((c, i) => (
-                          <span key={i} style={{ padding: "3px 10px", borderRadius: 999, background: "#F3F4F6", fontSize: 12, color: "#374151" }}>{c}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {a.keyThemes?.length > 0 && (
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: MUTED, marginBottom: 8 }}>Key Themes</div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                        {a.keyThemes.map((t, i) => (
-                          <span key={i} style={{ padding: "3px 10px", borderRadius: 999, background: "#EEF2FF", fontSize: 12, color: P }}>{t}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-        </div>
-      )}
+      {selectedAnswer && <AnswerPanel answer={selectedAnswer} onClose={() => setSelectedAnswer(null)} />}
 
       <TabFooter data={data} />
     </div>
@@ -765,23 +869,72 @@ function NarrativeTab({ data }: { data: BrandPerformanceResult }) {
 
 // ─── Tab 4: Questions ──────────────────────────────────────────────────────────
 
+const QUESTION_CATEGORIES = [
+  { key: "branded", label: "Branded" },
+  { key: "comparison", label: "Comparison" },
+  { key: "feature", label: "Feature" },
+  { key: "problem", label: "Problem" },
+];
+
 function QuestionsTab({ data }: { data: BrandPerformanceResult }) {
+  const [activeCategory, setActiveCategory] = useState("all");
+
+  const byCategory = QUESTION_CATEGORIES.reduce<Record<string, TopQuestion[]>>((acc, cat) => {
+    acc[cat.key] = data.topQuestions.filter(q => q.category === cat.key);
+    return acc;
+  }, {});
+
+  const filtered = activeCategory === "all"
+    ? data.topQuestions
+    : (byCategory[activeCategory] ?? []);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ fontSize: 20, fontWeight: 700, color: "#111827" }}>Questions</div>
-      <div style={{ fontSize: 14, color: MUTED }}>Specific prompts where your brand appears in AI answers</div>
+      <div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: "#111827" }}>Questions</div>
+        <div style={{ fontSize: 14, color: MUTED }}>Specific prompts where your brand appears in AI answers</div>
+      </div>
+
+      {/* Category filter pills */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button onClick={() => setActiveCategory("all")}
+          style={{ padding: "5px 14px", borderRadius: 999, fontSize: 13, fontWeight: activeCategory === "all" ? 600 : 400,
+            background: activeCategory === "all" ? P : "white", color: activeCategory === "all" ? "white" : MUTED,
+            border: `1px solid ${activeCategory === "all" ? P : BORDER}`, cursor: "pointer" }}>
+          All ({data.topQuestions.length})
+        </button>
+        {QUESTION_CATEGORIES.map(cat => {
+          const count = byCategory[cat.key]?.length ?? 0;
+          if (count === 0) return null;
+          const active = activeCategory === cat.key;
+          return (
+            <button key={cat.key} onClick={() => setActiveCategory(cat.key)}
+              style={{ padding: "5px 14px", borderRadius: 999, fontSize: 13, fontWeight: active ? 600 : 400,
+                background: active ? P : "white", color: active ? "white" : MUTED,
+                border: `1px solid ${active ? P : BORDER}`, cursor: "pointer" }}>
+              {cat.label} ({count})
+            </button>
+          );
+        })}
+      </div>
+
       <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
-        {data.topQuestions.map((q, i) => (
+        {filtered.map((q, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16,
-            padding: "14px 0", borderBottom: i < data.topQuestions.length - 1 ? `1px solid ${BORDER}` : "none" }}>
-            <div style={{ fontSize: 14, color: "#111827", flex: 1 }}>{q.question}</div>
+            padding: "14px 0", borderBottom: i < filtered.length - 1 ? `1px solid ${BORDER}` : "none" }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, color: "#111827" }}>{q.question}</div>
+              {q.category && (
+                <span style={{ fontSize: 11, color: MUTED, textTransform: "capitalize" }}>{q.category}</span>
+              )}
+            </div>
             <div>
               {q.brandMentioned ? (
-                <span style={{ padding: "4px 10px", borderRadius: 999, background: "#ECFDF5", color: GREEN, fontSize: 12, fontWeight: 600 }}>
+                <span style={{ padding: "4px 10px", borderRadius: 999, background: "#ECFDF5", color: GREEN, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
                   You rank #{q.yourRank}
                 </span>
               ) : (
-                <span style={{ padding: "4px 10px", borderRadius: 999, background: "#F3F4F6", color: MUTED, fontSize: 12, fontWeight: 600 }}>
+                <span style={{ padding: "4px 10px", borderRadius: 999, background: "#F3F4F6", color: MUTED, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
                   Not ranked
                 </span>
               )}
@@ -792,6 +945,7 @@ function QuestionsTab({ data }: { data: BrandPerformanceResult }) {
           These questions were generated based on {data.brandName}'s category and competitive landscape.
         </div>
       </div>
+
       <TabFooter data={data} />
     </div>
   );
@@ -819,7 +973,7 @@ export function BrandPerformanceSection({ domain }: BrandPerformanceSectionProps
   const [competitorInput, setCompetitorInput] = useState("");
   const abortRef = useRef<AbortController | null>(null);
 
-  const fetchData = async (force = false) => {
+  const fetchData = async (force = false, currentCompetitors = competitors) => {
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
     setLoading(true);
@@ -831,7 +985,7 @@ export function BrandPerformanceSection({ domain }: BrandPerformanceSectionProps
           "Content-Type": "application/json",
           Authorization: `Bearer ${getToken() ?? ""}`,
         },
-        body: JSON.stringify({ domain, competitors, language: "en", force }),
+        body: JSON.stringify({ domain, competitors: currentCompetitors, language: "en", force }),
         signal: abortRef.current.signal,
       });
       if (!res.ok) {
@@ -849,7 +1003,7 @@ export function BrandPerformanceSection({ domain }: BrandPerformanceSectionProps
   };
 
   useEffect(() => {
-    if (domain) fetchData();
+    if (domain) void fetchData();
     return () => abortRef.current?.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [domain]);
@@ -860,14 +1014,14 @@ export function BrandPerformanceSection({ domain }: BrandPerformanceSectionProps
       const next = [...competitors, val];
       setCompetitors(next);
       setCompetitorInput("");
-      setTimeout(() => fetchData(), 100);
+      void fetchData(false, next);
     }
   };
 
   const removeCompetitor = (c: string) => {
     const next = competitors.filter(x => x !== c);
     setCompetitors(next);
-    setTimeout(() => fetchData(), 100);
+    void fetchData(false, next);
   };
 
   const brandName = data?.brandName ?? domain.replace(/\.[a-z]{2,}(\.[a-z]{2})?$/, "");
@@ -887,16 +1041,19 @@ export function BrandPerformanceSection({ domain }: BrandPerformanceSectionProps
         <span style={{ padding: "5px 14px", borderRadius: 999, background: P, color: "white", fontSize: 13, fontWeight: 700 }}>
           {brandName}
         </span>
-        {competitors.map(c => (
-          <span key={c} style={{ display: "flex", alignItems: "center", gap: 4, padding: "5px 12px", borderRadius: 999,
-            background: "#EEF2FF", color: P, fontSize: 13, fontWeight: 500 }}>
-            {c}
-            <button onClick={() => removeCompetitor(c)}
-              style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: P, display: "flex" }}>
-              <X size={12} />
-            </button>
-          </span>
-        ))}
+        {competitors.map(c => {
+          const displayName = c.replace(/\.[a-z]{2,}(\.[a-z]{2})?$/, "");
+          return (
+            <span key={c} style={{ display: "flex", alignItems: "center", gap: 4, padding: "5px 12px", borderRadius: 999,
+              background: "#EEF2FF", color: P, fontSize: 13, fontWeight: 500 }}>
+              {displayName}
+              <button onClick={() => removeCompetitor(c)}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: P, display: "flex" }}>
+                <X size={12} />
+              </button>
+            </span>
+          );
+        })}
         {competitors.length < 4 && (
           <form onSubmit={e => { e.preventDefault(); addCompetitor(); }} style={{ display: "flex", gap: 6 }}>
             <input
@@ -933,7 +1090,7 @@ export function BrandPerformanceSection({ domain }: BrandPerformanceSectionProps
       {!loading && error && (
         <div style={{ padding: 24, textAlign: "center" }}>
           <div style={{ fontSize: 15, color: RED, marginBottom: 12 }}>{error}</div>
-          <button onClick={() => fetchData()}
+          <button onClick={() => void fetchData()}
             style={{ padding: "8px 18px", background: P, color: "white", border: "none",
               borderRadius: 8, fontSize: 14, cursor: "pointer", fontWeight: 600 }}>
             Retry
