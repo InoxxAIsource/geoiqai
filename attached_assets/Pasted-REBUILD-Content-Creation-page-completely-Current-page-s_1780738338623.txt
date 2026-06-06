@@ -1,0 +1,331 @@
+REBUILD Content Creation page completely.
+Current page shows 3 empty keyword rows with dashes.
+Replace entirely with 3-tab structure.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PAGE STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Title: "Content Creation"
+Subtitle: "Create and optimize content to get cited in ChatGPT, Gemini and Perplexity"
+
+3 tabs at top:
+[GEO Optimizer] [Topic Finder] [My Content]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TAB 1: GEO OPTIMIZER (default tab)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Title: "GEO Content Optimizer"
+Subtitle: "Optimize your content to get cited in ChatGPT, Gemini and Perplexity"
+
+INPUT SECTION:
+Two input options with toggle:
+
+Option A — Paste content:
+Large textarea (min 200px height)
+Placeholder: "Paste your article, blog post or page content here..."
+
+Option B — Enter URL:
+Text input
+Placeholder: "https://yoursite.com/your-page"
+[Fetch content] button that pulls page text
+
+Below both options:
+Target topic input (required):
+Label: "What topic should this content rank for in AI?"
+Placeholder: "e.g. AI visibility tools, GEO optimization"
+
+[Analyze for AI Citation →] button (primary, full width)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+GEO OPTIMIZER — RESULTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When Analyze clicked:
+
+1. Show loading state:
+"Analyzing content for AI citation readiness...
+⟳ Checking factual statements...
+⟳ Analyzing structure...
+⟳ Comparing with AI prompts..."
+
+2. Call Claude API:
+
+const analysisPrompt = `
+You are a GEO (Generative Engine Optimization) expert.
+Analyze this content for AI citation readiness.
+Content to analyze: ${userContent}
+Target topic: ${targetTopic}
+
+Score these 10 factors from 0-10:
+1. Factual Statements — clear facts AI can extract and cite
+2. FAQ Section — Q&A format that matches AI prompts
+3. Structured Data — mentions of schema markup needs
+4. Statistics & Data — numbers with sources
+5. Comparison Tables — structured comparisons
+6. Entity Definitions — clear who/what/where definitions
+7. Authoritative Citations — external source references
+8. Prompt Coverage — content answers common AI queries
+9. Quotable Statements — concise citable phrases under 30 words
+10. Heading Hierarchy — clear H1/H2/H3 structure
+
+Return ONLY this JSON:
+{
+  "overallScore": 67,
+  "scoreLabel": "Good",
+  "factors": [
+    {
+      "name": "Factual Statements",
+      "score": 8,
+      "status": "good",
+      "feedback": "Content has clear factual statements AI can cite",
+      "fix": null
+    },
+    {
+      "name": "FAQ Section",
+      "score": 1,
+      "status": "missing",
+      "feedback": "No FAQ section found. AI models prefer Q&A format for direct answers.",
+      "fix": "Add this FAQ section to your content:\n\nQ: What is ${targetTopic}?\nA: [2-3 sentence direct answer]\n\nQ: How does ${targetTopic} work?\nA: [2-3 sentence explanation]\n\nQ: What are the benefits of ${targetTopic}?\nA: [3-4 bullet points]"
+    },
+    {
+      "name": "Structured Data",
+      "score": 0,
+      "status": "missing",
+      "feedback": "No structured data detected. Required for Google AI Overview.",
+      "fix": "Add this JSON-LD to your page head:\n<script type='application/ld+json'>\n{\n  \"@context\": \"https://schema.org\",\n  \"@type\": \"FAQPage\",\n  \"mainEntity\": []\n}\n</script>"
+    }
+  ],
+  "topFixes": [
+    {
+      "priority": 1,
+      "impact": "high",
+      "title": "Add FAQPage schema markup",
+      "description": "FAQPage JSON-LD is the single most effective trigger for Google AI Overview. Without it your page cannot appear in AI-generated answers.",
+      "timeToFix": "20 minutes",
+      "scoreImpact": "+18 pts",
+      "fix": "[exact code to paste]"
+    },
+    {
+      "priority": 2,
+      "impact": "high", 
+      "title": "Add FAQ section with 5 Q&As",
+      "description": "ChatGPT and Perplexity cite pages that directly answer questions. Add a dedicated FAQ section targeting common prompts.",
+      "timeToFix": "30 minutes",
+      "scoreImpact": "+12 pts",
+      "fix": "[exact FAQ content to add]"
+    },
+    {
+      "priority": 3,
+      "impact": "medium",
+      "title": "Add statistics with sources",
+      "description": "AI models prefer citing pages with data. Add 3-5 statistics with source attribution.",
+      "timeToFix": "45 minutes", 
+      "scoreImpact": "+8 pts",
+      "fix": null
+    }
+  ],
+  "missingPrompts": [
+    "what is ${targetTopic}",
+    "how to use ${targetTopic}",
+    "best ${targetTopic} tools 2026",
+    "is ${targetTopic} worth it"
+  ],
+  "competitorTips": [
+    "Pages that rank for this topic in AI typically have comparison tables",
+    "Top cited pages include statistics from credible sources",
+    "FAQ sections with 5+ questions perform best in Google AI Overview"
+  ]
+}
+`
+
+3. Display results:
+
+SCORE CARD (top):
+Large gauge showing overallScore/100
+Color: red <40, amber 41-60, green 61-80, bright green 81+
+Label: scoreLabel
+Subtext: "AI Citation Readiness Score"
+
+FACTOR CHECKLIST (left column):
+For each factor show:
+✅ [name] — [score]/10 — green if score >= 7
+⚠️ [name] — [score]/10 — amber if score 4-6
+❌ [name] — [score]/10 — red if score < 4
+Click row to expand and show feedback + fix
+
+TOP FIXES (right column):
+Title: "Priority Fixes"
+For each topFix:
+Card with:
+  [Priority #N] badge
+  [impact] badge — High/Medium
+  [timeToFix] badge
+  [scoreImpact] badge in green
+  Title bold
+  Description text
+  If fix exists: [Copy Fix] button
+    → copies fix text to clipboard
+    → shows "Copied!" toast
+
+MISSING PROMPTS:
+Title: "AI Prompts Your Content Doesn't Answer"
+List of missingPrompts as clickable chips
+Click → opens Topic Finder tab pre-filtered to that prompt
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TAB 2: TOPIC FINDER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Title: "Topic Finder"  
+Subtitle: "Topics to write about to improve your AI visibility score"
+
+Pull data from existing Supabase caches.
+No new API calls needed.
+
+Source 1 — Prompt Research cache:
+SELECT response FROM dataforseo_cache
+WHERE cache_key LIKE 'pr:%' 
+AND cache_key LIKE '%' || domain || '%'
+ORDER BY created_at DESC LIMIT 1
+
+Source 2 — Competitor Research cache:
+SELECT response FROM dataforseo_cache  
+WHERE cache_key LIKE 'competitor:%'
+AND cache_key LIKE '%' || domain || '%'
+ORDER BY created_at DESC LIMIT 1
+
+Source 3 — Brand Performance cache:
+SELECT response FROM dataforseo_cache
+WHERE cache_key LIKE 'brand_perf:%'
+AND cache_key LIKE '%' || domain || '%'
+ORDER BY created_at DESC LIMIT 1
+
+Display 3 sections:
+
+SECTION A — "Write These First" (red badge):
+Topics from competitor research where 
+competitor appears but user domain does not.
+Label: "Competitor cited here — you are not"
+
+Table:
+Topic | AI Volume | Competitor cited | Action
+[topic from Missing filter] | [aiVolume] | [competitorName] | [Write article →]
+
+SECTION B — "Improve These" (amber badge):
+Topics where user appears but ranking is weak.
+Label: "You appear but can rank higher"
+
+Table:
+Topic | AI Volume | Your mentions | Action
+[shared topics with low yourMentions] | [aiVolume] | [count] | [Optimize →]
+
+Clicking [Optimize →] switches to GEO Optimizer tab
+and pre-fills with the topic.
+
+SECTION C — "Brand Questions" (blue badge):
+From Brand Performance topQuestions data.
+Label: "Questions people ask AI about your brand"
+
+Table:
+Question | Your rank | Action
+[question] | You rank #1 / Not ranked | [Create page →]
+
+IF NO CACHE DATA EXISTS for any section:
+Show empty state:
+"Run [Prompt Research / Competitor Research / Brand Performance]
+first to populate topic suggestions."
+[Go to Prompt Research →] button
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TAB 3: MY CONTENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Title: "My Content"
+Subtitle: "Saved content analyses and briefs"
+
+Show saved GEO Optimizer results from Supabase:
+
+Table:
+Page/URL | Score | Top Fix | Analyzed | Action
+[url or "Pasted content"] | [score]/100 | [topFix.title] | [date] | [Re-analyze]
+
+If empty:
+"No content analyzed yet.
+Use GEO Optimizer to analyze your first page."
+[Analyze content →] button → switches to tab 1
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SAVE RESULTS TO SUPABASE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create table: content_analyses
+Columns:
+- id uuid
+- user_id uuid
+- domain text
+- source_url text (null if pasted)
+- target_topic text
+- score integer
+- score_label text
+- factors jsonb
+- top_fixes jsonb
+- missing_prompts jsonb
+- analyzed_at timestamptz
+
+After each GEO Optimizer analysis:
+Save to content_analyses table.
+Show in My Content tab.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SANDBOX MODE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GEO Optimizer in sandbox:
+Skip Claude API call.
+Return mock analysis:
+{
+  overallScore: 54,
+  scoreLabel: "Needs Work",
+  factors with mix of good/warning/missing,
+  3 topFixes with realistic content,
+  4 missingPrompts
+}
+Show "(Demo analysis)" badge.
+
+Topic Finder in sandbox:
+Show 6 mock topics across 3 sections.
+Show "(Demo data)" badge.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+UPDATE SIDEBAR NAVIGATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Change sidebar item from:
+"Content Creation" 
+
+To show sub-items when expanded:
+Content Creation
+  ├── GEO Optimizer  
+  ├── Topic Finder
+  └── My Content
+
+Or keep as single nav item that loads
+the 3-tab page — either works.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST AFTER BUILD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Go to Content Creation
+2. Verify 3 tabs show
+3. GEO Optimizer tab is default
+4. Paste any text + enter topic + click Analyze
+5. In sandbox: mock results show immediately
+6. Score gauge displays
+7. Factor checklist renders
+8. Top fixes with Copy button work
+9. Click Topic Finder tab
+10. Topics show from cached data OR empty state
+11. My Content tab shows empty state initially
