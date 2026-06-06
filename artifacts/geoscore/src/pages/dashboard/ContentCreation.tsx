@@ -899,6 +899,9 @@ function PlatformCard({ platformId, platformLabel, data }: {
   if (platformId === "twitter") {
     const tweets = (data.tweets as string[]) ?? [];
     const imageUrl = data.imageUrl as string | undefined;
+    const imageData = data.imageData as string | undefined;
+    const imageMime = (data.imageMime as string | undefined) ?? "image/jpeg";
+    const imageSrc = imageData ? `data:${imageMime};base64,${imageData}` : imageUrl;
     const imagePlaceholder = data.imagePlaceholder as boolean | undefined;
     const allText = tweets.map((t, i) => (i === 0 ? t : `${i}/ ${t}`)).join("\n\n");
     const hookTweet = tweets[0] ?? "";
@@ -927,16 +930,20 @@ function PlatformCard({ platformId, platformLabel, data }: {
             </div>
             {hookTweet && (
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                {imageUrl && (
-                  <a
-                    href={`/api/content/proxy-image?url=${encodeURIComponent(imageUrl)}`}
-                    download="tweet-image.jpg"
+                {imageSrc && (
+                  <button
+                    onClick={() => {
+                      const a = document.createElement("a");
+                      a.href = imageSrc;
+                      a.download = "tweet-image.jpg";
+                      a.click();
+                    }}
                     style={{ padding: "7px 14px", background: "white", color: "#374151",
                       border: `1px solid ${BORDER}`, borderRadius: 20, fontSize: 12,
                       fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center",
-                      gap: 5, textDecoration: "none" }}>
+                      gap: 5 }}>
                     <Download size={12} /> Save image
-                  </a>
+                  </button>
                 )}
                 <button onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(hookTweet)}`, "_blank")}
                   style={{ padding: "7px 16px", background: "#1DA1F2", color: "white", border: "none",
@@ -954,11 +961,11 @@ function PlatformCard({ platformId, platformLabel, data }: {
           </div>
 
           {/* AI Image - edge to edge */}
-          {imageUrl && (
-            <img src={imageUrl} alt="AI-generated visual for this tweet"
+          {imageSrc && (
+            <img src={imageSrc} alt="AI-generated visual for this tweet"
               style={{ width: "100%", display: "block", maxHeight: 420, objectFit: "cover" }} />
           )}
-          {!imageUrl && imagePlaceholder && (
+          {!imageSrc && imagePlaceholder && (
             <div style={{ background: "linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #2563EB 100%)",
               aspectRatio: "1.91 / 1", display: "flex", flexDirection: "column",
               alignItems: "center", justifyContent: "center", gap: 8, color: "white", padding: 20 }}>
@@ -975,7 +982,7 @@ function PlatformCard({ platformId, platformLabel, data }: {
           <div style={{ padding: "12px 18px", borderTop: `1px solid ${BORDER}`,
             display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <CopyBtn k="hook" text={hookTweet} label="Copy hook tweet" />
-            {imageUrl ? (
+            {imageSrc ? (
               <span style={{ fontSize: 11, color: MUTED }}>Save image, then attach it in the tweet compose window</span>
             ) : threadTweets.length > 0 ? (
               <span style={{ fontSize: 11, color: MUTED }}>{threadTweets.length} more tweets in thread below</span>

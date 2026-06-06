@@ -775,8 +775,21 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanation):
             n: 1,
           });
           const imgUrl = imgResp.data?.[0]?.url;
-          req.log.info({ imgUrl: imgUrl ?? "NONE", dataLen: imgResp.data?.length }, "repurpose: dall-e result");
-          if (imgUrl) tw.imageUrl = imgUrl;
+          req.log.info({ imgUrl: imgUrl ?? "NONE", dataLen: imgResp.data?.length }, "repurpose: image result");
+          if (imgUrl) {
+            tw.imageUrl = imgUrl;
+            // Fetch and base64-encode immediately - xAI URLs expire within minutes
+            try {
+              const imgFetch = await fetch(imgUrl, { headers: { "User-Agent": "Mozilla/5.0" } });
+              if (imgFetch.ok) {
+                const buf = await imgFetch.arrayBuffer();
+                tw.imageData = Buffer.from(buf).toString("base64");
+                tw.imageMime = imgFetch.headers.get("content-type") ?? "image/jpeg";
+              }
+            } catch (fetchErr) {
+              req.log.warn({ err: fetchErr instanceof Error ? fetchErr.message : String(fetchErr) }, "repurpose: image base64 fetch failed");
+            }
+          }
         } catch (imgErr) {
           req.log.error({ err: imgErr instanceof Error ? imgErr.message : String(imgErr) }, "repurpose: dall-e failed");
         }
