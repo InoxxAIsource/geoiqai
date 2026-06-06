@@ -1,0 +1,86 @@
+Set DATAFORSEO_SANDBOX=true in environment.
+
+For all development and testing, serve 
+cached data from Supabase dataforseo_cache 
+table first. Only call live DataForSEO API 
+if no cache exists AND sandbox mode is false.
+
+Add this wrapper around every DataForSEO call:
+
+async function cachedDfsCall(cacheKey, apiCallFn) {
+  // Always check cache first
+  try {
+    const { data: cached } = await supabase
+      .from('dataforseo_cache')
+      .select('response')
+      .eq('cache_key', cacheKey)
+      .gt('expires_at', new Date().toISOString())
+      .single()
+
+    if (cached) {
+      console.log('CACHE HIT:', cacheKey)
+      return cached.response
+    }
+  } catch(e) {}
+
+  // If sandbox mode — return empty structure
+  // instead of calling real API
+  if (process.env.DATAFORSEO_SANDBOX === 'true') {
+    console.log('SANDBOX MODE — skipping API call:', cacheKey)
+    return {
+      tasks: [{
+        status_code: 20000,
+        result: [{
+          items: [],
+          total_count: 0,
+          metrics: {
+            mentions: 0,
+            citations: 0,
+            cited_pages: 0,
+            impressions: 0
+          }
+        }]
+      }]
+    }
+  }
+
+  // Only reach here in production with no cache
+  console.log('LIVE API CALL:', cacheKey)
+  const result = await apiCallFn()
+
+  // Save to cache
+  await supabase
+    .from('dataforseo_cache')
+    .upsert({
+      cache_key: cacheKey,
+      response: result,
+      created_at: new Date().toISOString(),
+      expires_at: new Date(
+        Date.now() + 7*24*60*60*1000
+      ).toISOString()
+    })
+
+  return result
+}
+
+Replace all direct dfsPost() calls with 
+cachedDfsCall() wrapper.
+
+Example:
+BEFORE:
+const data = await dfsPost('/v3/ai_optimization/...', payload)
+
+AFTER:
+const data = await cachedDfsCall(
+  'visibility:netflix.com:2025-12-07:2026-06-05',
+  () => dfsPost('/v3/ai_optimization/...', payload)
+)
+
+Cache key format per endpoint:
+Visibility:    'vis:{domain}:{dateFrom}:{dateTo}'
+Competitor:    'comp:{domain1}:{domain2}:{dateFrom}:{dateTo}'
+Prompt Research: 'pr:{brandName}:{dateFrom}:{dateTo}'
+Topic expand:  'te:{topicName}:{platform}:{dateFrom}:{dateTo}'
+Trend:         'trend:{brandName}:{groupBy}:{dateFrom}:{dateTo}'
+Country:       'country:{brandName}:{dateFrom}:{dateTo}'
+Top pages:     'pages:{domain}:{platform}:{dateFrom}:{dateTo}'

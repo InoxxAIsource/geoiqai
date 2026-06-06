@@ -1,0 +1,95 @@
+URGENT: Implement strict API cost controls.
+DataForSEO balance dropped $69 in 2 days 
+during development/testing.
+
+CONTROL 1: RATE LIMIT ALL API ENDPOINTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add rate limiting to every DataForSEO call:
+
+Per user limits (stored in Supabase):
+- Visibility Overview scans: 3 per day per user
+- Competitor Research: 5 per day per user  
+- Prompt Research searches: 10 per day per user
+- Topic row expansions: 20 per day per user
+
+Table: api_usage_limits
+Columns: user_id, endpoint, count, date
+
+Before every API call:
+const todayCount = await getUsageCount(userId, endpoint)
+if (todayCount >= limit) {
+  return { error: "Daily limit reached. Resets tomorrow." }
+}
+await incrementUsageCount(userId, endpoint)
+
+CONTROL 2: HARD BLOCK RESCANS ON FREE PLAN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Free plan users = 0 DataForSEO calls.
+Only show cached data or demo data.
+
+Paid plan users only can trigger live scans.
+
+if (userPlan === 'free') {
+  return cachedData || demoData
+}
+
+CONTROL 3: CACHE EVERYTHING AGGRESSIVELY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current TTL: 7 days — keep this.
+
+But also add a GLOBAL SCAN LIMIT per domain:
+Once a domain is scanned, block rescan for 
+7 days regardless of who requests it.
+
+cache_key: "domain_global:{domain}:{endpoint}"
+If this exists: ALWAYS serve cache.
+No exceptions. No rescan button for same data.
+
+Only allow rescan after 7 days.
+Show user: "Next rescan available: Jun 12"
+
+CONTROL 4: TOPIC ROW EXPANSION — BATCH LOAD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Currently each topic click = 1 API call = $0.10.
+
+Fix: When Prompt Research loads, fetch ALL 
+topic expansions in ONE batch call instead
+of per-click:
+
+// Fetch top 10 topics expanded data in one call
+// instead of waiting for user clicks
+// Store all in cache upfront
+// Topic clicks just read from cache = $0
+
+OR alternatively: disable expansion API call
+and only show data already in the main 
+search response (se_query + answer already there).
+
+Most items in allItems already have se_query 
+and answer — use those for expansion without
+additional API calls.
+
+CONTROL 5: SANDBOX FOR ALL DEVELOPMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For any future development or testing:
+Set DATAFORSEO_SANDBOX=true in Replit Secrets.
+Only switch to false for production user scans.
+
+CONTROL 6: ALERT WHEN BALANCE LOW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add balance check on server startup:
+const balance = await dfs.getBalance()
+if (balance < 20) {
+  console.error('⚠️ CRITICAL: DataForSEO balance below $20!')
+  // Send email alert to admin
+  await sendAlert('DataForSEO balance low: $' + balance)
+}
+
+Check balance every 6 hours.
+Log to console: "DataForSEO balance: $XX"
