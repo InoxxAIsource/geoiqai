@@ -49,6 +49,26 @@ function parseJSON<T>(text: string): T | null {
   }
 }
 
+function generateMockPrompts(topic: string): string[] {
+  const t = topic.trim();
+  const tl = t.toLowerCase();
+  const isVerbPhrase = /^(get |improve |increase |track |measure |appear |rank |show |create |build |optimize |fix |check |find |make |boost |grow |use )/i.test(t);
+  if (isVerbPhrase) {
+    return [
+      `how to ${tl}`,
+      `best ways to ${tl}`,
+      `step by step guide to ${tl}`,
+      `common mistakes when trying to ${tl}`,
+    ];
+  }
+  return [
+    `what are the best ${tl}`,
+    `how to choose ${tl}`,
+    `${tl} comparison and reviews 2026`,
+    `free ${tl} guide for startups`,
+  ];
+}
+
 function getMockAnalysis(targetTopic: string): AnalysisResult {
   return {
     overallScore: 54,
@@ -95,12 +115,7 @@ function getMockAnalysis(targetTopic: string): AnalysisResult {
         fix: null,
       },
     ],
-    missingPrompts: [
-      `what is ${targetTopic}`,
-      `how to use ${targetTopic}`,
-      `best ${targetTopic} 2026`,
-      `is ${targetTopic} worth it`,
-    ],
+    missingPrompts: generateMockPrompts(targetTopic),
     competitorTips: [
       "Pages that rank for this topic in AI typically have comparison tables with 4+ columns",
       "Top cited pages include at least 3 statistics from credible sources with inline attribution",
@@ -231,10 +246,10 @@ Return ONLY valid JSON (no markdown, no code blocks):
     }
   ],
   "missingPrompts": [
-    "what is ${targetTopic}",
-    "how to use ${targetTopic}",
-    "best ${targetTopic} 2026",
-    "is ${targetTopic} worth it"
+    "how to get cited in ChatGPT",
+    "why is my brand not showing in ChatGPT",
+    "best ways to appear in ChatGPT answers",
+    "how to improve ChatGPT brand visibility"
   ],
   "competitorTips": [
     "Pages that rank for this topic in AI typically have comparison tables",
@@ -248,7 +263,7 @@ Rules:
 - scoreLabel: "Excellent" for 81+, "Good" for 61-80, "Needs Work" for 41-60, "Poor" for <= 40
 - Generate exactly 10 factors
 - Generate 3-5 topFixes ordered by impact
-- Generate 4-6 missingPrompts specific to this content and topic
+- missingPrompts: Generate 4 natural AI search queries that real users would type, related to the topic "${targetTopic}". Do NOT use templates like "what is [topic]" or "how to use [topic]". Generate contextually relevant questions that sound like real searches. For example, if the topic is "get cited in ChatGPT", write queries like "how to get cited in ChatGPT", "why is my brand not showing in AI answers", "best ways to appear in Perplexity results". If the topic is "AI visibility tools", write queries like "what are the best AI visibility tools", "how to track brand mentions in ChatGPT", "free tools to check AI brand visibility".
 - For fix fields, include exact copy-pasteable content. Use null if no specific fix text is needed.`;
 
   try {
