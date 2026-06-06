@@ -1,0 +1,354 @@
+Fix Content Repurposer — all platforms must work 
+with high quality, platform-native, AI-optimized output.
+
+CORE BACKEND FIX — ONE ROUTE HANDLES ALL PLATFORMS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The POST /api/repurpose route receives:
+{
+  content: "pasted text or fetched URL content",
+  platform: "linkedin_post" | "linkedin_article" | 
+            "email" | "instagram" | "reddit" | 
+            "producthunt" | "hackernews" | "indiehackers"
+}
+
+Use a platformPrompts map to select the right 
+Claude prompt per platform.
+
+SYSTEM PROMPT (same for all):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+system: `You are an expert content strategist 
+who writes platform-native, AI-optimized content.
+AI-optimized means: factual claims, direct answers, 
+specific numbers, clear structure — content that 
+AI systems like ChatGPT and Perplexity will cite.
+Return ONLY raw JSON. No markdown. No backticks. 
+No explanation. No preamble.`
+
+PLATFORM PROMPTS MAP:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const platformPrompts = {
+
+  linkedin_post: `
+Repurpose this content into a LinkedIn post.
+Content: {{content}}
+
+Return ONLY this JSON:
+{
+  "platform": "linkedin_post",
+  "content": "Full LinkedIn post here",
+  "hook": "First line (must stop the scroll)",
+  "char_count": 0
+}
+
+Rules for LinkedIn post:
+- Start with a bold insight or counterintuitive claim
+- NO "I am excited to share" or corporate speak
+- Use line breaks every 2-3 lines for readability
+- Include 1 specific stat or number from content
+- End with a question to drive comments
+- 150-300 words
+- Max 3 hashtags at end, relevant only
+- Write in first person, founder voice
+- AI-optimized: state facts directly, no vague claims`,
+
+  linkedin_article: `
+Repurpose this content into a full LinkedIn article.
+Content: {{content}}
+
+Return ONLY this JSON:
+{
+  "platform": "linkedin_article", 
+  "title": "Article title here",
+  "subtitle": "One line subtitle",
+  "content": "Full article with ## headings",
+  "word_count": 0
+}
+
+Rules for LinkedIn article:
+- Title: specific, not clickbait (include a number)
+- Structure: Intro → 3-4 H2 sections → Conclusion
+- Each section: 80-120 words
+- Include a TL;DR at the top after intro
+- Add a "Key Takeaways" bullet list at end
+- 600-900 words total
+- No fluff — every paragraph has a specific point
+- AI-optimized: answer questions directly in H2s
+  so AI systems can cite each section`,
+
+  email: `
+Repurpose this content into an email newsletter.
+Content: {{content}}
+
+Return ONLY this JSON:
+{
+  "platform": "email",
+  "subject": "Email subject line",
+  "preview_text": "Preview text (40 chars)",
+  "content": "Full email body here"
+}
+
+Rules for email:
+- Subject: specific benefit, max 50 chars, 
+  no emoji in subject
+- Preview text: completes the subject line thought
+- Body structure:
+  → Opening: 1 sentence hook (the problem)
+  → Section 1: What's happening (2-3 sentences)
+  → Section 2: Why it matters (2-3 sentences)  
+  → Section 3: What to do (3 bullet points)
+  → CTA: One clear action with URL
+- 300-500 words
+- Short paragraphs, lots of white space
+- Tone: smart friend, not newsletter robot`,
+
+  instagram: `
+Repurpose this content into an Instagram caption.
+Content: {{content}}
+
+Return ONLY this JSON:
+{
+  "platform": "instagram",
+  "caption": "Full caption text",
+  "hook": "First line before the fold",
+  "hashtags": ["tag1", "tag2", "tag3"],
+  "image_prompt": "DALL-E prompt for Instagram image"
+}
+
+Rules for Instagram:
+- First line (hook): under 125 chars, 
+  must make user tap "more"
+- Body: insight-driven, specific, scannable
+- Use single-word line breaks for rhythm:
+  "You worked hard.
+   Built something real.
+   And ChatGPT has never heard of you."
+- 100-150 words body
+- 15-20 hashtags: mix of large (1M+), 
+  medium (100K), niche (10K)
+- image_prompt: bright, clean, 
+  professional lifestyle photo style`,
+
+  reddit: `
+Repurpose this content into a Reddit post.
+Content: {{content}}
+  
+Return ONLY this JSON:
+{
+  "platform": "reddit",
+  "title": "Reddit post title",
+  "content": "Post body text",
+  "suggested_subreddits": ["r/sub1", "r/sub2", "r/sub3"]
+}
+
+Rules for Reddit:
+- Title: honest question or observation format
+  Good: "We checked if 50 SaaS brands appear in ChatGPT. Results were surprising"
+  Bad: "GeoIQ is the best AI visibility tool!"
+- Body: tell a real story or share genuine data
+- NO marketing language, NO calls to action
+- Sound like a curious founder sharing findings
+- Include actual numbers/results if in content
+- 200-400 words
+- End with genuine question to community
+- suggested_subreddits: pick 3 most relevant`,
+
+  producthunt: `
+Repurpose this content for a Product Hunt launch.
+Content: {{content}}
+
+Return ONLY this JSON:
+{
+  "platform": "producthunt",
+  "tagline": "Product tagline (60 chars max)",
+  "description": "Product Hunt description",
+  "first_comment": "Maker comment for launch day",
+  "topics": ["Topic1", "Topic2", "Topic3"]
+}
+
+Rules:
+- Tagline: verb-led, specific benefit
+  Good: "See if ChatGPT recommends your brand in 60 seconds"
+  Bad: "AI visibility platform for modern brands"
+- Description: problem → solution → key features
+  200-250 words, no buzzwords
+- First comment: founder personal story, 
+  why you built this, what you learned
+  150-200 words, genuine voice
+- topics: 3 most relevant PH topics`,
+
+  hackernews: `
+Repurpose this content for a Hacker News Show HN post.
+Content: {{content}}
+
+Return ONLY this JSON:
+{
+  "platform": "hackernews",
+  "title": "Show HN: [title here]",
+  "comment": "HN comment text"
+}
+
+Rules:
+- Title must start with "Show HN:"
+- Title: technical, specific, honest
+  Good: "Show HN: I built a tool that checks if LLMs know your brand"
+  Bad: "Show HN: Revolutionary AI visibility platform"
+- Comment: technical details first
+  → What it does (1 sentence)
+  → How it works technically (stack, approach)
+  → What you learned building it
+  → Current limitations (HN respects honesty)
+  → What you want feedback on
+- 150-200 words
+- No marketing language
+- Mention tech stack`,
+
+  indiehackers: `
+Repurpose this content for IndieHackers.
+Content: {{content}}
+
+Return ONLY this JSON:
+{
+  "platform": "indiehackers",
+  "title": "Post title",
+  "content": "Full post body"
+}
+
+Rules for IndieHackers:
+- Title: milestone, lesson, or genuine question
+  Good: "We launched an AI visibility tool and learned 
+         most Indian SaaS brands are invisible to ChatGPT"
+  Bad: "Check out our new product!"
+- Body structure:
+  → The problem I noticed (personal story)
+  → What I built and why
+  → What's working / numbers so far
+  → What I'm struggling with (be honest)
+  → Question for the community
+- 300-500 words
+- Share real metrics even if small
+- Vulnerability + specificity = engagement on IH`
+
+};
+
+BACKEND ROUTE IMPLEMENTATION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+app.post('/api/repurpose', async (req, res) => {
+  try {
+    const { content, platform } = req.body;
+    
+    console.log('Repurpose request:', { platform, 
+      contentLength: content?.length });
+    
+    if (!content || !platform) {
+      return res.status(400).json({ 
+        error: 'Missing content or platform' 
+      });
+    }
+    
+    const promptTemplate = platformPrompts[platform];
+    if (!promptTemplate) {
+      return res.status(400).json({ 
+        error: `Unknown platform: ${platform}` 
+      });
+    }
+    
+    const userPrompt = promptTemplate.replace(
+      '{{content}}', 
+      content.slice(0, 3000)
+    );
+    
+    const response = await anthropic.messages.create({
+      model: 'claude-opus-4-5',
+      max_tokens: 2000,
+      system: `You are an expert content strategist 
+who writes platform-native, AI-optimized content.
+Return ONLY raw JSON. No markdown. No backticks. 
+No explanation. No preamble.`,
+      messages: [{ role: 'user', content: userPrompt }]
+    });
+    
+    const rawText = response.content[0].text;
+    console.log('Claude raw response:', rawText);
+    
+    // Safe parser
+    const cleaned = rawText
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim();
+    
+    const parsed = JSON.parse(cleaned);
+    res.json({ success: true, data: parsed });
+    
+  } catch (error) {
+    console.error('Repurpose error:', error.message);
+    console.error('Stack:', error.stack);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+FRONTEND — RENDER EACH PLATFORM OUTPUT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Each platform card on canvas shows:
+
+LINKEDIN POST card:
+- Hook line in bold at top
+- Full content below
+- Character count badge
+- [Copy] button
+
+LINKEDIN ARTICLE card:
+- Title + Subtitle
+- Content with ## rendered as bold headers
+- Word count badge
+- [Copy full article] button
+
+EMAIL card:
+- Subject line in bold
+- Preview text in grey
+- Full body below
+- [Copy] button
+
+INSTAGRAM card:
+- Caption text
+- Hashtags as purple chips below
+- [Copy caption] + [Copy hashtags] separate buttons
+
+REDDIT card:
+- Title in bold
+- Body text
+- Suggested subreddits as grey chips
+- [Copy] button
+
+PRODUCT HUNT card:
+- Tagline in large text
+- Description below
+- First comment in separate section
+- Topics as chips
+- [Copy tagline] + [Copy description] buttons
+
+HN card:
+- Title in monospace font
+- Comment below
+- [Copy] button
+
+INDIEHACKERS card:
+- Title bold
+- Full post
+- [Copy] button
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST ALL PLATFORMS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Paste text: "clevertap.com is a mobile 
+marketing platform used by 8000+ brands"
+
+Test each platform one by one.
+Each should return unique, platform-native content.
+No "Failed to parse" errors.
+Share screenshot of LinkedIn post result first.

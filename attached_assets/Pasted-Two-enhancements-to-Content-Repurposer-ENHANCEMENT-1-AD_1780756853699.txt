@@ -1,0 +1,139 @@
+Two enhancements to Content Repurposer:
+
+ENHANCEMENT 1: ADD SHARE/POST BUTTONS PER PLATFORM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After content generates, each card gets a 
+[Post to X] or [Post to LinkedIn] etc button
+that opens the right page pre-filled.
+
+Add this shareUrls map in frontend:
+
+const shareUrls = {
+  
+  linkedin_post: (content) => 
+    `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(content)}`,
+  
+  linkedin_article: () => 
+    `https://www.linkedin.com/article/new/`,
+  
+  email: () => 
+    `https://mail.google.com/mail/?view=cm&fs=1`,
+  
+  instagram: () => 
+    `https://www.instagram.com/create/story/`,
+  
+  reddit: (content, data) => 
+    `https://www.reddit.com/submit?title=${encodeURIComponent(data.title)}&text=${encodeURIComponent(content)}`,
+  
+  producthunt: () => 
+    `https://www.producthunt.com/posts/new`,
+  
+  hackernews: (content, data) => 
+    `https://news.ycombinator.com/submitlink?t=${encodeURIComponent(data.title)}&u=https://geoiqai.com`,
+  
+  indiehackers: () => 
+    `https://www.indiehackers.com/post/new`,
+  
+  twitter: (content) => 
+    `https://twitter.com/intent/tweet?text=${encodeURIComponent(content)}`
+};
+
+Button labels per platform:
+- twitter: "Post to X"
+- linkedin_post: "Post to LinkedIn"  
+- linkedin_article: "Draft on LinkedIn"
+- email: "Open in Gmail"
+- instagram: "Open Instagram"
+- reddit: "Post to Reddit"
+- producthunt: "Submit to PH"
+- hackernews: "Submit to HN"
+- indiehackers: "Post to IH"
+
+Button behavior:
+window.open(shareUrl, '_blank')
+
+Button style:
+- Placed in card header next to [Copy]
+- Background: platform brand color
+  Twitter: #000000
+  LinkedIn: #0A66C2
+  Email: #EA4335
+  Instagram: #E1306C
+  Reddit: #FF4500
+  ProductHunt: #DA552F
+  HackerNews: #FF6600
+  IndieHackers: #0057FF
+- White text, small size, rounded
+
+For linkedin_article, reddit, producthunt, 
+hackernews, indiehackers — these cannot 
+pre-fill via URL so show a tooltip on hover:
+"Opens platform. Paste your content there."
+Also auto-copy content to clipboard when 
+button clicked so user can paste immediately.
+
+ENHANCEMENT 2: CLEAN CONTENT FORMATTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problem: Claude returns content with:
+- Dashes at line starts (- item)
+- Em dashes (—)
+- Markdown headers (## Heading, # Title)
+- Bold markers (**text**)
+- Asterisks (*text*)
+
+Fix in TWO places:
+
+PLACE 1: Claude system prompt — add this line:
+"Never use dashes, em dashes, markdown headers, 
+asterisks, or bullet points in any content field. 
+Use plain sentences and line breaks only. 
+For lists, write each item on its own line 
+with no prefix character."
+
+PLACE 2: Frontend sanitizer — run on every 
+content field before displaying:
+
+const cleanContent = (text) => {
+  if (!text) return '';
+  return text
+    .replace(/^#{1,6}\s+/gm, '')        // ## headers
+    .replace(/\*\*(.*?)\*\*/g, '$1')    // **bold**
+    .replace(/\*(.*?)\*/g, '$1')        // *italic*
+    .replace(/^[-–—]\s+/gm, '')         // - bullets
+    .replace(/^•\s+/gm, '')             // • bullets  
+    .replace(/—/g, ' ')                 // em dash
+    .replace(/–/g, ' ')                 // en dash
+    .replace(/`(.*?)`/g, '$1')          // `code`
+    .trim();
+};
+
+Apply cleanContent() to ALL text fields 
+before rendering in cards:
+content, hook, title, subtitle, 
+first_comment, comment — every field.
+
+Also apply to Twitter tweets array:
+tweets: data.tweets.map(t => cleanContent(t))
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Paste text: "clevertap.com mobile 
+   marketing platform used by 8000 brands"
+
+2. Select Reddit post
+3. Click Repurpose
+4. Reddit card appears
+5. No dashes, no **, no ## in text
+6. "Post to Reddit" button visible
+7. Click it: opens reddit.com/submit 
+   with title pre-filled AND content 
+   copied to clipboard
+8. Toast shows: "Content copied to clipboard. 
+   Paste it in Reddit."
+
+Test LinkedIn post same way.
+Share screenshot.

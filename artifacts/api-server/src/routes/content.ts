@@ -604,58 +604,54 @@ const MOCK_REPURPOSE_RESULTS: Record<string, unknown> = {
   twitter: {
     tweets: [
       "AI visibility is the new SEO. Here is what actually moves the needle in 2026:",
-      "1/ 72% of users now start research with an AI tool. If your brand doesn't show up in ChatGPT, Gemini, or Perplexity, you're invisible to most of your potential customers.",
-      "2/ Traditional SEO and AI visibility are different games. Google ranks pages by backlinks. AI systems cite pages by factual density and direct answers.",
-      "3/ The #1 thing that gets pages cited in AI: answer the question directly in the first paragraph. AI models pull featured answers from the opening.",
-      "4/ Add a FAQ section to every important page. Five or more Q&As dramatically improve citation rate.",
-      "5/ Include verifiable statistics with sources. AI systems prefer citable numbers over vague claims every single time.",
-      "6/ Use clear H2/H3 structure. Well-structured headings help AI understand what your content covers and which sections answer which queries.",
-      "7/ The content loop that actually works: Write, score your AI visibility, fix the gaps, write better. Most brands skip the scoring step entirely.",
-      "Free AI visibility scan at geoiqai.com - takes 30 seconds. Check where your brand actually stands.",
+      "72% of users now start research with an AI tool. If your brand doesn't show up in ChatGPT, Gemini, or Perplexity, you're invisible to most of your potential customers.",
+      "Traditional SEO and AI visibility are different games. Google ranks pages by backlinks. AI systems cite pages by factual density and direct answers.",
+      "The single biggest thing that gets pages cited in AI: answer the question directly in the first paragraph. AI models pull featured answers from the opening.",
+      "Add a FAQ section to every important page. Five or more Q&As dramatically improve citation rate. Most brands skip this entirely.",
+      "Include verifiable statistics with sources. AI systems prefer citable numbers over vague claims every single time.",
+      "Use clear H2/H3 structure. Well-structured headings help AI understand what your content covers and which sections answer which queries.",
+      "The content loop that actually works: Write, score your AI visibility, fix the gaps, write better. Free AI visibility scan at geoiqai.com - takes 30 seconds.",
     ],
     imagePlaceholder: true,
   },
   linkedin: {
-    content: "Most startups don't realize they have an AI visibility problem.\n\nThey track their Google rankings. They monitor organic traffic. But they never ask: is my brand showing up when someone asks ChatGPT about our category?\n\n72% of users now start research with an AI tool. Not Google. AI.\n\nIf you're not getting cited in ChatGPT, Gemini, or Perplexity, you're invisible to most of your potential customers before they ever reach Google.\n\nThe fix is not complicated. It is about structured content:\n- Answer questions directly in the first paragraph\n- Add FAQ sections with 5+ questions\n- Include verifiable statistics with sources\n- Use clear H2/H3 headings\n- Define your entities and comparisons explicitly\n\nFree AI visibility scan at geoiqai.com - takes 30 seconds.\n\nWhat is your brand's AI visibility score?",
+    hook: "Most startups have an AI visibility problem and don't know it.",
+    content: "Most startups have an AI visibility problem and don't know it.\n\nThey track Google rankings. They monitor organic traffic. But they never ask: is my brand showing up when someone asks ChatGPT about our category?\n\n72% of users now start research with an AI tool. Not Google. AI.\n\nIf you're not getting cited in ChatGPT, Gemini, or Perplexity, you're invisible to most of your potential customers before they ever reach Google.\n\nThe fix is not complicated. It's about structured content:\nAnswer questions directly in the first paragraph.\nAdd FAQ sections with 5+ questions.\nInclude verifiable statistics with sources.\nUse clear H2/H3 headings.\n\nFree AI visibility scan at geoiqai.com - takes 30 seconds.\n\nWhat is your brand's AI visibility score?\n\n#AIVisibility #GEO #SaaSMarketing",
+    char_count: 612,
   },
   email: {
-    subjects: [
-      "Your brand might be invisible to AI right now",
-      "72% of users search with AI first - is your brand showing up?",
-      "The metric nobody is tracking (but should be)",
-    ],
-    previewText: "Getting cited in ChatGPT is the new page one ranking",
-    body: "Hi there,\n\nQuick question: when someone asks ChatGPT or Gemini about tools in your category, does your brand show up?\n\nFor most startups, the answer is no - and they don't even know it.\n\n72% of users now start their research with an AI tool. If you're not being cited in those answers, you're losing customers before they ever reach your site.\n\nThe good news: it's fixable. FAQ sections, clear entity definitions, verifiable statistics - not a full site rebuild.\n\nGeoIQ tracks your AI visibility score across ChatGPT, Gemini, and Perplexity. Free scan at geoiqai.com shows where you stand in 30 seconds.",
-    cta: "Check your AI visibility score - it's free",
-    ps: "P.S. Most users find at least 3 quick wins in their first scan. Worth 30 seconds.",
+    subject: "Your brand might be invisible to AI right now",
+    preview_text: "ChatGPT is the new search. Are you showing up?",
+    content: "Quick question: when someone asks ChatGPT or Gemini about tools in your category, does your brand show up?\n\nFor most startups, the answer is no - and they don't even know it.\n\n72% of users now start their research with an AI tool. If you're not being cited in those answers, you're losing customers before they ever reach your site.\n\nThe good news: it's fixable. FAQ sections, clear entity definitions, verifiable statistics - not a full site rebuild.\n\nWhat to do this week:\nAdd a FAQ section to your top 3 pages (5+ questions each).\nRewrite your opening paragraphs to answer search intent directly.\nAdd at least one verifiable stat with a source on each page.\n\nGeoIQ tracks your AI visibility score across ChatGPT, Gemini, and Perplexity. Free scan at geoiqai.com shows where you stand in 30 seconds.",
   },
   reddit: {
-    titles: [
-      "How I got my startup showing up in ChatGPT answers (what actually worked)",
-      "TIL your Google SEO ranking has almost nothing to do with AI visibility",
-      "I tracked brand mentions in ChatGPT for 3 months - here's what the data shows",
-    ],
-    body: "Been working on AI visibility for a while and wanted to share what actually works.\n\nThe short version: getting cited in AI is about content structure, not backlinks. The two biggest wins:\n\n1. FAQ sections. Genuinely the highest ROI change for most pages. AI models love Q&A format.\n\n2. Direct answers in the first paragraph. If your opening doesn't answer the search intent, AI won't cite you.\n\nHappy to share more details on what we learned if useful.\n\nWhat has worked for you?",
+    title: "How I got my startup showing up in ChatGPT answers (what actually worked)",
+    content: "Been working on AI visibility for a while and wanted to share what actually works.\n\nThe short version: getting cited in AI is about content structure, not backlinks. The two biggest wins:\n\nFAQ sections. Genuinely the highest ROI change for most pages. AI models love Q&A format. We went from zero mentions to consistent citations within three weeks of adding proper FAQ sections.\n\nDirect answers in the first paragraph. If your opening doesn't answer the search intent, AI won't cite you. Most of our pages buried the lead - we rewrote the intros and saw an immediate improvement.\n\nOne thing that surprised me: Google ranking had almost no correlation with AI citation rate. We had pages on page 4 of Google getting cited regularly in ChatGPT.\n\nHappy to share more details on what we learned if useful.\n\nWhat has worked for you?",
+    suggested_subreddits: ["r/SaaS", "r/marketing", "r/SEO"],
   },
   producthunt: {
-    tagline: "Track your brand's visibility in ChatGPT and Gemini",
-    description: "GeoIQ is an AI visibility platform for startups. Run free audits to see how ChatGPT, Gemini, and Perplexity represent your brand, then fix the gaps with actionable recommendations.",
-    firstComment: "Hey hunters! We built GeoIQ because we couldn't find an easy way to check if our startup was showing up in AI search results. The free scan takes 30 seconds and shows your score across all three major AI systems. Happy to answer any questions.",
+    tagline: "See if ChatGPT recommends your brand in 60 seconds",
+    description: "GeoIQ is an AI visibility platform for startups. Run free audits to see how ChatGPT, Gemini, and Perplexity represent your brand, then fix the gaps with actionable recommendations.\n\nMost startups are invisible in AI search without knowing it. Traditional SEO doesn't translate to AI citation. GeoIQ gives you a score across 10 factors that determine whether AI systems mention your brand, then tells you exactly what to fix.",
+    first_comment: "Hey hunters! We built GeoIQ because we kept noticing our own startup wasn't showing up in AI search results despite ranking okay on Google. Turns out AI citation and Google ranking are almost completely unrelated. The free scan takes 30 seconds and shows your score across ChatGPT, Gemini, and Perplexity. Happy to answer any questions about how we measure AI visibility.",
+    topics: ["Artificial Intelligence", "Marketing", "SEO"],
   },
   hackernews: {
     title: "Show HN: GeoIQ - Track how ChatGPT and Gemini represent your brand",
-    firstComment: "We built this after noticing our startup wasn't showing up in AI search results despite ranking well on Google. The tool runs automated queries across ChatGPT, Gemini, and Perplexity and scores your AI visibility on 10 factors. Free tier available.",
+    comment: "We built this after noticing our startup wasn't showing up in AI search results despite ranking well on Google. The tool runs automated queries across ChatGPT, Gemini, and Perplexity and scores your AI visibility on 10 factors including factual density, entity clarity, and FAQ coverage.\n\nStack: React + Vite frontend, Express API, PostgreSQL, Drizzle ORM. AI calls go through OpenAI-compatible endpoints.\n\nCurrent limitations: we simulate Gemini and Perplexity via the OpenAI API - real multi-AI comparison requires separate API keys we haven't fully productized yet.\n\nWould love feedback on the scoring methodology. Free tier available at geoiqai.com.",
   },
   indiehackers: {
     title: "How we went from invisible in ChatGPT to showing up consistently",
-    body: "Six months ago, GeoIQ wasn't showing up in any ChatGPT or Gemini responses about AI visibility tools.\n\nWe had decent Google SEO. Reasonable domain authority. But AI was ignoring us completely.\n\nAfter a lot of testing, we found the core issue: our content wasn't structured for AI citation. No FAQ sections. No inline statistics. No clear entity definitions.\n\nWe fixed those things. Within three weeks, we started showing up in AI responses.\n\nThat experience became the product. GeoIQ now scans any domain and gives you an AI visibility score across ChatGPT, Gemini, and Perplexity - plus the specific fixes that will improve your score.\n\nFree tier available at geoiqai.com.",
+    content: "Six months ago, GeoIQ wasn't showing up in any ChatGPT or Gemini responses about AI visibility tools.\n\nWe had decent Google SEO. Reasonable domain authority. But AI was ignoring us completely.\n\nAfter a lot of testing, we found the core issue: our content wasn't structured for AI citation. No FAQ sections. No inline statistics. No clear entity definitions.\n\nWe fixed those things. Within three weeks, we started showing up in AI responses.\n\nCurrent numbers: 40 paying users, about 600 monthly active on the free tier. MRR is small but growing week over week.\n\nThe hardest part was explaining the problem to potential customers. Most founders don't even know they have an AI visibility gap. That's still our biggest challenge.\n\nHappy to answer questions about what worked or what we'd do differently.\n\nWhat's your experience with AI visibility for your own products?",
   },
   instagram: {
-    content: "AI visibility is the new SEO.\n\nWhen someone asks ChatGPT about tools in your category, does your brand show up?\n\nFor most startups, the answer is no.\n\n72% of users now start research with AI tools. Not Google.\n\nHere's what actually gets you cited in AI answers:\n- Direct answers in your first paragraph\n- FAQ sections (5+ questions)\n- Verifiable statistics with sources\n- Clear H2/H3 structure\n\nFree AI visibility scan at geoiqai.com\n\n#AIvisibility #GEO #ChatGPT #startupmarketing",
+    hook: "AI visibility is the new SEO - and most brands are failing at it.",
+    caption: "AI visibility is the new SEO - and most brands are failing at it.\n\nWhen someone asks ChatGPT about tools in your category, does your brand show up?\n\nFor most startups, the answer is no.\n\n72% of users now start research with AI tools. Not Google.\n\nHere's what actually gets you cited in AI answers:\nDirect answers in your first paragraph.\nFAQ sections (5+ questions per page).\nVerifiable statistics with sources.\nClear heading structure.\n\nFree AI visibility scan at geoiqai.com - takes 30 seconds.",
+    hashtags: ["AIvisibility", "GEO", "ChatGPT", "startupmarketing", "SaaS", "contentmarketing", "SEO", "AIsearch", "digitalmarketing", "growthhacking", "startuptips", "marketingstrategy", "indiehackers", "buildinpublic", "founders"],
   },
   linkedinarticle: {
-    title: "Why Your Startup Is Invisible in ChatGPT (And How to Fix It)",
-    content: "72% of users now start research with an AI tool. Not Google. AI.\n\nIf your brand isn't appearing in ChatGPT, Gemini, or Perplexity responses, you're invisible to most of your potential customers before they ever reach your website.\n\nThis is the AI visibility gap - and most startups don't even know they have it.\n\n## Why Traditional SEO Isn't Enough\n\nGoogle rewards backlinks and domain authority. AI systems reward factual density, clear entity definitions, and direct answers. A page can rank on page 2 of Google but still get cited regularly by ChatGPT.\n\n## What Actually Gets You Cited in AI\n\n**1. Answer the question in the first paragraph**\nAI models pull answers from the opening of a page. Bury the lead and you won't get cited.\n\n**2. Add a FAQ section**\nFive or more Q&As significantly improve citation rate.\n\n**3. Include verifiable statistics**\nA specific number with a source beats vague claims every time.\n\n**4. Use clear heading structure**\nH2/H3 headings help AI understand what your content covers.\n\n**5. Define your entities explicitly**\nState clearly what your product does, who it's for, and how it compares.\n\n## The Content Loop That Works\n\nWrite content, score your AI visibility, fix the gaps, write better.\n\nGeoIQ tracks your brand score across ChatGPT, Gemini, and Perplexity. Free scan at geoiqai.com.",
+    title: "Why Your Startup Is Invisible in ChatGPT (And How to Fix It in 3 Steps)",
+    subtitle: "AI citation and Google ranking are almost entirely unrelated - here's what actually matters",
+    content: "72% of users now start research with an AI tool. Not Google. AI.\n\nIf your brand isn't appearing in ChatGPT, Gemini, or Perplexity responses, you're invisible to most of your potential customers before they ever reach your website.\n\nThis is the AI visibility gap - and most startups don't even know they have it.\n\nTL;DR: Getting cited in AI requires factual density, FAQ sections, and direct answers - not backlinks. You can fix this without rebuilding your site.\n\nWhy Traditional SEO Isn't Enough\n\nGoogle rewards backlinks and domain authority. AI systems reward factual density, clear entity definitions, and direct answers. A page can rank on page 2 of Google but still get cited regularly by ChatGPT. The two systems are measuring completely different things.\n\nStep 1: Answer the Question in the First Paragraph\n\nAI models pull answers from the opening of a page. If your first paragraph doesn't directly address the search intent, AI won't cite you - no matter how good the rest of the content is. Rewrite your top pages to lead with the answer.\n\nStep 2: Add a FAQ Section\n\nFive or more Q&As significantly improve citation rate. AI systems are trained on Q&A data and actively look for structured question-answer pairs. This is the single highest-ROI change for most pages.\n\nStep 3: Include Verifiable Statistics\n\nA specific number with a source beats vague claims every time. AI systems prefer citable facts. Add one stat with a source to every important section.\n\nKey Takeaways\n\nAI citation and Google ranking are almost entirely unrelated.\nFAQ sections are the single highest-ROI improvement for AI visibility.\nThe opening paragraph determines whether AI cites your page.\nSpecific numbers with sources outperform vague claims.\nGeoIQ tracks your brand score across ChatGPT, Gemini, and Perplexity. Free scan at geoiqai.com.",
   },
 };
 
@@ -710,18 +706,24 @@ router.post("/content/repurpose", requireAuth, async (req: AuthRequest, res): Pr
   }
 
   const platformInstructions: Record<string, string> = {
-    twitter: `"twitter": {"tweets": ["hook tweet", "1/ ...", "2/ ...", "3/ ...", "4/ ...", "5/ ...", "6/ ...", "7/ ...", "8/ CTA tweet with URL"], "imagePrompt": "professional stock photo relevant to topic, no text in image, one sentence"}`,
-    linkedin: '"linkedin": {"content": "150-300 words, bold hook first line, line breaks every 2-3 lines, question at end"}',
-    linkedinarticle: '"linkedinarticle": {"title": "...", "content": "full article with H2/H3 headers, 600+ words"}',
-    email: '"email": {"subjects": ["s1","s2","s3"], "previewText": "...", "body": "200-400 words", "cta": "button text", "ps": "PS line"}',
-    instagram: '"instagram": {"content": "caption with line breaks, hashtags at end"}',
-    reddit: '"reddit": {"titles": ["t1","t2","t3"], "body": "authentic self-post, no promotional language"}',
-    producthunt: '"producthunt": {"tagline": "max 60 chars", "description": "max 260 chars", "firstComment": "maker comment"}',
-    hackernews: '"hackernews": {"title": "Show HN: style title", "firstComment": "brief honest comment"}',
-    indiehackers: '"indiehackers": {"title": "...", "body": "milestone/story format, genuine founder voice, 300-500 words"}',
+    twitter: `"twitter": {"tweets": ["hook tweet - bold specific claim, max 240 chars", "tweet 2 max 240 chars", "tweet 3 max 240 chars", "tweet 4 max 240 chars", "tweet 5 max 240 chars", "tweet 6 max 240 chars", "tweet 7 max 240 chars", "CTA tweet with geoiqai.com max 240 chars"], "imagePrompt": "professional lifestyle photo relevant to topic, no text in image, bright and clean"}`,
+    linkedin: `"linkedin": {"hook": "first line that stops the scroll - bold counterintuitive claim", "content": "150-300 word post starting with the hook, line breaks every 2-3 lines, one specific stat, ends with a question, max 3 hashtags at end", "char_count": 0}`,
+    linkedinarticle: `"linkedinarticle": {"title": "specific title with a number", "subtitle": "one line subtitle", "content": "600-900 word article, TL;DR after intro, 3-4 sections with plain text section headers (no ## symbols), Key Takeaways bullet list at end written as plain sentences one per line"}`,
+    email: `"email": {"subject": "max 50 chars specific benefit no emoji", "preview_text": "40 chars completing the subject thought", "content": "300-500 word email body: opening hook sentence, what is happening section, why it matters section, what to do section with 3 action items written as plain sentences one per line, CTA line at end"}`,
+    instagram: `"instagram": {"hook": "first line under 125 chars to make user tap more", "caption": "100-150 word body with single-line breaks for rhythm, no hashtags in body", "hashtags": ["tag1","tag2","tag3","tag4","tag5","tag6","tag7","tag8","tag9","tag10","tag11","tag12","tag13","tag14","tag15"]}`,
+    reddit: `"reddit": {"title": "honest question or observation format, no marketing language", "content": "200-400 words authentic story with real numbers, no promotional language, ends with genuine question to community", "suggested_subreddits": ["r/sub1","r/sub2","r/sub3"]}`,
+    producthunt: `"producthunt": {"tagline": "verb-led specific benefit max 60 chars", "description": "200-250 word description: problem then solution then 3 key features as plain sentences", "first_comment": "150-200 word genuine founder story: why you built this and what you learned", "topics": ["Topic1","Topic2","Topic3"]}`,
+    hackernews: `"hackernews": {"title": "Show HN: technical honest title", "comment": "150-200 words: what it does one sentence, how it works technically with stack, what you learned, current limitations honest, what feedback you want"}`,
+    indiehackers: `"indiehackers": {"title": "milestone or genuine question title", "content": "300-500 words: personal story of problem noticed, what you built and why, what is working with real numbers, what you are struggling with honest, question for community"}`,
   };
 
-  const prompt = `You are a B2B content strategist. Repurpose the following content for social platforms.
+  const systemPrompt = `You are an expert content strategist who writes platform-native, AI-optimized content.
+AI-optimized means: factual claims, direct answers, specific numbers, clear structure.
+Never use dashes, em dashes, markdown headers, asterisks, or bullet points in any content field.
+Use plain sentences and line breaks only. For lists, write each item on its own line with no prefix character.
+Return ONLY raw JSON. No markdown. No backticks. No explanation. No preamble.`;
+
+  const prompt = `Repurpose the following content for social platforms.
 
 Brand/company: ${domain ?? "the brand"}
 
@@ -732,13 +734,13 @@ ${processedContent.slice(0, 3000)}
 
 Generate content for: ${platforms.join(", ")}
 
-Guidelines:
+Rules:
 - Pull specific claims, stats, and product details from the content above when available
-- For Twitter: write in first-person founder voice, hook tweet should be a bold specific claim, each tweet max 240 chars
+- For Twitter: first-person founder voice, each tweet max 240 chars, no numbering prefix on tweets
 - Always return valid JSON regardless of how much content is provided
-- If content is limited, write reasonable content about the brand based on context clues
+- If content is limited, write reasonable founder-voice content based on context clues
 
-You MUST return ONLY valid JSON (no markdown, no code blocks, no explanation text):
+Return ONLY valid JSON (no markdown, no code blocks, no explanation):
 {
   ${platforms.map(p => platformInstructions[p] ?? `"${p}": {"content": "..."}`).join(",\n  ")}
 }`;
@@ -747,6 +749,7 @@ You MUST return ONLY valid JSON (no markdown, no code blocks, no explanation tex
     const msg = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 8000,
+      system: systemPrompt,
       messages: [{ role: "user", content: [{ type: "text", text: prompt }] }],
     });
     const raw = msg.content[0].type === "text" ? msg.content[0].text : "";

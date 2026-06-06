@@ -805,6 +805,51 @@ function AIWriterTab({ domain: _domain, onSendToOptimizer, onRepurpose }: {
 
 // ─── Repurposer Tab ──────────────────────────────────────────────────────────────
 
+function cleanContent(text: string | undefined): string {
+  if (!text) return "";
+  return text
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/^[-–—]\s+/gm, "")
+    .replace(/^•\s+/gm, "")
+    .replace(/—/g, " ")
+    .replace(/–/g, " ")
+    .replace(/`(.*?)`/g, "$1")
+    .trim();
+}
+
+const PLATFORM_SHARE: Record<string, {
+  color: string;
+  label: string;
+  getUrl: (content: string, data: Record<string, unknown>) => string;
+  copyHint?: string;
+}> = {
+  twitter: { color: "#000000", label: "Post to X",
+    getUrl: (c) => `https://twitter.com/intent/tweet?text=${encodeURIComponent(c)}` },
+  linkedin: { color: "#0A66C2", label: "Post to LinkedIn",
+    getUrl: (c) => `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(c)}` },
+  linkedinarticle: { color: "#0A66C2", label: "Draft on LinkedIn",
+    getUrl: () => "https://www.linkedin.com/article/new/",
+    copyHint: "Opens LinkedIn. Paste your article there." },
+  email: { color: "#EA4335", label: "Open in Gmail",
+    getUrl: () => "https://mail.google.com/mail/?view=cm&fs=1",
+    copyHint: "Opens Gmail. Paste your email there." },
+  instagram: { color: "#E1306C", label: "Open Instagram",
+    getUrl: () => "https://www.instagram.com/create/story/",
+    copyHint: "Opens Instagram. Paste your caption there." },
+  reddit: { color: "#FF4500", label: "Post to Reddit",
+    getUrl: (c, d) => `https://www.reddit.com/submit?title=${encodeURIComponent((d.title as string) ?? "")}&text=${encodeURIComponent(c)}` },
+  producthunt: { color: "#DA552F", label: "Submit to PH",
+    getUrl: () => "https://www.producthunt.com/posts/new",
+    copyHint: "Opens Product Hunt. Paste your content there." },
+  hackernews: { color: "#FF6600", label: "Submit to HN",
+    getUrl: (_, d) => `https://news.ycombinator.com/submitlink?t=${encodeURIComponent((d.title as string) ?? "")}&u=https://geoiqai.com` },
+  indiehackers: { color: "#0057FF", label: "Post to IH",
+    getUrl: () => "https://www.indiehackers.com/post/new",
+    copyHint: "Opens IndieHackers. Paste your post there." },
+};
+
 const PLATFORMS = [
   { id: "twitter", label: "X / Twitter thread" },
   { id: "linkedin", label: "LinkedIn post" },
@@ -979,111 +1024,224 @@ function PlatformCard({ platformId, platformLabel, data }: {
     );
   }
 
+  const shareInfo = PLATFORM_SHARE[platformId];
+
+  const ShareBtn = ({ content }: { content: string }) => {
+    const [hint, setHint] = useState(false);
+    if (!shareInfo) return null;
+    const handleClick = () => {
+      const url = shareInfo.getUrl(content, data);
+      if (shareInfo.copyHint) {
+        navigator.clipboard.writeText(content).catch(() => {});
+        setHint(true);
+        setTimeout(() => setHint(false), 3000);
+      }
+      window.open(url, "_blank");
+    };
+    return (
+      <div style={{ position: "relative", display: "inline-block" }}>
+        <button onClick={handleClick}
+          style={{ padding: "5px 12px", background: shareInfo.color, color: "white", border: "none",
+            borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer",
+            display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <ExternalLink size={10} /> {shareInfo.label}
+        </button>
+        {hint && (
+          <div style={{ position: "absolute", bottom: "calc(100% + 6px)", left: "50%",
+            transform: "translateX(-50%)", background: "#111827", color: "white",
+            fontSize: 10, padding: "4px 8px", borderRadius: 4, whiteSpace: "nowrap", zIndex: 10 }}>
+            {shareInfo.copyHint}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: 20, marginBottom: 12 }}>
       <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 14 }}>{platformLabel}</div>
 
-      {(platformId === "linkedin" || platformId === "instagram") && (() => {
-        const content = (data.content as string) ?? "";
-        return <div>{styledBox(content)}<CopyBtn k="c" text={content} /></div>;
+      {platformId === "linkedin" && (() => {
+        const hook = cleanContent(data.hook as string);
+        const content = cleanContent(data.content as string);
+        const charCount = content.length;
+        const fullText = content || hook;
+        return (
+          <div>
+            {hook && <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 8, lineHeight: 1.5 }}>{hook}</div>}
+            {styledBox(content)}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <CopyBtn k="c" text={fullText} />
+              <ShareBtn content={fullText} />
+              <span style={{ fontSize: 11, color: MUTED, marginLeft: "auto" }}>{charCount} chars</span>
+            </div>
+          </div>
+        );
       })()}
 
       {platformId === "linkedinarticle" && (() => {
-        const title = (data.title as string) ?? "";
-        const content = (data.content as string) ?? "";
+        const title = cleanContent(data.title as string);
+        const subtitle = cleanContent(data.subtitle as string);
+        const content = cleanContent(data.content as string);
+        const fullText = `${title}\n\n${subtitle ? subtitle + "\n\n" : ""}${content}`;
         return (
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#111827", marginBottom: 8 }}>{title}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#111827", marginBottom: 4, lineHeight: 1.4 }}>{title}</div>
+            {subtitle && <div style={{ fontSize: 13, color: MUTED, marginBottom: 10 }}>{subtitle}</div>}
             {styledBox(content)}
-            <CopyBtn k="a" text={`${title}\n\n${content}`} />
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <CopyBtn k="a" text={fullText} label="Copy full article" />
+              <ShareBtn content={fullText} />
+            </div>
           </div>
         );
       })()}
 
       {platformId === "email" && (() => {
-        const subjects = (data.subjects as string[]) ?? [];
-        const body = (data.body as string) ?? "";
-        const cta = (data.cta as string) ?? "";
-        const ps = (data.ps as string) ?? "";
-        const preview = (data.previewText as string) ?? "";
-        const full = `Subject: ${subjects[selectedIdx] ?? ""}\n\n${body}${cta ? `\n\nCTA: ${cta}` : ""}${ps ? `\n\n${ps}` : ""}`;
+        const subject = cleanContent(data.subject as string);
+        const previewText = cleanContent(data.preview_text as string);
+        const content = cleanContent(data.content as string);
+        const full = `Subject: ${subject}\nPreview: ${previewText}\n\n${content}`;
         return (
           <div>
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, marginBottom: 6 }}>Subject line</div>
-              {subjects.map((s, i) => (
-                <label key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, cursor: "pointer" }}>
-                  <input type="radio" checked={selectedIdx === i} onChange={() => setSelectedIdx(i)} name={`subj-${platformId}`} />
-                  <span style={{ fontSize: 12, color: "#374151" }}>{s}</span>
-                </label>
-              ))}
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, marginBottom: 3 }}>Subject line</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>{subject}</div>
             </div>
-            {preview && <div style={{ fontSize: 12, color: MUTED, marginBottom: 8 }}><b>Preview text:</b> {preview}</div>}
-            {styledBox(body)}
-            {cta && <div style={{ fontSize: 12, color: "#374151", marginBottom: 4 }}><b>CTA:</b> {cta}</div>}
-            {ps && <div style={{ fontSize: 12, color: MUTED, marginBottom: 10 }}><b>PS:</b> {ps}</div>}
-            <CopyBtn k="email" text={full} label="Copy full email" />
+            {previewText && (
+              <div style={{ fontSize: 12, color: MUTED, marginBottom: 10 }}>
+                <span style={{ fontWeight: 600 }}>Preview: </span>{previewText}
+              </div>
+            )}
+            {styledBox(content)}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <CopyBtn k="email" text={full} label="Copy full email" />
+              <ShareBtn content={full} />
+            </div>
+          </div>
+        );
+      })()}
+
+      {platformId === "instagram" && (() => {
+        const hook = cleanContent(data.hook as string);
+        const caption = cleanContent(data.caption as string);
+        const hashtags = (data.hashtags as string[]) ?? [];
+        const fullCaption = `${caption || hook}\n\n${hashtags.map(t => `#${t.replace(/^#/, "")}`).join(" ")}`;
+        return (
+          <div>
+            {hook && <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 8, lineHeight: 1.5 }}>{hook}</div>}
+            {styledBox(caption || hook)}
+            {hashtags.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+                {hashtags.map((tag, i) => (
+                  <span key={i} style={{ fontSize: 11, background: "#EEF2FF", color: P,
+                    padding: "2px 8px", borderRadius: 20, fontWeight: 500 }}>
+                    #{tag.replace(/^#/, "")}
+                  </span>
+                ))}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <CopyBtn k="cap" text={caption || hook} label="Copy caption" />
+              <CopyBtn k="tags" text={hashtags.map(t => `#${t.replace(/^#/, "")}`).join(" ")} label="Copy hashtags" />
+              <ShareBtn content={fullCaption} />
+            </div>
           </div>
         );
       })()}
 
       {platformId === "reddit" && (() => {
-        const titles = (data.titles as string[]) ?? [];
-        const body = (data.body as string) ?? "";
+        const title = cleanContent(data.title as string);
+        const content = cleanContent(data.content as string);
+        const subreddits = (data.suggested_subreddits as string[]) ?? [];
+        const fullPost = `${title}\n\n${content}`;
         return (
           <div>
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, marginBottom: 6 }}>Title options</div>
-              {titles.map((t, i) => (
-                <label key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, cursor: "pointer" }}>
-                  <input type="radio" checked={selectedIdx === i} onChange={() => setSelectedIdx(i)} name={`reddit-${platformId}`} />
-                  <span style={{ fontSize: 12, color: "#374151" }}>{t}</span>
-                </label>
-              ))}
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 10, lineHeight: 1.4 }}>{title}</div>
+            {styledBox(content)}
+            {subreddits.length > 0 && (
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+                {subreddits.map((sub, i) => (
+                  <span key={i} style={{ fontSize: 11, background: "#FFF7ED", color: "#C2410C",
+                    border: "1px solid #FED7AA", padding: "2px 8px", borderRadius: 20, fontWeight: 500 }}>
+                    {sub.startsWith("r/") ? sub : `r/${sub}`}
+                  </span>
+                ))}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <CopyBtn k="r" text={fullPost} label="Copy full post" />
+              <ShareBtn content={content} />
             </div>
-            {styledBox(body)}
-            <CopyBtn k="r" text={`${titles[selectedIdx] ?? ""}\n\n${body}`} label="Copy full post" />
           </div>
         );
       })()}
 
       {platformId === "producthunt" && (() => {
-        const tagline = (data.tagline as string) ?? "";
-        const desc = (data.description as string) ?? "";
-        const comment = (data.firstComment as string) ?? "";
+        const tagline = cleanContent(data.tagline as string);
+        const desc = cleanContent(data.description as string);
+        const comment = cleanContent((data.first_comment ?? data.firstComment) as string);
+        const topics = (data.topics as string[]) ?? [];
+        const fullText = `${tagline}\n\n${desc}${comment ? `\n\nMaker comment:\n${comment}` : ""}`;
         return (
           <div>
-            <div style={{ marginBottom: 8 }}>
+            <div style={{ marginBottom: 10 }}>
               <span style={{ fontSize: 11, fontWeight: 600, color: MUTED }}>Tagline: </span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{tagline}</span>
-              <span style={{ fontSize: 11, color: MUTED, marginLeft: 8 }}>({tagline.length}/60 chars)</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>{tagline}</span>
+              <span style={{ fontSize: 11, color: MUTED, marginLeft: 8 }}>({tagline.length}/60)</span>
             </div>
-            <div style={{ marginBottom: comment ? 10 : 0 }}>
-              <span style={{ fontSize: 11, fontWeight: 600, color: MUTED }}>Description: </span>
-              <span style={{ fontSize: 12, color: "#374151" }}>{desc}</span>
-            </div>
+            {styledBox(desc)}
             {comment && (
               <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, marginBottom: 4 }}>First comment:</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, marginBottom: 4 }}>Maker comment:</div>
                 {styledBox(comment)}
               </div>
             )}
-            <div style={{ display: "flex", gap: 6 }}>
+            {topics.length > 0 && (
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+                {topics.map((t, i) => (
+                  <span key={i} style={{ fontSize: 11, background: "#FFF7F5", color: "#C2410C",
+                    border: "1px solid #FECACA", padding: "2px 8px", borderRadius: 20, fontWeight: 500 }}>{t}</span>
+                ))}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <CopyBtn k="tag" text={tagline} label="Copy tagline" />
-              <CopyBtn k="desc" text={desc} label="Copy description" />
+              <CopyBtn k="all" text={fullText} label="Copy all" />
+              <ShareBtn content={fullText} />
             </div>
           </div>
         );
       })()}
 
-      {(platformId === "hackernews" || platformId === "indiehackers") && (() => {
-        const title = (data.title as string) ?? "";
-        const body = ((data.firstComment ?? data.body) as string) ?? "";
+      {platformId === "hackernews" && (() => {
+        const title = cleanContent(data.title as string);
+        const comment = cleanContent((data.comment ?? data.firstComment) as string);
         return (
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 10 }}>{title}</div>
-            {styledBox(body)}
-            <CopyBtn k="p" text={`${title}\n\n${body}`} label="Copy full post" />
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 10,
+              fontFamily: "Courier New, monospace", lineHeight: 1.4 }}>{title}</div>
+            {styledBox(comment)}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <CopyBtn k="p" text={`${title}\n\n${comment}`} label="Copy full post" />
+              <ShareBtn content={comment} />
+            </div>
+          </div>
+        );
+      })()}
+
+      {platformId === "indiehackers" && (() => {
+        const title = cleanContent(data.title as string);
+        const content = cleanContent((data.content ?? data.body) as string);
+        const fullText = `${title}\n\n${content}`;
+        return (
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 10, lineHeight: 1.4 }}>{title}</div>
+            {styledBox(content)}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <CopyBtn k="p" text={fullText} label="Copy full post" />
+              <ShareBtn content={fullText} />
+            </div>
           </div>
         );
       })()}
