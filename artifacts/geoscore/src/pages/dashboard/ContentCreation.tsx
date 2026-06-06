@@ -858,15 +858,24 @@ function PlatformCard({ platformId, platformLabel, data }: {
         const allText = tweets.map((t, i) => (i === 0 ? t : `${i}/ ${t}`)).join("\n\n");
         return (
           <div>
-            <div style={{ marginBottom: 10 }}><CopyBtn k="all" text={allText} label="Copy all tweets" /></div>
+            <div style={{ marginBottom: 12 }}><CopyBtn k="all" text={allText} label="Copy all tweets" /></div>
             {tweets.map((tweet, i) => (
-              <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 8,
-                padding: "10px 12px", background: BG, borderRadius: 8, border: `1px solid ${BORDER}` }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: P, minWidth: 30, flexShrink: 0 }}>
-                  {i === 0 ? "Hook" : `${i}/`}
-                </span>
-                <span style={{ fontSize: 13, color: "#374151", lineHeight: 1.5, flex: 1 }}>{tweet}</span>
-                <CopyBtn k={`t${i}`} text={tweet} />
+              <div key={i} style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10,
+                boxShadow: "0 1px 4px rgba(0,0,0,0.06)", marginBottom: 8, overflow: "hidden" }}>
+                <div style={{ display: "flex", alignItems: "stretch" }}>
+                  <div style={{ width: 42, flexShrink: 0, background: i === 0 ? P : "#F3F4F6",
+                    display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: i === 0 ? "white" : "#6B7280" }}>
+                      {i === 0 ? "Hook" : `${i}/`}
+                    </span>
+                  </div>
+                  <div style={{ flex: 1, padding: "12px 14px", fontSize: 13, color: "#374151", lineHeight: 1.6 }}>
+                    {tweet}
+                  </div>
+                  <div style={{ padding: "10px 10px 0 0", flexShrink: 0 }}>
+                    <CopyBtn k={`t${i}`} text={tweet} />
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -981,39 +990,78 @@ function PlatformCard({ platformId, platformLabel, data }: {
   );
 }
 
+const PROGRESS_STEPS = [
+  "Picking the core message",
+  "Shortening key ideas for post format",
+  "Adding context and supporting details",
+  "Crafting a catchy opening line",
+  "Adding hashtags, mentions, or CTA",
+  "Finalizing the post draft",
+];
+
+function ProgressCard({ platformLabel, step }: { platformLabel: string; step: number }) {
+  const pct = Math.min(Math.round((step / PROGRESS_STEPS.length) * 100), 95);
+  return (
+    <div style={{ background: "white", borderRadius: 12, boxShadow: "0 1px 6px rgba(0,0,0,0.08)",
+      border: `1px solid ${BORDER}`, padding: 20, marginBottom: 12 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 3 }}>{platformLabel}</div>
+      <div style={{ fontSize: 12, color: MUTED, marginBottom: 12 }}>Crafting your post...</div>
+      <div style={{ height: 5, background: "#E5E7EB", borderRadius: 3, overflow: "hidden", marginBottom: 14 }}>
+        <div style={{ height: "100%", background: P, width: `${pct}%`, transition: "width 0.6s ease", borderRadius: 3 }} />
+      </div>
+      {PROGRESS_STEPS.map((s, i) => {
+        const done = i < step;
+        const active = i === step;
+        return (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5, fontSize: 12,
+            color: done ? GREEN : active ? "#111827" : "#9CA3AF", fontWeight: active ? 600 : 400 }}>
+            <span style={{ width: 14, flexShrink: 0, fontSize: 13, lineHeight: 1 }}>
+              {done ? "✓" : active ? "⟳" : ""}
+            </span>
+            {s}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function RepurposerTab({ domain, prefilledContent, onSendToOptimizer }: {
   domain: string;
   prefilledContent?: string;
   onSendToOptimizer: (content: string) => void;
 }) {
   const [inputMode, setInputMode] = useState<"paste" | "url">("paste");
-  const [content, setContent] = useState(prefilledContent ?? "");
+  const [pastedContent, setPastedContent] = useState(prefilledContent ?? "");
   const [url, setUrl] = useState("");
+  const [fetchedData, setFetchedData] = useState<{ content: string; preview: string; domain: string } | null>(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["twitter", "linkedin"]);
   const [result, setResult] = useState<{ results: Record<string, Record<string, unknown>>; isMock?: boolean } | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchingUrl, setFetchingUrl] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loadingStep, setLoadingStep] = useState(0);
-
-  const repurposeSteps = ["Analyzing content...", "Adapting tone for each platform...", "Writing platform content...", "Formatting output..."];
+  const [progressStep, setProgressStep] = useState(0);
 
   useEffect(() => {
-    if (prefilledContent) { setContent(prefilledContent); setInputMode("paste"); }
+    if (prefilledContent) { setPastedContent(prefilledContent); setInputMode("paste"); setFetchedData(null); }
   }, [prefilledContent]);
 
   useEffect(() => {
-    if (!loading) { setLoadingStep(0); return; }
-    const interval = setInterval(() => setLoadingStep(s => (s + 1) % repurposeSteps.length), 2000);
+    if (!loading) { setProgressStep(0); return; }
+    const interval = setInterval(() => {
+      setProgressStep(s => Math.min(s + 1, PROGRESS_STEPS.length - 1));
+    }, 800);
     return () => clearInterval(interval);
   }, [loading]);
+
+  const activeContent = inputMode === "url" ? (fetchedData?.content ?? "") : pastedContent;
 
   const togglePlatform = (id: string) =>
     setSelectedPlatforms(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
 
   const fetchUrl = async () => {
     if (!url.trim()) return;
-    setFetchingUrl(true); setError(null);
+    setFetchingUrl(true); setError(null); setFetchedData(null);
     try {
       const token = getToken();
       const r = await fetch("/api/content/fetch-url", {
@@ -1023,15 +1071,17 @@ function RepurposerTab({ domain, prefilledContent, onSendToOptimizer }: {
       });
       const json = await r.json();
       if (json.error) throw new Error(json.error);
-      setContent(json.content);
-      setInputMode("paste");
+      setFetchedData({ content: json.content, preview: json.preview ?? json.content.slice(0, 100), domain: json.sourceDomain ?? url });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not fetch URL content.");
     } finally { setFetchingUrl(false); }
   };
 
   const repurpose = async () => {
-    if (!content.trim()) { setError("Paste some content first."); return; }
+    if (!activeContent.trim()) {
+      setError(inputMode === "url" ? "Fetch an article URL first." : "Paste some content first.");
+      return;
+    }
     if (selectedPlatforms.length === 0) { setError("Select at least one platform."); return; }
     setLoading(true); setError(null); setResult(null);
     try {
@@ -1039,7 +1089,7 @@ function RepurposerTab({ domain, prefilledContent, onSendToOptimizer }: {
       const r = await fetch("/api/content/repurpose", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ content, domain, platforms: selectedPlatforms }),
+        body: JSON.stringify({ content: activeContent, domain, platforms: selectedPlatforms }),
       });
       const json = await r.json();
       if (json.error) throw new Error(json.error);
@@ -1049,133 +1099,201 @@ function RepurposerTab({ domain, prefilledContent, onSendToOptimizer }: {
     } finally { setLoading(false); }
   };
 
+  const canRepurpose = activeContent.trim().length > 0 && selectedPlatforms.length > 0;
+
   return (
-    <div>
-      <div style={{ fontSize: 15, fontWeight: 700, color: "#111827", marginBottom: 2 }}>Content Repurposer</div>
-      <div style={{ fontSize: 13, color: MUTED, marginBottom: 20 }}>
-        Turn any article into Twitter threads, LinkedIn posts, emails and more
-      </div>
+    <div style={{ display: "flex", border: `1px solid ${BORDER}`, borderRadius: 10, overflow: "hidden", minHeight: 560 }}>
 
-      {error && (
-        <div style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "#FEF2F2", border: "1px solid #FECACA",
-          borderRadius: 8, padding: "12px 16px", fontSize: 13, color: "#991B1B", marginBottom: 16 }}>
-          <AlertCircle size={15} color={RED} style={{ flexShrink: 0, marginTop: 1 }} />
-          {error}
+      {/* LEFT PANEL - form */}
+      <div style={{ width: 340, flexShrink: 0, background: "white", borderRight: `1px solid ${BORDER}`,
+        padding: 20, display: "flex", flexDirection: "column", gap: 0, overflowY: "auto" }}>
+
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#111827", marginBottom: 2 }}>Content Repurposer</div>
+        <div style={{ fontSize: 12, color: MUTED, marginBottom: 18 }}>
+          Turn any article into threads, posts, emails and more
         </div>
-      )}
 
-      {!result && !loading && (
-        <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: 20, marginBottom: 16 }}>
-          <div style={{ display: "flex", gap: 0, marginBottom: 16, border: `1px solid ${BORDER}`, borderRadius: 8,
-            overflow: "hidden", width: "fit-content" }}>
-            {(["paste", "url"] as const).map(mode => (
-              <button key={mode} onClick={() => setInputMode(mode)}
-                style={{ padding: "8px 16px", background: inputMode === mode ? P : "white",
-                  color: inputMode === mode ? "white" : MUTED, border: "none", cursor: "pointer",
-                  fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
-                {mode === "paste" ? <PenTool size={13} /> : <Link size={13} />}
-                {mode === "paste" ? "Paste content" : "Article URL"}
-              </button>
-            ))}
+        {error && (
+          <div style={{ display: "flex", gap: 8, alignItems: "flex-start", background: "#FEF2F2",
+            border: "1px solid #FECACA", borderRadius: 8, padding: "10px 12px", fontSize: 12,
+            color: "#991B1B", marginBottom: 14 }}>
+            <AlertCircle size={13} color={RED} style={{ flexShrink: 0, marginTop: 1 }} />
+            {error}
           </div>
+        )}
 
-          {inputMode === "paste" && (
-            <textarea value={content} onChange={e => setContent(e.target.value)}
-              placeholder="Paste your article, blog post or page content here..."
-              style={{ width: "100%", minHeight: 160, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 12,
-                fontSize: 13, resize: "vertical", outline: "none", boxSizing: "border-box",
-                fontFamily: "inherit", color: "#374151", lineHeight: 1.6 }} />
-          )}
+        {/* Input mode toggle */}
+        <div style={{ display: "flex", gap: 0, marginBottom: 12, border: `1px solid ${BORDER}`,
+          borderRadius: 8, overflow: "hidden" }}>
+          {(["paste", "url"] as const).map(mode => (
+            <button key={mode} onClick={() => { setInputMode(mode); setError(null); }}
+              style={{ flex: 1, padding: "8px 0", background: inputMode === mode ? P : "white",
+                color: inputMode === mode ? "white" : MUTED, border: "none", cursor: "pointer",
+                fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center",
+                justifyContent: "center", gap: 5 }}>
+              {mode === "paste" ? <PenTool size={12} /> : <Link size={12} />}
+              {mode === "paste" ? "Paste text" : "Article URL"}
+            </button>
+          ))}
+        </div>
 
-          {inputMode === "url" && (
-            <div style={{ display: "flex", gap: 8 }}>
-              <input value={url} onChange={e => setUrl(e.target.value)}
+        {/* Paste mode */}
+        {inputMode === "paste" && (
+          <textarea value={pastedContent} onChange={e => setPastedContent(e.target.value)}
+            placeholder="Paste your article or blog post here..."
+            style={{ width: "100%", minHeight: 140, border: `1px solid ${BORDER}`, borderRadius: 8,
+              padding: 10, fontSize: 12, resize: "vertical", outline: "none", boxSizing: "border-box",
+              fontFamily: "inherit", color: "#374151", lineHeight: 1.6, marginBottom: 14 }} />
+        )}
+
+        {/* URL mode */}
+        {inputMode === "url" && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ display: "flex", gap: 6, marginBottom: fetchedData ? 10 : 0 }}>
+              <input value={url} onChange={e => { setUrl(e.target.value); setFetchedData(null); }}
                 placeholder="https://yoursite.com/article"
-                style={{ flex: 1, border: `1px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px",
-                  fontSize: 13, outline: "none", color: "#374151" }}
+                style={{ flex: 1, border: `1px solid ${BORDER}`, borderRadius: 8, padding: "9px 11px",
+                  fontSize: 12, outline: "none", color: "#374151", minWidth: 0 }}
                 onKeyDown={e => e.key === "Enter" && fetchUrl()} />
               <button onClick={fetchUrl} disabled={fetchingUrl || !url.trim()}
-                style={{ padding: "10px 16px", background: "#EEF2FF", color: P, border: "1px solid #C7D2FE",
-                  borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: fetchingUrl ? "not-allowed" : "pointer",
-                  whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6 }}>
-                {fetchingUrl ? <Loader2 size={13} style={{ animation: "spin 0.8s linear infinite" }} /> : null}
-                {fetchingUrl ? "Fetching..." : "Fetch & repurpose"}
+                style={{ padding: "9px 12px", background: P, color: "white", border: "none",
+                  borderRadius: 8, fontSize: 12, fontWeight: 600,
+                  cursor: fetchingUrl || !url.trim() ? "not-allowed" : "pointer", opacity: !url.trim() ? 0.5 : 1,
+                  display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
+                {fetchingUrl
+                  ? <Loader2 size={12} style={{ animation: "spin 0.8s linear infinite" }} />
+                  : <Link size={12} />}
+                {fetchingUrl ? "Fetching..." : "Fetch"}
               </button>
             </div>
-          )}
 
-          <div style={{ marginTop: 16 }}>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 8 }}>
-              Target platforms
-            </label>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {PLATFORMS.map(p => (
-                <label key={p.id}
-                  style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", padding: "6px 12px",
-                    border: `1px solid ${selectedPlatforms.includes(p.id) ? P : BORDER}`, borderRadius: 20,
-                    background: selectedPlatforms.includes(p.id) ? "#EEF2FF" : "white",
-                    fontSize: 12, color: selectedPlatforms.includes(p.id) ? P : "#374151",
-                    fontWeight: selectedPlatforms.includes(p.id) ? 600 : 400 }}>
-                  <input type="checkbox" checked={selectedPlatforms.includes(p.id)}
-                    onChange={() => togglePlatform(p.id)} style={{ display: "none" }} />
-                  {p.label}
-                </label>
-              ))}
+            {fetchedData && (
+              <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 8, padding: "10px 12px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                  <Check size={13} color={GREEN} />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#065F46" }}>
+                    Content fetched from {fetchedData.domain}
+                  </span>
+                </div>
+                <div style={{ fontSize: 11, color: "#047857", lineHeight: 1.5 }}>
+                  "{fetchedData.preview}{fetchedData.preview.length >= 100 ? "..." : ""}"
+                </div>
+                <button onClick={() => { setFetchedData(null); setUrl(""); }}
+                  style={{ marginTop: 8, fontSize: 11, color: MUTED, background: "none", border: "none",
+                    cursor: "pointer", padding: 0, textDecoration: "underline" }}>
+                  Clear and try another URL
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Platforms */}
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 8 }}>
+            Platforms
+          </label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {PLATFORMS.map(p => (
+              <label key={p.id}
+                style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", padding: "5px 10px",
+                  border: `1px solid ${selectedPlatforms.includes(p.id) ? P : BORDER}`, borderRadius: 20,
+                  background: selectedPlatforms.includes(p.id) ? "#EEF2FF" : "white",
+                  fontSize: 11, color: selectedPlatforms.includes(p.id) ? P : "#374151",
+                  fontWeight: selectedPlatforms.includes(p.id) ? 600 : 400 }}>
+                <input type="checkbox" checked={selectedPlatforms.includes(p.id)}
+                  onChange={() => togglePlatform(p.id)} style={{ display: "none" }} />
+                {p.label}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Repurpose button */}
+        <button onClick={repurpose} disabled={!canRepurpose || loading}
+          style={{ width: "100%", padding: "11px 0", background: canRepurpose && !loading ? P : "#9CA3AF",
+            color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600,
+            cursor: canRepurpose && !loading ? "pointer" : "not-allowed",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+          {loading
+            ? <><Loader2 size={14} style={{ animation: "spin 0.8s linear infinite" }} /> Repurposing...</>
+            : <>Repurpose for {selectedPlatforms.length} platform{selectedPlatforms.length !== 1 ? "s" : ""} <ArrowRight size={14} /></>
+          }
+        </button>
+
+        {result && !loading && (
+          <button onClick={() => { setResult(null); setProgressStep(0); }}
+            style={{ marginTop: 10, width: "100%", padding: "9px 0", background: "white",
+              color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 12,
+              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <RefreshCw size={12} /> Repurpose again
+          </button>
+        )}
+      </div>
+
+      {/* RIGHT PANEL - canvas */}
+      <div style={{ flex: 1, background: "#f8f8f8",
+        backgroundImage: "radial-gradient(circle, #d0d0d0 1px, transparent 1px)",
+        backgroundSize: "24px 24px", padding: 20, overflowY: "auto" }}>
+
+        {/* Empty state */}
+        {!loading && !result && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            height: "100%", minHeight: 400 }}>
+            <div style={{ width: 48, height: 48, background: "white", borderRadius: 12, boxShadow: "0 1px 6px rgba(0,0,0,0.1)",
+              display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+              <Repeat2 size={22} color={MUTED} />
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
+              Your repurposed content will appear here
+            </div>
+            <div style={{ fontSize: 12, color: MUTED, textAlign: "center", maxWidth: 220, lineHeight: 1.5 }}>
+              Add your content on the left, pick platforms, and hit Repurpose
             </div>
           </div>
+        )}
 
-          <button onClick={repurpose}
-            style={{ marginTop: 16, width: "100%", padding: "12px 0", background: P, color: "white",
-              border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            Repurpose for {selectedPlatforms.length} platform{selectedPlatforms.length !== 1 ? "s" : ""} <ArrowRight size={15} />
-          </button>
-        </div>
-      )}
-
-      {loading && (
-        <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: 40, textAlign: "center" }}>
-          <div style={{ width: 44, height: 44, border: `3px solid ${BORDER}`, borderTopColor: P, borderRadius: "50%",
-            animation: "spin 0.8s linear infinite", margin: "0 auto 16px" }} />
-          <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", marginBottom: 6 }}>Repurposing your content...</div>
-          <div style={{ fontSize: 13, color: MUTED }}>{repurposeSteps[loadingStep]}</div>
-        </div>
-      )}
-
-      {result && !loading && (
-        <div>
-          {result.isMock === true && (
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#FFFBEB",
-              border: "1px solid #FDE68A", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600,
-              color: "#92400E", marginBottom: 12 }}>
-              Demo content - sandbox mode
-            </div>
-          )}
-          <button onClick={() => setResult(null)}
-            style={{ marginBottom: 16, padding: "6px 12px", background: "white", border: `1px solid ${BORDER}`,
-              borderRadius: 6, fontSize: 12, color: MUTED, cursor: "pointer",
-              display: "flex", alignItems: "center", gap: 5 }}>
-            <RefreshCw size={11} /> Repurpose again
-          </button>
-          <div style={{ background: "#EEF2FF", border: "1px solid #C7D2FE", borderRadius: 8,
-            padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center",
-            justifyContent: "space-between", gap: 12 }}>
-            <div style={{ fontSize: 13, color: P }}>Want to check if the original content gets cited in ChatGPT?</div>
-            <button onClick={() => onSendToOptimizer(content)}
-              style={{ padding: "7px 14px", background: P, color: "white", border: "none",
-                borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
-              Run GEO Score <ArrowRight size={12} />
-            </button>
+        {/* Progress cards */}
+        {loading && (
+          <div>
+            {selectedPlatforms.map(pid => {
+              const plat = PLATFORMS.find(p => p.id === pid);
+              if (!plat) return null;
+              return <ProgressCard key={pid} platformLabel={plat.label} step={progressStep} />;
+            })}
           </div>
-          {selectedPlatforms.map(pid => {
-            const plat = PLATFORMS.find(p => p.id === pid);
-            const d = result.results[pid] as Record<string, unknown>;
-            if (!plat || !d) return null;
-            return <PlatformCard key={pid} platformId={pid} platformLabel={plat.label} data={d} />;
-          })}
-        </div>
-      )}
+        )}
+
+        {/* Result cards */}
+        {result && !loading && (
+          <div>
+            {result.isMock === true && (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#FFFBEB",
+                border: "1px solid #FDE68A", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600,
+                color: "#92400E", marginBottom: 12 }}>
+                Demo content - sandbox mode
+              </div>
+            )}
+            <div style={{ background: "#EEF2FF", border: "1px solid #C7D2FE", borderRadius: 8,
+              padding: "10px 14px", marginBottom: 14, display: "flex", alignItems: "center",
+              justifyContent: "space-between", gap: 12 }}>
+              <div style={{ fontSize: 12, color: P }}>Want to check if the original content gets cited in ChatGPT?</div>
+              <button onClick={() => onSendToOptimizer(activeContent)}
+                style={{ padding: "6px 12px", background: P, color: "white", border: "none",
+                  borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
+                Run GEO Score <ArrowRight size={11} />
+              </button>
+            </div>
+            {selectedPlatforms.map(pid => {
+              const plat = PLATFORMS.find(p => p.id === pid);
+              const d = result.results[pid] as Record<string, unknown>;
+              if (!plat || !d) return null;
+              return <PlatformCard key={pid} platformId={pid} platformLabel={plat.label} data={d} />;
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

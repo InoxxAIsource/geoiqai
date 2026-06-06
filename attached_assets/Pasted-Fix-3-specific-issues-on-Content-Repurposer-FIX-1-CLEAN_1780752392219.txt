@@ -1,0 +1,144 @@
+Fix 3 specific issues on Content Repurposer.
+
+FIX 1: CLEAN THE FETCHED URL CONTENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When user enters Article URL and clicks Fetch:
+Current: dumps raw scraped HTML text into textarea
+Fix: 
+
+1. Fetch the URL server-side
+2. Extract only clean readable text:
+   - Remove all HTML tags
+   - Remove navigation, headers, footers
+   - Remove repeated whitespace
+   - Keep only main article body text
+   - Max 3000 characters
+
+3. Do NOT show the fetched text in textarea at all
+   Instead show:
+   
+   ✓ Content fetched from geoiqai.com
+   "GeoIQ is an AI visibility platform..."
+   [first 100 chars preview]
+   
+   Show a small card confirming fetch succeeded.
+   User does not need to see or edit the raw content.
+
+Use this to extract clean text server-side:
+- Strip HTML tags with regex or cheerio
+- Take only text inside <main>, <article>, 
+  or <body> tags
+- Remove script, style, nav, header, footer content
+
+FIX 2: ADD SPLIT CANVAS LAYOUT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Change Repurposer layout to split screen:
+
+LEFT PANEL (340px fixed width):
+- Title: "Content Repurposer"
+- Input section (paste or URL)
+- Platform chips
+- Repurpose button
+- Background: white with subtle border-right
+
+RIGHT PANEL (flex, remaining width):
+- Background: #f8f8f8 with dotted grid pattern
+  CSS: background-image: radial-gradient(circle, #d0d0d0 1px, transparent 1px);
+       background-size: 24px 24px;
+- Empty state: centered text
+  "Your repurposed content will appear here"
+- After generation: content cards appear here
+
+Cards on canvas:
+Each platform result = one card
+White background, rounded corners, shadow
+Card header: platform icon + name
+Card body: content text
+Card footer: [Copy] button
+
+For Twitter thread specifically:
+One card containing all numbered tweets
+Each tweet as a row with number badge + text + copy
+
+FIX 3: ADD REAL-TIME PROGRESS ANIMATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When Repurpose button clicked:
+Show a progress card on the canvas BEFORE content loads:
+
+┌─────────────────────────────────┐
+│ 𝕏 X (Twitter)                   │
+│ Crafting your social post...    │
+│ ████████░░░░░░░░ 50%            │
+│                                 │
+│ ✓ Picking the core message      │
+│ ✓ Shortening key ideas          │
+│ ⟳ Adding context and details    │
+│   Crafting opening line         │
+│   Adding hashtags and CTA       │
+│   Finalizing draft              │
+└─────────────────────────────────┘
+
+Animate these steps with 800ms delay each:
+steps = [
+  "Picking the core message",
+  "Shortening key ideas for post format", 
+  "Adding context and supporting details",
+  "Crafting a catchy opening line",
+  "Adding hashtags, mentions, or CTA",
+  "Finalizing the post draft"
+]
+
+Show ✓ for completed steps
+Show ⟳ spinner for current step
+Show greyed text for pending steps
+Progress bar fills as steps complete
+
+After real Claude response arrives:
+Replace progress card with actual content card.
+Smooth transition.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ALSO: IMPROVE TWITTER THREAD CARD STYLING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current: plain numbered list
+Target: styled tweet cards
+
+Each tweet in the thread should look like:
+┌─────────────────────────────────────┐
+│ Hook  AI visibility is the new SEO. │
+│       Here is what moves the needle │
+│       in 2026:                      │
+│                               [Copy]│
+└─────────────────────────────────────┘
+┌─────────────────────────────────────┐
+│  1/   72% of users start research  │
+│       with AI. If your brand...    │
+│                               [Copy]│
+└─────────────────────────────────────┘
+
+First tweet labeled "Hook"
+Rest labeled "1/" "2/" "3/" etc
+Each is a distinct white card with shadow
+[Copy all tweets] button above thread
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Enter URL: https://geoiqai.com
+2. Click fetch — should show 
+   "✓ Content fetched" not raw text
+3. Select X/Twitter thread
+4. Click Repurpose
+5. Progress card appears with animated steps
+6. After ~3 seconds real content appears
+7. Tweets styled as individual cards
+8. Layout is split: form left, canvas right
+
+In sandbox mode:
+Progress animation still plays (use setTimeout)
+Then mock tweet cards appear.

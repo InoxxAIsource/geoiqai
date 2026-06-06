@@ -132,28 +132,44 @@ router.post("/content/fetch-url", requireAuth, async (req: AuthRequest, res): Pr
 
   const normalizedUrl = /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`;
 
+  let sourceDomain = "";
+  try { sourceDomain = new URL(normalizedUrl).hostname.replace(/^www\./, ""); } catch { sourceDomain = url.trim(); }
+
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     const response = await fetch(normalizedUrl, {
       signal: controller.signal,
-      headers: { "User-Agent": "GeoIQ/1.0 (content analyzer)" },
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; GeoIQ/1.0)" },
     });
     clearTimeout(timeout);
 
     if (!response.ok) { res.status(400).json({ error: `Could not fetch URL: HTTP ${response.status}` }); return; }
 
     const html = await response.text();
-    // Strip HTML tags, collapse whitespace, truncate
-    const text = html
+
+    // Remove non-content sections first
+    const stripped = html
       .replace(/<script[\s\S]*?<\/script>/gi, "")
       .replace(/<style[\s\S]*?<\/style>/gi, "")
+      .replace(/<nav[\s\S]*?<\/nav>/gi, "")
+      .replace(/<header[\s\S]*?<\/header>/gi, "")
+      .replace(/<footer[\s\S]*?<\/footer>/gi, "")
+      .replace(/<aside[\s\S]*?<\/aside>/gi, "");
+
+    // Try to extract main content block
+    const mainMatch = stripped.match(/<(?:main|article)[^>]*>([\s\S]*?)<\/(?:main|article)>/i);
+    const source = mainMatch ? mainMatch[1] : stripped;
+
+    const text = source
       .replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ")
       .trim()
-      .slice(0, 6000);
+      .slice(0, 3000);
 
-    res.json({ content: text, charCount: text.length });
+    const preview = text.slice(0, 100).trim();
+
+    res.json({ content: text, preview, sourceDomain, charCount: text.length });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     res.status(500).json({ error: `Could not fetch URL: ${msg}` });
