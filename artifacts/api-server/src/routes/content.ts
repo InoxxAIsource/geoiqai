@@ -1,7 +1,13 @@
 import { Router } from "express";
 import { requireAuth, type AuthRequest } from "../lib/auth";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
+import OpenAI from "openai";
 import { db, dataforseoCacheTable, contentAnalysesTable } from "@workspace/db";
+
+const openaiImages = new OpenAI({
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? "no-key",
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+});
 import { like, desc, eq } from "drizzle-orm";
 
 const router = Router();
@@ -586,6 +592,7 @@ const MOCK_REPURPOSE_RESULTS: Record<string, unknown> = {
       "7/ The content loop that actually works: Write, score your AI visibility, fix the gaps, write better. Most brands skip the scoring step entirely.",
       "Free AI visibility scan at geoiqai.com - takes 30 seconds. Check where your brand actually stands.",
     ],
+    imagePlaceholder: true,
   },
   linkedin: {
     content: "Most startups don't realize they have an AI visibility problem.\n\nThey track their Google rankings. They monitor organic traffic. But they never ask: is my brand showing up when someone asks ChatGPT about our category?\n\n72% of users now start research with an AI tool. Not Google. AI.\n\nIf you're not getting cited in ChatGPT, Gemini, or Perplexity, you're invisible to most of your potential customers before they ever reach Google.\n\nThe fix is not complicated. It is about structured content:\n- Answer questions directly in the first paragraph\n- Add FAQ sections with 5+ questions\n- Include verifiable statistics with sources\n- Use clear H2/H3 headings\n- Define your entities and comparisons explicitly\n\nFree AI visibility scan at geoiqai.com - takes 30 seconds.\n\nWhat is your brand's AI visibility score?",
@@ -648,7 +655,7 @@ router.post("/content/repurpose", requireAuth, async (req: AuthRequest, res): Pr
   }
 
   const platformInstructions: Record<string, string> = {
-    twitter: '"twitter": {"tweets": ["hook tweet (no thread word)", "1/ ...", ...8-12 tweets total, last has CTA, max 280 chars each]}',
+    twitter: '"twitter": {"tweets": ["hook tweet (no thread word)", "1/ ...", ...8-12 tweets total, last has CTA, max 280 chars each], "imagePrompt": "Professional clean illustration relevant to the content topic, no text or words in image, modern minimalist style, one sentence"}',
     linkedin: '"linkedin": {"content": "150-300 words, bold hook first line, line breaks every 2-3 lines, question at end"}',
     linkedinarticle: '"linkedinarticle": {"title": "...", "content": "full article with H2/H3 headers, 600+ words"}',
     email: '"email": {"subjects": ["s1","s2","s3"], "previewText": "...", "body": "200-400 words", "cta": "button text", "ps": "PS line"}',
@@ -684,6 +691,29 @@ Adapt tone and format for each platform. Be authentic.`;
     const raw = msg.content[0].type === "text" ? msg.content[0].text : "";
     const parsed = parseJSON<Record<string, unknown>>(raw);
     if (!parsed) { res.status(500).json({ error: "Failed to parse AI response" }); return; }
+
+    // Generate DALL-E image for Twitter if imagePrompt was returned
+    if (parsed.twitter && typeof parsed.twitter === "object") {
+      const tw = parsed.twitter as Record<string, unknown>;
+      const imagePrompt = tw.imagePrompt as string | undefined;
+      delete tw.imagePrompt;
+      if (imagePrompt) {
+        try {
+          const imgResp = await openaiImages.images.generate({
+            model: "dall-e-3",
+            prompt: imagePrompt,
+            size: "1792x1024",
+            quality: "standard",
+            n: 1,
+          });
+          const imgUrl = imgResp.data?.[0]?.url;
+          if (imgUrl) tw.imageUrl = imgUrl;
+        } catch {
+          // image is optional - silently skip if generation fails
+        }
+      }
+    }
+
     res.json({ results: parsed });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Repurposing failed";

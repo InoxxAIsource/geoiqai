@@ -855,10 +855,24 @@ function PlatformCard({ platformId, platformLabel, data }: {
 
       {platformId === "twitter" && (() => {
         const tweets = (data.tweets as string[]) ?? [];
+        const imageUrl = data.imageUrl as string | undefined;
+        const imagePlaceholder = data.imagePlaceholder as boolean | undefined;
         const allText = tweets.map((t, i) => (i === 0 ? t : `${i}/ ${t}`)).join("\n\n");
+        const hookTweet = tweets[0] ?? "";
         return (
           <div>
-            <div style={{ marginBottom: 12 }}><CopyBtn k="all" text={allText} label="Copy all tweets" /></div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
+              <CopyBtn k="all" text={allText} label="Copy all tweets" />
+              {hookTweet && (
+                <button
+                  onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(hookTweet)}`, "_blank")}
+                  style={{ padding: "5px 10px", background: "#1DA1F2", color: "white",
+                    border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                    cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  Share <ArrowRight size={11} />
+                </button>
+              )}
+            </div>
             {tweets.map((tweet, i) => (
               <div key={i} style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10,
                 boxShadow: "0 1px 4px rgba(0,0,0,0.06)", marginBottom: 8, overflow: "hidden" }}>
@@ -878,6 +892,21 @@ function PlatformCard({ platformId, platformLabel, data }: {
                 </div>
               </div>
             ))}
+            {imageUrl && (
+              <div style={{ marginTop: 12, borderRadius: 8, overflow: "hidden", border: `1px solid ${BORDER}` }}>
+                <img src={imageUrl} alt="AI-generated visual for thread"
+                  style={{ width: "100%", display: "block" }} />
+              </div>
+            )}
+            {!imageUrl && imagePlaceholder && (
+              <div style={{ marginTop: 12, background: "#F3F4F6", borderRadius: 8, border: `1px solid ${BORDER}`,
+                padding: "28px 0", display: "flex", flexDirection: "column", alignItems: "center",
+                justifyContent: "center", gap: 8 }}>
+                <div style={{ fontSize: 12, color: MUTED }}>AI image generates in live mode</div>
+                <div style={{ fontSize: 11, background: "#E5E7EB", color: "#6B7280", padding: "2px 8px",
+                  borderRadius: 4, fontWeight: 600 }}>Demo</div>
+              </div>
+            )}
           </div>
         );
       })()}
