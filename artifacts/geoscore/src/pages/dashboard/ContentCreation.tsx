@@ -3,7 +3,7 @@ import { getToken } from "@/lib/auth";
 import {
   FileText, Link, ChevronDown, ChevronRight, Copy, Check,
   AlertCircle, ArrowRight, RefreshCw, Loader2, ExternalLink,
-  PenTool, Search, Bookmark,
+  PenTool, Search, Bookmark, Wand2, Repeat2, Download,
 } from "lucide-react";
 
 const P = "#4F46E5";
@@ -156,6 +156,15 @@ interface SavedAnalysis {
   analyzedAt: string;
 }
 
+interface WriterResult {
+  content: string;
+  metaTitle: string;
+  metaDescription: string;
+  schema: string;
+  suggestedLinks: string[];
+  isMock?: boolean;
+}
+
 interface TopicsData {
   isMock: boolean;
   hasAnyData: boolean;
@@ -169,12 +178,13 @@ interface TopicsData {
 
 // ─── GEO Optimizer Tab ───────────────────────────────────────────────────────────
 
-function GeoOptimizerTab({ domain, onTopicSelect }: {
+function GeoOptimizerTab({ domain, onTopicSelect, prefilledContent }: {
   domain: string;
   onTopicSelect?: (topic: string) => void;
+  prefilledContent?: string;
 }) {
   const [inputMode, setInputMode] = useState<"paste" | "url">("paste");
-  const [content, setContent] = useState("");
+  const [content, setContent] = useState(prefilledContent ?? "");
   const [url, setUrl] = useState("");
   const [targetTopic, setTargetTopic] = useState("");
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -199,6 +209,14 @@ function GeoOptimizerTab({ domain, onTopicSelect }: {
     }, 2200);
     return () => clearInterval(interval);
   }, [loading]);
+
+  useEffect(() => {
+    if (prefilledContent) {
+      setContent(prefilledContent);
+      setInputMode("paste");
+      setResult(null);
+    }
+  }, [prefilledContent]);
 
   const copyText = (key: string, text: string) => {
     navigator.clipboard.writeText(text).catch(() => {});
@@ -514,6 +532,648 @@ function GeoOptimizerTab({ domain, onTopicSelect }: {
               )}
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── AI Writer Tab ───────────────────────────────────────────────────────────────
+
+function AIWriterTab({ domain: _domain, onSendToOptimizer, onRepurpose }: {
+  domain: string;
+  onSendToOptimizer: (content: string) => void;
+  onRepurpose: (content: string) => void;
+}) {
+  const [contentType, setContentType] = useState("Blog post / Article");
+  const [topic, setTopic] = useState("");
+  const [targetKeyword, setTargetKeyword] = useState("");
+  const [tone, setTone] = useState("Professional");
+  const [wordCount, setWordCount] = useState("1000 words");
+  const [result, setResult] = useState<WriterResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
+
+  const writerSteps = [
+    "Structuring content for AI citation...",
+    "Adding factual statements and statistics...",
+    "Generating FAQ section...",
+    "Adding schema markup...",
+  ];
+
+  useEffect(() => {
+    if (!loading) { setLoadingStep(0); return; }
+    const interval = setInterval(() => setLoadingStep(s => (s + 1) % writerSteps.length), 2000);
+    return () => clearInterval(interval);
+  }, [loading]);
+
+  const generate = async () => {
+    if (!topic.trim()) { setError("Enter a topic."); return; }
+    if (!targetKeyword.trim()) { setError("Enter a target keyword."); return; }
+    setLoading(true); setError(null); setResult(null);
+    try {
+      const token = getToken();
+      const r = await fetch("/api/content/write", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ contentType, topic, targetKeyword, tone, wordCount }),
+      });
+      const json = await r.json();
+      if (json.error) throw new Error(json.error);
+      setResult(json);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Generation failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyContent = () => {
+    if (!result) return;
+    navigator.clipboard.writeText(result.content).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const downloadMd = () => {
+    if (!result) return;
+    const blob = new Blob([result.content], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${topic.slice(0, 40).replace(/\s+/g, "-").toLowerCase()}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const CONTENT_TYPES = ["Blog post / Article", "Landing page", "Product description", "Comparison page (X vs Y)", "FAQ page", "How-to guide"];
+  const TONES = ["Professional", "Conversational", "Technical", "Beginner-friendly"];
+  const WORD_COUNTS = ["500 words", "1000 words", "1500 words", "2000 words"];
+
+  return (
+    <div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: "#111827", marginBottom: 2 }}>AI Content Writer</div>
+      <div style={{ fontSize: 13, color: MUTED, marginBottom: 20 }}>
+        Write GEO-optimized content that gets cited in ChatGPT and Gemini
+      </div>
+
+      {error && (
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "#FEF2F2", border: "1px solid #FECACA",
+          borderRadius: 8, padding: "12px 16px", fontSize: 13, color: "#991B1B", marginBottom: 16 }}>
+          <AlertCircle size={15} color={RED} style={{ flexShrink: 0, marginTop: 1 }} />
+          {error}
+        </div>
+      )}
+
+      {!result && !loading && (
+        <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+            <div>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
+                What do you want to write?
+              </label>
+              <select value={contentType} onChange={e => setContentType(e.target.value)}
+                style={{ width: "100%", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px",
+                  fontSize: 13, outline: "none", color: "#374151", background: "white", boxSizing: "border-box" }}>
+                {CONTENT_TYPES.map(t => <option key={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
+                Tone
+              </label>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {TONES.map(t => (
+                  <button key={t} onClick={() => setTone(t)}
+                    style={{ padding: "6px 12px", background: tone === t ? P : "white",
+                      color: tone === t ? "white" : "#374151", border: `1px solid ${tone === t ? P : BORDER}`,
+                      borderRadius: 6, fontSize: 12, cursor: "pointer", fontWeight: tone === t ? 600 : 400 }}>
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Topic</label>
+            <input value={topic} onChange={e => setTopic(e.target.value)}
+              placeholder="e.g. how to improve AI visibility"
+              style={{ width: "100%", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px",
+                fontSize: 13, outline: "none", color: "#374151", boxSizing: "border-box" }} />
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Target keyword</label>
+            <input value={targetKeyword} onChange={e => setTargetKeyword(e.target.value)}
+              placeholder="e.g. AI visibility tools"
+              style={{ width: "100%", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px",
+                fontSize: 13, outline: "none", color: "#374151", boxSizing: "border-box" }} />
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Word count</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              {WORD_COUNTS.map(w => (
+                <button key={w} onClick={() => setWordCount(w)}
+                  style={{ padding: "7px 14px", background: wordCount === w ? P : "white",
+                    color: wordCount === w ? "white" : "#374151", border: `1px solid ${wordCount === w ? P : BORDER}`,
+                    borderRadius: 6, fontSize: 12, cursor: "pointer", fontWeight: wordCount === w ? 600 : 400 }}>
+                  {w}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button onClick={generate}
+            style={{ width: "100%", padding: "12px 0", background: P, color: "white",
+              border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            Generate GEO-Optimized Content <ArrowRight size={15} />
+          </button>
+        </div>
+      )}
+
+      {loading && (
+        <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: 40, textAlign: "center" }}>
+          <div style={{ width: 44, height: 44, border: `3px solid ${BORDER}`, borderTopColor: P, borderRadius: "50%",
+            animation: "spin 0.8s linear infinite", margin: "0 auto 16px" }} />
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", marginBottom: 6 }}>Writing your GEO-optimized content...</div>
+          <div style={{ fontSize: 13, color: MUTED }}>{writerSteps[loadingStep]}</div>
+        </div>
+      )}
+
+      {result && !loading && (
+        <div>
+          {result.isMock === true && (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#FFFBEB",
+              border: "1px solid #FDE68A", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600,
+              color: "#92400E", marginBottom: 12 }}>
+              Demo content - sandbox mode
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+            <button onClick={copyContent}
+              style={{ padding: "8px 14px", background: copied ? "#ECFDF5" : "white",
+                color: copied ? GREEN : "#374151", border: `1px solid ${copied ? "#A7F3D0" : BORDER}`,
+                borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 6 }}>
+              {copied ? <Check size={13} /> : <Copy size={13} />}
+              {copied ? "Copied!" : "Copy content"}
+            </button>
+            <button onClick={downloadMd}
+              style={{ padding: "8px 14px", background: "white", color: "#374151",
+                border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 12, fontWeight: 600,
+                cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+              <Download size={13} /> Download .md
+            </button>
+            <button onClick={() => onSendToOptimizer(result.content)}
+              style={{ padding: "8px 14px", background: "#EEF2FF", color: P,
+                border: "1px solid #C7D2FE", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+              Optimize with GEO Optimizer <ArrowRight size={13} />
+            </button>
+            <button onClick={() => onRepurpose(result.content)}
+              style={{ padding: "8px 14px", background: "white", color: "#374151",
+                border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 12, fontWeight: 600,
+                cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+              Repurpose this <ArrowRight size={13} />
+            </button>
+            <button onClick={() => setResult(null)}
+              style={{ padding: "8px 14px", background: "white", color: MUTED,
+                border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 12, cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 6 }}>
+              <RefreshCw size={12} /> Write another
+            </button>
+          </div>
+
+          <div style={{ background: "#EEF2FF", border: "1px solid #C7D2FE", borderRadius: 8,
+            padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center",
+            justifyContent: "space-between", gap: 12 }}>
+            <div style={{ fontSize: 13, color: P }}>Want to know if this content will get cited in ChatGPT?</div>
+            <button onClick={() => onSendToOptimizer(result.content)}
+              style={{ padding: "7px 14px", background: P, color: "white", border: "none",
+                borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
+              Run GEO Score <ArrowRight size={12} />
+            </button>
+          </div>
+
+          <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: 24 }}>
+            <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "inherit",
+              fontSize: 13, color: "#374151", lineHeight: 1.7, margin: 0 }}>
+              {result.content}
+            </pre>
+          </div>
+
+          {(result.metaTitle || result.schema) && (
+            <div style={{ background: BG, border: `1px solid ${BORDER}`, borderRadius: 10, padding: 16, marginTop: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#111827", marginBottom: 10,
+                textTransform: "uppercase", letterSpacing: "0.06em" }}>SEO metadata</div>
+              {result.metaTitle && (
+                <div style={{ marginBottom: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: MUTED }}>Meta title: </span>
+                  <span style={{ fontSize: 12, color: "#374151" }}>{result.metaTitle}</span>
+                </div>
+              )}
+              {result.metaDescription && (
+                <div style={{ marginBottom: 10 }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: MUTED }}>Meta description: </span>
+                  <span style={{ fontSize: 12, color: "#374151" }}>{result.metaDescription}</span>
+                </div>
+              )}
+              {result.schema && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, marginBottom: 4 }}>FAQPage schema markup:</div>
+                  <pre style={{ fontSize: 11, background: "white", border: `1px solid ${BORDER}`, borderRadius: 6,
+                    padding: 10, whiteSpace: "pre-wrap", wordBreak: "break-word", color: "#374151", margin: 0,
+                    fontFamily: "monospace", maxHeight: 150, overflow: "auto" }}>
+                    {result.schema}
+                  </pre>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Repurposer Tab ──────────────────────────────────────────────────────────────
+
+const PLATFORMS = [
+  { id: "twitter", label: "X / Twitter thread" },
+  { id: "linkedin", label: "LinkedIn post" },
+  { id: "linkedinarticle", label: "LinkedIn article" },
+  { id: "email", label: "Email newsletter" },
+  { id: "instagram", label: "Instagram caption" },
+  { id: "reddit", label: "Reddit post" },
+  { id: "producthunt", label: "Product Hunt description" },
+  { id: "hackernews", label: "Hacker News Show HN post" },
+  { id: "indiehackers", label: "IndieHackers post" },
+];
+
+function PlatformCard({ platformId, platformLabel, data }: {
+  platformId: string;
+  platformLabel: string;
+  data: Record<string, unknown>;
+}) {
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [selectedIdx, setSelectedIdx] = useState(0);
+
+  const copy = (key: string, text: string) => {
+    navigator.clipboard.writeText(text).catch(() => {});
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  const CopyBtn = ({ k, text, label = "Copy" }: { k: string; text: string; label?: string }) => (
+    <button onClick={() => copy(k, text)}
+      style={{ padding: "5px 10px", background: copiedKey === k ? "#ECFDF5" : "white",
+        color: copiedKey === k ? GREEN : MUTED, border: `1px solid ${copiedKey === k ? "#A7F3D0" : BORDER}`,
+        borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer",
+        display: "inline-flex", alignItems: "center", gap: 4 }}>
+      {copiedKey === k ? <Check size={11} /> : <Copy size={11} />}
+      {copiedKey === k ? "Copied!" : label}
+    </button>
+  );
+
+  const styledBox = (text: string) => (
+    <div style={{ whiteSpace: "pre-wrap", fontSize: 13, color: "#374151", lineHeight: 1.6,
+      background: BG, borderRadius: 8, padding: 14, border: `1px solid ${BORDER}`, marginBottom: 10 }}>
+      {text}
+    </div>
+  );
+
+  return (
+    <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: 20, marginBottom: 12 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 14 }}>{platformLabel}</div>
+
+      {platformId === "twitter" && (() => {
+        const tweets = (data.tweets as string[]) ?? [];
+        const allText = tweets.map((t, i) => (i === 0 ? t : `${i}/ ${t}`)).join("\n\n");
+        return (
+          <div>
+            <div style={{ marginBottom: 10 }}><CopyBtn k="all" text={allText} label="Copy all tweets" /></div>
+            {tweets.map((tweet, i) => (
+              <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 8,
+                padding: "10px 12px", background: BG, borderRadius: 8, border: `1px solid ${BORDER}` }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: P, minWidth: 30, flexShrink: 0 }}>
+                  {i === 0 ? "Hook" : `${i}/`}
+                </span>
+                <span style={{ fontSize: 13, color: "#374151", lineHeight: 1.5, flex: 1 }}>{tweet}</span>
+                <CopyBtn k={`t${i}`} text={tweet} />
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
+      {(platformId === "linkedin" || platformId === "instagram") && (() => {
+        const content = (data.content as string) ?? "";
+        return <div>{styledBox(content)}<CopyBtn k="c" text={content} /></div>;
+      })()}
+
+      {platformId === "linkedinarticle" && (() => {
+        const title = (data.title as string) ?? "";
+        const content = (data.content as string) ?? "";
+        return (
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#111827", marginBottom: 8 }}>{title}</div>
+            {styledBox(content)}
+            <CopyBtn k="a" text={`${title}\n\n${content}`} />
+          </div>
+        );
+      })()}
+
+      {platformId === "email" && (() => {
+        const subjects = (data.subjects as string[]) ?? [];
+        const body = (data.body as string) ?? "";
+        const cta = (data.cta as string) ?? "";
+        const ps = (data.ps as string) ?? "";
+        const preview = (data.previewText as string) ?? "";
+        const full = `Subject: ${subjects[selectedIdx] ?? ""}\n\n${body}${cta ? `\n\nCTA: ${cta}` : ""}${ps ? `\n\n${ps}` : ""}`;
+        return (
+          <div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, marginBottom: 6 }}>Subject line</div>
+              {subjects.map((s, i) => (
+                <label key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, cursor: "pointer" }}>
+                  <input type="radio" checked={selectedIdx === i} onChange={() => setSelectedIdx(i)} name={`subj-${platformId}`} />
+                  <span style={{ fontSize: 12, color: "#374151" }}>{s}</span>
+                </label>
+              ))}
+            </div>
+            {preview && <div style={{ fontSize: 12, color: MUTED, marginBottom: 8 }}><b>Preview text:</b> {preview}</div>}
+            {styledBox(body)}
+            {cta && <div style={{ fontSize: 12, color: "#374151", marginBottom: 4 }}><b>CTA:</b> {cta}</div>}
+            {ps && <div style={{ fontSize: 12, color: MUTED, marginBottom: 10 }}><b>PS:</b> {ps}</div>}
+            <CopyBtn k="email" text={full} label="Copy full email" />
+          </div>
+        );
+      })()}
+
+      {platformId === "reddit" && (() => {
+        const titles = (data.titles as string[]) ?? [];
+        const body = (data.body as string) ?? "";
+        return (
+          <div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, marginBottom: 6 }}>Title options</div>
+              {titles.map((t, i) => (
+                <label key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, cursor: "pointer" }}>
+                  <input type="radio" checked={selectedIdx === i} onChange={() => setSelectedIdx(i)} name={`reddit-${platformId}`} />
+                  <span style={{ fontSize: 12, color: "#374151" }}>{t}</span>
+                </label>
+              ))}
+            </div>
+            {styledBox(body)}
+            <CopyBtn k="r" text={`${titles[selectedIdx] ?? ""}\n\n${body}`} label="Copy full post" />
+          </div>
+        );
+      })()}
+
+      {platformId === "producthunt" && (() => {
+        const tagline = (data.tagline as string) ?? "";
+        const desc = (data.description as string) ?? "";
+        const comment = (data.firstComment as string) ?? "";
+        return (
+          <div>
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: MUTED }}>Tagline: </span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{tagline}</span>
+              <span style={{ fontSize: 11, color: MUTED, marginLeft: 8 }}>({tagline.length}/60 chars)</span>
+            </div>
+            <div style={{ marginBottom: comment ? 10 : 0 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: MUTED }}>Description: </span>
+              <span style={{ fontSize: 12, color: "#374151" }}>{desc}</span>
+            </div>
+            {comment && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, marginBottom: 4 }}>First comment:</div>
+                {styledBox(comment)}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 6 }}>
+              <CopyBtn k="tag" text={tagline} label="Copy tagline" />
+              <CopyBtn k="desc" text={desc} label="Copy description" />
+            </div>
+          </div>
+        );
+      })()}
+
+      {(platformId === "hackernews" || platformId === "indiehackers") && (() => {
+        const title = (data.title as string) ?? "";
+        const body = ((data.firstComment ?? data.body) as string) ?? "";
+        return (
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 10 }}>{title}</div>
+            {styledBox(body)}
+            <CopyBtn k="p" text={`${title}\n\n${body}`} label="Copy full post" />
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+function RepurposerTab({ domain, prefilledContent, onSendToOptimizer }: {
+  domain: string;
+  prefilledContent?: string;
+  onSendToOptimizer: (content: string) => void;
+}) {
+  const [inputMode, setInputMode] = useState<"paste" | "url">("paste");
+  const [content, setContent] = useState(prefilledContent ?? "");
+  const [url, setUrl] = useState("");
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["twitter", "linkedin"]);
+  const [result, setResult] = useState<{ results: Record<string, Record<string, unknown>>; isMock?: boolean } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [fetchingUrl, setFetchingUrl] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loadingStep, setLoadingStep] = useState(0);
+
+  const repurposeSteps = ["Analyzing content...", "Adapting tone for each platform...", "Writing platform content...", "Formatting output..."];
+
+  useEffect(() => {
+    if (prefilledContent) { setContent(prefilledContent); setInputMode("paste"); }
+  }, [prefilledContent]);
+
+  useEffect(() => {
+    if (!loading) { setLoadingStep(0); return; }
+    const interval = setInterval(() => setLoadingStep(s => (s + 1) % repurposeSteps.length), 2000);
+    return () => clearInterval(interval);
+  }, [loading]);
+
+  const togglePlatform = (id: string) =>
+    setSelectedPlatforms(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
+
+  const fetchUrl = async () => {
+    if (!url.trim()) return;
+    setFetchingUrl(true); setError(null);
+    try {
+      const token = getToken();
+      const r = await fetch("/api/content/fetch-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ url }),
+      });
+      const json = await r.json();
+      if (json.error) throw new Error(json.error);
+      setContent(json.content);
+      setInputMode("paste");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not fetch URL content.");
+    } finally { setFetchingUrl(false); }
+  };
+
+  const repurpose = async () => {
+    if (!content.trim()) { setError("Paste some content first."); return; }
+    if (selectedPlatforms.length === 0) { setError("Select at least one platform."); return; }
+    setLoading(true); setError(null); setResult(null);
+    try {
+      const token = getToken();
+      const r = await fetch("/api/content/repurpose", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ content, domain, platforms: selectedPlatforms }),
+      });
+      const json = await r.json();
+      if (json.error) throw new Error(json.error);
+      setResult(json);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Repurposing failed. Please try again.");
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: "#111827", marginBottom: 2 }}>Content Repurposer</div>
+      <div style={{ fontSize: 13, color: MUTED, marginBottom: 20 }}>
+        Turn any article into Twitter threads, LinkedIn posts, emails and more
+      </div>
+
+      {error && (
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "#FEF2F2", border: "1px solid #FECACA",
+          borderRadius: 8, padding: "12px 16px", fontSize: 13, color: "#991B1B", marginBottom: 16 }}>
+          <AlertCircle size={15} color={RED} style={{ flexShrink: 0, marginTop: 1 }} />
+          {error}
+        </div>
+      )}
+
+      {!result && !loading && (
+        <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: 20, marginBottom: 16 }}>
+          <div style={{ display: "flex", gap: 0, marginBottom: 16, border: `1px solid ${BORDER}`, borderRadius: 8,
+            overflow: "hidden", width: "fit-content" }}>
+            {(["paste", "url"] as const).map(mode => (
+              <button key={mode} onClick={() => setInputMode(mode)}
+                style={{ padding: "8px 16px", background: inputMode === mode ? P : "white",
+                  color: inputMode === mode ? "white" : MUTED, border: "none", cursor: "pointer",
+                  fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                {mode === "paste" ? <PenTool size={13} /> : <Link size={13} />}
+                {mode === "paste" ? "Paste content" : "Article URL"}
+              </button>
+            ))}
+          </div>
+
+          {inputMode === "paste" && (
+            <textarea value={content} onChange={e => setContent(e.target.value)}
+              placeholder="Paste your article, blog post or page content here..."
+              style={{ width: "100%", minHeight: 160, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 12,
+                fontSize: 13, resize: "vertical", outline: "none", boxSizing: "border-box",
+                fontFamily: "inherit", color: "#374151", lineHeight: 1.6 }} />
+          )}
+
+          {inputMode === "url" && (
+            <div style={{ display: "flex", gap: 8 }}>
+              <input value={url} onChange={e => setUrl(e.target.value)}
+                placeholder="https://yoursite.com/article"
+                style={{ flex: 1, border: `1px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px",
+                  fontSize: 13, outline: "none", color: "#374151" }}
+                onKeyDown={e => e.key === "Enter" && fetchUrl()} />
+              <button onClick={fetchUrl} disabled={fetchingUrl || !url.trim()}
+                style={{ padding: "10px 16px", background: "#EEF2FF", color: P, border: "1px solid #C7D2FE",
+                  borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: fetchingUrl ? "not-allowed" : "pointer",
+                  whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6 }}>
+                {fetchingUrl ? <Loader2 size={13} style={{ animation: "spin 0.8s linear infinite" }} /> : null}
+                {fetchingUrl ? "Fetching..." : "Fetch & repurpose"}
+              </button>
+            </div>
+          )}
+
+          <div style={{ marginTop: 16 }}>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 8 }}>
+              Target platforms
+            </label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {PLATFORMS.map(p => (
+                <label key={p.id}
+                  style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", padding: "6px 12px",
+                    border: `1px solid ${selectedPlatforms.includes(p.id) ? P : BORDER}`, borderRadius: 20,
+                    background: selectedPlatforms.includes(p.id) ? "#EEF2FF" : "white",
+                    fontSize: 12, color: selectedPlatforms.includes(p.id) ? P : "#374151",
+                    fontWeight: selectedPlatforms.includes(p.id) ? 600 : 400 }}>
+                  <input type="checkbox" checked={selectedPlatforms.includes(p.id)}
+                    onChange={() => togglePlatform(p.id)} style={{ display: "none" }} />
+                  {p.label}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <button onClick={repurpose}
+            style={{ marginTop: 16, width: "100%", padding: "12px 0", background: P, color: "white",
+              border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            Repurpose for {selectedPlatforms.length} platform{selectedPlatforms.length !== 1 ? "s" : ""} <ArrowRight size={15} />
+          </button>
+        </div>
+      )}
+
+      {loading && (
+        <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: 40, textAlign: "center" }}>
+          <div style={{ width: 44, height: 44, border: `3px solid ${BORDER}`, borderTopColor: P, borderRadius: "50%",
+            animation: "spin 0.8s linear infinite", margin: "0 auto 16px" }} />
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", marginBottom: 6 }}>Repurposing your content...</div>
+          <div style={{ fontSize: 13, color: MUTED }}>{repurposeSteps[loadingStep]}</div>
+        </div>
+      )}
+
+      {result && !loading && (
+        <div>
+          {result.isMock === true && (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#FFFBEB",
+              border: "1px solid #FDE68A", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600,
+              color: "#92400E", marginBottom: 12 }}>
+              Demo content - sandbox mode
+            </div>
+          )}
+          <button onClick={() => setResult(null)}
+            style={{ marginBottom: 16, padding: "6px 12px", background: "white", border: `1px solid ${BORDER}`,
+              borderRadius: 6, fontSize: 12, color: MUTED, cursor: "pointer",
+              display: "flex", alignItems: "center", gap: 5 }}>
+            <RefreshCw size={11} /> Repurpose again
+          </button>
+          <div style={{ background: "#EEF2FF", border: "1px solid #C7D2FE", borderRadius: 8,
+            padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center",
+            justifyContent: "space-between", gap: 12 }}>
+            <div style={{ fontSize: 13, color: P }}>Want to check if the original content gets cited in ChatGPT?</div>
+            <button onClick={() => onSendToOptimizer(content)}
+              style={{ padding: "7px 14px", background: P, color: "white", border: "none",
+                borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
+              Run GEO Score <ArrowRight size={12} />
+            </button>
+          </div>
+          {selectedPlatforms.map(pid => {
+            const plat = PLATFORMS.find(p => p.id === pid);
+            const d = result.results[pid] as Record<string, unknown>;
+            if (!plat || !d) return null;
+            return <PlatformCard key={pid} platformId={pid} platformLabel={plat.label} data={d} />;
+          })}
         </div>
       )}
     </div>
@@ -893,10 +1553,12 @@ function MyContentTab({ domain, onReanalyze }: {
 
 // ─── Main Component ──────────────────────────────────────────────────────────────
 
-type TabId = "optimizer" | "topics" | "content";
+type TabId = "optimizer" | "writer" | "repurposer" | "topics" | "content";
 
 const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: "optimizer", label: "GEO Optimizer", icon: <PenTool size={13} /> },
+  { id: "writer", label: "AI Writer", icon: <Wand2 size={13} /> },
+  { id: "repurposer", label: "Repurposer", icon: <Repeat2 size={13} /> },
   { id: "topics", label: "Topic Finder", icon: <Search size={13} /> },
   { id: "content", label: "My Content", icon: <Bookmark size={13} /> },
 ];
@@ -906,6 +1568,8 @@ export function ContentCreation({ domain }: { domain: string }) {
   const [prefilledTopic, setPrefilledTopic] = useState<string | undefined>();
   const [optimizerTopic, setOptimizerTopic] = useState("");
   const [optimizerUrl, setOptimizerUrl] = useState<string | null>(null);
+  const [optimizerContent, setOptimizerContent] = useState<string | undefined>();
+  const [repurposerContent, setRepurposerContent] = useState<string | undefined>();
 
   const handleTopicSelect = (topic: string) => {
     setPrefilledTopic(topic);
@@ -923,6 +1587,16 @@ export function ContentCreation({ domain }: { domain: string }) {
     setActiveTab("optimizer");
   };
 
+  const handleSendToOptimizer = (content: string) => {
+    setOptimizerContent(content);
+    setActiveTab("optimizer");
+  };
+
+  const handleRepurpose = (content: string) => {
+    setRepurposerContent(content);
+    setActiveTab("repurposer");
+  };
+
   return (
     <div>
       <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 2 }}>Content Creation</div>
@@ -931,17 +1605,17 @@ export function ContentCreation({ domain }: { domain: string }) {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 0, marginBottom: 24, borderBottom: `2px solid ${BORDER}` }}>
+      <div style={{ display: "flex", gap: 0, marginBottom: 24, borderBottom: `2px solid ${BORDER}`, overflowX: "auto" }}>
         {TABS.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             style={{
-              padding: "10px 20px", background: "none", border: "none", cursor: "pointer",
+              padding: "10px 16px", background: "none", border: "none", cursor: "pointer",
               fontSize: 13, fontWeight: activeTab === tab.id ? 700 : 500,
               color: activeTab === tab.id ? P : MUTED,
               borderBottom: `2px solid ${activeTab === tab.id ? P : "transparent"}`,
-              marginBottom: -2, display: "flex", alignItems: "center", gap: 6,
+              marginBottom: -2, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
             }}
           >
             {tab.icon}{tab.label}
@@ -954,6 +1628,21 @@ export function ContentCreation({ domain }: { domain: string }) {
         <GeoOptimizerTab
           domain={domain}
           onTopicSelect={handleTopicSelect}
+          prefilledContent={optimizerContent}
+        />
+      )}
+      {activeTab === "writer" && (
+        <AIWriterTab
+          domain={domain}
+          onSendToOptimizer={handleSendToOptimizer}
+          onRepurpose={handleRepurpose}
+        />
+      )}
+      {activeTab === "repurposer" && (
+        <RepurposerTab
+          domain={domain}
+          prefilledContent={repurposerContent}
+          onSendToOptimizer={handleSendToOptimizer}
         />
       )}
       {activeTab === "topics" && (
@@ -974,3 +1663,4 @@ export function ContentCreation({ domain }: { domain: string }) {
     </div>
   );
 }
+

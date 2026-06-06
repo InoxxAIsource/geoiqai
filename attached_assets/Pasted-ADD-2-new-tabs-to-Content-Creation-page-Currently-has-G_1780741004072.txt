@@ -1,0 +1,253 @@
+ADD 2 new tabs to Content Creation page.
+Currently has: GEO Optimizer | Topic Finder | My Content
+Add: Content Repurposer and AI Writer
+
+NEW TAB STRUCTURE:
+[GEO Optimizer] [AI Writer] [Repurposer] [Topic Finder] [My Content]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TAB: AI WRITER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Title: "AI Content Writer"
+Subtitle: "Write GEO-optimized content that 
+gets cited in ChatGPT and Gemini"
+
+This is different from generic AI writers.
+Every piece of content is optimized for 
+AI citation from the start.
+
+INPUT FORM:
+What do you want to write?
+Dropdown options:
+- Blog post / Article
+- Landing page
+- Product description  
+- Comparison page (X vs Y)
+- FAQ page
+- How-to guide
+
+Topic input (required):
+Placeholder: "e.g. how to improve AI visibility"
+
+Target keyword (required):
+Placeholder: "e.g. AI visibility tools"
+
+Tone selector:
+[Professional] [Conversational] [Technical] [Beginner-friendly]
+
+Word count:
+[500 words] [1000 words] [1500 words] [2000 words]
+
+[Generate GEO-Optimized Content →] button
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AI WRITER — GENERATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Call Claude API with this system prompt:
+
+"You are a GEO content specialist. Write content
+optimized specifically for AI citation.
+
+Every piece you write MUST include:
+1. FAQPage-ready Q&A section (5 questions minimum)
+2. At least 3 statistics with source attribution
+3. Direct answer to the main query in first paragraph
+4. Comparison or structured data where relevant
+5. Clear entity definitions
+6. Concise quotable statements under 30 words
+7. Proper H1/H2/H3 hierarchy
+
+Content type: ${contentType}
+Topic: ${topic}
+Target keyword: ${targetKeyword}
+Tone: ${tone}
+Length: ${wordCount} words
+
+Also provide at the end:
+- FAQPage JSON-LD schema ready to paste
+- Meta title and description
+- 3 suggested internal links"
+
+Show result in a clean editor:
+- Formatted with headers
+- Copy full content button
+- Download as markdown button
+- [Optimize with GEO Optimizer →] button
+  (sends content to GEO Optimizer tab for scoring)
+- [Repurpose this →] button
+  (sends to Repurposer tab)
+
+Save to My Content automatically.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TAB: CONTENT REPURPOSER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Title: "Content Repurposer"
+Subtitle: "Turn any article into Twitter threads,
+LinkedIn posts, emails and more"
+
+INPUT:
+Article URL OR paste content toggle
+
+If URL:
+Input: "https://yoursite.com/article"
+[Fetch & Repurpose] button
+
+If paste:
+Textarea: "Paste your article here..."
+[Repurpose] button
+
+Target platforms (multi-select checkboxes):
+☐ X / Twitter thread
+☐ LinkedIn post
+☐ LinkedIn article
+☐ Email newsletter
+☐ Instagram caption
+☐ Reddit post
+☐ Product Hunt description
+☐ Hacker News Show HN post
+☐ IndieHackers post
+
+[Repurpose for selected platforms →] button
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REPURPOSER — GENERATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For each selected platform call Claude:
+
+"Repurpose this content for ${platform}.
+
+Original content: ${content}
+Domain/brand: ${domain}
+
+Platform-specific instructions:
+
+X / Twitter thread:
+- 8-12 tweets
+- Tweet 1: hook (no "thread" word)
+- Each tweet standalone valuable
+- End with CTA linking to original
+- Use numbers and specifics
+- Max 280 chars per tweet
+
+LinkedIn post:
+- 150-300 words
+- Start with bold hook line
+- Use line breaks every 2-3 lines
+- End with question to drive comments
+- Professional but personal tone
+
+Email newsletter:
+- Subject line (3 options)
+- Preview text
+- 200-400 word body
+- Clear CTA button text
+- PS line at bottom
+
+Reddit post:
+- Title (3 options)
+- Self-post body (authentic, no sales)
+- No promotional language
+- Add value first, mention product naturally
+
+Product Hunt:
+- Tagline (60 chars max)
+- Description (260 chars)
+- First comment text
+
+Hacker News Show HN:
+- Title following HN conventions
+- First comment (brief, honest)
+
+IndieHackers:
+- Title
+- Body post (milestone/story format)
+- Genuine founder voice"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REPURPOSER — RESULTS DISPLAY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Show each platform as a card:
+
+[X / Twitter thread card]
+Platform icon + name
+Generated content in a styled preview
+[Copy] button
+[Edit] button (inline editing)
+
+[LinkedIn post card]
+Same structure
+
+[Reddit card]
+Show 3 title options as radio buttons
+Body text below
+[Copy full post] button
+
+For Twitter thread:
+Show numbered tweets vertically
+Each tweet has its own [Copy] button
+[Copy all tweets] button at top
+
+Save all repurposed content to My Content.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MY CONTENT TAB — ENHANCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Show saved content in organized table:
+
+Type | Title/Topic | Created | Actions
+Article | "How to get cited..." | Jun 6 | View, Repurpose, Delete
+Twitter thread | "AI visibility..." | Jun 6 | View, Copy, Delete
+GEO Analysis | "geoiqai.com" | Jun 6 | View, Re-analyze, Delete
+
+Filter by type: All | Articles | Social | GEO Analyses
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SANDBOX MODE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AI Writer sandbox:
+Return a mock 500-word article about 
+"AI visibility" with FAQ section and schema.
+Show "(Demo content)" badge.
+
+Repurposer sandbox:
+Return mock Twitter thread (8 tweets) and
+LinkedIn post for geoiqai.com.
+Show "(Demo)" badge.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AI Writer: ~$0.05 per article (Claude API)
+Repurposer: ~$0.03 per platform (Claude API)
+Total per full repurpose (all platforms): ~$0.25
+
+Both are Claude-only — zero DataForSEO cost.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+UNIQUE GEO ANGLE — THIS IS THE DIFFERENTIATOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After generating ANY content (article or repurposed):
+Show a small banner:
+
+"Want to know if this content will get 
+cited in ChatGPT?
+[Run GEO Score →]"
+
+Clicking auto-sends the generated content 
+to GEO Optimizer tab and runs analysis.
+
+This creates a content loop:
+Write → Score → Fix → Write better → Score again
+
+Nobody else has this loop. This is GeoIQ's 
+unique content workflow.
