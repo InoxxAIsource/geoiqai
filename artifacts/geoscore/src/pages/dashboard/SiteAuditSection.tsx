@@ -214,7 +214,8 @@ function IssueRow({ issue }: { issue: CrawlAudit["issues"][0] }) {
   const [expanded, setExpanded] = useState(false);
   const [showFix, setShowFix] = useState(false);
   const [showAllPages, setShowAllPages] = useState(false);
-  const visiblePages = showAllPages ? issue.affectedPages : issue.affectedPages.slice(0, 5);
+  const pages = issue.affectedPages ?? [];
+  const visiblePages = showAllPages ? pages : pages.slice(0, 5);
   return (
     <div style={{ borderBottom: `1px solid ${BORDER}` }}>
       <div
