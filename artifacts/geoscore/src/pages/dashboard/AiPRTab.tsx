@@ -310,12 +310,36 @@ function confidenceBadge(conf: number | null): { label: string; color: string; b
   return { label: "Low", color: MUTED, bg: "#F3F4F6" };
 }
 
-function InlineContact({ contact, email }: { contact: ContactInfo; email?: string }) {
+function InlineContact({ contact, email, journalist }: {
+  contact: ContactInfo;
+  email?: string;
+  journalist?: { name: string; domain: string; articleUrl?: string };
+}) {
   const [copied, setCopied] = useState(false);
   const copyEmail = (e: string) => { navigator.clipboard.writeText(e).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); }); };
   const displayEmail = contact.email ?? email ?? null;
   const conf = contact.emailConfidence;
   const badge = confidenceBadge(conf);
+  const hasAnyContact = displayEmail || contact.twitter || contact.linkedinUrl;
+
+  if (!hasAnyContact && journalist) {
+    const articleLink = journalist.articleUrl;
+    const contactPageLink = `https://${journalist.domain}/contact`;
+    const googleLink = `https://www.google.com/search?q=${encodeURIComponent(`${journalist.name} ${journalist.domain} contact email`)}`;
+    return (
+      <div style={{ marginTop: 6, fontSize: 11, color: MUTED, lineHeight: 1.6 }}>
+        Could not find contact details automatically.
+        {articleLink && (
+          <> Check the <a href={articleLink} target="_blank" rel="noopener noreferrer"
+            style={{ color: P, textDecoration: "none", fontWeight: 600 }}>article byline</a>,</>
+        )}
+        {" "}the <a href={contactPageLink} target="_blank" rel="noopener noreferrer"
+          style={{ color: P, textDecoration: "none", fontWeight: 600 }}>{journalist.domain} contact page</a>,
+        {" "}or <a href={googleLink} target="_blank" rel="noopener noreferrer"
+          style={{ color: P, textDecoration: "none", fontWeight: 600 }}>search Google</a>.
+      </div>
+    );
+  }
 
   return (
     <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
@@ -332,9 +356,7 @@ function InlineContact({ contact, email }: { contact: ContactInfo; email?: strin
           <a href={`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(displayEmail)}`} target="_blank" rel="noopener noreferrer"
             style={{ fontSize: 10, color: P, textDecoration: "none", fontWeight: 600 }}>Gmail</a>
         </div>
-      ) : (
-        <span style={{ fontSize: 11, color: MUTED }}>Email not found</span>
-      )}
+      ) : null}
       {contact.twitter && (
         <a href={contact.twitterUrl ?? `https://x.com/${contact.twitter.replace("@","")}`} target="_blank" rel="noopener noreferrer"
           style={{ fontSize: 11, color: "#1D9BF0", textDecoration: "none", fontWeight: 600 }}>
@@ -520,7 +542,7 @@ function ContactSearchSection({ prefillOutlet, onAddToList }: { prefillOutlet?: 
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{j.name}</div>
                       {j.whySelected && <div style={{ fontSize: 11, color: "#059669", marginTop: 2, lineHeight: 1.4 }}>{j.whySelected}</div>}
-                      {contact && <InlineContact contact={contact} />}
+                      {contact && <InlineContact contact={contact} journalist={{ name: j.name, domain: j.domain, articleUrl: j.articles[0]?.url }} />}
                     </div>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: 6, paddingTop: 2 }}>
                       <OutletLogo domain={j.domain} size={20} />
@@ -582,7 +604,7 @@ function ContactSearchSection({ prefillOutlet, onAddToList }: { prefillOutlet?: 
                               {(j.topics ?? []).map(t => <TopicTag key={t} label={t} />)}
                             </div>
                           )}
-                          {contact && <InlineContact contact={contact} />}
+                          {contact && <InlineContact contact={contact} journalist={{ name: j.name, domain: j.domain, articleUrl: j.articles[0]?.url }} />}
                         </div>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0, marginLeft: 8 }}>
