@@ -355,7 +355,7 @@ export function ContentImprovementsTab({ brand }: Props) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, gap: 12, flexWrap: "wrap" }}>
         <div>
           <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: 22, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>
-            Content Improvements
+            Citation Builder
           </h2>
           <p style={{ fontSize: 14, color: "#64748B", margin: 0, lineHeight: 1.5 }}>
             AI-optimized rewrites of your actual homepage content. Copy and replace to immediately improve AI citability.

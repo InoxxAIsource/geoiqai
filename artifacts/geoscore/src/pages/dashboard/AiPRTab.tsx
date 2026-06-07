@@ -173,7 +173,7 @@ function DashboardSection({ onNav }: { onNav: (id: SectionId) => void }) {
   ];
   return (
     <div>
-      <SectionTitle title="AI PR Toolkit" subtitle="Find AI-trusted media, pitch journalists, monitor your coverage" />
+      <SectionTitle title="PR Intelligence" subtitle="Find AI-trusted media, pitch journalists, monitor your coverage" />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         {cards.map(c => (
           <div key={c.target} style={{ border: `1px solid ${BORDER}`, borderRadius: 10, padding: "18px 20px", background: "white" }}>
@@ -220,7 +220,7 @@ function AiCitedMediaSection({ onFindContact }: { onFindContact: (outlet: string
 
   return (
     <div>
-      <SectionTitle title="Find AI-Cited Media Outlets"
+      <SectionTitle title="AI Trusted Outlets"
         subtitle="Discover media outlets that LLMs cite most in your niche. Coverage from these outlets gives your brand the best chance of appearing in AI answers." />
 
       <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
@@ -425,7 +425,7 @@ function ContactSearchSection({ prefillOutlet, onAddToList }: { prefillOutlet?: 
 
   return (
     <div>
-      <SectionTitle title="Find Journalists" subtitle="Search by topic, keyword, or outlet to find the right reporter for your story." />
+      <SectionTitle title="Journalist Search" subtitle="Search by topic, keyword, or outlet to find the right reporter for your story." />
 
       <div style={{ display: "flex", gap: 0, borderBottom: `1px solid ${BORDER}`, marginBottom: 20 }}>
         {SEARCH_TABS.map(t => (
@@ -684,7 +684,7 @@ function MediaListsSection({ onWritePitch }: { onWritePitch: (j: { name: string;
         </button>
         <SectionTitle title={viewing.name} subtitle={`${viewingContacts.length} contacts`} />
         {viewingContacts.length === 0
-          ? <div style={{ fontSize: 13, color: MUTED, padding: "20px 0" }}>No contacts in this list yet. Add journalists from Contact Search.</div>
+          ? <div style={{ fontSize: 13, color: MUTED, padding: "20px 0" }}>No contacts in this list yet. Add journalists from Journalist Search.</div>
           : (
             <div style={{ border: `1px solid ${BORDER}`, borderRadius: 10, overflow: "hidden" }}>
               <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: 12, padding: "9px 14px", background: BG, borderBottom: `1px solid ${BORDER}`, fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em" }}>
@@ -715,7 +715,7 @@ function MediaListsSection({ onWritePitch }: { onWritePitch: (j: { name: string;
 
   return (
     <div>
-      <SectionTitle title="Media Lists" subtitle="Organize journalists into lists to manage your outreach campaigns." />
+      <SectionTitle title="Outreach Lists" subtitle="Organize journalists into lists to manage your outreach campaigns." />
       <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
         <input value={newListName} onChange={e => setNewListName(e.target.value)} onKeyDown={e => e.key === "Enter" && createList()}
           placeholder="New list name (e.g. AI SEO Journalists)"
@@ -726,7 +726,7 @@ function MediaListsSection({ onWritePitch }: { onWritePitch: (j: { name: string;
         </button>
       </div>
       {lists.length === 0
-        ? <div style={{ fontSize: 13, color: MUTED, padding: "20px 0" }}>No lists yet. Create one above, then add journalists from Contact Search.</div>
+        ? <div style={{ fontSize: 13, color: MUTED, padding: "20px 0" }}>No lists yet. Create one above, then add journalists from Journalist Search.</div>
         : (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {lists.map(l => {
@@ -1094,7 +1094,7 @@ function MediaMonitoringSection() {
 
   return (
     <div>
-      <SectionTitle title="Monitor Mentions" subtitle="Track when your brand or competitors appear in media coverage." />
+      <SectionTitle title="Mention Radar" subtitle="Track when your brand or competitors appear in media coverage." />
 
       <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
         <input value={keyword} onChange={e => setKeyword(e.target.value)} onKeyDown={e => e.key === "Enter" && monitor()}
@@ -1200,10 +1200,10 @@ type SectionId = "dashboard" | "ai-cited-media" | "contact-search" | "media-list
 interface NavGroup { label?: string; items: { id: SectionId; label: string }[] }
 
 const NAV_GROUPS: NavGroup[] = [
-  { items: [{ id: "dashboard", label: "Dashboard" }, { id: "ai-cited-media", label: "AI-Cited Media" }] },
-  { label: "Media Database", items: [{ id: "contact-search", label: "Contact Search" }, { id: "media-lists", label: "Media Lists" }] },
+  { items: [{ id: "dashboard", label: "Dashboard" }, { id: "ai-cited-media", label: "AI Trusted Outlets" }] },
+  { label: "Media Database", items: [{ id: "contact-search", label: "Journalist Search" }, { id: "media-lists", label: "Outreach Lists" }] },
   { label: "Outreach", items: [{ id: "create-pitch", label: "Your Emails" }] },
-  { label: "Media Monitoring", items: [{ id: "media-monitoring", label: "Monitor Mentions" }, { id: "alerts", label: "Alerts" }] },
+  { label: "Media Monitoring", items: [{ id: "media-monitoring", label: "Mention Radar" }, { id: "alerts", label: "Alerts" }] },
 ];
 
 // ─── Main AiPRTab ─────────────────────────────────────────────────────────────

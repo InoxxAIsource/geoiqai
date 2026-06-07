@@ -1238,7 +1238,7 @@ interface BrandPerformanceSectionProps {
 }
 
 const TABS = [
-  { key: "performance", label: "Brand Performance" },
+  { key: "performance", label: "Signal Tracker" },
   { key: "perception", label: "Perception" },
   { key: "narrative", label: "Narrative Drivers" },
   { key: "questions", label: "Questions" },
@@ -1307,9 +1307,9 @@ export function BrandPerformanceSection({ domain }: BrandPerformanceSectionProps
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 22, fontWeight: 800, color: "#111827", marginBottom: 4 }}>
-          Brand Performance: {domain}
+          Signal Tracker: {domain}
         </div>
-        <div style={{ fontSize: 14, color: MUTED }}>How AI systems perceive and position your brand</div>
+        <div style={{ fontSize: 14, color: MUTED }}>Track how AI systems describe your brand</div>
       </div>
 
       {/* Competitor input */}

@@ -386,7 +386,7 @@ export function SiteAuditSection({ domain }: { domain: string }) {
     <div style={{ padding: "24px 0", maxWidth: 1100 }}>
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
-        <h2 style={{ fontSize: 20, fontWeight: 700, color: "#111827", margin: "0 0 4px" }}>Site Audit</h2>
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: "#111827", margin: "0 0 4px" }}>AI Crawler Audit</h2>
         <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>Crawls up to 25 pages and runs Google PageSpeed for real Core Web Vitals. Checks broken pages, missing meta, compression, AI bot access, and more.</p>
       </div>
 

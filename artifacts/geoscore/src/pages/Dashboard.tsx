@@ -35,33 +35,33 @@ interface NavSection { section: string; items: NavItem[] }
 
 const NAV: NavSection[] = [
   {
-    section: "AI Analysis",
+    section: "AI Visibility",
     items: [
-      { id: "visibility-overview", label: "Visibility Overview", icon: <BarChart2 size={15} /> },
-      { id: "competitor-research", label: "Competitor Research", icon: <Users size={15} /> },
-      { id: "prompt-research", label: "Prompt Research", icon: <Search size={15} /> },
+      { id: "visibility-overview", label: "AI Presence", icon: <BarChart2 size={15} /> },
+      { id: "competitor-research", label: "Brand Benchmarks", icon: <Users size={15} /> },
+      { id: "prompt-research", label: "Prompt Intelligence", icon: <Search size={15} /> },
     ],
   },
   {
-    section: "Brand Performance",
+    section: "Brand Signals",
     items: [
-      { id: "brand-performance", label: "Brand Performance", icon: <TrendingUp size={15} /> },
+      { id: "brand-performance", label: "Signal Tracker", icon: <TrendingUp size={15} /> },
     ],
   },
   {
-    section: "Boost and Monitor",
+    section: "Optimize and Track",
     items: [
-      { id: "site-audit", label: "Site Audit", icon: <Wrench size={15} /> },
-      { id: "prompt-tracking", label: "Prompt Tracking", icon: <Radio size={15} /> },
-      { id: "content-creation", label: "Content Creation", icon: <FileText size={15} /> },
+      { id: "site-audit", label: "AI Crawler Audit", icon: <Wrench size={15} /> },
+      { id: "prompt-tracking", label: "Answer Monitoring", icon: <Radio size={15} /> },
+      { id: "content-creation", label: "AI Content Studio", icon: <FileText size={15} /> },
     ],
   },
   {
-    section: "GeoIQ Tools",
+    section: "GEO Toolkit",
     items: [
-      { id: "geo-agent", label: "GEO Agent", icon: <Bot size={15} /> },
-      { id: "content-improvements", label: "Content Improvements", icon: <Layers size={15} /> },
-      { id: "ai-pr", label: "AI PR", icon: <Megaphone size={15} /> },
+      { id: "geo-agent", label: "GEO Copilot", icon: <Bot size={15} /> },
+      { id: "content-improvements", label: "Citation Builder", icon: <Layers size={15} /> },
+      { id: "ai-pr", label: "PR Intelligence", icon: <Megaphone size={15} /> },
     ],
   },
 ];

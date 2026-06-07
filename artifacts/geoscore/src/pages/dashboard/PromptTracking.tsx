@@ -78,8 +78,8 @@ export function PromptTracking({ domain }: { domain: string }) {
 
   return (
     <div>
-      <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Prompt Tracking</div>
-      <div style={{ fontSize: 13, color: MUTED, marginBottom: 20 }}>Track your position for specific AI search prompts</div>
+      <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Answer Monitoring</div>
+      <div style={{ fontSize: 13, color: MUTED, marginBottom: 20 }}>Monitor AI answers mentioning your brand</div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
         {[

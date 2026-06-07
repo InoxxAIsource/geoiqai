@@ -684,8 +684,8 @@ export function CompetitorResearch({ initialDomain, plan = "free", onNavigate }:
 
   return (
     <div>
-      <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Competitor Research</div>
-      <div style={{ fontSize: 13, color: MUTED, marginBottom: 20 }}>Compare AI visibility across domains</div>
+      <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Brand Benchmarks</div>
+      <div style={{ fontSize: 13, color: MUTED, marginBottom: 20 }}>Compare your AI visibility against competitors</div>
 
       {/* Domain inputs */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 20 }}>

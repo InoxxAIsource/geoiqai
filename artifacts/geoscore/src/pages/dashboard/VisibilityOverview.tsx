@@ -170,12 +170,12 @@ function NoDataState({ domain }: { domain: string }) {
     <div style={{ textAlign: "center", padding: "60px 20px", maxWidth: 560, margin: "0 auto" }}>
       <AlertCircle size={40} color="#D1D5DB" style={{ margin: "0 auto 16px" }} />
       <div style={{ fontSize: 18, fontWeight: 700, color: "#374151", marginBottom: 10 }}>
-        No LLM mention data for {domain}
+        {domain} is not visible in AI yet
       </div>
       <p style={{ fontSize: 14, color: MUTED, lineHeight: 1.7, marginBottom: 24 }}>
-        DataForSEO indexes millions of AI responses but this domain has not appeared as a source yet.
-        This usually means the domain is too new, too niche, or not being cited in AI answers.
-        Try netflix.com or hubspot.com to verify the connection is working.
+        GeoIQ scans ChatGPT, Gemini, Perplexity, Claude, Grok and Google AI Overview. This domain
+        has not appeared as a cited source yet.
+        This is exactly the problem GeoIQ helps you fix.
       </p>
       <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
         <a href="/audit" style={{ display: "inline-block", padding: "10px 24px", background: P, color: "white", borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
@@ -275,13 +275,13 @@ export function VisibilityOverview({
         <ChevronRight size={12} color="#D1D5DB" />
         <span>AI Visibility</span>
         <ChevronRight size={12} color="#D1D5DB" />
-        <span style={{ color: "#374151", fontWeight: 500 }}>Visibility Overview</span>
+        <span style={{ color: "#374151", fontWeight: 500 }}>AI Presence</span>
       </div>
 
       {/* title row */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18, flexWrap: "wrap", gap: 10 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: "#111827" }}>
-          {domain ? <>Visibility Overview: <span style={{ color: P }}>{domain}</span></> : <span style={{ color: MUTED, fontWeight: 400, fontSize: 18 }}>Enter a domain to get started</span>}
+          {domain ? <>AI Presence: <span style={{ color: P }}>{domain}</span></> : <span style={{ color: MUTED, fontWeight: 400, fontSize: 18 }}>Enter a domain to get started</span>}
         </h1>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {d?.cached && (
@@ -351,7 +351,7 @@ export function VisibilityOverview({
               <ScoreGauge score={d.score} />
               {d.score === 0 && d.hasData === false && (
                 <div style={{ marginTop: 12, fontSize: 11, color: "#D97706", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 6, padding: "4px 12px", textAlign: "center" }}>
-                  Not appearing in AI results yet
+                  AI Invisible - fix this
                 </div>
               )}
             </div>

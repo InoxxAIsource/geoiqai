@@ -1566,7 +1566,7 @@ function RepurposerTab({ domain, prefilledContent, onSendToOptimizer }: {
       <div style={{ width: 340, flexShrink: 0, background: "white", borderRight: `1px solid ${BORDER}`,
         padding: 20, display: "flex", flexDirection: "column", gap: 0, overflowY: "auto" }}>
 
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#111827", marginBottom: 2 }}>Content Repurposer</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#111827", marginBottom: 2 }}>Content Multiplier</div>
         <div style={{ fontSize: 12, color: MUTED, marginBottom: 18 }}>
           Turn any article into threads, posts, emails and more
         </div>
@@ -1822,7 +1822,7 @@ function TopicFinderTab({ domain, prefilledTopic, onOptimize }: {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>Topic Finder</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>Prompt Gap Finder</div>
         <button onClick={load} style={{ padding: "5px 10px", background: "white", border: `1px solid ${BORDER}`,
           borderRadius: 6, fontSize: 12, color: MUTED, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
           <RefreshCw size={11} /> Refresh
@@ -2033,7 +2033,7 @@ function MyContentTab({ domain, onReanalyze }: {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>My Content</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>Content Library</div>
         <button onClick={load} style={{ padding: "5px 10px", background: "white", border: `1px solid ${BORDER}`,
           borderRadius: 6, fontSize: 12, color: MUTED, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
           <RefreshCw size={11} /> Refresh
@@ -2132,11 +2132,11 @@ function MyContentTab({ domain, onReanalyze }: {
 type TabId = "optimizer" | "writer" | "repurposer" | "topics" | "content";
 
 const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
-  { id: "optimizer", label: "GEO Optimizer", icon: <PenTool size={13} /> },
-  { id: "writer", label: "AI Writer", icon: <Wand2 size={13} /> },
-  { id: "repurposer", label: "Repurposer", icon: <Repeat2 size={13} /> },
-  { id: "topics", label: "Topic Finder", icon: <Search size={13} /> },
-  { id: "content", label: "My Content", icon: <Bookmark size={13} /> },
+  { id: "optimizer", label: "Citation Optimizer", icon: <PenTool size={13} /> },
+  { id: "writer", label: "GEO Writer", icon: <Wand2 size={13} /> },
+  { id: "repurposer", label: "Content Multiplier", icon: <Repeat2 size={13} /> },
+  { id: "topics", label: "Prompt Gap Finder", icon: <Search size={13} /> },
+  { id: "content", label: "Content Library", icon: <Bookmark size={13} /> },
 ];
 
 export function ContentCreation({ domain }: { domain: string }) {

@@ -558,8 +558,8 @@ export function PromptResearch({ initialDomain, plan }: { initialDomain: string;
 
   return (
     <div>
-      <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Prompt Research</div>
-      <div style={{ fontSize: 13, color: MUTED, marginBottom: 20 }}>Find every AI search prompt related to your brand. See who else gets mentioned and which sources AI cites.</div>
+      <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Prompt Intelligence</div>
+      <div style={{ fontSize: 13, color: MUTED, marginBottom: 20 }}>Discover which AI prompts your brand should answer</div>
 
       {/* Search */}
       <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: 20, marginBottom: 20 }}>

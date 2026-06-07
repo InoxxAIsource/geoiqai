@@ -553,7 +553,7 @@ export function GeoAgentTab({
       {/* Top bar */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: "#111827" }}>GEO Agent</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: "#111827" }}>GEO Copilot</div>
           <div style={{ fontSize: 12, color: "#6b7280" }}>Powered by Claude - knows your brand, scores, and competitors</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>

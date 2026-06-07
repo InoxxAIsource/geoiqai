@@ -1,0 +1,154 @@
+Rename all sidebar navigation labels and 
+page titles in GeoIQ dashboard.
+Do NOT change routes or component names —
+only change display text visible to users.
+
+SIDEBAR LABELS — find and replace all:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Section headers:
+"AI ANALYSIS"      → "AI VISIBILITY"
+"BRAND PERFORMANCE" → "BRAND SIGNALS"
+"BOOST AND MONITOR" → "OPTIMIZE AND TRACK"
+"GEOIQ TOOLS"      → "GEO TOOLKIT"
+
+Navigation items:
+"Visibility Overview"  → "AI Presence"
+"Competitor Research"  → "Brand Benchmarks"
+"Prompt Research"      → "Prompt Intelligence"
+"Brand Performance"    → "Signal Tracker"
+"Site Audit"           → "AI Crawler Audit"
+"Prompt Tracking"      → "Answer Monitoring"
+"Content Creation"     → "AI Content Studio"
+"GEO Agent"            → "GEO Copilot"
+"Content Improvements" → "Citation Builder"
+"AI PR"                → "PR Intelligence"
+
+PAGE TITLES AND SUBTITLES — find and replace:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Visibility Overview page:
+Title: "Visibility Overview" 
+→ "AI Presence"
+Subtitle: "Track your brand across AI systems"
+→ "See where your brand appears in AI answers"
+
+Competitor Research page:
+Title: "Competitor Research"
+→ "Brand Benchmarks"
+Subtitle: → "Compare your AI visibility against competitors"
+
+Prompt Research page:
+Title: "Prompt Research"
+→ "Prompt Intelligence"
+Subtitle: → "Discover which AI prompts your brand should answer"
+
+Brand Performance page:
+Title: "Brand Performance"
+→ "Signal Tracker"
+Subtitle: → "Track how AI systems describe your brand"
+
+Site Audit page:
+Title: "Site Audit"
+→ "AI Crawler Audit"
+Subtitle: "Check your site for AI crawler issues"
+→ "Check if AI systems can find and trust your site"
+
+Prompt Tracking page:
+Title: "Prompt Tracking"
+→ "Answer Monitoring"
+Subtitle: → "Monitor AI answers mentioning your brand"
+
+Content Creation page:
+Title: "Content Creation"
+→ "AI Content Studio"
+Subtitle: "Create and optimize content to get cited..."
+→ "Create content AI systems will cite and recommend"
+
+Sub-tabs inside AI Content Studio:
+"GEO Optimizer"  → "Citation Optimizer"
+"AI Writer"      → "GEO Writer"
+"Repurposer"     → "Content Multiplier"
+"Topic Finder"   → "Prompt Gap Finder"
+"My Content"     → "Content Library"
+
+GEO Agent page:
+Title: "GEO Agent"
+→ "GEO Copilot"
+Subtitle: → "Your AI guide to improving GEO visibility"
+
+Content Improvements page:
+Title: "Content Improvements"
+→ "Citation Builder"
+Subtitle: → "Build content that gets cited by AI systems"
+
+AI PR page:
+Title: "AI PR"
+→ "PR Intelligence"
+Subtitle: "Find journalists covering your space..."
+→ "Find AI-trusted media and get your brand covered"
+
+Sub-sections inside PR Intelligence:
+"Journalist Finder"  → "Media Scout"
+"Coverage Monitor"   → "Mention Radar"
+"Pitch Generator"    → "Pitch Studio"
+"AI-Cited Media"     → "AI Trusted Outlets"
+"Contact Search"     → "Journalist Search"
+"Media Lists"        → "Outreach Lists"
+
+BREADCRUMBS — update to match:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Dashboard > AI Visibility > AI Presence
+Dashboard > PR Intelligence > Media Scout
+Dashboard > AI Content Studio > Citation Optimizer
+Dashboard > GEO Toolkit > GEO Copilot
+
+EMPTY STATE MESSAGE on Visibility Overview:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current: "No LLM mention data for clevertap.com"
+Replace with:
+
+Title: "clevertap.com is not visible in AI yet"
+Body: "GeoIQ scans ChatGPT, Gemini, Perplexity,
+Claude, Grok and Google AI Overview. This domain
+has not appeared as a cited source yet.
+This is exactly the problem GeoIQ helps you fix."
+
+Button: "Run Free GEO Audit" (keep existing action)
+
+Also change badge:
+"Not appearing in AI results yet"
+→ "AI Invisible — fix this"
+Color: keep orange/yellow
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DO NOT CHANGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Route URLs — keep all existing:
+/dashboard/visibility-overview
+/dashboard/competitor-research
+/dashboard/site-audit
+etc.
+
+Component names in code — keep as is.
+Database column names — keep as is.
+API endpoint names — keep as is.
+
+Only change: text displayed in the UI.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Check sidebar shows new names.
+Click each item — page title matches.
+Breadcrumbs show new names.
+No broken routes.
+Empty state on Visibility Overview 
+shows new message.
+
+Share screenshot of sidebar with 
+new names visible.
