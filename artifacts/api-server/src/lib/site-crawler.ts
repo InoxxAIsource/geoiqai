@@ -101,19 +101,19 @@ export interface SiteCrawlResult {
 }
 
 const ISSUE_DEFS: Omit<CrawlIssue, "pageCount">[] = [
-  { id: "broken_page",         severity: "error",   title: "Broken page (4xx/5xx response)",        description: "These pages cannot be crawled by AI systems.",                                     fixType: "" },
-  { id: "slow_page",           severity: "error",   title: "Slow server response (TTFB over 3s)",    description: "Slow pages get lower priority in AI crawler queues.",                              fixType: "slow_server" },
-  { id: "missing_title",       severity: "warning", title: "Missing meta title",                     description: "AI systems use the page title to understand and categorize content.",              fixType: "no_meta_title" },
-  { id: "title_too_long",      severity: "warning", title: "Meta title over 60 characters",          description: "Long titles get truncated in AI-generated summaries.",                             fixType: "meta_title_long" },
-  { id: "missing_description", severity: "warning", title: "Missing meta description",               description: "AI systems use meta descriptions to generate page summaries.",                     fixType: "no_meta_desc" },
-  { id: "missing_h1",          severity: "warning", title: "No H1 heading on page",                  description: "H1 headings tell AI systems what the page is primarily about.",                    fixType: "no_h1" },
-  { id: "missing_schema",      severity: "warning", title: "No structured data (JSON-LD)",           description: "Schema markup helps AI extract facts and relationships from your content.",         fixType: "" },
-  { id: "missing_canonical",   severity: "warning", title: "No canonical tag",                       description: "Missing canonicals can cause duplicate content confusion for crawlers.",           fixType: "no_canonical" },
-  { id: "missing_alt",         severity: "warning", title: "Images missing alt text",                description: "Alt text helps AI systems understand visual content.",                             fixType: "missing_alt" },
-  { id: "large_page",          severity: "warning", title: "Large page (over 500KB HTML)",           description: "Large pages take longer to crawl and are sometimes de-prioritized.",               fixType: "" },
-  { id: "no_compression",      severity: "warning", title: "Page not compressed (no gzip/brotli)",   description: "Uncompressed pages transfer 60-80% more data and load slower.",                   fixType: "no_compression" },
-  { id: "low_text_ratio",      severity: "warning", title: "Low text-to-HTML ratio (under 10%)",     description: "Mostly code with very little readable content - AI systems may see this as thin content.", fixType: "" },
-  { id: "no_internal_links",   severity: "notice",  title: "Page has no internal links",             description: "Isolated pages are harder to discover and may not be crawled regularly.",          fixType: "" },
+  { id: "broken_page",         severity: "error",   title: "Broken page (4xx/5xx response)",        description: "These pages cannot be crawled by AI systems.",                                          fixType: "broken_page" },
+  { id: "slow_page",           severity: "error",   title: "Slow server response (TTFB over 3s)",    description: "Slow pages get lower priority in AI crawler queues.",                                   fixType: "slow_server" },
+  { id: "missing_title",       severity: "warning", title: "Missing meta title",                     description: "AI systems use the page title to understand and categorize content.",                   fixType: "missing_title" },
+  { id: "title_too_long",      severity: "warning", title: "Meta title over 60 characters",          description: "Long titles get truncated in AI-generated summaries.",                                  fixType: "title_too_long" },
+  { id: "missing_description", severity: "warning", title: "Missing meta description",               description: "AI systems use meta descriptions to generate page summaries.",                          fixType: "missing_description" },
+  { id: "missing_h1",          severity: "warning", title: "No H1 heading on page",                  description: "H1 headings tell AI systems what the page is primarily about.",                         fixType: "missing_h1" },
+  { id: "missing_schema",      severity: "warning", title: "No structured data (JSON-LD)",           description: "Schema markup helps AI extract facts and relationships from your content.",              fixType: "missing_schema" },
+  { id: "missing_canonical",   severity: "warning", title: "No canonical tag",                       description: "Missing canonicals can cause duplicate content confusion for crawlers.",                fixType: "missing_canonical" },
+  { id: "missing_alt",         severity: "warning", title: "Images missing alt text",                description: "Alt text helps AI systems understand visual content.",                                  fixType: "missing_alt" },
+  { id: "large_page",          severity: "warning", title: "Large page (over 500KB HTML)",           description: "Large pages take longer to crawl and are sometimes de-prioritized.",                    fixType: "large_page" },
+  { id: "no_compression",      severity: "warning", title: "Page not compressed (no gzip/brotli)",   description: "Uncompressed pages transfer 60-80% more data and load slower.",                        fixType: "no_compression" },
+  { id: "low_text_ratio",      severity: "warning", title: "Low text-to-HTML ratio (under 10%)",     description: "Very little readable text relative to HTML - AI systems may treat this as thin content.", fixType: "low_text_ratio" },
+  { id: "no_internal_links",   severity: "notice",  title: "Page has no internal links",             description: "Isolated pages are harder to discover and may not be crawled regularly.",               fixType: "no_internal_links" },
 ];
 
 // ─── CWV scoring helpers ───────────────────────────────────────────────────────
