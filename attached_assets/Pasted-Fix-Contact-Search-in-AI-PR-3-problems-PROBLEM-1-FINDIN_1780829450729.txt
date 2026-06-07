@@ -1,0 +1,198 @@
+Fix Contact Search in AI PR — 3 problems:
+
+PROBLEM 1: FINDING ACADEMICS NOT JOURNALISTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current query finds academic researchers.
+Need practicing journalists at media outlets.
+
+Fix the search query — exclude academic domains
+and target journalism outlets specifically:
+
+const results = await exa.search(
+  `${topic} written by journalist reporter 
+   writer editor 2025 2026`,
+  {
+    type: 'neural',
+    numResults: 25,
+    category: 'news',
+    startPublishedDate: '2025-01-01',
+    excludeDomains: [
+      'tandfonline.com',
+      'researchgate.net', 
+      'academia.edu',
+      'scholar.google.com',
+      'jstor.org',
+      'springer.com',
+      'sciencedirect.com'
+    ],
+    includeDomains: [
+      'searchengineland.com',
+      'searchenginejournal.com',
+      'moz.com',
+      'techcrunch.com',
+      'wired.com',
+      'theverge.com',
+      'venturebeat.com',
+      'marketingland.com',
+      'digiday.com',
+      'adweek.com',
+      'contentmarketinginstitute.com',
+      'hubspot.com/marketing',
+      'semrush.com/blog',
+      'ahrefs.com/blog',
+      'neilpatel.com',
+      'backlinko.com'
+    ],
+    contents: {
+      highlights: {
+        numSentences: 1,
+        highlightsPerUrl: 1
+      }
+    }
+  }
+);
+
+PROBLEM 2: TOO MUCH ARTICLE TEXT SHOWN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current: dumps full article text (500+ words)
+Fix: show only 1 highlight sentence max
+
+Card should show:
+- Journalist name (from result.author)
+- Publication (from domain)
+- ONE recent article title + link
+- ONE sentence highlight max
+- Why selected (1 line from Claude)
+
+PROBLEM 3: NO TABLE FORMAT LIKE SEMRUSH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After finding journalists build TWO views:
+[Card View] [Table View] toggle
+
+TABLE VIEW matches Semrush format:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Columns:
+□ | NAME | OUTLET | COUNTRY | TOPICS | ARTICLES | ACTION
+
+□ | Danny Goodwin      | Search Engine Land | US | AI SEO, GEO | 8 | [+ Add to List]
+□ | Lily Ray           | Amsive Digital     | US | AI, SEO     | 5 | [+ Add to List]
+□ | Barry Schwartz     | Search Engine Land | US | SEO, Google | 12| [+ Add to List]
+
+How to get each column from Exa:
+- NAME: result.author
+- OUTLET: extract from result.url domain
+- COUNTRY: infer from outlet 
+  (searchengineland.com = US, 
+   theguardian.com = UK, etc.)
+- TOPICS: extract from article tags/categories
+  Use Claude to infer from article titles:
+  "Based on these article titles, what 
+   are the top 3 topic tags for this journalist?
+   Return as array of strings."
+- ARTICLES: count of articles found
+- ACTION: [+ Add to List] button
+
+Header row has:
+[All 12] [Journalists 12] [Outlets 0]
+filter tabs like Semrush
+
+Checkbox on each row for bulk select.
+When 1+ selected show:
+[Pitch Selected] [Add to List ▼] buttons at top
+
+COUNTRY INFERENCE MAP:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const countryMap = {
+  'searchengineland.com': 'United States',
+  'searchenginejournal.com': 'United States',
+  'techcrunch.com': 'United States',
+  'wired.com': 'United States',
+  'theverge.com': 'United States',
+  'venturebeat.com': 'United States',
+  'digiday.com': 'United States',
+  'theguardian.com': 'United Kingdom',
+  'bbc.com': 'United Kingdom',
+  'thetimes.co.uk': 'United Kingdom',
+  'lemonde.fr': 'France',
+  'spiegel.de': 'Germany',
+  'economictimes.com': 'India',
+  'yourstory.com': 'India',
+  'inc42.com': 'India'
+};
+
+OUTLET LOGO:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Use Google favicon service for outlet logos:
+`https://www.google.com/s2/favicons?domain=${domain}&sz=32`
+
+Shows small outlet favicon next to outlet name
+Same as Semrush shows outlet logos in table.
+
+TOPICS via Claude (batch):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After getting journalist results,
+send all article titles to Claude in one call:
+
+"For each journalist below, return 3 topic tags.
+Choose from: AI SEO, GEO, ChatGPT, Google Search,
+Content Marketing, Technical SEO, Link Building,
+PPC, Social Media, PR, Journalism, Technology,
+Marketing, AI Tools, Local SEO
+
+Journalists and their articles:
+1. Danny Goodwin: [article titles]
+2. Lily Ray: [article titles]
+
+Return JSON array:
+[
+  { name: 'Danny Goodwin', topics: ['AI SEO', 'GEO', 'Google Search'] },
+  { name: 'Lily Ray', topics: ['AI SEO', 'Technical SEO'] }
+]"
+
+MEDIA LISTS — TABLE FORMAT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When user views a saved media list,
+show same table format:
+
+Contacts added: 1-20 (20)
+[Pitch ▼] [Export list] buttons at top
+
+Filters: [All 20] [Journalists 20] 
+[Outlets 0] [Country ▼] [Topic ▼]
+
+Search contacts input
+
+Table:
+□ | NAME | ROLE | OUTLET | COUNTRY | TOPICS
+
+For ROLE column — infer from Exa data:
+If article byline says "Senior Editor" use that
+Otherwise leave blank or show "Writer"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Search with AI tab:
+Enter "AI visibility tool for SaaS brands"
+Should show journalists from:
+searchengineland.com, techcrunch.com,
+searchenginejournal.com
+NOT from tandfonline.com or academia sites
+
+Table view should show:
+Name | Outlet (with favicon) | Country | Topics | [+ Add to List]
+
+Add 3 journalists to a list called 
+"AI SEO Outreach"
+List appears in Media Lists with count = 3
+
+Share screenshot of table view.

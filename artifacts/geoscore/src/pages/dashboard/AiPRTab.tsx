@@ -24,6 +24,8 @@ interface Journalist {
   twitter: string | null;
   linkedin_url: string | null;
   whySelected: string | null;
+  country: string | null;
+  topics: string[];
 }
 
 interface Outlet {
@@ -261,6 +263,27 @@ function AiCitedMediaSection({ onFindContact }: { onFindContact: (outlet: string
 
 const KW_CHIPS = ["AI SEO", "GEO", "ChatGPT SEO", "AI search", "LLM", "Brand visibility"];
 
+function OutletFavicon({ domain }: { domain: string }) {
+  return (
+    <img
+      src={`https://www.google.com/s2/favicons?domain=${domain}&sz=16`}
+      alt=""
+      width={16}
+      height={16}
+      style={{ borderRadius: 2, flexShrink: 0 }}
+      onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+    />
+  );
+}
+
+function TopicTag({ label }: { label: string }) {
+  return (
+    <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 10, background: "#EEF2FF", color: P, whiteSpace: "nowrap" }}>
+      {label}
+    </span>
+  );
+}
+
 function ContactSearchSection({ prefillOutlet, onAddToList }: { prefillOutlet?: string; onAddToList: (j: Journalist) => void }) {
   const [tab, setTab] = useState<"ai" | "keyword" | "outlet">(prefillOutlet ? "outlet" : "keyword");
   const [storyDesc, setStoryDesc] = useState("");
@@ -269,18 +292,24 @@ function ContactSearchSection({ prefillOutlet, onAddToList }: { prefillOutlet?: 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [journalists, setJournalists] = useState<Journalist[]>([]);
+  const [viewMode, setViewMode] = useState<"card" | "table">("table");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const search = useCallback(async (mode: "ai" | "keyword" | "outlet", params: Record<string, string>) => {
-    setLoading(true); setError(null); setJournalists([]);
+    setLoading(true); setError(null); setJournalists([]); setSelected(new Set());
     try {
       const data = await apiFetch<{ journalists: Journalist[] }>("/api/ai-pr/find-journalists", { mode, ...params });
       setJournalists(data.journalists);
-      if (data.journalists.length === 0) setError("No journalists found for this search. Try broader terms like 'SEO' or 'AI search'.");
+      if (data.journalists.length === 0) setError("No journalists found. Try broader terms like 'SEO' or 'AI search'.");
     } catch (e) { setError(e instanceof Error ? e.message : "Search failed"); }
     finally { setLoading(false); }
   }, []);
 
-  const TABS: { id: "ai" | "keyword" | "outlet"; label: string }[] = [
+  const toggleSelect = (key: string) => setSelected(s => { const n = new Set(s); n.has(key) ? n.delete(key) : n.add(key); return n; });
+  const toggleAll = () => setSelected(selected.size === journalists.length ? new Set() : new Set(journalists.map(j => `${j.name}:${j.domain}`)));
+  const selectedJournalists = journalists.filter(j => selected.has(`${j.name}:${j.domain}`));
+
+  const SEARCH_TABS: { id: "ai" | "keyword" | "outlet"; label: string }[] = [
     { id: "ai", label: "Search with AI" },
     { id: "keyword", label: "Search by keyword" },
     { id: "outlet", label: "Search by outlet" },
@@ -291,7 +320,7 @@ function ContactSearchSection({ prefillOutlet, onAddToList }: { prefillOutlet?: 
       <SectionTitle title="Find Journalists" subtitle="Search by topic, keyword, or outlet to find the right reporter for your story." />
 
       <div style={{ display: "flex", gap: 0, borderBottom: `1px solid ${BORDER}`, marginBottom: 20 }}>
-        {TABS.map(t => (
+        {SEARCH_TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             style={{ padding: "8px 16px", background: "none", border: "none", borderBottom: `2px solid ${tab === t.id ? P : "transparent"}`, fontSize: 13, fontWeight: tab === t.id ? 600 : 400, color: tab === t.id ? P : MUTED, cursor: "pointer", marginBottom: -1 }}>
             {t.label}
@@ -303,7 +332,7 @@ function ContactSearchSection({ prefillOutlet, onAddToList }: { prefillOutlet?: 
         <div>
           <textarea value={storyDesc} onChange={e => setStoryDesc(e.target.value)}
             placeholder="Describe your story and industry. e.g. We built an AI visibility tool that tracks if brands appear in ChatGPT. Looking for journalists covering AI search and marketing technology."
-            rows={4}
+            rows={3}
             style={{ width: "100%", padding: "10px 12px", border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 13, outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }} />
           <button onClick={() => search("ai", { storyDescription: storyDesc })} disabled={loading || !storyDesc.trim()}
             style={{ marginTop: 10, padding: "9px 18px", background: P, color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: loading ? "wait" : "pointer", display: "flex", alignItems: "center", gap: 6, opacity: !storyDesc.trim() ? 0.5 : 1 }}>
@@ -349,42 +378,131 @@ function ContactSearchSection({ prefillOutlet, onAddToList }: { prefillOutlet?: 
       {error && <div style={{ marginTop: 14 }}><ErrorBanner msg={error} /></div>}
 
       {journalists.length > 0 && (
-        <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 12 }}>
-          {journalists.map(j => (
-            <div key={`${j.name}:${j.domain}`} style={{ border: `1px solid ${BORDER}`, borderRadius: 10, padding: "14px 16px", background: "white" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>{j.name}</div>
-                  <div style={{ fontSize: 12, color: MUTED }}>{j.publication}</div>
-                </div>
-                <button onClick={() => onAddToList(j)}
-                  style={{ fontSize: 12, color: P, background: "#EEF2FF", border: "none", borderRadius: 6, padding: "5px 12px", cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-                  <Plus size={12} /> Add to List
-                </button>
+        <div style={{ marginTop: 20 }}>
+          {/* Toolbar */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>
+                All {journalists.length}
               </div>
-
-              {j.whySelected && (
-                <div style={{ marginTop: 8, padding: "7px 10px", background: "#F0FDF4", border: `1px solid ${GREEN}33`, borderRadius: 6, fontSize: 12, color: "#166534" }}>
-                  Why selected: {j.whySelected}
-                </div>
-              )}
-
-              {j.articles[0] && (
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ fontSize: 12, color: MUTED, marginBottom: 2 }}>Recent:</div>
-                  <a href={j.articles[0].url} target="_blank" rel="noopener noreferrer"
-                    style={{ fontSize: 12, color: P, textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
-                    <ExternalLink size={11} /> "{j.articles[0].title}" {j.articles[0].date ? `- ${fmt(j.articles[0].date)}` : ""}
-                  </a>
-                  {j.articles[0].snippet && <p style={{ fontSize: 11, color: "#4B5563", margin: "4px 0 0", lineHeight: 1.5 }}>{j.articles[0].snippet}</p>}
-                </div>
-              )}
-
-              {j.articles.length > 1 && (
-                <div style={{ marginTop: 6, fontSize: 11, color: MUTED }}>{j.article_count} articles found on this topic</div>
+              {selected.size > 0 && (
+                <>
+                  <span style={{ color: BORDER }}>|</span>
+                  <span style={{ fontSize: 12, color: P, fontWeight: 600 }}>{selected.size} selected</span>
+                  <button onClick={() => { for (const j of selectedJournalists) onAddToList(j); setSelected(new Set()); }}
+                    style={{ fontSize: 12, color: "white", background: P, border: "none", borderRadius: 6, padding: "4px 12px", cursor: "pointer", fontWeight: 600 }}>
+                    Add to List
+                  </button>
+                </>
               )}
             </div>
-          ))}
+            <div style={{ display: "flex", gap: 4 }}>
+              {(["card", "table"] as const).map(v => (
+                <button key={v} onClick={() => setViewMode(v)}
+                  style={{ fontSize: 12, padding: "4px 11px", border: `1px solid ${viewMode === v ? P : BORDER}`, borderRadius: 6, background: viewMode === v ? "#EEF2FF" : "white", color: viewMode === v ? P : MUTED, cursor: "pointer", fontWeight: viewMode === v ? 600 : 400, textTransform: "capitalize" }}>
+                  {v === "card" ? "Cards" : "Table"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Table view */}
+          {viewMode === "table" && (
+            <div style={{ border: `1px solid ${BORDER}`, borderRadius: 10, overflow: "hidden" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "28px 2fr 2fr 100px 1fr 50px 100px", gap: 10, padding: "9px 14px", background: BG, borderBottom: `1px solid ${BORDER}`, fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", alignItems: "center" }}>
+                <input type="checkbox" checked={selected.size === journalists.length && journalists.length > 0} onChange={toggleAll} style={{ accentColor: P }} />
+                <div>Name</div>
+                <div>Outlet</div>
+                <div>Country</div>
+                <div>Topics</div>
+                <div>Articles</div>
+                <div>Action</div>
+              </div>
+              {journalists.map(j => {
+                const key = `${j.name}:${j.domain}`;
+                return (
+                  <div key={key} style={{ display: "grid", gridTemplateColumns: "28px 2fr 2fr 100px 1fr 50px 100px", gap: 10, padding: "10px 14px", borderBottom: `1px solid ${BORDER}`, alignItems: "center", background: selected.has(key) ? "#F5F3FF" : "white" }}>
+                    <input type="checkbox" checked={selected.has(key)} onChange={() => toggleSelect(key)} style={{ accentColor: P }} />
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{j.name}</div>
+                      {j.whySelected && <div style={{ fontSize: 11, color: "#059669", marginTop: 2 }}>{j.whySelected}</div>}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <OutletFavicon domain={j.domain} />
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: "#374151" }}>{j.publication}</div>
+                        {j.articles[0] && (
+                          <a href={j.articles[0].url} target="_blank" rel="noopener noreferrer"
+                            style={{ fontSize: 11, color: P, textDecoration: "none", display: "flex", alignItems: "center", gap: 3 }}>
+                            <ExternalLink size={10} /> {j.articles[0].title.slice(0, 40)}{j.articles[0].title.length > 40 ? "..." : ""}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 12, color: MUTED }}>{j.country ?? "-"}</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+                      {(j.topics ?? []).slice(0, 2).map(t => <TopicTag key={t} label={t} />)}
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: MUTED, textAlign: "center" }}>{j.article_count}</div>
+                    <button onClick={() => onAddToList(j)}
+                      style={{ fontSize: 11, color: P, background: "#EEF2FF", border: "none", borderRadius: 5, padding: "4px 9px", cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", gap: 3, whiteSpace: "nowrap" }}>
+                      <Plus size={11} /> Add to List
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Card view */}
+          {viewMode === "card" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {journalists.map(j => {
+                const key = `${j.name}:${j.domain}`;
+                return (
+                  <div key={key} style={{ border: `1px solid ${selected.has(key) ? P : BORDER}`, borderRadius: 10, padding: "14px 16px", background: selected.has(key) ? "#F5F3FF" : "white" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                        <input type="checkbox" checked={selected.has(key)} onChange={() => toggleSelect(key)} style={{ accentColor: P, marginTop: 3 }} />
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>{j.name}</div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
+                            <OutletFavicon domain={j.domain} />
+                            <span style={{ fontSize: 12, color: MUTED }}>{j.publication}</span>
+                            {j.country && <span style={{ fontSize: 11, color: MUTED }}>- {j.country}</span>}
+                          </div>
+                          {(j.topics ?? []).length > 0 && (
+                            <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
+                              {(j.topics ?? []).map(t => <TopicTag key={t} label={t} />)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <button onClick={() => onAddToList(j)}
+                        style={{ fontSize: 12, color: P, background: "#EEF2FF", border: "none", borderRadius: 6, padding: "5px 12px", cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                        <Plus size={12} /> Add to List
+                      </button>
+                    </div>
+                    {j.whySelected && (
+                      <div style={{ marginTop: 8, padding: "6px 10px", background: "#F0FDF4", border: `1px solid ${GREEN}33`, borderRadius: 6, fontSize: 12, color: "#166534" }}>
+                        Why selected: {j.whySelected}
+                      </div>
+                    )}
+                    {j.articles[0] && (
+                      <div style={{ marginTop: 8 }}>
+                        <a href={j.articles[0].url} target="_blank" rel="noopener noreferrer"
+                          style={{ fontSize: 12, color: P, textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
+                          <ExternalLink size={11} /> "{j.articles[0].title}"
+                        </a>
+                        {j.articles[0].snippet && <p style={{ fontSize: 11, color: "#4B5563", margin: "4px 0 0", lineHeight: 1.5 }}>{j.articles[0].snippet}</p>}
+                      </div>
+                    )}
+                    {j.article_count > 1 && <div style={{ marginTop: 6, fontSize: 11, color: MUTED }}>{j.article_count} articles found</div>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>

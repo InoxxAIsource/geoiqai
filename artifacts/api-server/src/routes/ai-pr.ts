@@ -137,53 +137,87 @@ router.post("/ai-pr/find-journalists", requireAuth, async (req: AuthRequest, res
   const cached = getCached(cacheKey);
   if (cached) { res.json({ success: true, journalists: cached }); return; }
 
+  const ACADEMIC_EXCLUDE = [
+    "tandfonline.com", "researchgate.net", "academia.edu", "scholar.google.com",
+    "jstor.org", "springer.com", "sciencedirect.com", "pubmed.ncbi.nlm.nih.gov",
+    "arxiv.org", "ssrn.com",
+  ];
+  const JOURNALISM_INCLUDE = [
+    "searchengineland.com", "searchenginejournal.com", "moz.com", "techcrunch.com",
+    "wired.com", "theverge.com", "venturebeat.com", "digiday.com", "adweek.com",
+    "contentmarketinginstitute.com", "ahrefs.com", "neilpatel.com", "backlinko.com",
+    "marketingland.com", "theguardian.com", "bbc.com", "forbes.com", "inc.com",
+    "entrepreneur.com", "fastcompany.com", "businessinsider.com", "yourstory.com", "inc42.com",
+  ];
+  const COUNTRY_MAP: Record<string, string> = {
+    "searchengineland.com": "United States", "searchenginejournal.com": "United States",
+    "techcrunch.com": "United States", "wired.com": "United States",
+    "theverge.com": "United States", "venturebeat.com": "United States",
+    "digiday.com": "United States", "adweek.com": "United States",
+    "forbes.com": "United States", "inc.com": "United States",
+    "entrepreneur.com": "United States", "fastcompany.com": "United States",
+    "businessinsider.com": "United States", "moz.com": "United States",
+    "ahrefs.com": "United States", "neilpatel.com": "United States",
+    "contentmarketinginstitute.com": "United States",
+    "theguardian.com": "United Kingdom", "bbc.com": "United Kingdom",
+    "thetimes.co.uk": "United Kingdom", "independent.co.uk": "United Kingdom",
+    "lemonde.fr": "France", "spiegel.de": "Germany",
+    "yourstory.com": "India", "inc42.com": "India",
+    "economictimes.com": "India", "livemint.com": "India",
+  };
+
   try {
     let searchResults;
-    let query = "";
 
     if (searchMode === "ai" && storyDescription) {
-      query = `journalist writer reporter ${storyDescription} recent articles 2025 2026`;
-      searchResults = await exa.search(query, {
-        type: "auto", numResults: 20, category: "news", startPublishedDate: "2025-01-01",
-        contents: { highlights: { numSentences: 3, highlightsPerUrl: 2 } },
-      });
+      searchResults = await exa.search(
+        `${storyDescription} written by journalist reporter writer editor 2025 2026`,
+        {
+          type: "neural", numResults: 25, category: "news", startPublishedDate: "2025-01-01",
+          excludeDomains: ACADEMIC_EXCLUDE,
+          includeDomains: JOURNALISM_INCLUDE,
+          contents: { highlights: { numSentences: 1, highlightsPerUrl: 1 } },
+        }
+      );
     } else if (searchMode === "outlet" && outlet) {
-      query = `${outlet} journalist reporter writer article`;
-      searchResults = await exa.search(query, {
-        type: "auto", numResults: 15,
-        contents: { highlights: { numSentences: 2, highlightsPerUrl: 1 } },
-      });
-    } else {
-      // keyword mode - broader query with fallback
-      const kw = topic ?? "AI SEO";
-      query = `${kw} SEO search marketing technology journalist reporter writer article 2025 2026`;
-      searchResults = await exa.search(query, {
-        type: "auto", numResults: 20, category: "news", startPublishedDate: "2025-01-01",
-        contents: { highlights: { numSentences: 2, highlightsPerUrl: 1 } },
-      });
-      // Fallback: no category filter if too few results
-      if (searchResults.results.length < 5) {
-        searchResults = await exa.search(`who writes about ${kw} marketing technology 2025 2026`, {
+      searchResults = await exa.search(
+        `${outlet} journalist reporter writer article 2025 2026`,
+        {
           type: "auto", numResults: 15,
-          contents: { highlights: { numSentences: 2, highlightsPerUrl: 1 } },
+          excludeDomains: ACADEMIC_EXCLUDE,
+          contents: { highlights: { numSentences: 1, highlightsPerUrl: 1 } },
+        }
+      );
+    } else {
+      const kw = topic ?? "AI SEO";
+      searchResults = await exa.search(
+        `${kw} written by journalist reporter writer editor 2025 2026`,
+        {
+          type: "neural", numResults: 25, category: "news", startPublishedDate: "2025-01-01",
+          excludeDomains: ACADEMIC_EXCLUDE,
+          includeDomains: JOURNALISM_INCLUDE,
+          contents: { highlights: { numSentences: 1, highlightsPerUrl: 1 } },
+        }
+      );
+      if (searchResults.results.length < 4) {
+        searchResults = await exa.search(`${kw} journalist article 2025`, {
+          type: "auto", numResults: 20, category: "news",
+          excludeDomains: ACADEMIC_EXCLUDE,
+          contents: { highlights: { numSentences: 1, highlightsPerUrl: 1 } },
         });
       }
     }
 
     const authorMap: Record<string, {
-      name: string;
-      publication: string;
-      domain: string;
+      name: string; publication: string; domain: string;
       articles: { title: string; url: string; date: string | null | undefined; snippet: string }[];
     }> = {};
 
     for (const r of searchResults.results) {
-      // Use author or fall back to "Staff Writer" with domain as publication
       const author = r.author?.trim() || null;
       const domain = fullDomain(r.url);
       const pub = extractDomain(r.url);
       const key = author ?? `${pub} Staff`;
-
       if (!authorMap[key]) {
         authorMap[key] = { name: author ?? `${pub} Staff`, publication: pub, domain, articles: [] };
       }
@@ -195,24 +229,33 @@ router.post("/ai-pr/find-journalists", requireAuth, async (req: AuthRequest, res
       });
     }
 
-    const top = Object.values(authorMap).filter(j => j.articles.length > 0).slice(0, 12);
+    const top = Object.values(authorMap).filter(j => j.articles.length > 0).slice(0, 15);
 
-    // For AI mode, generate "why selected" reason per journalist
-    const journalists = await Promise.all(
-      top.map(async (j) => {
-        let whySelected: string | null = null;
-        if (searchMode === "ai" && storyDescription) {
-          const { reason } = await aiJson<{ reason: string }>(
-            `A PR person has a story: "${storyDescription}". Journalist "${j.name}" from "${j.publication}" has written: ${j.articles.map(a => a.title).join("; ")}.
-In one sentence, explain why this journalist is a good fit for this story.
-Return JSON: { "reason": "one sentence" }`,
-            { reason: "" }
-          );
-          whySelected = reason || null;
-        }
-        return { ...j, article_count: j.articles.length, twitter: null, linkedin_url: null, whySelected };
-      })
+    // Batch: topics + whySelected in one Claude call
+    const batchPrompt = top.map((j, i) => `${i + 1}. ${j.name} (${j.publication}): ${j.articles.map(a => a.title).slice(0, 4).join("; ")}`).join("\n");
+    const ALLOWED_TOPICS = ["AI SEO", "GEO", "ChatGPT", "Google Search", "Content Marketing", "Technical SEO", "Link Building", "PPC", "Social Media", "PR", "Technology", "Marketing", "AI Tools", "Local SEO", "Startups"];
+    const topicsResult = await aiJson<{ results: { name: string; topics: string[]; whySelected?: string }[] }>(
+      `For each journalist below, return 3 topic tags chosen from: ${ALLOWED_TOPICS.join(", ")}.${searchMode === "ai" && storyDescription ? ` Also add whySelected: one sentence explaining fit for story: "${storyDescription}"` : ""}
+
+${batchPrompt}
+
+Return JSON: { "results": [ { "name": "...", "topics": ["Tag1","Tag2","Tag3"]${searchMode === "ai" ? `, "whySelected": "..."` : ""} } ] }`,
+      { results: [] }
     );
+    const topicsMap: Record<string, { topics: string[]; whySelected?: string }> = {};
+    for (const r of topicsResult.results) {
+      topicsMap[r.name] = { topics: r.topics ?? [], whySelected: r.whySelected };
+    }
+
+    const journalists = top.map(j => ({
+      ...j,
+      article_count: j.articles.length,
+      twitter: null,
+      linkedin_url: null,
+      country: COUNTRY_MAP[j.domain] ?? null,
+      topics: topicsMap[j.name]?.topics ?? [],
+      whySelected: topicsMap[j.name]?.whySelected ?? null,
+    }));
 
     setCached(cacheKey, journalists);
     res.json({ success: true, journalists });
