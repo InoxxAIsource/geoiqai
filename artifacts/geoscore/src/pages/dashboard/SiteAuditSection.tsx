@@ -56,7 +56,7 @@ interface CrawlAudit {
   aiHealthScore: number;
   errorsCount: number;
   warningsCount: number;
-  issues: { id: string; title: string; severity: "error" | "warning" | "notice"; pageCount: number; description: string; fixType: string }[];
+  issues: { id: string; title: string; severity: "error" | "warning" | "notice"; pageCount: number; description: string; fixType: string; affectedPages: string[] }[];
   thematicScores: { crawlability: number; https: number; performance: number; internalLinking: number; markup: number; aiSearch: number };
   botAccess: { bot: string; name: string; allowed: boolean; note: string }[];
   hasRobotsTxt: boolean;
@@ -213,6 +213,8 @@ function FixGuide({ fixType, onClose }: { fixType: string; onClose: () => void }
 function IssueRow({ issue }: { issue: CrawlAudit["issues"][0] }) {
   const [expanded, setExpanded] = useState(false);
   const [showFix, setShowFix] = useState(false);
+  const [showAllPages, setShowAllPages] = useState(false);
+  const visiblePages = showAllPages ? issue.affectedPages : issue.affectedPages.slice(0, 5);
   return (
     <div style={{ borderBottom: `1px solid ${BORDER}` }}>
       <div
@@ -227,10 +229,42 @@ function IssueRow({ issue }: { issue: CrawlAudit["issues"][0] }) {
         {expanded ? <ChevronDown size={14} color={MUTED} /> : <ChevronRight size={14} color={MUTED} />}
       </div>
       {expanded && (
-        <div style={{ padding: "0 0 12px 0" }}>
-          <p style={{ fontSize: 13, color: MUTED, marginBottom: 8, lineHeight: 1.6 }}>{issue.description}</p>
+        <div style={{ padding: "0 0 14px 0" }}>
+          <p style={{ fontSize: 13, color: MUTED, marginBottom: 10, lineHeight: 1.6 }}>{issue.description}</p>
+
+          {issue.affectedPages.length > 0 && (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 5 }}>
+                Affected pages
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                {visiblePages.map(url => (
+                  <a
+                    key={url}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontSize: 12, color: P, textDecoration: "none", display: "flex", alignItems: "center", gap: 4, wordBreak: "break-all" }}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <ExternalLink size={11} style={{ flexShrink: 0 }} />
+                    {url}
+                  </a>
+                ))}
+              </div>
+              {issue.affectedPages.length > 5 && (
+                <button
+                  onClick={e => { e.stopPropagation(); setShowAllPages(v => !v); }}
+                  style={{ marginTop: 5, fontSize: 12, color: MUTED, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                >
+                  {showAllPages ? "Show fewer" : `+${issue.affectedPages.length - 5} more pages`}
+                </button>
+              )}
+            </div>
+          )}
+
           {issue.fixType && !showFix && (
-            <button onClick={() => setShowFix(true)} style={{ fontSize: 12, color: P, fontWeight: 600, background: "none", border: `1px solid ${P}55`, borderRadius: 6, padding: "4px 12px", cursor: "pointer" }}>
+            <button onClick={e => { e.stopPropagation(); setShowFix(true); }} style={{ fontSize: 12, color: P, fontWeight: 600, background: "none", border: `1px solid ${P}55`, borderRadius: 6, padding: "4px 12px", cursor: "pointer" }}>
               How to fix
             </button>
           )}

@@ -50,6 +50,7 @@ export interface CrawlIssue {
   pageCount: number;
   description: string;
   fixType: string;
+  affectedPages: string[];
 }
 
 export interface SiteCrawlResult {
@@ -100,7 +101,7 @@ export interface SiteCrawlResult {
   isJsRendered: boolean;
 }
 
-const ISSUE_DEFS: Omit<CrawlIssue, "pageCount">[] = [
+const ISSUE_DEFS: Omit<CrawlIssue, "pageCount" | "affectedPages">[] = [
   { id: "broken_page",         severity: "error",   title: "Broken page (4xx/5xx response)",        description: "These pages cannot be crawled by AI systems.",                                          fixType: "broken_page" },
   { id: "slow_page",           severity: "error",   title: "Slow server response (TTFB over 3s)",    description: "Slow pages get lower priority in AI crawler queues.",                                   fixType: "slow_server" },
   { id: "missing_title",       severity: "warning", title: "Missing meta title",                     description: "AI systems use the page title to understand and categorize content.",                   fixType: "missing_title" },
@@ -485,11 +486,19 @@ export async function crawlSite(domain: string, maxPages = 25): Promise<SiteCraw
   const htmlPages = pages.filter(p => p.category !== "redirect");
 
   const issueCounts = new Map<string, number>();
-  for (const page of pages) for (const issue of page.issues) issueCounts.set(issue, (issueCounts.get(issue) ?? 0) + 1);
+  const issuePages = new Map<string, string[]>();
+  for (const page of pages) {
+    for (const issue of page.issues) {
+      issueCounts.set(issue, (issueCounts.get(issue) ?? 0) + 1);
+      const arr = issuePages.get(issue) ?? [];
+      arr.push(page.url);
+      issuePages.set(issue, arr);
+    }
+  }
 
   const issues: CrawlIssue[] = ISSUE_DEFS
     .filter(d => (issueCounts.get(d.id) ?? 0) > 0)
-    .map(d => ({ ...d, pageCount: issueCounts.get(d.id) ?? 0 }))
+    .map(d => ({ ...d, pageCount: issueCounts.get(d.id) ?? 0, affectedPages: issuePages.get(d.id) ?? [] }))
     .sort((a, b) => ({ error: 0, warning: 1, notice: 2 }[a.severity] - { error: 0, warning: 1, notice: 2 }[b.severity] || b.pageCount - a.pageCount));
 
   const errorsCount = issues.filter(i => i.severity === "error").reduce((s, i) => s + i.pageCount, 0);
