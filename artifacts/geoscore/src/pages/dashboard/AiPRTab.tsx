@@ -1119,26 +1119,38 @@ function MediaMonitoringSection() {
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {mentions.map(m => (
+            {mentions.map(m => {
+              const rawSnippet = m.snippets[0] ?? "";
+              const cleanSnippet = rawSnippet.replace(/\[…\]|\[\.\.\.]/g, "").replace(/\s{2,}/g, " ").trim();
+              const shortSnippet = cleanSnippet.length > 260 ? cleanSnippet.slice(0, 257) + "..." : cleanSnippet;
+              return (
               <div key={m.url} style={{ border: `1px solid ${BORDER}`, borderRadius: 10, padding: "14px 16px", background: "white" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#111827", marginBottom: 2 }}>
-                      <a href={m.url} target="_blank" rel="noopener noreferrer" style={{ color: "inherit", textDecoration: "none" }}>{m.title || m.url}</a>
-                    </div>
-                    <div style={{ fontSize: 11, color: MUTED }}>
-                      {m.publication}{m.author ? ` - ${m.author}` : ""}{m.publishedDate ? ` - ${fmt(m.publishedDate)}` : ""}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <a href={m.url} target="_blank" rel="noopener noreferrer"
+                      style={{ fontSize: 13, fontWeight: 600, color: "#111827", textDecoration: "none", display: "block", lineHeight: 1.4, marginBottom: 4 }}>
+                      {m.title || m.url}
+                    </a>
+                    <div style={{ fontSize: 11, color: MUTED, display: "flex", flexWrap: "wrap", gap: "2px 6px" }}>
+                      {m.publication && <span style={{ fontWeight: 500 }}>{m.publication}</span>}
+                      {m.author && <span>{m.author}</span>}
+                      {m.publishedDate && <span>{fmt(m.publishedDate)}</span>}
                     </div>
                   </div>
                   <SentimentBadge s={m.sentiment} />
                 </div>
-                {m.snippets[0] && <p style={{ fontSize: 12, color: "#374151", lineHeight: 1.5, margin: "0 0 10px", fontStyle: "italic" }}>"{m.snippets[0]}"</p>}
+                {shortSnippet && (
+                  <p style={{ fontSize: 12, color: "#4B5563", lineHeight: 1.6, margin: "0 0 10px", borderLeft: `3px solid ${BORDER}`, paddingLeft: 10 }}>
+                    {shortSnippet}
+                  </p>
+                )}
                 <a href={m.url} target="_blank" rel="noopener noreferrer"
-                  style={{ fontSize: 11, color: P, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  style={{ fontSize: 11, color: P, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 600 }}>
                   <ExternalLink size={11} /> Read article
                 </a>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
