@@ -1,0 +1,263 @@
+Switch GeoIQ from sandbox to LIVE DataForSEO.
+Do this carefully — only switch endpoints 
+that are pay-as-you-go with no minimum.
+DO NOT switch LLM Mentions to live yet.
+
+STEP 1: REMOVE SANDBOX FLAG
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find in codebase:
+DATAFORSEO_SANDBOX=true
+or
+const sandbox = true
+or  
+const BASE_URL = 'https://sandbox.dataforseo.com'
+
+Replace sandbox URL with live URL:
+Old: https://sandbox.dataforseo.com/v3
+New: https://api.dataforseo.com/v3
+
+Make this controlled by env variable:
+const DATAFORSEO_BASE = process.env.DATAFORSEO_SANDBOX === 'true'
+  ? 'https://sandbox.dataforseo.com/v3'
+  : 'https://api.dataforseo.com/v3';
+
+In Replit Secrets:
+Change DATAFORSEO_SANDBOX from "true" to "false"
+
+STEP 2: SWITCH THESE ENDPOINTS TO LIVE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+These are safe to go live — pay per use,
+no monthly minimum, very cheap:
+
+ENDPOINT A: Google AI Overview / SERP
+Cost: $0.0006 per query (standard queue)
+Use for: Checking if brand appears in 
+Google AI Overview results
+
+Switch to live mode.
+Use Standard Queue (not Live mode) 
+to keep costs at $0.0006 not $0.002.
+
+POST https://api.dataforseo.com/v3/serp/google/organic/task_post
+Auth: Basic base64(login:password)
+Body:
+[{
+  "keyword": "${brand} ${keyword}",
+  "location_name": "United States",
+  "language_name": "English",
+  "device": "desktop",
+  "os": "windows"
+}]
+
+Then poll results:
+GET https://api.dataforseo.com/v3/serp/google/organic/task_get/${taskId}
+
+ENDPOINT B: On-Page Site Audit
+Cost: $0.0015 per page crawled
+Use for: AI Crawler Audit page
+
+Switch to live mode.
+Add cost estimate before running:
+"This audit will crawl up to 25 pages
+Estimated cost: $0.04"
+[Run Audit] button
+
+POST https://api.dataforseo.com/v3/on_page/task_post
+Body:
+[{
+  "target": "${domain}",
+  "max_crawl_pages": 25,
+  "load_resources": false,
+  "enable_javascript": false,
+  "custom_js": ""
+}]
+
+Then get results:
+GET https://api.dataforseo.com/v3/on_page/summary/${taskId}
+
+ENDPOINT C: DataForSEO SERP for brand mentions
+Cost: $0.0006 per query
+Use for: Checking brand in search results
+
+POST https://api.dataforseo.com/v3/serp/google/organic/live/advanced
+Body:
+[{
+  "keyword": "\"${brandName}\"",
+  "location_name": "United States", 
+  "language_name": "English",
+  "depth": 10
+}]
+
+STEP 3: KEEP LLM MENTIONS IN CLAUDE MODE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+LLM Mentions API needs $100/month minimum.
+Do NOT switch this to live yet.
+
+Instead keep using Claude API directly
+to check AI visibility:
+
+For AI Presence page — use existing
+Claude-based brand scanning across
+ChatGPT, Gemini, Perplexity, Claude, Grok.
+This is already live and working.
+Cost: ~$0.10 per full scan (Claude API)
+This is fine until you get paying customers.
+
+Add honest note in UI:
+"Powered by live AI scanning via Claude API.
+DataForSEO LLM Mentions integration 
+coming soon for deeper citation data."
+
+STEP 4: ADD COST TRACKING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Track DataForSEO spend in Supabase:
+
+table: api_cost_log
+columns: user_id, endpoint, cost_usd, 
+  timestamp, domain
+
+After each DataForSEO call log:
+await supabase.from('api_cost_log').insert({
+  user_id: req.user?.id || 'system',
+  endpoint: 'serp_standard',
+  cost_usd: 0.0006,
+  timestamp: new Date().toISOString(),
+  domain: domain
+});
+
+Add admin view (only for your account):
+Total spend today: $X.XX
+Total spend this month: $X.XX
+Most expensive users: [list]
+
+This prevents surprise bills.
+
+STEP 5: ADD SMART CACHING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Before every DataForSEO call check cache:
+
+table: dataforseo_cache
+columns: cache_key, response_json, 
+  endpoint, cached_at, domain
+
+Cache duration per endpoint:
+SERP results: 24 hours
+On-Page audit: 48 hours
+Brand mentions SERP: 24 hours
+
+const getCached = async (key) => {
+  const { data } = await supabase
+    .from('dataforseo_cache')
+    .select('*')
+    .eq('cache_key', key)
+    .gt('cached_at', 
+      new Date(Date.now() - CACHE_DURATION).toISOString()
+    )
+    .single();
+  return data?.response_json || null;
+};
+
+const setCache = async (key, data, endpoint, domain) => {
+  await supabase.from('dataforseo_cache').upsert({
+    cache_key: key,
+    response_json: data,
+    endpoint,
+    domain,
+    cached_at: new Date().toISOString()
+  });
+};
+
+Cache key format:
+`${endpoint}_${domain}_${keyword}_${date}`
+e.g. "serp_clevertap.com_mobile_marketing_2026-06-07"
+
+Show in UI when data is from cache:
+Small grey badge: "Data from 3 hours ago [Refresh]"
+[Refresh] button forces new API call and clears cache.
+
+STEP 6: SHOW REAL DATA ON AI PRESENCE PAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current: shows 0 for everything on clevertap.com
+This is because sandbox returns no data.
+
+With live SERP API, check if brand appears
+in Google AI Overview:
+
+Query: "${domain_without_tld} company"
+e.g. "clevertap mobile marketing platform"
+
+Check SERP results for:
+1. AI Overview presence (featured snippet)
+2. Knowledge panel
+3. Brand mention in top 10
+
+Use this to populate:
+Mentions: count of SERP results mentioning brand
+Citations: count of results citing brand URL
+Cited Pages: unique pages found
+
+Also run Claude scan as before for:
+ChatGPT visibility
+Gemini visibility
+Perplexity visibility
+
+Combine both data sources into score.
+
+STEP 7: REMOVE ALL SANDBOX INDICATORS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find and remove these from UI:
+"Sandbox mode - analysis is a preview only"
+"Demo content - sandbox mode"
+"Demo mode"
+"Sandbox"
+
+Replace with nothing OR with:
+"Live data" green badge where relevant.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXPECTED COSTS WITH NORMAL USAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+10 users running 1 scan per day:
+- SERP queries: 10 × $0.0006 = $0.006/day
+- On-page audits: 10 × 25 pages × $0.0015 = $0.375/day
+- Monthly total: ~$11.50/month
+- Well within safe range.
+
+100 users running 1 scan per day:
+- Monthly total: ~$115/month
+- Covered by 2 paying customers at $69/mo each.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Check Replit console — no more 
+   sandbox.dataforseo.com in logs
+   
+2. Run AI Crawler Audit on hubspot.com
+   Should return real crawl data
+   not sandbox placeholder data
+
+3. Check api_cost_log in Supabase
+   Should show a row with cost_usd: 0.something
+
+4. Run same audit again immediately
+   Should return cached result instantly
+   Show "Data from X minutes ago" badge
+
+5. Check DataForSEO dashboard at
+   app.dataforseo.com/api-usage
+   Should show real API calls being made
+
+Share screenshot of:
+- AI Crawler Audit with real data
+- Supabase api_cost_log showing actual costs
+- DataForSEO dashboard showing live usage

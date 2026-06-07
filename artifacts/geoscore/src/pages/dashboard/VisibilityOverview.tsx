@@ -358,7 +358,12 @@ export function VisibilityOverview({
 
             {/* KPIs card */}
             <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "24px 28px" }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 20 }}>Key Metrics</div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em" }}>Key Metrics</div>
+                <div style={{ fontSize: 11, color: "#6B7280", background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 6, padding: "3px 8px" }}>
+                  Powered by live AI scanning via Claude API. DataForSEO LLM Mentions integration coming soon for deeper citation data.
+                </div>
+              </div>
               <div style={{ display: "flex", gap: 32, marginBottom: 28, flexWrap: "wrap" }}>
                 <KpiCard label="Mentions" value={d.mentions} color={P} sub={`"${d.brandName}" in AI answers`} />
                 <KpiCard label="AI Search Volume" value={d.aiSearchVolume} color="#10B981" sub="Monthly AI searches" />

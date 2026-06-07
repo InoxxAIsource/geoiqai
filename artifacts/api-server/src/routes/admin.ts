@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { db, usersTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { db, usersTable, apiCostLogTable } from "@workspace/db";
+import { eq, desc, gte, sql } from "drizzle-orm";
 import { requireAuth, hashPassword, type AuthRequest } from "../lib/auth";
 
 const router: IRouter = Router();
@@ -150,6 +150,61 @@ router.post("/admin/users/:id/set-password", requireAuth, requireAdmin, async (r
   const passwordHash = hashPassword(password);
   await db.update(usersTable).set({ passwordHash, emailVerified: true }).where(eq(usersTable.id, id));
   res.json({ success: true });
+});
+
+// ─── API Cost View ─────────────────────────────────────────────────────────────
+
+router.get("/admin/api-costs", requireAuth, requireAdmin, async (_req, res): Promise<void> => {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const [todayRow] = await db
+    .select({ total: sql<number>`coalesce(sum(${apiCostLogTable.costUsd}), 0)` })
+    .from(apiCostLogTable)
+    .where(gte(apiCostLogTable.createdAt, todayStart));
+
+  const [monthRow] = await db
+    .select({ total: sql<number>`coalesce(sum(${apiCostLogTable.costUsd}), 0)` })
+    .from(apiCostLogTable)
+    .where(gte(apiCostLogTable.createdAt, monthStart));
+
+  const byEndpoint = await db
+    .select({
+      endpoint: apiCostLogTable.endpoint,
+      total: sql<number>`coalesce(sum(${apiCostLogTable.costUsd}), 0)`,
+      calls: sql<number>`count(*)`,
+    })
+    .from(apiCostLogTable)
+    .where(gte(apiCostLogTable.createdAt, monthStart))
+    .groupBy(apiCostLogTable.endpoint)
+    .orderBy(desc(sql`sum(${apiCostLogTable.costUsd})`));
+
+  const topUsers = await db
+    .select({
+      userId: apiCostLogTable.userId,
+      total: sql<number>`coalesce(sum(${apiCostLogTable.costUsd}), 0)`,
+      calls: sql<number>`count(*)`,
+    })
+    .from(apiCostLogTable)
+    .where(gte(apiCostLogTable.createdAt, monthStart))
+    .groupBy(apiCostLogTable.userId)
+    .orderBy(desc(sql`sum(${apiCostLogTable.costUsd})`))
+    .limit(10);
+
+  const recent = await db
+    .select()
+    .from(apiCostLogTable)
+    .orderBy(desc(apiCostLogTable.createdAt))
+    .limit(20);
+
+  res.json({
+    spendToday: Number(todayRow?.total ?? 0),
+    spendThisMonth: Number(monthRow?.total ?? 0),
+    byEndpoint,
+    topUsers,
+    recent,
+  });
 });
 
 export default router;

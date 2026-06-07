@@ -24,6 +24,7 @@ import {
   sandboxMode,
   getDfCache,
   setDfCache,
+  logDfsCost,
 } from "../lib/dataforseo";
 import { runAuditEngine } from "../lib/audit-engine";
 import { crawlSite } from "../lib/site-crawler";
@@ -389,6 +390,7 @@ router.post("/audit/google-ai-check", async (req, res): Promise<void> => {
 
   const locationCode = getLocationCode(domain);
   const result = await getGoogleAiOverview(kws, domain, locationCode);
+  if (result.estimatedCostUsd > 0) logDfsCost("serp_google_ai_overview", result.estimatedCostUsd, domain);
   res.json(result);
 });
 
@@ -564,6 +566,7 @@ router.post("/onpage/audit", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
+  if (result.estimatedCostUsd > 0) logDfsCost("onpage_audit", result.estimatedCostUsd, domain, (req as AuthRequest).user?.id);
   res.json(result);
 });
 
@@ -648,6 +651,7 @@ router.post("/dataforseo/chatgpt-scraper", requireAuth, async (req, res): Promis
 
   const result = await getChatGptScraper(kws, domain, locationCode);
   req.log.info({ domain, sources: result.allSources.length, cited: result.domainCited, cost: result.estimatedCostUsd, cached: result.cached }, "chatgpt-scraper done");
+  if (!result.cached && result.estimatedCostUsd > 0) logDfsCost("serp_chatgpt_scraper", result.estimatedCostUsd, domain, (req as AuthRequest).user?.id);
   res.json(result);
 });
 
@@ -674,6 +678,7 @@ router.post("/dataforseo/gemini-scraper", requireAuth, async (req, res): Promise
 
   const result = await getGeminiScraper(kws, domain, locationCode);
   req.log.info({ domain, sources: result.allSources.length, cited: result.domainCited, cost: result.estimatedCostUsd, cached: result.cached }, "gemini-scraper done");
+  if (!result.cached && result.estimatedCostUsd > 0) logDfsCost("serp_gemini_scraper", result.estimatedCostUsd, domain, (req as AuthRequest).user?.id);
   res.json(result);
 });
 
@@ -719,6 +724,7 @@ router.post("/dataforseo/ai-keyword-volume", requireAuth, async (req, res): Prom
 
   const result = await getAiKeywordVolume(keywords, locationCode);
   req.log.info({ count: result.items?.length ?? 0, cost: result.estimatedCostUsd, cached: result.cached }, "ai-keyword-volume done");
+  if (!result.cached && result.estimatedCostUsd > 0) logDfsCost("ai_keyword_volume", result.estimatedCostUsd, domain, (req as AuthRequest).user?.id);
   res.json({ keywords: result.items, estimatedCostUsd: result.estimatedCostUsd, cached: result.cached, mode: "volume" });
 });
 

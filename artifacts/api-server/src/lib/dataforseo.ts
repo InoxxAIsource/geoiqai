@@ -1,4 +1,4 @@
-import { db, keywordCacheTable, dataforseoCacheTable } from "@workspace/db";
+import { db, keywordCacheTable, dataforseoCacheTable, apiCostLogTable } from "@workspace/db";
 import { eq, gt } from "drizzle-orm";
 import type { KeywordData } from "@workspace/db";
 import { logger } from "./logger";
@@ -1359,6 +1359,24 @@ export function sandboxMode(): boolean {
   return process.env.DATAFORSEO_SANDBOX === "true";
 }
 
+/**
+ * Controls LLM Mentions endpoints only (/v3/ai_optimization/llm_mentions/*).
+ * These require a DataForSEO $100/month minimum subscription.
+ * Set DATAFORSEO_LLM_MENTIONS_LIVE=true to enable once subscribed.
+ */
+export function llmMentionsSandboxMode(): boolean {
+  return process.env.DATAFORSEO_LLM_MENTIONS_LIVE !== "true";
+}
+
+/**
+ * Fire-and-forget cost logger. Writes to api_cost_log table.
+ * Never throws - cost logging failure must not break the caller.
+ */
+export function logDfsCost(endpoint: string, costUsd: number, domain?: string, userId = "system"): void {
+  db.insert(apiCostLogTable).values({ userId, endpoint, costUsd, domain: domain ?? null })
+    .catch(() => { /* non-fatal */ });
+}
+
 export { getDfCache, setDfCache };
 
 async function getDfCache(key: string): Promise<Record<string, unknown> | null> {
@@ -1435,7 +1453,7 @@ export async function getLlmTopDomains(
   if (cached) {
     return { ...(cached as unknown as LlmTopDomainsResult), cached: true };
   }
-  if (sandboxMode()) { logger.info({ cacheKey }, "[DFS] sandbox - skipping live call"); return empty; }
+  if (llmMentionsSandboxMode()) { logger.info({ cacheKey }, "[DFS] llm_mentions sandbox - skipping live call"); return empty; }
 
   const payload = top5.map(kw => ({
     keyword: kw,
@@ -1983,7 +2001,7 @@ export async function getLlmCrossAggregated(
   if (cached) {
     return { ...(cached as unknown as LlmCrossAggResult), cached: true };
   }
-  if (sandboxMode()) { logger.info({ cacheKey }, "[DFS] sandbox - skipping live call"); return empty; }
+  if (llmMentionsSandboxMode()) { logger.info({ cacheKey }, "[DFS] llm_mentions sandbox - skipping live call"); return empty; }
 
   const payload = [{
     targets: allTargets.map(domain => {
@@ -2421,7 +2439,7 @@ export async function getLlmAggregatedMetrics(
   const cacheKey = `llm_agg:${platform ?? "all"}:${domain}:${dateFrom}:${dateTo}`;
   const cached = await getDfCache(cacheKey);
   if (cached) return { ...(cached as unknown as LlmAggResult), cached: true };
-  if (sandboxMode()) { logger.info({ cacheKey }, "[DFS] sandbox - skipping live call"); return empty; }
+  if (llmMentionsSandboxMode()) { logger.info({ cacheKey }, "[DFS] llm_mentions sandbox - skipping live call"); return empty; }
 
   try {
     const auth = getAuthHeader();
@@ -2490,7 +2508,7 @@ export async function getLlmTopPagesList(
   const cacheKey = `llm_pages:${platform ?? "all"}:${domain}:${dateFrom}:${dateTo}:${limit}`;
   const cached = await getDfCache(cacheKey);
   if (cached) return { ...(cached as unknown as LlmTopPagesResult), cached: true };
-  if (sandboxMode()) { logger.info({ cacheKey }, "[DFS] sandbox - skipping live call"); return empty; }
+  if (llmMentionsSandboxMode()) { logger.info({ cacheKey }, "[DFS] llm_mentions sandbox - skipping live call"); return empty; }
 
   try {
     const auth = getAuthHeader();
@@ -2567,7 +2585,7 @@ export async function getLlmSearchTopics(
   const cacheKey = `llm_topics_kw:${platform}:${keyword}:${dateFrom}:${dateTo}:${filter}:${limit}`;
   const cached = await getDfCache(cacheKey);
   if (cached) return { ...(cached as unknown as LlmSearchTopicsResult), cached: true };
-  if (sandboxMode()) { logger.info({ cacheKey }, "[DFS] sandbox - skipping live call"); return empty; }
+  if (llmMentionsSandboxMode()) { logger.info({ cacheKey }, "[DFS] llm_mentions sandbox - skipping live call"); return empty; }
 
   try {
     const auth = getAuthHeader();
@@ -2647,7 +2665,7 @@ export async function getLlmKeywordAggMetrics(
   const cacheKey = `llm_kw_agg:${platform ?? "all"}:${brandName}:${dateFrom}:${dateTo}`;
   const cached = await getDfCache(cacheKey);
   if (cached) return { ...(cached as unknown as LlmKeywordAggResult), cached: true };
-  if (sandboxMode()) { logger.info({ cacheKey }, "[DFS] sandbox - skipping live call"); return empty; }
+  if (llmMentionsSandboxMode()) { logger.info({ cacheKey }, "[DFS] llm_mentions sandbox - skipping live call"); return empty; }
 
   try {
     const auth = getAuthHeader();
@@ -2721,7 +2739,7 @@ export async function getLlmCrossAggByGroup(
   const cacheKey = `llm_cross_grp:${brandName}:${dateFrom}:${dateTo}:${groupBy}`;
   const cached = await getDfCache(cacheKey);
   if (cached) return { ...(cached as unknown as LlmCrossAggByGroupResult), cached: true };
-  if (sandboxMode()) { logger.info({ cacheKey }, "[DFS] sandbox - skipping live call"); return empty; }
+  if (llmMentionsSandboxMode()) { logger.info({ cacheKey }, "[DFS] llm_mentions sandbox - skipping live call"); return empty; }
 
   try {
     const auth = getAuthHeader();

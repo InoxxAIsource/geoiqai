@@ -575,13 +575,6 @@ function GeoOptimizerTab({ domain, onTopicSelect, prefilledContent }: {
 
       {result && !loading && (
         <div>
-          {result.isMock === true && (
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#FFFBEB",
-              border: "1px solid #FDE68A", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600,
-              color: "#92400E", marginBottom: 12 }}>
-              Sandbox mode - analysis is a preview only
-            </div>
-          )}
 
           {/* Score + factor stats */}
           <div style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
@@ -899,14 +892,6 @@ function AIWriterTab({ domain: _domain, onSendToOptimizer, onRepurpose }: {
 
       {result && !loading && (
         <div>
-          {result.isMock === true && (
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#FFFBEB",
-              border: "1px solid #FDE68A", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600,
-              color: "#92400E", marginBottom: 12 }}>
-              Demo content - sandbox mode
-            </div>
-          )}
-
           <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
             <button onClick={copyContent}
               style={{ padding: "8px 14px", background: copied ? "#ECFDF5" : "white",
@@ -1725,13 +1710,6 @@ function RepurposerTab({ domain, prefilledContent, onSendToOptimizer }: {
         {/* Result cards */}
         {result && !loading && (
           <div>
-            {result.isMock === true && (
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#FFFBEB",
-                border: "1px solid #FDE68A", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600,
-                color: "#92400E", marginBottom: 12 }}>
-                Demo content - sandbox mode
-              </div>
-            )}
             <div style={{ background: "#EEF2FF", border: "1px solid #C7D2FE", borderRadius: 8,
               padding: "10px 14px", marginBottom: 14, display: "flex", alignItems: "center",
               justifyContent: "space-between", gap: 12 }}>
