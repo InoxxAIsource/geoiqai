@@ -26,6 +26,7 @@ import {
   setDfCache,
 } from "../lib/dataforseo";
 import { runAuditEngine } from "../lib/audit-engine";
+import { crawlSite } from "../lib/site-crawler";
 import { db, citationsTable, keywordCacheTable, auditsTable, promptTrackingTable, siteAuditHistoryTable } from "@workspace/db";
 import { eq, and, desc, gt } from "drizzle-orm";
 import OpenAI from "openai";
@@ -305,6 +306,36 @@ router.post("/onpage/quick", async (req, res): Promise<void> => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Could not fetch site";
     res.status(502).json({ error: msg });
+  }
+});
+
+// ─── Deep multi-page site crawl ───────────────────────────────────────────────
+router.post("/site-audit/crawl", async (req, res): Promise<void> => {
+  const { domain } = req.body as { domain?: string };
+  if (!domain) { res.status(400).json({ error: "domain is required" }); return; }
+  try {
+    const result = await crawlSite(domain, 25);
+    // Optionally save to history if authenticated
+    const authHeader = req.headers.authorization ?? "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (token) {
+      const user = await verifyToken(token);
+      if (user) {
+        await db.insert(siteAuditHistoryTable).values({
+          userId: user,
+          domain: result.domain,
+          siteHealthScore: result.siteHealthScore,
+          aiHealthScore: result.aiHealthScore,
+          errorsCount: result.errorsCount,
+          warningsCount: result.warningsCount,
+          results: result as unknown as Record<string, unknown>,
+        });
+      }
+    }
+    res.json(result);
+  } catch (err) {
+    req.log.error({ err }, "site-audit/crawl failed");
+    res.status(500).json({ error: "Crawl failed" });
   }
 });
 
