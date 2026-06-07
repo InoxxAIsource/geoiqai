@@ -1,0 +1,376 @@
+Upgrade Site Audit page to match Semrush 
+Site Audit standard. Current version is too 
+shallow — only 4 issues shown, no categories,
+no score history, no Core Web Vitals.
+
+SECTION 1: DUAL SCORE HEADER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Replace single AI SCORE metric with two scores:
+
+┌─────────────────┬──────────────────┐
+│  SITE HEALTH    │  AI SEARCH HEALTH│
+│     71/100      │     54/100       │
+│   ● Good        │   ⚠ Needs Work   │
+└─────────────────┴──────────────────┘
+
+Site Health = traditional crawl health
+(pages crawled, errors, broken links, 
+meta tags, speed signals)
+
+AI Search Health = GEO readiness
+(llms.txt, schema, bot access, 
+structured data, FAQ presence)
+
+Keep existing stats row:
+Pages Crawled | Healthy | Errors | Warnings
+But add: Last Crawled: X hours ago
+And: [Schedule Weekly Crawl] button
+
+SECTION 2: THREE TABS — FULL REBUILD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Tab 1: Overview (current)
+Tab 2: Issues — full rebuild
+Tab 3: Bot Access (current — keep)
+Tab 4: NEW — AI Readiness
+Tab 5: NEW — Performance
+
+TAB 2: ISSUES — FULL REBUILD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Categorize all issues into 3 severity levels:
+
+ERRORS (red) — must fix immediately
+WARNINGS (orange) — should fix soon  
+NOTICES (blue) — good to know
+
+For each URL/domain audit check these:
+
+ERRORS to check:
+1. Pages returning 4xx or 5xx errors
+2. Missing meta title on any page
+3. Missing meta description on any page
+4. Broken internal links
+5. No sitemap.xml found
+6. AI bots explicitly blocked in robots.txt
+7. No HTTPS / SSL issues
+8. Duplicate page titles
+
+WARNINGS to check:
+1. llms.txt missing
+2. No Organization JSON-LD schema
+3. No FAQPage schema
+4. Meta title too long (over 60 chars)
+5. Meta description too long (over 160 chars)
+6. Images missing alt text
+7. No H1 tag on homepage
+8. Heading hierarchy broken (H3 before H2)
+9. Page load signal (check if server responds 
+   in over 3 seconds)
+10. No canonical tags
+
+NOTICES to check:
+1. GPTBot status in robots.txt
+2. PerplexityBot status
+3. ClaudeBot status
+4. Google-Extended status
+5. Sitemap last modified date
+6. Number of pages indexed estimate
+
+Display as:
+
+ERRORS (2)
+─────────────────────────────────────
+✕ Missing meta descriptions on 3 pages
+  Pages: /pricing, /blog, /about
+  Impact: AI systems cannot summarize 
+  these pages accurately
+  [Fix Guide →]
+
+✕ No HTTPS redirect from HTTP
+  Impact: Trust signal missing for 
+  AI citation systems
+  [Fix Guide →]
+
+WARNINGS (4)
+─────────────────────────────────────
+⚠ llms.txt not found
+  Impact: AI crawlers must guess your 
+  site purpose without this file
+  [Fix Guide →]
+
+⚠ No Organization schema on homepage
+  [Fix Guide →]
+
+(etc)
+
+NOTICES (6)
+─────────────────────────────────────
+ℹ GPTBot: Allowed in robots.txt
+ℹ PerplexityBot: Not explicitly blocked
+(etc)
+
+[Fix Guide →] button behavior:
+Expands inline step-by-step fix flow
+Same pattern as GEO Optimizer fix flows:
+numbered steps, copy buttons, verify links
+
+TAB 4: AI READINESS (NEW)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Dedicated tab scoring AI-specific factors:
+
+AI READINESS CHECKLIST
+━━━━━━━━━━━
+✓ GPTBot allowed          [Allowed in robots.txt]
+✓ ClaudeBot allowed       [Not blocked]
+✓ PerplexityBot allowed   [Not blocked]
+✕ llms.txt file           [Missing — Add now]
+✕ Organization schema     [Missing — Add now]
+✕ FAQPage schema          [Missing — Add now]
+⚠ AI Search snippet       [Partial — Improve]
+✕ Entity definition       [Missing — Add now]
+
+Score: 3/8 checks passing
+
+Each row:
+Green check = passing
+Red X = missing (show [Fix Guide →])
+Orange warning = partial
+
+[Generate llms.txt →] button:
+Calls backend to auto-generate 
+llms.txt content for their domain
+User can copy and deploy
+
+TAB 5: PERFORMANCE (NEW)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Show basic performance signals:
+
+SERVER RESPONSE TIME
+Check how fast domain responds:
+fetch with timing → show ms
+
+Green: under 800ms
+Orange: 800ms to 2000ms  
+Red: over 2000ms
+
+MOBILE FRIENDLY CHECK
+Link to Google Mobile Test:
+[Test Mobile Friendliness →]
+url: https://search.google.com/test/mobile-friendly?url={domain}
+
+PAGE SPEED CHECK
+Link to PageSpeed Insights:
+[Check Page Speed →]
+url: https://pagespeed.web.dev/report?url={domain}
+
+CORE WEB VITALS
+Note: "Connect Google Search Console 
+for real Core Web Vitals data"
+[Connect GSC →]
+
+SECTION 3: SCORE HISTORY CHART
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Below the dual score header add a small
+sparkline chart showing score over time.
+
+If first audit: show single point.
+If multiple audits: show trend line.
+
+Store each audit result in Supabase:
+table: site_audit_history
+columns: user_id, domain, 
+         site_health_score, 
+         ai_health_score,
+         errors_count,
+         warnings_count,
+         audited_at
+
+Chart: simple line, last 8 audits
+Two lines: site health (blue) + AI health (purple)
+Label: "Run weekly audits to track progress"
+
+SECTION 4: FIX FLOWS PER ISSUE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Each [Fix Guide →] expands inline:
+
+llms.txt missing:
+Step 1: Generate your llms.txt
+  [Generate llms.txt →] button
+  Calls /api/generate-llmstxt
+  Returns ready file content
+
+Step 2: Upload to your domain root
+  Your file must be accessible at:
+  https://yourdomain.com/llms.txt
+  In Replit: add to /public folder
+  In other hosts: upload to root
+
+Step 3: Verify it works
+  [Check llms.txt →] button
+  Opens: https://{domain}/llms.txt
+  in new tab
+
+Organization schema missing:
+Step 1: Copy your schema
+  [Copy Schema →]
+  Auto-generates schema with their domain filled in
+
+Step 2: Add to homepage <head>
+  Paste before </head> tag
+
+Step 3: Test it
+  [Test in Google →]
+  Opens rich results tester
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BACKEND: REAL CRAWL CHECKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+app.post('/api/site-audit', async (req, res) => {
+  const { domain } = req.body;
+  const url = `https://${domain}`;
+  const results = {};
+
+  // Check 1: Server response + timing
+  try {
+    const start = Date.now();
+    const resp = await fetch(url, { 
+      timeout: 10000,
+      headers: { 
+        'User-Agent': 'Mozilla/5.0 GeoIQ-Audit/1.0' 
+      }
+    });
+    results.server_response_ms = Date.now() - start;
+    results.status_code = resp.status;
+    results.https = url.startsWith('https');
+    const html = await resp.text();
+    
+    // Check 2: Meta title
+    const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
+    results.meta_title = titleMatch ? titleMatch[1].trim() : null;
+    results.meta_title_length = results.meta_title?.length || 0;
+    
+    // Check 3: Meta description
+    const descMatch = html.match(
+      /<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["']/i
+    );
+    results.meta_description = descMatch ? descMatch[1] : null;
+    results.meta_description_length = 
+      results.meta_description?.length || 0;
+    
+    // Check 4: H1 tag
+    const h1Match = html.match(/<h1[^>]*>(.*?)<\/h1>/i);
+    results.has_h1 = !!h1Match;
+    
+    // Check 5: Schema markup
+    results.has_schema = html.includes('application/ld+json');
+    results.has_org_schema = html.includes('"Organization"');
+    results.has_faq_schema = html.includes('"FAQPage"');
+    results.has_software_schema = 
+      html.includes('"SoftwareApplication"');
+    
+    // Check 6: Sitemap
+    try {
+      const sitemapResp = await fetch(`${url}/sitemap.xml`);
+      results.has_sitemap = sitemapResp.status === 200;
+    } catch { results.has_sitemap = false; }
+    
+    // Check 7: llms.txt
+    try {
+      const llmsResp = await fetch(`${url}/llms.txt`);
+      results.has_llmstxt = llmsResp.status === 200;
+    } catch { results.has_llmstxt = false; }
+    
+    // Check 8: robots.txt + bot access
+    try {
+      const robotsResp = await fetch(`${url}/robots.txt`);
+      const robotsTxt = await robotsResp.text();
+      results.robots_txt = robotsTxt;
+      results.gptbot_allowed = !robotsTxt.includes('Disallow: /') 
+        || robotsTxt.includes('GPTBot') && 
+           !robotsTxt.match(/User-agent: GPTBot[\s\S]*?Disallow: \//);
+      results.perplexitybot = 
+        !robotsTxt.includes('PerplexityBot');
+      results.claudebot = 
+        !robotsTxt.includes('ClaudeBot');
+      results.google_extended = 
+        robotsTxt.includes('Google-Extended');
+    } catch { 
+      results.has_robots = false; 
+    }
+    
+    // Check 9: Canonical
+    results.has_canonical = html.includes('rel="canonical"');
+    
+    // Check 10: Image alts (basic check)
+    const imgWithoutAlt = (html.match(/<img(?![^>]*alt=)[^>]*>/gi) || []).length;
+    results.images_missing_alt = imgWithoutAlt;
+    
+  } catch (error) {
+    results.fetch_error = error.message;
+  }
+
+  // Score calculation
+  const checks = [
+    results.meta_title,
+    results.meta_description,
+    results.has_h1,
+    results.https,
+    results.has_sitemap,
+    results.has_schema,
+    results.has_canonical,
+    results.server_response_ms < 2000
+  ];
+  const passing = checks.filter(Boolean).length;
+  results.site_health_score = Math.round((passing / checks.length) * 100);
+
+  const aiChecks = [
+    results.has_llmstxt,
+    results.has_org_schema,
+    results.has_faq_schema,
+    results.gptbot_allowed,
+    results.perplexitybot,
+    results.claudebot,
+    results.has_schema
+  ];
+  const aiPassing = aiChecks.filter(Boolean).length;
+  results.ai_health_score = Math.round(
+    (aiPassing / aiChecks.length) * 100
+  );
+
+  // Save to history
+  await supabase.from('site_audit_history').insert({
+    user_id: req.user.id,
+    domain: domain,
+    site_health_score: results.site_health_score,
+    ai_health_score: results.ai_health_score,
+    results: results,
+    audited_at: new Date().toISOString()
+  });
+
+  res.json({ success: true, data: results });
+});
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Run audit on these 3 domains:
+1. geoiqai.com
+2. clevertap.com
+3. notion.so
+
+Each should show:
+- Two separate scores (Site Health + AI Health)
+- Issues sorted into Errors / Warnings / Notices
+- AI Readiness tab with checklist
+- Fix Guide expanding inline with steps
+- Score history chart (first point for new domains)
+
+Share screenshot of Issues tab result.

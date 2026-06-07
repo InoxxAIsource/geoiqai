@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireAuth, type AuthRequest } from "../lib/auth";
+import { requireAuth, verifyToken, type AuthRequest } from "../lib/auth";
 import {
   getGoogleAiOverview,
   getBacklinksSummary,
@@ -26,7 +26,7 @@ import {
   setDfCache,
 } from "../lib/dataforseo";
 import { runAuditEngine } from "../lib/audit-engine";
-import { db, citationsTable, keywordCacheTable, auditsTable, promptTrackingTable } from "@workspace/db";
+import { db, citationsTable, keywordCacheTable, auditsTable, promptTrackingTable, siteAuditHistoryTable } from "@workspace/db";
 import { eq, and, desc, gt } from "drizzle-orm";
 import OpenAI from "openai";
 
@@ -85,40 +85,113 @@ router.delete("/dataforseo/keyword-cache", requireAuth, async (req, res): Promis
   }
 });
 
-// ─── Public quick site health check (no auth) ────────────────────────────────
-// Fetches the homepage, measures TTFB, reads security headers, detects tech stack.
-// Intentionally skips PageSpeed Insights to keep response time under 10s.
+// ─── Public quick site health check (optionally authenticated) ───────────────
+// Fetches homepage + robots.txt + sitemap + llms.txt in parallel.
+// Returns dual scores: Site Health and AI Search Health.
+// If a valid auth token is present, saves result to site_audit_history.
+
+function checkBotAccess(robotsTxt: string, botName: string): { allowed: boolean; note: string } {
+  if (!robotsTxt.trim()) return { allowed: true, note: "Not explicitly blocked (no robots.txt)" };
+  const lines = robotsTxt.split("\n").map(l => (l.split("#")[0] ?? "").trim()).filter(Boolean);
+  let inBot = false;
+  let inWild = false;
+  let botFound = false;
+  let botDisallow = false;
+  let wildDisallow = false;
+  for (const line of lines) {
+    const lower = line.toLowerCase();
+    if (lower.startsWith("user-agent:")) {
+      const agent = line.slice(11).trim();
+      inBot = agent.toLowerCase() === botName.toLowerCase();
+      inWild = agent === "*";
+      if (inBot) botFound = true;
+    } else if (lower.startsWith("disallow:")) {
+      const path = line.slice(9).trim();
+      if (inBot && path === "/") botDisallow = true;
+      if (inWild && path === "/") wildDisallow = true;
+    } else if (lower.startsWith("allow:")) {
+      const path = line.slice(6).trim();
+      if (inBot && path === "/") botDisallow = false;
+      if (inWild && path === "/") wildDisallow = false;
+    }
+  }
+  if (botFound) {
+    return botDisallow
+      ? { allowed: false, note: `Blocked by User-agent: ${botName} rule` }
+      : { allowed: true, note: "Allowed (explicit rule in robots.txt)" };
+  }
+  return wildDisallow
+    ? { allowed: false, note: "Blocked by wildcard (*) Disallow: /" }
+    : { allowed: true, note: "Not explicitly blocked" };
+}
+
 router.post("/onpage/quick", async (req, res): Promise<void> => {
   const { domain } = req.body as { domain?: string };
   if (!domain) { res.status(400).json({ error: "domain is required" }); return; }
 
+  const authHeader = (req.headers.authorization ?? "").replace("Bearer ", "").trim();
+  const userId = authHeader ? verifyToken(authHeader) : null;
+
   try {
     const base = domain.startsWith("http") ? domain.replace(/\/$/, "") : `https://${domain}`;
-    const homeUrl = `${base}/`;
+    const domainClean = base.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
+    const ua = { headers: { "User-Agent": "GeoIQ-Audit/1.0 (+https://geoiqai.com)" } };
     const fetchStart = Date.now();
-    const homeResp = await fetch(homeUrl, {
-      headers: { "User-Agent": "GeoIQ-Audit/1.0 (+https://geoiqai.com)" },
-      signal: AbortSignal.timeout(10000),
-      redirect: "follow",
-    });
+    const [homeResult, robotsResult, sitemapResult, llmsResult] = await Promise.allSettled([
+      fetch(`${base}/`, { ...ua, signal: AbortSignal.timeout(10000), redirect: "follow" }),
+      fetch(`${base}/robots.txt`, { ...ua, signal: AbortSignal.timeout(6000) }),
+      fetch(`${base}/sitemap.xml`, { ...ua, signal: AbortSignal.timeout(6000) }),
+      fetch(`${base}/llms.txt`, { ...ua, signal: AbortSignal.timeout(6000) }),
+    ]);
     const ttfbMs = Date.now() - fetchStart;
 
-    const isHttps = homeUrl.startsWith("https://") && homeResp.ok;
-    const html = homeResp.ok ? await homeResp.text() : "";
-    const serverHeader = homeResp.headers.get("server") ?? "";
+    const homeResp = homeResult.status === "fulfilled" ? homeResult.value : null;
+    const statusCode = homeResp?.status ?? 0;
+    const isHttps = base.startsWith("https://") && (homeResp?.ok ?? false);
+    const html = homeResp?.ok ? await homeResp.text() : "";
+    const serverHeader = homeResp?.headers.get("server") ?? "";
+
+    // Meta title
+    const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    const metaTitle = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, "").trim() : null;
+    const metaTitleLength = metaTitle?.length ?? 0;
+
+    // Meta description
+    const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["']/i)
+      ?? html.match(/<meta[^>]*content=["']([^"']*)["'][^>]*name=["']description["']/i);
+    const metaDescription = descMatch ? descMatch[1].trim() : null;
+    const metaDescriptionLength = metaDescription?.length ?? 0;
+
+    // H1
+    const h1Match = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+    const hasH1 = !!h1Match;
+    const h1Text = h1Match ? h1Match[1].replace(/<[^>]+>/g, "").trim().slice(0, 120) : null;
+
+    // Schema
+    const hasSchema = html.includes("application/ld+json");
+    const hasOrgSchema = /"@type"\s*:\s*"Organization"/.test(html);
+    const hasFaqSchema = /"@type"\s*:\s*"FAQPage"/.test(html);
+    const hasSoftwareSchema = /"@type"\s*:\s*"SoftwareApplication"/.test(html);
+
+    // Canonical
+    const hasCanonical = /rel=["']canonical["']/.test(html);
+
+    // Images missing alt
+    const imgTags = html.match(/<img[^>]*>/gi) ?? [];
+    const imagesMissingAlt = imgTags.filter(t => !/\balt\s*=/i.test(t)).length;
 
     // Security headers
-    const hsts = homeResp.headers.get("strict-transport-security") !== null;
-    const xFrameOptions = homeResp.headers.get("x-frame-options") !== null;
-    const hasCsp = homeResp.headers.get("content-security-policy") !== null;
-    const xContentTypeOptions = homeResp.headers.get("x-content-type-options") !== null;
-    const referrerPolicy = homeResp.headers.get("referrer-policy") !== null;
+    const hsts = homeResp?.headers.get("strict-transport-security") !== null;
+    const xFrameOptions = homeResp?.headers.get("x-frame-options") !== null;
+    const hasCsp = homeResp?.headers.get("content-security-policy") !== null;
+    const xContentTypeOptions = homeResp?.headers.get("x-content-type-options") !== null;
+    const referrerPolicy = homeResp?.headers.get("referrer-policy") !== null;
 
-    // CMS detection
+    // CMS / framework / CDN / analytics (unchanged)
     let cms: string | null = null;
     if (/wp-content|wp-includes/i.test(html)) cms = "WordPress";
-    else if (/webflow\.com|\.wf-page/i.test(html) || homeResp.headers.get("x-wf-site")) cms = "Webflow";
+    else if (/webflow\.com|\.wf-page/i.test(html) || homeResp?.headers.get("x-wf-site")) cms = "Webflow";
     else if (/<meta[^>]+generator["']?\s*=?\s*["']Ghost/i.test(html)) cms = "Ghost";
     else if (/squarespace\.com|static\.squarespace/i.test(html)) cms = "Squarespace";
     else if (/shopify\.com|cdn\.shopify/i.test(html)) cms = "Shopify";
@@ -127,7 +200,6 @@ router.post("/onpage/quick", async (req, res): Promise<void> => {
       if (gen) cms = gen[1].split(" ")[0] ?? null;
     }
 
-    // Framework detection
     let framework: string | null = null;
     if (/_next\/static/i.test(html)) framework = "Next.js";
     else if (/__gatsby|gatsby-/i.test(html)) framework = "Gatsby";
@@ -137,15 +209,13 @@ router.post("/onpage/quick", async (req, res): Promise<void> => {
     else if (/__svelte|svelte\.dev/i.test(html)) framework = "Svelte";
     else if (/vue\.js|vue\.min\.js|__vue__/i.test(html)) framework = "Vue.js";
 
-    // CDN detection
     let cdn: string | null = null;
-    if (homeResp.headers.get("cf-ray")) cdn = "Cloudflare";
-    else if (homeResp.headers.get("x-vercel-id")) cdn = "Vercel";
-    else if (homeResp.headers.get("x-nf-request-id")) cdn = "Netlify";
-    else if (homeResp.headers.get("x-amz-cf-id")) cdn = "AWS CloudFront";
-    else if ((homeResp.headers.get("x-served-by") ?? "").includes("fastly")) cdn = "Fastly";
+    if (homeResp?.headers.get("cf-ray")) cdn = "Cloudflare";
+    else if (homeResp?.headers.get("x-vercel-id")) cdn = "Vercel";
+    else if (homeResp?.headers.get("x-nf-request-id")) cdn = "Netlify";
+    else if (homeResp?.headers.get("x-amz-cf-id")) cdn = "AWS CloudFront";
+    else if ((homeResp?.headers.get("x-served-by") ?? "").includes("fastly")) cdn = "Fastly";
 
-    // Analytics
     const analytics: string[] = [];
     if (/gtag\(|G-[A-Z0-9]{6,}|analytics\.google\.com/i.test(html)) analytics.push("Google Analytics");
     if (/googletagmanager\.com/i.test(html)) analytics.push("GTM");
@@ -156,29 +226,104 @@ router.post("/onpage/quick", async (req, res): Promise<void> => {
     if (/crisp\.chat|crispSDK/i.test(html)) analytics.push("Crisp");
     if (/intercom\.com|Intercom\(/i.test(html)) analytics.push("Intercom");
 
-    const securityScore = [isHttps, hsts, xFrameOptions || hasCsp, xContentTypeOptions, referrerPolicy].filter(Boolean).length;
+    // robots.txt
+    const robotsResp = robotsResult.status === "fulfilled" ? robotsResult.value : null;
+    const hasRobotsTxt = robotsResp?.ok ?? false;
+    const robotsTxt = hasRobotsTxt ? await robotsResp!.text() : "";
+
+    // sitemap + llms.txt
+    const sitemapResp = sitemapResult.status === "fulfilled" ? sitemapResult.value : null;
+    const hasSitemap = (sitemapResp?.ok && (sitemapResp.status ?? 0) < 400) ?? false;
+
+    const llmsResp = llmsResult.status === "fulfilled" ? llmsResult.value : null;
+    const hasLlmsTxt = (llmsResp?.ok && (llmsResp.status ?? 0) < 400) ?? false;
+
+    // Bot access
+    const gptBot = checkBotAccess(robotsTxt, "GPTBot");
+    const perplexityBot = checkBotAccess(robotsTxt, "PerplexityBot");
+    const claudeBot = checkBotAccess(robotsTxt, "ClaudeBot");
+    const googleExtended = checkBotAccess(robotsTxt, "Google-Extended");
+
+    const botAccess = [
+      { bot: "GPTBot", name: "ChatGPT", ...gptBot },
+      { bot: "PerplexityBot", name: "Perplexity", ...perplexityBot },
+      { bot: "ClaudeBot", name: "Claude / Anthropic", ...claudeBot },
+      { bot: "Google-Extended", name: "Google Gemini", ...googleExtended },
+    ];
+
+    // Dual scores
+    const siteChecksPassing = [isHttps, !!metaTitle, !!metaDescription, hasH1, hasSitemap, hasCanonical, ttfbMs < 2000, hasRobotsTxt].filter(Boolean).length;
+    const siteHealthScore = Math.round((siteChecksPassing / 8) * 100);
+
+    const aiChecksPassing = [hasLlmsTxt, hasOrgSchema, hasFaqSchema, gptBot.allowed, perplexityBot.allowed, claudeBot.allowed, hasSchema, hasCanonical].filter(Boolean).length;
+    const aiHealthScore = Math.round((aiChecksPassing / 8) * 100);
+
+    // Save to history if authenticated
+    if (userId) {
+      db.insert(siteAuditHistoryTable).values({
+        userId,
+        domain: domainClean,
+        siteHealthScore,
+        aiHealthScore,
+        errorsCount: (!isHttps ? 1 : 0) + (botAccess.filter(b => !b.allowed).length),
+        warningsCount: [!metaTitle, !metaDescription, !hasH1, !hasSitemap, !hasLlmsTxt, !hasOrgSchema, !hasFaqSchema, !hasCanonical, imagesMissingAlt > 0, ttfbMs > 3000].filter(Boolean).length,
+        results: { siteHealthScore, aiHealthScore, ttfbMs, statusCode },
+      }).catch(() => { /* non-fatal */ });
+    }
 
     res.json({
       ttfbMs,
+      statusCode,
       isHttps,
-      security: {
-        hsts,
-        clickjacking: xFrameOptions || hasCsp,
-        mimeSniffing: xContentTypeOptions,
-        referrerPolicy,
-        score: securityScore,
-        total: 5,
-      },
-      techStack: {
-        cms,
-        framework,
-        cdn,
-        analytics,
-        server: serverHeader.split("/")[0].trim() || null,
-      },
+      security: { hsts, clickjacking: xFrameOptions || hasCsp, mimeSniffing: xContentTypeOptions, referrerPolicy, score: [isHttps, hsts, xFrameOptions || hasCsp, xContentTypeOptions, referrerPolicy].filter(Boolean).length, total: 5 },
+      techStack: { cms, framework, cdn, analytics, server: serverHeader.split("/")[0].trim() || null },
+      metaTitle,
+      metaTitleLength,
+      metaDescription,
+      metaDescriptionLength,
+      hasH1,
+      h1Text,
+      hasSchema,
+      hasOrgSchema,
+      hasFaqSchema,
+      hasSoftwareSchema,
+      hasCanonical,
+      imagesMissingAlt,
+      hasSitemap,
+      hasLlmsTxt,
+      hasRobotsTxt,
+      robotsTxt: robotsTxt.slice(0, 2000),
+      botAccess,
+      gptBotAllowed: gptBot.allowed,
+      perplexityBotAllowed: perplexityBot.allowed,
+      claudeBotAllowed: claudeBot.allowed,
+      googleExtendedAllowed: googleExtended.allowed,
+      siteHealthScore,
+      aiHealthScore,
+      pagesChecked: 1,
     });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Could not fetch site";
+    res.status(502).json({ error: msg });
+  }
+});
+
+// ─── Site audit history (auth required) ──────────────────────────────────────
+router.get("/site-audit-history", requireAuth, async (req, res): Promise<void> => {
+  const { domain } = req.query as { domain?: string };
+  const userId = (req as AuthRequest).user.id;
+  if (!domain) { res.status(400).json({ error: "domain is required" }); return; }
+  const domainClean = domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
+  try {
+    const rows = await db
+      .select()
+      .from(siteAuditHistoryTable)
+      .where(and(eq(siteAuditHistoryTable.userId, userId), eq(siteAuditHistoryTable.domain, domainClean)))
+      .orderBy(desc(siteAuditHistoryTable.auditedAt))
+      .limit(8);
+    res.json(rows.reverse());
   } catch {
-    res.status(502).json({ error: "Could not fetch site" });
+    res.status(500).json({ error: "Could not fetch audit history" });
   }
 });
 

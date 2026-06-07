@@ -16,3 +16,4 @@ export * from "./dataforseo_cache";
 export * from "./competitor_audits";
 export * from "./prompt_tracking";
 export * from "./content_analyses";
+export * from "./site_audit_history";
