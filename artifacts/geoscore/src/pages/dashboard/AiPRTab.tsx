@@ -578,6 +578,7 @@ function CreatePitchSection({ prefill }: { prefill: { name?: string; publication
   const [mode, setMode] = useState<"scratch" | "press-release" | "key-message">("key-message");
   const [journalistName, setJournalistName] = useState(prefill?.name ?? "");
   const [publication, setPublication] = useState(prefill?.publication ?? "");
+  const [journalistEmail, setJournalistEmail] = useState("");
   const [pressReleaseUrl, setPressReleaseUrl] = useState("");
   const [keyMessage, setKeyMessage] = useState("");
   const [pitchAngle, setPitchAngle] = useState("Tool review request");
@@ -649,7 +650,7 @@ function CreatePitchSection({ prefill }: { prefill: { name?: string; publication
         ))}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
         <div>
           <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>Journalist name</label>
           <input value={journalistName} onChange={e => setJournalistName(e.target.value)} placeholder="e.g. Danny Goodwin"
@@ -658,6 +659,11 @@ function CreatePitchSection({ prefill }: { prefill: { name?: string; publication
         <div>
           <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>Publication</label>
           <input value={publication} onChange={e => setPublication(e.target.value)} placeholder="e.g. Search Engine Land"
+            style={{ width: "100%", padding: "9px 12px", border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+        </div>
+        <div>
+          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>Journalist email <span style={{ fontWeight: 400, color: MUTED }}>(for Gmail)</span></label>
+          <input value={journalistEmail} onChange={e => setJournalistEmail(e.target.value)} placeholder="journalist@outlet.com" type="email"
             style={{ width: "100%", padding: "9px 12px", border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
         </div>
       </div>
@@ -711,7 +717,7 @@ function CreatePitchSection({ prefill }: { prefill: { name?: string; publication
                   {copiedField === btn.field ? <Check size={11} color={GREEN} /> : <Copy size={11} />} {btn.label}
                 </button>
               ))}
-              <a href={`https://mail.google.com/mail/?view=cm&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`} target="_blank" rel="noopener noreferrer"
+              <a href={`https://mail.google.com/mail/?view=cm${journalistEmail ? `&to=${encodeURIComponent(journalistEmail)}` : ""}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`} target="_blank" rel="noopener noreferrer"
                 style={{ fontSize: 11, color: P, background: "white", border: `1px solid ${P}44`, borderRadius: 5, padding: "3px 9px", textDecoration: "none", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
                 <ExternalLink size={11} /> Open in Gmail
               </a>
