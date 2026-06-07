@@ -1,7 +1,8 @@
 import { db, monitoredBrandsTable, usersTable, dailyScoresTable } from "@workspace/db";
 import { eq, and, gte } from "drizzle-orm";
 import { runAuditEngine, generateRecommendations } from "./audit-engine";
-import { sendWeeklyDigest } from "./email-service";
+import { sendWeeklyDigest, sendPromptDigest } from "./email-service";
+import { runDailyPromptChecks } from "../routes/answer-monitoring";
 import { logger } from "./logger";
 
 let lastDailyRunDate: string | null = null;
@@ -131,11 +132,56 @@ async function runDailyMonitoringJob(): Promise<void> {
   logger.info("Daily monitoring job complete");
 }
 
+async function runDailyAnswerMonitoringJob(): Promise<void> {
+  logger.info("Starting daily answer monitoring job");
+  try {
+    const userChanges = await runDailyPromptChecks();
+    const allUsers = await db.select().from(usersTable);
+    const userMap = new Map(allUsers.map(u => [u.id, u]));
+
+    for (const [userId, changes] of userChanges.entries()) {
+      const user = userMap.get(userId);
+      if (!user) continue;
+      if (changes.improved.length === 0 && changes.dropped.length === 0) continue;
+
+      const userDomains = [...new Set([
+        ...changes.improved.map(() => ""),
+        ...changes.dropped.map(() => ""),
+      ])];
+      const domain = userDomains[0] ?? "";
+
+      try {
+        await sendPromptDigest(user.email, domain, changes.improved, changes.dropped, changes.unchanged);
+        logger.info({ userId, improved: changes.improved.length, dropped: changes.dropped.length }, "Prompt digest sent");
+      } catch (err) {
+        logger.error({ err, userId }, "Failed to send prompt digest");
+      }
+    }
+  } catch (err) {
+    logger.error({ err }, "Daily answer monitoring job failed");
+  }
+  logger.info("Daily answer monitoring job complete");
+}
+
+let lastAnswerMonitoringRunDate: string | null = null;
+
+function isAnswerMonitoringTime(): boolean {
+  const now = new Date();
+  return now.getUTCHours() === 6 && now.getUTCMinutes() < 30;
+}
+
 export function startScheduler(): void {
   setInterval(() => {
     if (isRunTime()) {
       runDailyMonitoringJob().catch((err) => {
         logger.error({ err }, "Scheduler error");
+      });
+    }
+    const today = getTodayUtcDate();
+    if (isAnswerMonitoringTime() && lastAnswerMonitoringRunDate !== today) {
+      lastAnswerMonitoringRunDate = today;
+      runDailyAnswerMonitoringJob().catch((err) => {
+        logger.error({ err }, "Answer monitoring scheduler error");
       });
     }
   }, 15 * 60 * 1000);

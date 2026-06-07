@@ -1,0 +1,291 @@
+Rebuild Answer Monitoring page completely.
+Current version is too basic vs Semrush.
+Three critical upgrades needed.
+
+UPGRADE 1: SHOW ACTUAL AI RESPONSE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current: shows Yes/No in Mentioned column
+Problem: user has no idea what AI said
+
+Fix: when user clicks any prompt row,
+expand it to show the full AI response:
+
+PROMPT ROW EXPANDED:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+"What are the best AI visibility tools?"
+ChatGPT | Position 3 | Mentioned: Yes | +
+
+[Click to expand ▼]
+
+┌─────────────────────────────────────────┐
+│ ChatGPT said:                           │
+│                                         │
+│ "The best AI visibility tools in 2026   │
+│ include GeoIQ, which tracks brand       │
+│ presence across ChatGPT, Gemini and     │
+│ Perplexity, Brand24 for social          │
+│ monitoring, and Semrush's AI toolkit    │
+│ for enterprise teams..."                │
+│                                         │
+│ Brand mention: "GeoIQ" ← highlighted   │
+│ Position in response: 3rd mentioned     │
+│ Sentiment: Positive                     │
+│ Citation: geoiqai.com linked? No        │
+│                                         │
+│ Checked: 2 hours ago                    │
+└─────────────────────────────────────────┘
+
+Backend: store full AI response in Supabase
+when prompt is checked.
+
+table: prompt_results
+columns: 
+  id, user_id, domain, prompt, llm,
+  mentioned (boolean), position (int),
+  full_response (text),
+  brand_context (text),
+  sentiment (positive/neutral/negative),
+  url_cited (boolean),
+  checked_at, trend
+
+When [Check] button clicked:
+1. Call Claude/OpenAI with the prompt
+2. Check if brand appears in response
+3. Extract position number
+4. Detect sentiment around brand mention
+5. Check if domain URL is cited
+6. Store full response in Supabase
+7. Display expanded row
+
+Claude prompt for checking:
+`You are checking AI brand visibility.
+
+Query sent to AI: "${prompt}"
+AI response: "${aiResponse}"
+Brand to check: "${domain}"
+
+Return JSON only:
+{
+  "mentioned": true/false,
+  "position": 3,
+  "brand_context": "exact sentence mentioning brand",
+  "sentiment": "positive/neutral/negative",
+  "url_cited": true/false,
+  "summary": "one line summary of how brand appears"
+}`
+
+UPGRADE 2: DAILY AUTO-CHECK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current: manual Check button only
+Problem: user has to remember to check
+
+Fix: auto-run all tracked prompts daily
+using node-cron:
+
+import cron from 'node-cron';
+
+cron.schedule('0 6 * * *', async () => {
+  console.log('Running daily prompt checks...');
+  
+  // Get all active tracked prompts
+  const { data: prompts } = await supabase
+    .from('tracked_prompts')
+    .select('*, users(id, email)')
+    .eq('active', true);
+  
+  for (const prompt of prompts) {
+    try {
+      // Check each LLM for this prompt
+      for (const llm of prompt.llms) {
+        await checkPrompt(
+          prompt.user_id,
+          prompt.domain,
+          prompt.prompt,
+          llm
+        );
+        // Wait 2 seconds between calls
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    } catch (err) {
+      console.error(`Failed: ${prompt.prompt}`, err);
+    }
+  }
+  
+  console.log('Daily prompt checks complete');
+});
+
+After daily check runs:
+Send email digest to user via Resend:
+
+Subject: "Your AI visibility update — 
+  2 prompts improved, 1 dropped"
+
+Body:
+"Good morning,
+
+Your daily AI visibility check for 
+clevertap.com:
+
+IMPROVED:
+"What are the best AI visibility tools?"
+ChatGPT: Position 5 → 3 (+2)
+
+UNCHANGED:
+"How do I track my brand in Perplexity?"
+Perplexity: Position 7
+
+DROPPED:
+"Best GEO optimization tools for startups"
+Gemini: Was mentioned → No longer mentioned
+
+View full report: [geoiqai.com/dashboard]"
+
+Use Resend API (already in stack).
+Only send if something changed.
+If no changes: do not send email.
+
+UPGRADE 3: SHARE OF VOICE METRIC
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add new metric card at top:
+
+AI SHARE OF VOICE
+"Brand appears in 67% of tracked prompts"
+
+Formula:
+SoV = (prompts where mentioned = true) 
+      / (total tracked prompts) × 100
+
+Show as:
+- Big percentage number
+- Trend vs last week: +5% or -2%
+- Mini bar showing your SoV vs competitors
+
+SoV BAR:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[You: GeoIQ      ████░░░░░░  40%]
+[Brand24         ██████░░░░  60%]  
+[Semrush         ████████░░  80%]
+
+Pull competitor data from same prompts:
+When checking prompt for user's brand,
+also check if competitors appear.
+Store separately in prompt_results.
+
+UPGRADE 4: REDESIGN THE PAGE LAYOUT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+HEADER — 5 metric cards:
+
+┌──────────┐┌──────────┐┌──────────┐┌──────────┐┌──────────┐
+│AI SHARE  ││TOTAL     ││AVG       ││TRACKED   ││LAST      │
+│OF VOICE  ││MENTIONS  ││POSITION  ││PROMPTS   ││UPDATED   │
+│  67%     ││  2       ││  5       ││  3       ││2hrs ago  │
+│ +5% ↑   ││ +1 ↑    ││ -2 ↑    ││          ││[Refresh] │
+└──────────┘└──────────┘└──────────┘└──────────┘└──────────┘
+
+PROMPT TABLE — enhanced columns:
+
+PROMPT | LLM | POSITION | MENTIONED | 
+CONTEXT | SENTIMENT | URL CITED | TREND | ACTIONS
+
+New columns:
+CONTEXT: first 50 chars of brand mention
+  "...GeoIQ tracks brand visibility across..."
+  Click to expand full response
+
+SENTIMENT: colored badge
+  Positive (green) / Neutral (grey) / 
+  Negative (red)
+
+URL CITED: Yes/No badge
+  Shows if domain URL was linked in response
+
+ACTIONS: [View Response] [Remove ×]
+
+ADD PROMPT FLOW — IMPROVED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current [+ Add prompt] opens basic input.
+Improve with suggested prompts:
+
+When user clicks [+ Add prompt]:
+
+Show modal with 3 sections:
+
+1. TYPE YOUR OWN:
+   [Text input for custom prompt]
+
+2. SUGGESTED FOR YOUR BRAND:
+   (Claude generates 5 relevant prompts 
+   based on domain)
+   
+   "What are the best mobile marketing 
+    platforms for e-commerce?"
+   "Which customer engagement tools 
+    do enterprise apps use?"
+   [+ Add] button per suggestion
+
+3. POPULAR IN YOUR CATEGORY:
+   Pre-built prompt templates:
+   "What are the best [category] tools?"
+   "How do I [solve problem] with AI?"
+   "Which [category] platform is best 
+    for [use case]?"
+
+Select LLM to track:
+[ChatGPT] [Gemini] [Perplexity] 
+[Claude] [Grok]
+Multi-select allowed.
+
+[Start Tracking →] button
+
+PLAN LIMITS ON TRACKED PROMPTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Based on LLMpulse competitor research:
+
+Free:    5 prompts tracked
+Starter: 50 prompts tracked  
+Agency:  150 prompts tracked
+
+Show usage in header:
+"Tracking 3/50 prompts"
+[+ Add prompt] disabled when at limit
+Show upgrade prompt when limit hit.
+
+Each prompt check across 3 LLMs = 
+3 Claude API calls = ~$0.03
+50 prompts × 3 LLMs × 4 weekly checks 
+= 600 calls/month = ~$6/month
+Still well within margin.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Add prompt: 
+   "What are the best AI SEO tools?"
+   Select ChatGPT
+   Click Start Tracking
+
+2. Click Check on that prompt
+   Should show full ChatGPT response
+   expanded below the row
+   Brand highlighted in yellow
+   Sentiment badge shown
+   URL cited: Yes or No
+
+3. Check Share of Voice card
+   Should show % based on 
+   prompts where mentioned = true
+
+4. Check Supabase prompt_results table
+   Should have row with full_response field
+
+Share screenshot of expanded prompt row
+showing full AI response.

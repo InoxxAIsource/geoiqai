@@ -138,6 +138,57 @@ export async function sendPasswordResetEmail(email: string, resetUrl: string): P
   await sendEmail(email, "Reset your GeoIQ password", html);
 }
 
+export async function sendPromptDigest(
+  email: string,
+  domain: string,
+  improved: { prompt: string; llm: string; from: string; to: string }[],
+  dropped: { prompt: string; llm: string }[],
+  unchanged: { prompt: string; llm: string; position: number | null }[],
+): Promise<void> {
+  if (improved.length === 0 && dropped.length === 0) return;
+
+  const improvHtml = improved.map(i => `
+    <div style="padding:8px 0;border-bottom:1px solid #f3f4f6">
+      <div style="font-size:12px;color:#059669;font-weight:600;margin-bottom:2px">Improved</div>
+      <div style="font-size:13px;color:#111827;margin-bottom:2px">"${i.prompt}"</div>
+      <div style="font-size:11px;color:#6b7280">${i.llm}: ${i.from} to ${i.to}</div>
+    </div>`).join("");
+
+  const droppedHtml = dropped.map(d => `
+    <div style="padding:8px 0;border-bottom:1px solid #f3f4f6">
+      <div style="font-size:12px;color:#DC2626;font-weight:600;margin-bottom:2px">Dropped</div>
+      <div style="font-size:13px;color:#111827;margin-bottom:2px">"${d.prompt}"</div>
+      <div style="font-size:11px;color:#6b7280">${d.llm}: No longer mentioned</div>
+    </div>`).join("");
+
+  const unchangedHtml = unchanged.slice(0, 3).map(u => `
+    <div style="padding:8px 0;border-bottom:1px solid #f3f4f6">
+      <div style="font-size:13px;color:#374151;margin-bottom:2px">"${u.prompt}"</div>
+      <div style="font-size:11px;color:#6b7280">${u.llm}: ${u.position != null ? `Position ${u.position}` : "Mentioned"}</div>
+    </div>`).join("");
+
+  const subject = improved.length > 0 && dropped.length === 0
+    ? `${improved.length} prompt${improved.length > 1 ? "s" : ""} improved for ${domain}`
+    : dropped.length > 0 && improved.length === 0
+    ? `${dropped.length} prompt${dropped.length > 1 ? "s" : ""} dropped for ${domain}`
+    : `${improved.length} improved, ${dropped.length} dropped for ${domain}`;
+
+  const html = `
+<div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
+  <h2 style="font-size:18px;font-weight:600;color:#111827;margin-bottom:4px">Daily AI visibility update</h2>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:24px">${domain}</p>
+  ${improvHtml ? `<p style="font-size:13px;font-weight:600;margin-bottom:8px">Improved</p>${improvHtml}` : ""}
+  ${droppedHtml ? `<p style="font-size:13px;font-weight:600;margin:16px 0 8px">Dropped</p>${droppedHtml}` : ""}
+  ${unchangedHtml ? `<p style="font-size:13px;font-weight:600;margin:16px 0 8px">Unchanged</p>${unchangedHtml}` : ""}
+  <a href="${APP_URL}/dashboard" style="display:block;background:#4F46E5;color:white;text-decoration:none;text-align:center;padding:13px;border-radius:8px;font-size:14px;font-weight:500;margin-top:24px">
+    View full report
+  </a>
+  <p style="font-size:11px;color:#9ca3af;text-align:center;margin-top:20px">GeoIQ Answer Monitoring</p>
+</div>`;
+
+  await sendEmail(email, subject, html);
+}
+
 const CONTACT_RECIPIENT = "inoxxprotocol@gmail.com";
 
 export async function sendContactEmail(

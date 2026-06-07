@@ -15,6 +15,7 @@ import adminRouter from "./admin";
 import brandPerformanceRouter from "./brand-performance";
 import contentRouter from "./content";
 import aiPrRouter from "./ai-pr";
+import { answerMonitoringRouter } from "./answer-monitoring";
 
 const router: IRouter = Router();
 
@@ -34,5 +35,6 @@ router.use(adminRouter);
 router.use(brandPerformanceRouter);
 router.use(contentRouter);
 router.use(aiPrRouter);
+router.use(answerMonitoringRouter);
 
 export default router;

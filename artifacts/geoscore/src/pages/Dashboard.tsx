@@ -458,7 +458,7 @@ export function Dashboard() {
           )}
 
           {activeNav === "prompt-tracking" && (
-            <PromptTracking domain={activeDomain} />
+            <PromptTracking domain={activeDomain} plan={user?.plan ?? "free"} />
           )}
 
           {activeNav === "content-creation" && (
