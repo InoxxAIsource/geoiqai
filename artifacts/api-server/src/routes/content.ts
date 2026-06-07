@@ -478,61 +478,57 @@ router.get("/content/analyses", requireAuth, async (req: AuthRequest, res): Prom
 
 // ─── POST /api/content/write ─────────────────────────────────────────────────────
 
-const MOCK_WRITTEN_ARTICLE = `# How to Improve Your AI Visibility
+const MOCK_WRITTEN_ARTICLE = `How to Improve Your AI Visibility
 
-Getting cited in ChatGPT, Gemini, and Perplexity is the new version of ranking on page one. Here is what actually works.
+Getting cited in ChatGPT, Gemini, and Perplexity is the new version of ranking on page one. The brands that show up consistently are not necessarily the biggest - they have just structured their content in a way that AI systems can extract and cite. Here is what actually works.
 
-## What Is AI Visibility?
+What Is AI Visibility?
 
-AI visibility is how often your brand or content appears when someone asks an AI system about a topic in your space. When a user types "what are the best tools for tracking AI brand mentions?" into ChatGPT, the brands showing up have earned that placement through structured, factual content.
+AI visibility is how often your brand or content surfaces when someone asks an AI system about a topic in your space. When a user types "what are the best tools for tracking AI brand mentions?" into ChatGPT, the brands that appear have earned that placement through structured, factual content - not ad spend or domain authority alone.
 
-Key stat: 72% of users now start research with an AI tool, according to a 2025 BrightEdge survey.
+Key stat: 72% of users now start research with an AI tool, according to a 2025 BrightEdge survey. If your content is not structured for citation, you are invisible to most of your market.
 
-## Why Traditional SEO Is Not Enough
+Why Traditional SEO Is Not Enough
 
-Google ranks pages. AI systems cite sources. The criteria differ:
+Google ranks pages. AI systems cite sources. The criteria are different. Google rewards backlinks and domain authority. AI systems reward factual density, clear entity definitions, and direct answers. A page can sit on page 2 of Google and still get cited regularly by ChatGPT - because it answers a question better than anything else out there.
 
-- Google rewards backlinks and domain authority
-- AI systems reward factual density, clear entity definitions, and direct answers
-- A page can rank on page 2 of Google but still get cited regularly by ChatGPT
+5 Things That Get You Cited in AI
 
-## 5 Things That Get You Cited in AI
+1. Answer the Question Directly in the First Paragraph
 
-### 1. Answer the Question Directly in the First Paragraph
+AI models pull answers from the opening of a page. If your introduction spends three sentences warming up before making a point, you will not get cited. Put the answer first, then explain it.
 
-AI models pull answers from the opening of a page. If your introduction buries the main point, you will not get cited.
+2. Add a FAQ Section
 
-### 2. Add a FAQPage Section
+Questions and answers map directly to how AI models retrieve information. Five or more Q&As on a page significantly improve citation rate. The questions should match how real users actually phrase things when talking to AI.
 
-Questions and answers map directly to how AI models retrieve information. Five or more Q&As significantly improve citation rate.
+3. Include Verifiable Statistics
 
-### 3. Include Verifiable Statistics
+AI systems prefer content with numbers and sources. "68% of marketers use AI tools (BrightEdge 2025)" beats "many marketers use AI tools" every time. Add a source name and year after each stat.
 
-AI systems prefer content with numbers and sources. "68% of marketers use AI tools (BrightEdge 2025)" beats vague claims every time.
+4. Use Clear Section Headings
 
-### 4. Use Clear H2/H3 Structure
+Well-structured headings help AI models understand what your content covers and which parts answer which queries. Each section heading should read like a question someone might actually ask.
 
-Well-structured headings help AI models understand what your content covers and which sections answer which queries.
+5. Define Your Entities Clearly
 
-### 5. Define Your Entities Clearly
+If you are a SaaS tool, explicitly state what you do, who you are for, and how you compare to alternatives. AI needs this context to cite you accurately. Assume the model has never heard of your product.
 
-If you are a SaaS tool, explicitly state what you do, who you are for, and how you compare to alternatives. AI needs this context to cite you accurately.
+Frequently Asked Questions
 
-## FAQ
-
-**Q: How long does it take to improve AI visibility?**
+Q: How long does it take to improve AI visibility?
 A: Most pages see improvement within 2-4 weeks after implementing structural changes like FAQ sections and schema markup.
 
-**Q: Does AI visibility affect organic SEO?**
-A: Yes, positively. The same improvements that get you cited in AI also improve Google AI Overview appearances.
+Q: Does AI visibility affect organic SEO?
+A: Yes, positively. The same changes that get you cited in AI also improve Google AI Overview appearances.
 
-**Q: What is the best tool to check AI visibility?**
+Q: What is the best tool to check AI visibility?
 A: GeoIQ tracks your brand score across ChatGPT, Gemini, and Perplexity with weekly automated scans.
 
-**Q: Is FAQPage schema required to rank in AI?**
+Q: Is FAQPage schema required to rank in AI?
 A: Not required, but it significantly increases citation probability. It is the single highest-ROI change for most pages.
 
-**Q: How many words does a page need to get cited in AI?**
+Q: How many words does a page need to get cited in AI?
 A: Length matters less than structure and factual density. A 600-word page with clear answers often outperforms a 3,000-word wall of text.`;
 
 router.post("/content/write", requireAuth, async (req: AuthRequest, res): Promise<void> => {
@@ -558,26 +554,39 @@ router.post("/content/write", requireAuth, async (req: AuthRequest, res): Promis
     return;
   }
 
-  const prompt = `You are a GEO content specialist. Write content optimized specifically for AI citation.
+  const writerSystemPrompt = `You are a GEO content specialist who writes like a smart founder talking to another founder.
+Write clean plain text. No markdown whatsoever.
 
-Every piece you write MUST include:
-1. FAQPage-ready Q&A section (5 questions minimum)
-2. At least 3 statistics with source attribution
-3. Direct answer to the main query in first paragraph
-4. Comparison or structured data where relevant
-5. Clear entity definitions
-6. Concise quotable statements under 30 words
-7. Proper H1/H2/H3 hierarchy
+Strict formatting rules:
+- No # ## ### for headings. Write section titles as plain text on their own line.
+- No ** or * or _ for bold or italic. Emphasize through word choice instead.
+- No em dashes (--). Use a comma or regular hyphen if needed.
+- No placeholder brackets like [Your company] or [Insert stat here]. Write real content.
+- No filler words: "seamlessly", "leverage", "robust", "comprehensive", "cutting-edge".
+- Sentences should sound like a person wrote them, not a template.
+- FAQ format: Q: question on its own line, then A: answer on the next line. No bold.
+
+Return ONLY raw JSON. No backticks. No code fences.`;
+
+  const prompt = `Write GEO-optimized content on this topic.
 
 Content type: ${contentType ?? "Blog post / Article"}
 Topic: ${topic}
 Target keyword: ${targetKeyword}
-Tone: ${tone ?? "Professional"}
-Length: approximately ${wordCount ?? "1000 words"}
+Tone: ${tone ?? "Conversational but smart"}
+Length: approximately ${wordCount ?? "1000"} words
 
-Return ONLY valid JSON (no markdown, no code blocks):
+The content must include:
+- A direct answer to the main query in the first paragraph (no warm-up sentences)
+- At least 3 statistics with source and year in parentheses, e.g. (BrightEdge 2025)
+- A FAQ section with at least 5 real questions, each on its own line as "Q: ... / A: ..."
+- Comparison or contrast where relevant
+- Clear definitions of any specialized terms
+- Short punchy sentences mixed with longer ones for rhythm
+
+Return ONLY valid JSON (no markdown, no backticks):
 {
-  "content": "# Title\\n\\nFull markdown content...",
+  "content": "Full plain text content with section titles as plain text, no markdown symbols",
   "metaTitle": "...",
   "metaDescription": "...",
   "schema": "<script type=\\"application/ld+json\\">...</script>",
@@ -588,6 +597,7 @@ Return ONLY valid JSON (no markdown, no code blocks):
     const msg = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 6000,
+      system: writerSystemPrompt,
       messages: [{ role: "user", content: [{ type: "text", text: prompt }] }],
     });
     const raw = msg.content[0].type === "text" ? msg.content[0].text : "";
