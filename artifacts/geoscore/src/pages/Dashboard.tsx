@@ -462,7 +462,7 @@ export function Dashboard() {
           )}
 
           {activeNav === "content-creation" && (
-            <ContentCreation domain={activeDomain} />
+            <ContentCreation domain={activeDomain} onNavigate={(nav) => setActiveNav(nav as NavId)} />
           )}
 
           {activeNav === "geo-agent" && agentBrand.id && (

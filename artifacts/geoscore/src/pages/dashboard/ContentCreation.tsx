@@ -1736,10 +1736,11 @@ function RepurposerTab({ domain, prefilledContent, onSendToOptimizer }: {
 
 // ─── Topic Finder Tab ────────────────────────────────────────────────────────────
 
-function TopicFinderTab({ domain, prefilledTopic, onOptimize }: {
+function TopicFinderTab({ domain, prefilledTopic, onOptimize, onNavigate }: {
   domain: string;
   prefilledTopic?: string;
   onOptimize: (topic: string) => void;
+  onNavigate?: (nav: string) => void;
 }) {
   const [data, setData] = useState<TopicsData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -1790,10 +1791,19 @@ function TopicFinderTab({ domain, prefilledTopic, onOptimize }: {
     </div>
   );
 
-  const emptySection = (msg: string, linkLabel: string) => (
+  const emptySection = (msg: string, linkLabel: string, navTarget?: string) => (
     <div style={{ padding: "20px", textAlign: "center", background: BG, borderRadius: 8 }}>
       <div style={{ fontSize: 13, color: MUTED, marginBottom: 8 }}>{msg}</div>
-      <div style={{ fontSize: 12, color: P, fontWeight: 600 }}>{linkLabel}</div>
+      {navTarget && onNavigate ? (
+        <button
+          onClick={() => onNavigate(navTarget)}
+          style={{ fontSize: 12, color: P, fontWeight: 600, background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}
+        >
+          {linkLabel}
+        </button>
+      ) : (
+        <div style={{ fontSize: 12, color: P, fontWeight: 600 }}>{linkLabel}</div>
+      )}
     </div>
   );
 
@@ -1865,8 +1875,9 @@ function TopicFinderTab({ domain, prefilledTopic, onOptimize }: {
               </tbody>
             </table>
           ) : emptySection(
-            "Run Brand Performance with competitors to see where gaps exist.",
-            "Go to Brand Performance to start"
+            "Run Brand Benchmarks with a competitor to see where gaps exist.",
+            "Go to Brand Benchmarks",
+            "competitor-research"
           )}
         </div>
 
@@ -1908,8 +1919,9 @@ function TopicFinderTab({ domain, prefilledTopic, onOptimize }: {
               </tbody>
             </table>
           ) : emptySection(
-            "Run Prompt Research first to find topics where you have weak visibility.",
-            "Go to Prompt Research to start"
+            "Run Prompt Intelligence first to find topics where you have weak visibility.",
+            "Go to Prompt Intelligence",
+            "prompt-research"
           )}
         </div>
 
@@ -1954,8 +1966,9 @@ function TopicFinderTab({ domain, prefilledTopic, onOptimize }: {
               </tbody>
             </table>
           ) : emptySection(
-            "Run Brand Performance first to see questions people ask AI about your brand.",
-            "Go to Brand Performance to start"
+            "Run Brand Benchmarks first to see questions people ask AI about your brand.",
+            "Go to Brand Benchmarks",
+            "competitor-research"
           )}
         </div>
       </div>
@@ -2117,7 +2130,7 @@ const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: "content", label: "Content Library", icon: <Bookmark size={13} /> },
 ];
 
-export function ContentCreation({ domain }: { domain: string }) {
+export function ContentCreation({ domain, onNavigate }: { domain: string; onNavigate?: (nav: string) => void }) {
   const [activeTab, setActiveTab] = useState<TabId>("optimizer");
   const [prefilledTopic, setPrefilledTopic] = useState<string | undefined>();
   const [optimizerTopic, setOptimizerTopic] = useState("");
@@ -2204,6 +2217,7 @@ export function ContentCreation({ domain }: { domain: string }) {
           domain={domain}
           prefilledTopic={prefilledTopic}
           onOptimize={handleOptimize}
+          onNavigate={onNavigate}
         />
       )}
       {activeTab === "content" && (
