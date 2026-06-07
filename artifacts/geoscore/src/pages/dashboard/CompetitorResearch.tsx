@@ -785,6 +785,11 @@ export function CompetitorResearch({ initialDomain, plan = "free", onNavigate }:
                   </div>
                   <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>{d.domain}</div>
                   <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{fmtNum(d.mentions)} AI mentions</div>
+                  {!d.isYou && d.mentions === 0 && d.score === 0 && (
+                    <div style={{ marginTop: 8, fontSize: 11, color: "#92400E", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 6, padding: "4px 8px", lineHeight: 1.4 }}>
+                      No data found. Double-check the domain spelling.
+                    </div>
+                  )}
                   {data.cached && i === 0 && (
                     <span style={{ position: "absolute", top: 10, right: 10, fontSize: 10, fontWeight: 600, color: WARNING, background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, padding: "1px 6px" }}>
                       Cached
