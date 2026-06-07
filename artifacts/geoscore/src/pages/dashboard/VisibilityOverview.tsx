@@ -178,7 +178,7 @@ function NoDataState({ domain }: { domain: string }) {
         This is exactly the problem GeoIQ helps you fix.
       </p>
       <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-        <a href="/audit" style={{ display: "inline-block", padding: "10px 24px", background: P, color: "white", borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+        <a href={`/audit?url=${encodeURIComponent(domain)}`} style={{ display: "inline-block", padding: "10px 24px", background: P, color: "white", borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
           Run free audit
         </a>
       </div>
