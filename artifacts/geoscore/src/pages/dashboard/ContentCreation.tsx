@@ -176,6 +176,187 @@ interface TopicsData {
   brandQuestions: Array<{ question: string; yourRank: string; category?: string }>;
 }
 
+// ─── Fix Flow helpers ─────────────────────────────────────────────────────────
+
+type FlowStep = {
+  number: number;
+  title: string;
+  description: string;
+  action: "copy" | "link" | "info";
+  cta?: string;
+  url?: string;
+};
+
+function getFlowType(title: string): string {
+  const t = title.toLowerCase();
+  if (t.includes("faq") || t.includes("q&a") || t.includes("frequently")) return "faq_section";
+  if (t.includes("schema") || t.includes("structured data") || t.includes("json-ld")) return "structured_data";
+  if (t.includes("statistic") || t.includes("data") || t.includes("numbers")) return "statistics_and_data";
+  if (t.includes("heading") || t.includes("h1") || t.includes("h2") || t.includes("hierarchy")) return "heading_hierarchy";
+  if (t.includes("citation") || t.includes("authoritative") || t.includes("link out") || t.includes("source")) return "authoritative_citations";
+  if (t.includes("comparison") || t.includes("table") || t.includes("vs")) return "comparison_tables";
+  if (t.includes("prompt") || t.includes("coverage") || t.includes("missing")) return "prompt_coverage";
+  return "default";
+}
+
+function FixFlowPanel({ fix, currentUrl, onRerun }: {
+  fix: { title: string; description: string; fix: string | null };
+  currentUrl: string;
+  onRerun: () => void;
+}) {
+  const [copied, setCopied] = useState<number | null>(null);
+  const encoded = encodeURIComponent(currentUrl);
+  const flowType = getFlowType(fix.title);
+
+  const flows: Record<string, FlowStep[]> = {
+    faq_section: [
+      { number: 1, title: "Copy the FAQ content", action: "copy", cta: "Copy FAQ Content",
+        description: "Copy these Q&A pairs to add to your page" },
+      { number: 2, title: "Add to your webpage", action: "info",
+        description: "Paste these Q&As at the bottom of your main page, above the footer. Label the section 'Frequently Asked Questions'" },
+      { number: 3, title: "Copy the FAQ schema", action: "copy", cta: "Copy FAQ Schema",
+        description: "Also add this JSON-LD so AI systems can read your FAQs" },
+      { number: 4, title: "Verify in Google", action: "link", cta: "Test in Google",
+        description: "Check your FAQ appears as a rich result",
+        url: `https://search.google.com/test/rich-results?url=${encoded}` },
+    ],
+    structured_data: [
+      { number: 1, title: "Copy the schema code", action: "copy", cta: "Copy Schema Code",
+        description: "Copy this JSON-LD code block" },
+      { number: 2, title: "Open your website editor", action: "link", cta: "Open Replit",
+        description: "Go to your site's HTML head section. In Replit open index.html or _document.tsx",
+        url: "https://replit.com" },
+      { number: 3, title: "Paste before the closing head tag", action: "info",
+        description: "Paste the copied code just before the closing </head> tag on every page" },
+      { number: 4, title: "Verify it works", action: "link", cta: "Test Schema",
+        description: "Test your schema with Google's Rich Results tool",
+        url: `https://search.google.com/test/rich-results?url=${encoded}` },
+    ],
+    statistics_and_data: [
+      { number: 1, title: "Copy suggested statistics", action: "copy", cta: "Copy Stats",
+        description: "Add these cited stats to your page content" },
+      { number: 2, title: "Find the right page section", action: "info",
+        description: "Place statistics in your hero section, about page, or any section making claims about your product or industry" },
+      { number: 3, title: "Add source attribution", action: "info",
+        description: "After each stat write: (Source: Gartner 2024). AI systems trust attributed numbers over unattributed claims" },
+    ],
+    heading_hierarchy: [
+      { number: 1, title: "View your current headings", action: "link", cta: "Check Headings",
+        description: "See all headings on your page using this free tool",
+        url: `https://www.seoptimer.com/analyzer?url=${encoded}` },
+      { number: 2, title: "Copy the suggested heading structure", action: "copy", cta: "Copy Heading Structure",
+        description: "Replace your current headings with this AI-optimized structure" },
+      { number: 3, title: "Update in your editor", action: "info",
+        description: "Change section titles from plain text or H1 to proper H2/H3 tags. Each H2 should answer a specific user question" },
+    ],
+    authoritative_citations: [
+      { number: 1, title: "Copy suggested sources", action: "copy", cta: "Copy Sources",
+        description: "These are authoritative sources relevant to your content" },
+      { number: 2, title: "Add links to your content", action: "info",
+        description: "Link out to these sources from relevant sentences. Example: 'According to Gartner [link], 75% of...' AI systems prefer pages that cite credible sources" },
+    ],
+    comparison_tables: [
+      { number: 1, title: "Copy the comparison table HTML", action: "copy", cta: "Copy Table HTML",
+        description: "Ready-to-paste HTML table comparing your product vs alternatives" },
+      { number: 2, title: "Add to your page", action: "info",
+        description: "Paste this table in your pricing or features section. AI systems cite comparison tables when users ask 'what is the best X for Y'" },
+      { number: 3, title: "Verify the table renders", action: "link", cta: "Preview Site",
+        description: "Preview your page after adding",
+        url: currentUrl || "#" },
+    ],
+    prompt_coverage: [
+      { number: 1, title: "See which prompts you are missing", action: "link", cta: "Open Topic Finder",
+        description: "Open Topic Finder to see exact AI prompts your content does not answer",
+        url: "/dashboard" },
+      { number: 2, title: "Copy suggested content additions", action: "copy", cta: "Copy Content",
+        description: "Add these paragraphs to your page to cover missing prompts" },
+      { number: 3, title: "Add to homepage or blog", action: "info",
+        description: "Each paragraph directly answers one AI prompt. Place near the top of your page or in a dedicated 'How it works' section" },
+    ],
+    default: [
+      { number: 1, title: "Copy the fix", action: "copy", cta: "Copy Fix",
+        description: "Copy the suggested fix below" },
+      { number: 2, title: "Apply to your website", action: "info",
+        description: fix.description },
+    ],
+  };
+
+  const steps = flows[flowType] ?? flows.default;
+  const copyContent = fix.fix ?? fix.description;
+
+  const doCopy = (stepNum: number) => {
+    navigator.clipboard.writeText(copyContent).catch(() => {});
+    setCopied(stepNum);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  return (
+    <div style={{ background: "#F5F6FF", border: "1px solid #E0E2FF", borderRadius: 8,
+      padding: 16, marginTop: 12 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase",
+        letterSpacing: "0.05em", color: P, marginBottom: 14 }}>How to fix this</div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {steps.map(step => (
+          <div key={step.number} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <div style={{ width: 24, height: 24, borderRadius: "50%", background: P,
+              color: "white", fontSize: 12, fontWeight: 700, display: "flex",
+              alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              {step.number}
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#111827", marginBottom: 3 }}>{step.title}</div>
+              <div style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.5, marginBottom: step.action !== "info" ? 8 : 0 }}>
+                {step.description}
+              </div>
+              {step.action === "copy" && (
+                <button
+                  onClick={() => doCopy(step.number)}
+                  style={{ fontSize: 12, padding: "5px 12px", background: copied === step.number ? "#ECFDF5" : P,
+                    color: copied === step.number ? GREEN : "white",
+                    border: `1px solid ${copied === step.number ? "#A7F3D0" : P}`,
+                    borderRadius: 6, cursor: "pointer", fontWeight: 600,
+                    display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  {copied === step.number ? <><Check size={11} /> Copied!</> : <><Copy size={11} /> {step.cta ?? "Copy"}</>}
+                </button>
+              )}
+              {step.action === "link" && step.url && (
+                <a
+                  href={step.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ fontSize: 12, padding: "5px 12px", background: "white",
+                    color: P, border: `1px solid #C7D2FE`,
+                    borderRadius: 6, cursor: "pointer", fontWeight: 600,
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    textDecoration: "none" }}>
+                  {step.cta ?? "Open"} <ExternalLink size={11} />
+                </a>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #E0E2FF",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        gap: 10, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 12, color: "#9CA3AF" }}>
+          After fixing, re-run to see your score improve
+        </span>
+        <button
+          onClick={onRerun}
+          style={{ fontSize: 12, padding: "5px 12px", background: "white",
+            color: P, border: `1px solid #C7D2FE`, borderRadius: 6,
+            cursor: "pointer", fontWeight: 600,
+            display: "inline-flex", alignItems: "center", gap: 5 }}>
+          <RefreshCw size={11} /> Re-run Analysis
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── GEO Optimizer Tab ───────────────────────────────────────────────────────────
 
 function GeoOptimizerTab({ domain, onTopicSelect, prefilledContent }: {
@@ -194,6 +375,8 @@ function GeoOptimizerTab({ domain, onTopicSelect, prefilledContent }: {
   const [expandedFactors, setExpandedFactors] = useState<Set<string>>(new Set());
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [loadingStep, setLoadingStep] = useState(0);
+  const [expandedFix, setExpandedFix] = useState<number | null>(null);
+  const [analyzedUrl, setAnalyzedUrl] = useState("");
 
   const steps = [
     "Checking factual statements...",
@@ -254,6 +437,8 @@ function GeoOptimizerTab({ domain, onTopicSelect, prefilledContent }: {
     setLoading(true);
     setError(null);
     setResult(null);
+    setExpandedFix(null);
+    setAnalyzedUrl(inputMode === "url" ? url : "");
     try {
       const token = getToken();
       const r = await fetch("/api/content/analyze", {
@@ -461,8 +646,10 @@ function GeoOptimizerTab({ domain, onTopicSelect, prefilledContent }: {
                   {result.topFixes.map((fix, i) => {
                     const impactColor = fix.impact === "high" ? RED : fix.impact === "medium" ? AMBER : MUTED;
                     const impactBg = fix.impact === "high" ? "#FEF2F2" : fix.impact === "medium" ? "#FFFBEB" : BG;
+                    const isExpanded = expandedFix === i;
                     return (
-                      <div key={i} style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: 14 }}>
+                      <div key={i} style={{ border: `1px solid ${isExpanded ? "#C7D2FE" : BORDER}`, borderRadius: 8, padding: 14,
+                        background: isExpanded ? "#FAFBFF" : "white", transition: "border-color 0.15s" }}>
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
                           <span style={{ fontSize: 11, fontWeight: 700, background: "#EEF2FF", color: P,
                             padding: "2px 8px", borderRadius: 5 }}>Priority {fix.priority}</span>
@@ -474,20 +661,25 @@ function GeoOptimizerTab({ domain, onTopicSelect, prefilledContent }: {
                             padding: "2px 8px", borderRadius: 5 }}>{fix.scoreImpact}</span>
                         </div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: "#111827", marginBottom: 4 }}>{fix.title}</div>
-                        <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.6, marginBottom: fix.fix ? 10 : 0 }}>
+                        <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.6, marginBottom: 10 }}>
                           {fix.description}
                         </div>
-                        {fix.fix && (
-                          <button
-                            onClick={() => copyText(`fix-${i}`, fix.fix!)}
-                            style={{ padding: "6px 12px", background: copiedKey === `fix-${i}` ? "#ECFDF5" : "#EEF2FF",
-                              color: copiedKey === `fix-${i}` ? GREEN : P, border: `1px solid ${copiedKey === `fix-${i}` ? "#A7F3D0" : "#C7D2FE"}`,
-                              borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                              display: "flex", alignItems: "center", gap: 5 }}
-                          >
-                            {copiedKey === `fix-${i}` ? <Check size={12} /> : <Copy size={12} />}
-                            {copiedKey === `fix-${i}` ? "Copied!" : "Copy Fix"}
-                          </button>
+                        <button
+                          onClick={() => setExpandedFix(isExpanded ? null : i)}
+                          style={{ padding: "6px 12px", background: isExpanded ? "#EEF2FF" : "white",
+                            color: P, border: `1px solid #C7D2FE`,
+                            borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                            display: "inline-flex", alignItems: "center", gap: 5 }}
+                        >
+                          {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                          {isExpanded ? "Hide Fix Steps" : "See Fix Steps"}
+                        </button>
+                        {isExpanded && (
+                          <FixFlowPanel
+                            fix={fix}
+                            currentUrl={analyzedUrl}
+                            onRerun={() => { setExpandedFix(null); analyze(); }}
+                          />
                         )}
                       </div>
                     );

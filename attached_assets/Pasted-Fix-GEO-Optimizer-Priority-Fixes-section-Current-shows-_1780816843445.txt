@@ -1,0 +1,398 @@
+Fix GEO Optimizer Priority Fixes section.
+Current: shows "Copy Fix" button with raw code.
+Problem: user has no idea what to do with it.
+Fix: replace with a step-by-step fix flow 
+per issue type.
+
+REDESIGN PRIORITY FIXES CARDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Each priority fix card must have:
+
+1. WHAT IS WRONG (already exists — keep)
+2. WHY IT MATTERS (already exists — keep)
+3. HOW TO FIX IT — new step flow
+4. VERIFY IT WORKED — new section
+
+Replace the single [Copy Fix] button with 
+this full fix flow component:
+
+const FixFlow = ({ fix, factor }) => {
+
+  const flows = {
+    
+    structured_data: {
+      steps: [
+        {
+          number: 1,
+          title: "Copy the schema code",
+          action: "copy",
+          description: "Copy this JSON-LD code block",
+          cta: "Copy Schema Code"
+        },
+        {
+          number: 2, 
+          title: "Open your website editor",
+          action: "link",
+          description: "Go to your site's HTML <head> section. In Replit open index.html or _document.tsx",
+          cta: "Open Replit",
+          url: "https://replit.com"
+        },
+        {
+          number: 3,
+          title: "Paste before </head> tag",
+          action: "info",
+          description: "Paste the copied code just before the closing </head> tag on every page"
+        },
+        {
+          number: 4,
+          title: "Verify it works",
+          action: "link",
+          description: "Test your schema with Google's Rich Results tool",
+          cta: "Test Schema",
+          url: `https://search.google.com/test/rich-results?url=${encodeURIComponent(currentUrl)}`
+        }
+      ]
+    },
+
+    faq_section: {
+      steps: [
+        {
+          number: 1,
+          title: "Copy the FAQ content",
+          action: "copy",
+          description: "Copy these Q&A pairs to add to your page",
+          cta: "Copy FAQ Content"
+        },
+        {
+          number: 2,
+          title: "Add to your webpage",
+          action: "info",
+          description: "Paste these Q&As at the bottom of your main page, above the footer. Label the section 'Frequently Asked Questions'"
+        },
+        {
+          number: 3,
+          title: "Copy the FAQ schema",
+          action: "copy",
+          description: "Also add this JSON-LD so AI systems can read your FAQs",
+          cta: "Copy FAQ Schema"
+        },
+        {
+          number: 4,
+          title: "Verify in Google",
+          action: "link",
+          description: "Check your FAQ appears as rich result",
+          cta: "Test in Google",
+          url: `https://search.google.com/test/rich-results?url=${encodeURIComponent(currentUrl)}`
+        }
+      ]
+    },
+
+    statistics_and_data: {
+      steps: [
+        {
+          number: 1,
+          title: "Copy suggested statistics",
+          action: "copy",
+          description: "Add these cited stats to your page content",
+          cta: "Copy Stats"
+        },
+        {
+          number: 2,
+          title: "Find the right page section",
+          action: "info",
+          description: "Place statistics in your hero section, about page, or any section making claims about your product or industry"
+        },
+        {
+          number: 3,
+          title: "Add source attribution",
+          action: "info",
+          description: "After each stat write: (Source: Gartner 2024) or (Source: Statista). AI systems trust attributed numbers over unattributed claims"
+        }
+      ]
+    },
+
+    heading_hierarchy: {
+      steps: [
+        {
+          number: 1,
+          title: "View your current headings",
+          action: "link",
+          description: "See all headings on your page using this free tool",
+          cta: "Check Headings",
+          url: `https://www.seoptimer.com/analyzer?url=${encodeURIComponent(currentUrl)}`
+        },
+        {
+          number: 2,
+          title: "Copy the suggested heading structure",
+          action: "copy",
+          description: "Replace your current headings with this AI-optimized structure",
+          cta: "Copy Heading Structure"
+        },
+        {
+          number: 3,
+          title: "Update in your editor",
+          action: "info",
+          description: "Change section titles from plain text or H1 to proper H2/H3 tags. Each H2 should answer a specific user question"
+        }
+      ]
+    },
+
+    authoritative_citations: {
+      steps: [
+        {
+          number: 1,
+          title: "Copy suggested citation sources",
+          action: "copy",
+          description: "These are authoritative sources relevant to your content",
+          cta: "Copy Sources"
+        },
+        {
+          number: 2,
+          title: "Add links to your content",
+          action: "info",
+          description: "Link out to these sources from relevant sentences on your page. Example: 'According to Gartner [link], 75% of...' AI systems prefer pages that cite authoritative sources"
+        }
+      ]
+    },
+
+    comparison_tables: {
+      steps: [
+        {
+          number: 1,
+          title: "Copy the comparison table HTML",
+          action: "copy",
+          description: "Ready-to-paste HTML table comparing your product vs alternatives",
+          cta: "Copy Table HTML"
+        },
+        {
+          number: 2,
+          title: "Add to your page",
+          action: "info",
+          description: "Paste this table in your pricing or features section. AI systems heavily cite comparison tables when users ask 'what is the best X for Y'"
+        },
+        {
+          number: 3,
+          title: "Verify table renders",
+          action: "link",
+          description: "Preview your page after adding",
+          cta: "Preview Site",
+          url: currentUrl
+        }
+      ]
+    },
+
+    prompt_coverage: {
+      steps: [
+        {
+          number: 1,
+          title: "See which prompts you are missing",
+          action: "link",
+          description: "Open Topic Finder to see exact AI prompts your content does not answer",
+          cta: "Open Topic Finder",
+          url: "/dashboard/topic-finder"
+        },
+        {
+          number: 2,
+          title: "Copy suggested content additions",
+          action: "copy",
+          description: "Add these paragraphs to your page to cover missing prompts",
+          cta: "Copy Content"
+        },
+        {
+          number: 3,
+          title: "Add to homepage or blog",
+          action: "info",
+          description: "Each paragraph directly answers one AI prompt. Place near the top of your page or in a dedicated section called 'How it works'"
+        }
+      ]
+    }
+  };
+
+  const flow = flows[factor] || {
+    steps: [
+      {
+        number: 1,
+        title: "Copy the fix",
+        action: "copy",
+        description: "Copy the suggested fix below",
+        cta: "Copy Fix"
+      },
+      {
+        number: 2,
+        title: "Apply to your website",
+        action: "info",
+        description: fix.description
+      }
+    ]
+  };
+
+  return (
+    <div className="fix-flow">
+      <div className="fix-flow-header">
+        How to fix this
+      </div>
+      
+      <div className="fix-steps">
+        {flow.steps.map((step) => (
+          <div key={step.number} className="fix-step">
+            
+            <div className="step-number">{step.number}</div>
+            
+            <div className="step-content">
+              <div className="step-title">{step.title}</div>
+              <div className="step-desc">{step.description}</div>
+              
+              {step.action === "copy" && (
+                <button 
+                  className="step-btn copy-btn"
+                  onClick={() => {
+                    navigator.clipboard.writeText(fix.copy_fix);
+                    // show "Copied!" toast
+                  }}
+                >
+                  Copy
+                </button>
+              )}
+              
+              {step.action === "link" && (
+                <a 
+                  href={step.url} 
+                  target="_blank"
+                  className="step-btn link-btn"
+                >
+                  {step.cta} →
+                </a>
+              )}
+            </div>
+            
+          </div>
+        ))}
+      </div>
+
+      <div className="fix-verify">
+        After fixing: re-run GEO Optimizer 
+        to see your score improve
+        <button onClick={reRunAnalysis}>
+          Re-run Analysis
+        </button>
+      </div>
+    </div>
+  );
+};
+
+STYLES FOR FIX FLOW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+.fix-flow {
+  background: #f8f9ff;
+  border: 1px solid #e8eaff;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.fix-flow-header {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6366f1;
+  margin-bottom: 12px;
+}
+
+.fix-step {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  align-items: flex-start;
+}
+
+.step-number {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #6366f1;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.step-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin-bottom: 4px;
+}
+
+.step-desc {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.step-btn {
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.copy-btn {
+  background: #6366f1;
+  color: white;
+}
+
+.link-btn {
+  background: white;
+  color: #6366f1;
+  border: 1px solid #6366f1;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.fix-verify {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #e8eaff;
+  font-size: 12px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+REPLACE COPY FIX BUTTON
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In Priority Fixes right panel cards:
+Replace [Copy Fix] button with 
+[See Fix Steps →] button
+
+On click: expand an inline panel below 
+the card showing the FixFlow component
+for that specific factor.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Run GEO Optimizer on geoiqai.com
+2. Click "See Fix Steps" on FAQ Section card
+3. Shows 4 numbered steps:
+   Step 1: Copy FAQ content button
+   Step 2: Add to webpage instructions  
+   Step 3: Copy FAQ schema button
+   Step 4: Test in Google link (opens tool)
+4. Bottom: Re-run Analysis button
+5. No raw code dumps visible by default
+6. Code only appears when Copy button clicked
+
+Share screenshot.
