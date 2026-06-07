@@ -17,6 +17,11 @@ const DATAFORSEO_BASE = process.env.DATAFORSEO_SANDBOX === "true"
   ? "https://sandbox.dataforseo.com"
   : "https://api.dataforseo.com";
 
+logger.info(
+  { mode: process.env.DATAFORSEO_SANDBOX === "true" ? "SANDBOX" : "LIVE", base: DATAFORSEO_BASE },
+  "DataForSEO mode initialized",
+);
+
 function getAuthHeader(): Record<string, string> {
   const login = process.env.DATAFORSEO_LOGIN ?? "";
   const password = process.env.DATAFORSEO_PASSWORD ?? "";
@@ -1395,13 +1400,22 @@ async function getDfCache(key: string): Promise<Record<string, unknown> | null> 
   }
 }
 
+export const CACHE_TTL = {
+  keywords_aggregates: 72 * 60 * 60 * 1000,
+  merged_data: 72 * 60 * 60 * 1000,
+  subdomains: 48 * 60 * 60 * 1000,
+  demographics: 48 * 60 * 60 * 1000,
+  default: 72 * 60 * 60 * 1000,
+};
+
 async function setDfCache(
   key: string,
   data: Record<string, unknown>,
   costUsd?: string,
+  ttlMs: number = CACHE_TTL.default,
 ): Promise<void> {
   try {
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + ttlMs);
     await db
       .insert(dataforseoCacheTable)
       .values({ key, data, costUsd: costUsd ?? null, expiresAt })

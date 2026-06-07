@@ -31,6 +31,7 @@ import { crawlSite } from "../lib/site-crawler";
 import { db, citationsTable, keywordCacheTable, auditsTable, promptTrackingTable, siteAuditHistoryTable } from "@workspace/db";
 import { eq, and, desc, gt } from "drizzle-orm";
 import OpenAI from "openai";
+import { anthropic } from "@workspace/integrations-anthropic-ai";
 
 const router = Router();
 
@@ -1186,7 +1187,7 @@ router.post("/dataforseo/competitor-research", requireAuth, async (req, res): Pr
       .slice(0, 50)
       .map(([domain, count]) => ({ domain, count }));
 
-    // Generate insights (2 sentences max, 50 words)
+    // Generate insights via Claude
     let insights: string[] = [];
     try {
       const you = domainResults[0]!;
@@ -1194,23 +1195,29 @@ router.post("/dataforseo/competitor-research", requireAuth, async (req, res): Pr
       if (comp) {
         const topMissing = topicList.filter(t => t.status === "missing").slice(0, 3).map(t => t.topic);
         const topUnique = topicList.filter(t => t.status === "unique").slice(0, 3).map(t => t.topic);
-        const prompt = `You are a GEO analyst. Compare these two brands based on AI mention data.
+        const msg = await anthropic.messages.create({
+          model: "claude-haiku-4-5",
+          max_tokens: 300,
+          system: `You are a GEO competitive analyst. Write specific, actionable insights. No em dashes. No asterisks. No bullet points. Return plain text only.`,
+          messages: [{
+            role: "user",
+            content: `Write 2 competitor insights based on this real data:
 
-Your brand: ${you.domain} - AI Mentions: ${you.mentions.toLocaleString()}, Score: ${you.score}/100
-Competitor: ${comp.domain} - AI Mentions: ${comp.mentions.toLocaleString()}, Score: ${comp.score}/100
+User domain: ${you.domain}
+User score: ${you.score}/100
+User AI mentions: ${you.mentions.toLocaleString()}
 
-Topics competitor leads in (missing from your brand): ${topMissing.join(", ") || "none found"}
-Topics only your brand appears in: ${topUnique.join(", ") || "none found"}
+Competitor: ${comp.domain}
+Competitor score: ${comp.score}/100
+Competitor AI mentions: ${comp.mentions.toLocaleString()}
 
-Write exactly 2 sentences. Sentence 1: which specific topic the competitor leads in and why it matters. Sentence 2: one specific action to close the gap. Maximum 50 words total. Be specific, not generic. No bullets, no numbering.`;
+Topics where competitor leads: ${topMissing.join(", ") || "none found"}
+Topics where user leads: ${topUnique.join(", ") || "none found"}
 
-        const completion = await compOpenai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: [{ role: "user", content: prompt }],
-          max_tokens: 120,
-          temperature: 0.4,
+Each insight: specific problem + specific fix. Under 60 words each. Plain text. Two sentences only.`,
+          }],
         });
-        const text = completion.choices[0]?.message?.content?.trim() ?? "";
+        const text = msg.content[0]?.type === "text" ? msg.content[0].text.trim() : "";
         insights = text.split("\n").map(s => s.trim()).filter(Boolean).slice(0, 2);
       }
     } catch (err) {
@@ -1219,7 +1226,7 @@ Write exactly 2 sentences. Sentence 1: which specific topic the competitor leads
 
     req.log.info({ domains: allDomains, scores: domainResults.map(d => d.score), topics: topicList.length, topicCounts, sources: sources.length }, "competitor-research: done");
 
-    res.json({ domains: domainResults, trend: trendSeries, topics: topicList, topicCounts, insights, sources, cached: false });
+    res.json({ domains: domainResults, trend: trendSeries, topics: topicList, topicCounts, insights, sources, cached: false, analyzedAt: new Date().toISOString() });
   } catch (err) {
     req.log.error({ err }, "competitor-research error");
     res.status(500).json({ error: "Could not load competitor data. Please try again." });

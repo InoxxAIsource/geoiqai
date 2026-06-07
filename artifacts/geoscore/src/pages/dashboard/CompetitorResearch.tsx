@@ -49,6 +49,7 @@ interface CompData {
   insights: string[];
   sources: SourceRow[];
   cached: boolean;
+  analyzedAt?: string;
 }
 
 const DOMAIN_COLORS = [P, "#10B981", "#F59E0B", "#EF4444"];
@@ -153,6 +154,63 @@ const ROW_BG: Record<TopicStatus, string> = {
   unique:  "#F0FDF4",
 };
 
+/* ───── Gap Impact ───── */
+type GapImpact = "High" | "Medium" | "Low" | "None";
+
+function getGapImpact(status: TopicStatus): GapImpact {
+  if (status === "missing") return "High";
+  if (status === "weak") return "Medium";
+  if (status === "shared" || status === "unique") return "Low";
+  if (status === "strong") return "None";
+  return "Medium";
+}
+
+const GAP_IMPACT_STYLE: Record<GapImpact, { bg: string; color: string }> = {
+  High:   { bg: "#FEE2E2", color: "#991B1B" },
+  Medium: { bg: "#FEF3C7", color: "#92400E" },
+  Low:    { bg: "#F3F4F6", color: "#6B7280" },
+  None:   { bg: "transparent", color: "#D1D5DB" },
+};
+
+const GAP_IMPACT_ORDER: Record<GapImpact, number> = { High: 0, Medium: 1, Low: 2, None: 3 };
+
+function GapImpactBadge({ status }: { status: TopicStatus }) {
+  const impact = getGapImpact(status);
+  if (impact === "None") return <span style={{ color: "#D1D5DB", fontSize: 11 }}>None</span>;
+  const s = GAP_IMPACT_STYLE[impact];
+  return (
+    <span style={{ background: s.bg, color: s.color, borderRadius: 10, padding: "2px 8px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>
+      {impact}
+    </span>
+  );
+}
+
+/* ───── Cache Indicator ───── */
+function CacheIndicator({ analyzedAt }: { analyzedAt?: string }) {
+  if (!analyzedAt) return null;
+  const hoursAgo = Math.max(0, Math.floor((Date.now() - new Date(analyzedAt).getTime()) / 3_600_000));
+  const hoursLeft = Math.max(0, 72 - hoursAgo);
+  return (
+    <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 8, marginBottom: 0 }}>
+      Data from {hoursAgo === 0 ? "just now" : `${hoursAgo}h ago`} · Refreshes in {hoursLeft}h
+    </p>
+  );
+}
+
+/* ───── Trend tracking started message ───── */
+function TrendStartedMessage() {
+  return (
+    <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: "20px 20px", background: "#FAFAFA" }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: "#111827", marginBottom: 6 }}>Trend tracking has started</div>
+      <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.6, marginBottom: 12 }}>
+        GeoIQ records your AI visibility score every time you run an analysis.
+        After 2 analyses you will see your trend vs competitors here.
+      </div>
+      <div style={{ fontSize: 12, color: MUTED }}>Run another scan in a day or two to see movement.</div>
+    </div>
+  );
+}
+
 function TopicsTable({ topics, counts, yourDomain, compDomain, sources = [], plan, onNavigate }: {
   topics: TopicRow[];
   counts: TopicCounts;
@@ -165,7 +223,7 @@ function TopicsTable({ topics, counts, yourDomain, compDomain, sources = [], pla
   const [tab, setTab] = useState<"topics" | "sources">("topics");
   const [filter, setFilter] = useState<TopicFilter>("all");
   const [search, setSearch] = useState("");
-  const [sortVolDir, setSortVolDir] = useState<"desc" | "asc">("desc");
+  const [_sortVolDir] = useState<"desc" | "asc">("desc");
   const [page, setPage] = useState(0);
   const PER_PAGE = 20;
 
@@ -227,12 +285,12 @@ function TopicsTable({ topics, counts, yourDomain, compDomain, sources = [], pla
 
   const exportCsv = () => {
     const rows = [
-      ["Topic", yourDomain + " Mentions", (compDomain ?? "Competitor") + " Mentions", "AI Volume", "Status"],
+      ["Topic", yourDomain + " Mentions", (compDomain ?? "Competitor") + " Mentions", "Gap Impact", "Status"],
       ...topics.map(t => [
         `"${t.topic.replace(/"/g, '""')}"`,
         String(t.yourMentions),
         String(t.compMentions),
-        String(t.aiVolume),
+        getGapImpact(t.status),
         t.status,
       ]),
     ];
@@ -251,7 +309,7 @@ function TopicsTable({ topics, counts, yourDomain, compDomain, sources = [], pla
     ? byStatus.filter(t => t.topic.toLowerCase().includes(search.trim().toLowerCase()))
     : byStatus;
   const filtered = [...bySearch].sort((a, b) =>
-    sortVolDir === "desc" ? b.aiVolume - a.aiVolume : a.aiVolume - b.aiVolume
+    GAP_IMPACT_ORDER[getGapImpact(a.status)] - GAP_IMPACT_ORDER[getGapImpact(b.status)]
   );
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const visible = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
@@ -346,9 +404,8 @@ function TopicsTable({ topics, counts, yourDomain, compDomain, sources = [], pla
                     {compDomain && (
                       <th style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 600, color: "#10B981", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}`, whiteSpace: "nowrap" }}>{compDomain}</th>
                     )}
-                    <th onClick={() => { setSortVolDir(d => d === "desc" ? "asc" : "desc"); setPage(0); }}
-                      style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}`, whiteSpace: "nowrap", cursor: "pointer", userSelect: "none" }}>
-                      AI Volume {sortVolDir === "desc" ? "\u2193" : "\u2191"}
+                    <th style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${BORDER}`, whiteSpace: "nowrap" }}>
+                      Gap Impact
                     </th>
                   </tr>
                 </thead>
@@ -389,8 +446,8 @@ function TopicsTable({ topics, counts, yourDomain, compDomain, sources = [], pla
                               {row.compMentions > 0 ? fmtVol(row.compAiVolume || row.aiVolume) : <span style={{ color: "#D1D5DB" }}>-</span>}
                             </td>
                           )}
-                          <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, textAlign: "right", fontWeight: 600, color: "#111827", whiteSpace: "nowrap" }}>
-                            {fmtVol(row.aiVolume)}
+                          <td style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, textAlign: "right" }}>
+                            <GapImpactBadge status={row.status} />
                           </td>
                         </tr>
                         {isOpen && (
@@ -800,14 +857,13 @@ export function CompetitorResearch({ initialDomain, plan = "free", onNavigate }:
             })}
           </div>
 
+          <CacheIndicator analyzedAt={data.analyzedAt} />
+
           {/* Trend + Insights */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 16, marginBottom: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 16, marginBottom: 16, marginTop: 16 }}>
             <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: "20px 24px" }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 16 }}>AI Visibility Trend</div>
-              {data.trend.some(t => t.points.length > 0)
-                ? <TrendChart trend={data.trend} />
-                : <div style={{ textAlign: "center", padding: "30px 0", color: MUTED, fontSize: 13 }}>No trend data available for this period.</div>
-              }
+              <TrendStartedMessage />
             </div>
 
             <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: "20px 24px" }}>

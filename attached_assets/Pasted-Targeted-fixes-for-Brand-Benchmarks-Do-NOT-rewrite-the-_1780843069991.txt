@@ -1,0 +1,266 @@
+Targeted fixes for Brand Benchmarks.
+Do NOT rewrite the feature.
+Only fix these 5 specific problems 
+identified in the audit.
+
+FILE: artifacts/api-server/src/routes/dataforseo-extended.ts
+FILE: artifacts/geoscore/src/pages/dashboard/CompetitorResearch.tsx
+
+FIX 1: AI VOLUME COLUMN — SAME NUMBER EVERY ROW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problem: getLlmSearchTopics returns aggregate 
+volume not per-topic volume so every row 
+shows 9.1M.
+
+Fix option A (preferred):
+Remove the AI Volume column entirely from 
+the topics table.
+
+Replace with a "GAP IMPACT" column instead:
+Calculate from the gap_type:
+
+const getGapImpact = (gapType, userRank, competitorRank) => {
+  if (gapType === 'missing') return 'High';
+  if (gapType === 'weak' && competitorRank <= 3) return 'High';
+  if (gapType === 'weak') return 'Medium';
+  if (gapType === 'shared') return 'Low';
+  if (gapType === 'strong') return 'None';
+  return 'Medium';
+};
+
+Display as colored badge:
+High = red badge
+Medium = orange badge  
+Low = grey badge
+None = no badge
+
+This is more useful to users than a 
+fake volume number anyway.
+
+Fix option B (if removing column not possible):
+Show "--" instead of 9.1M for every row.
+Add tooltip: "Per-topic volume not available 
+for this data source"
+
+Use option A.
+
+FIX 2: TREND CHART — FLAT LINES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problem: DataForSEO LLM trends endpoint does 
+not support true date-slicing so every 
+30-day bucket returns same number = flat lines.
+
+Fix: Remove the fake trend chart entirely.
+
+Replace with a scan history chart that uses 
+GeoIQ's own scan results stored in Supabase:
+
+Check brand_scan_results or dataforseo_cache 
+table for historical scan data for this domain.
+
+If 2+ scans exist for this domain:
+Show real score trend from actual scan history.
+Plot: scan_date on X axis, score on Y axis.
+Two lines: user domain + competitor domain.
+
+If fewer than 2 scans exist (most users):
+Hide chart completely.
+Show this message instead:
+
+┌─────────────────────────────────────────┐
+│ 📈 Trend tracking has started           │
+│                                         │
+│ GeoIQ records your AI visibility score  │
+│ every time you run an analysis.         │
+│ After 2 analyses you will see your      │
+│ trend vs competitors here.              │
+│                                         │
+│ Next available rescan: in 71 hours      │
+└─────────────────────────────────────────┘
+
+Do NOT show flat lines.
+Flat lines actively mislead users.
+
+FIX 3: DATAFORSEO_SANDBOX — SET EXPLICITLY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problem: DATAFORSEO_SANDBOX not set in env
+so unknown whether hitting live or sandbox.
+
+Fix in Replit Secrets:
+Add: DATAFORSEO_SANDBOX = false
+
+Fix in dataforseo.ts:
+Find where BASE_URL or sandbox mode 
+is determined.
+
+Add explicit check:
+const IS_SANDBOX = process.env
+  .DATAFORSEO_SANDBOX === 'true';
+
+const DATAFORSEO_BASE = IS_SANDBOX
+  ? 'https://sandbox.dataforseo.com/v3'
+  : 'https://api.dataforseo.com/v3';
+
+console.log(
+  `DataForSEO mode: ${IS_SANDBOX ? 'SANDBOX' : 'LIVE'}`
+);
+
+Log this on server start so you can 
+confirm in Replit console which mode 
+is active.
+
+FIX 4: SWITCH INSIGHTS FROM GPT-4o-mini TO CLAUDE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problem: Lines 1190-1215 in dataforseo-extended.ts 
+use OpenAI GPT-4o-mini for competitor insights.
+Rest of GeoIQ uses Claude. Inconsistent.
+
+Fix: Replace OpenAI call with Claude:
+
+Find the OpenAI call around lines 1190-1215.
+
+Replace:
+// OLD — OpenAI
+const openaiResponse = await openai.chat.completions.create({
+  model: 'gpt-4o-mini',
+  messages: [...]
+});
+const insight = openaiResponse.choices[0].message.content;
+
+With:
+// NEW — Claude
+const claudeResponse = await anthropic.messages.create({
+  model: 'claude-opus-4-5',
+  max_tokens: 300,
+  system: `You are a GEO competitive analyst.
+Write specific, actionable insights.
+No em dashes. No asterisks. No bullet points.
+Return plain text only.`,
+  messages: [{
+    role: 'user',
+    content: `Write 2 competitor insights based 
+on this real data:
+
+User domain: ${userDomain}
+User score: ${userScore}
+User AI mentions: ${userMentions}
+
+Competitor: ${competitorDomain}
+Competitor score: ${competitorScore}  
+Competitor AI mentions: ${competitorMentions}
+
+Topics where competitor leads: ${missingTopics}
+Topics where user leads: ${strongTopics}
+
+Each insight: specific problem + specific fix.
+Under 60 words each. Plain text.`
+  }]
+});
+const insight = claudeResponse.content[0].text;
+
+FIX 5: EXTEND CACHE TTL TO 72 HOURS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problem: Cache is 24h on some calls.
+AI visibility data does not change in 24h.
+72h is the right TTL.
+
+Fix in dataforseo_cache.ts or wherever 
+TTL is set:
+
+Find all TTL values for LLM-related endpoints:
+keywords_aggregates → change to 72 hours
+merged_data (topics) → change to 72 hours
+subdomains → change to 48 hours
+demographics → change to 48 hours
+
+const CACHE_TTL = {
+  keywords_aggregates: 72 * 60 * 60, // 72 hours
+  merged_data: 72 * 60 * 60,         // 72 hours
+  subdomains: 48 * 60 * 60,          // 48 hours
+  demographics: 48 * 60 * 60,        // 48 hours
+  default: 24 * 60 * 60              // 24 hours
+};
+
+SHOW CACHE STATUS IN UI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In CompetitorResearch.tsx:
+
+When data loads from cache add small 
+grey text below the score cards:
+
+"Data from [X hours ago] · 
+Next refresh in [Y hours]"
+
+Pull cached_at from the API response.
+Calculate time since cached_at.
+Calculate time until expiry (72h from cached_at).
+
+const CacheIndicator = ({ cachedAt }) => {
+  const hoursAgo = Math.floor(
+    (Date.now() - new Date(cachedAt)) / 3600000
+  );
+  const hoursLeft = Math.max(0, 72 - hoursAgo);
+  
+  return (
+    <p style={{ 
+      fontSize: 11, 
+      color: '#9ca3af',
+      marginTop: 8 
+    }}>
+      Data from {hoursAgo}h ago · 
+      Refreshes in {hoursLeft}h
+    </p>
+  );
+};
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DO NOT CHANGE THESE (working correctly):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- calcScore() formula (70/20/10 weighting)
+- getLlmKeywordAggMetrics (real API call)
+- Missing/Weak/Shared/Strong badge logic
+- The cache layer structure in Supabase
+- The competitor comparison logic
+- The Add Competitor / Analyze flow
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST AFTER FIXES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Test 1: Topics table
+Open Brand Benchmarks
+netflix.com vs primevideo
+Topics table should show GAP IMPACT column
+NOT AI Volume with same 9.1M number
+High/Medium/Low badges visible
+
+Test 2: Trend chart
+Should show "Trend tracking has started" 
+message NOT flat lines
+Unless 2+ scans exist in Supabase
+
+Test 3: Sandbox confirmation
+Check Replit console on server start
+Should log: "DataForSEO mode: LIVE"
+NOT sandbox
+
+Test 4: Competitor insights
+Check network tab in browser
+Should call Claude API not OpenAI
+Insights text should appear same quality
+
+Test 5: Cache indicator
+Score cards show "Data from Xh ago"
+grey text below
+
+Share screenshot of:
+1. Topics table with GAP IMPACT column
+2. Trend chart replaced with tracking message
+3. Replit console showing "DataForSEO mode: LIVE"
