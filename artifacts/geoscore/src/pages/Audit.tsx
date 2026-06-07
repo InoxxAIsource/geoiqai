@@ -557,7 +557,7 @@ function UpgradeBox({ domain }: { domain: string }) {
         Most brands reach 50+ GEO IQ in 30 days.
       </div>
       <div style={{ fontSize: 13, color: "#9CA3AF", marginBottom: 4 }}>$69/mo - 7-day free trial, cancel anytime</div>
-      <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 20 }}>Billed as ₹6,679/mo via Razorpay</div>
+      <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 20 }}>Billed monthly. Cancel anytime.</div>
       {!showForm ? (
         <button
           onClick={() => setShowForm(true)}
@@ -586,7 +586,7 @@ function UpgradeBox({ domain }: { domain: string }) {
               ? <><Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} /> Opening payment...</>
               : "Pay ₹6,679/mo"}
           </button>
-          <p style={{ fontSize: 11, color: "#4b5563", marginTop: 8 }}>Secured by Razorpay. Cancel anytime.</p>
+          <p style={{ fontSize: 11, color: "#4b5563", marginTop: 8 }}>Secure payment. Cancel anytime.</p>
         </div>
       )}
     </div>

@@ -316,12 +316,12 @@ export function Dashboard() {
           ))}
         </nav>
 
-        {/* DataForSEO status pill */}
+        {/* Data source status pill */}
         {dfStatus !== "checking" && (() => {
           const statusMap = {
-            connected: { dot: "#10B981", label: "DataForSEO connected", sub: dfBalance != null ? `$${dfBalance.toFixed(2)} balance` : null },
-            disconnected: { dot: "#9CA3AF", label: "DataForSEO not connected", sub: "Add API credentials" },
-            error: { dot: "#F59E0B", label: "DataForSEO error", sub: "Check credentials" },
+            connected: { dot: "#10B981", label: "Live data connected", sub: dfBalance != null ? `$${dfBalance.toFixed(2)} balance` : null },
+            disconnected: { dot: "#9CA3AF", label: "Data source offline", sub: "Contact support" },
+            error: { dot: "#F59E0B", label: "Data source error", sub: "Contact support" },
           } as const;
           const s = statusMap[dfStatus as keyof typeof statusMap];
           return (

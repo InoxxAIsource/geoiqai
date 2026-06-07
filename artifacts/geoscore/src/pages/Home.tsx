@@ -532,7 +532,7 @@ export default function Home() {
             <div>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: `rgba(91,63,234,0.1)`, border: `1px solid rgba(91,63,234,0.3)`, borderRadius: 100, padding: "8px 20px", fontSize: 13, fontWeight: 600, color: PURPLE, marginBottom: 28 }}>
                 <span className="pulse-dot" style={{ width: 6, height: 6, background: PURPLE, borderRadius: "50%", display: "inline-block" }} />
-                Powered by Claude AI
+                Live AI scanning
               </div>
               <h2 style={{ fontSize: "clamp(32px,4vw,52px)", fontWeight: 900, lineHeight: 1, letterSpacing: "-0.03em", marginBottom: 20 }}>
                 Your GEO IQ.<br />Real. Live. Brutal.
@@ -593,7 +593,7 @@ export default function Home() {
               { icon: "//", label: "AI-cited content generation", body: "GeoIQ rewrites your homepage copy, generates AI-ready blog posts, and creates the exact content that gets cited by ChatGPT and Gemini." },
               { icon: "~", label: "Citation tracking", body: "See which sites AI cites when answering questions in your category. Know exactly what drives your competitors' AI mentions - and how to match it." },
               { icon: "vs", label: "Competitor analysis", body: "Compare your AI mention rate against up to 10 competitors. See which AI systems favor them and where to attack in your content strategy." },
-              { icon: "AI", label: "GeoIQ Agent (Claude AI)", body: "A Claude-powered AI strategist in your dashboard. Run live audits, generate content, ask strategy questions - all in one conversation." },
+              { icon: "AI", label: "GeoIQ Agent", body: "An AI strategist built into your dashboard. Run live audits, generate content, ask strategy questions - all in one conversation." },
             ].map(feat => (
               <div key={feat.label} style={{
                 background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12,
