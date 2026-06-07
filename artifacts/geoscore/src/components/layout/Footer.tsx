@@ -88,6 +88,10 @@ export function Footer() {
             <FooterLink href="/pricing">Pricing</FooterLink>
             <FooterLink href="/audit">Free audit</FooterLink>
             <FooterLink href="/dashboard">Dashboard</FooterLink>
+            <FooterLink href="/dashboard">GEO Copilot</FooterLink>
+            <FooterLink href="/dashboard">AI Crawler Audit</FooterLink>
+            <FooterLink href="/dashboard">PR Intelligence</FooterLink>
+            <FooterLink href="/dashboard">Answer Monitoring</FooterLink>
           </div>
 
           <div>

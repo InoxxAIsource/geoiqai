@@ -173,6 +173,14 @@ const FAQS = [
     q: "Does this work for Indian startups and regional brands?",
     a: "Yes. GeoIQ was built with the Indian market in mind. We understand that AI systems have different training data distributions, and we specifically test how your brand appears for Indian user intents and regional contexts.",
   },
+  {
+    q: "What is GEO Copilot?",
+    a: "GEO Copilot is a Claude-powered AI strategist inside your GeoIQ dashboard. You can ask it anything about your brand visibility, run live audits, get content recommendations, and diagnose why AI systems are not recommending your brand. Available on Starter and Agency plans.",
+  },
+  {
+    q: "What is PR Intelligence?",
+    a: "PR Intelligence uses Exa AI search to find journalists covering AI search, GEO, and your industry. You can search for media contacts, monitor who is covering your competitors, and generate personalized pitch emails in one click. Available on Starter and Agency plans.",
+  },
 ];
 
 export default function Home() {
@@ -187,9 +195,9 @@ export default function Home() {
 
   useEffect(() => {
     document.title = "GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand";
-    setMeta("description", "Check if ChatGPT, Gemini, Perplexity, Claude and Grok recommend your brand. Free audit in 60 seconds. No signup. The Search Console for AI search.");
+    setMeta("description", "GeoIQ tracks your brand across ChatGPT, Gemini, Perplexity, Claude, Grok and Google AI Overview. Free audit in 60 seconds. Get your AI visibility score, competitor benchmarks, and exact fixes.");
     setMeta("og:title", "GeoIQ: Free AI Visibility Audit | See If ChatGPT Knows Your Brand", true);
-    setMeta("og:description", "Check if ChatGPT, Gemini, Perplexity, Claude and Grok recommend your brand. Free audit in 60 seconds. No signup.", true);
+    setMeta("og:description", "GeoIQ tracks your brand across ChatGPT, Gemini, Perplexity, Claude, Grok and Google AI Overview. Free audit in 60 seconds. Get your AI visibility score, competitor benchmarks, and exact fixes.", true);
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -315,7 +323,7 @@ export default function Home() {
           </h1>
 
           <p style={{ fontSize: 18, color: MUTED, maxWidth: 540, lineHeight: 1.6, marginBottom: 40 }}>
-            Paste your URL. GeoIQ checks ChatGPT, Gemini, Perplexity, Claude and Grok - and returns your AI visibility score with exact fixes. Free in 60 seconds.
+            Paste your URL. GeoIQ checks ChatGPT, Gemini, Perplexity, Claude, Grok and Google AI Overview - and returns your AI visibility score with exact fixes. Free in 60 seconds. No signup needed.
           </p>
 
           {isLoggedInFree && (
@@ -391,9 +399,9 @@ export default function Home() {
 
           <div style={{ display: "flex", gap: 28, alignItems: "center", flexWrap: "wrap" as const }}>
             {[
-              { num: "500+", label: "audits run" },
+              { num: "100+", label: "audits run" },
               { num: "6", label: "AI systems" },
-              { num: "Free", label: "forever" },
+              { num: "Free", label: "audit" },
               { num: "60s", label: "results" },
             ].map(s => (
               <span key={s.label} style={{ fontSize: 13, color: MUTED }}>
@@ -431,9 +439,9 @@ export default function Home() {
       <div style={{ background: TEXT, color: "#fff", padding: "40px 48px" }}>
         <div className="stats-grid-mobile" style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 1, background: "#333" }}>
           {[
-            { num: "500+", label: "Audits Run" },
+            { num: "100+", label: "Audits Run" },
             { num: "6", label: "AI Systems Tracked" },
-            { num: "Free", label: "Forever Plan", purple: true },
+            { num: "Free", label: "Audit", purple: true },
             { num: "60s", label: "Average Audit Time" },
           ].map(s => (
             <div key={s.label} style={{ background: TEXT, padding: "28px 24px", textAlign: "center" }}>
@@ -506,7 +514,7 @@ export default function Home() {
             {[
               { icon: "->", iconBg: TEXT, step: "01 / Audit", title: "Paste your URL", body: "We query ChatGPT, Gemini, Perplexity, Claude, and Grok with real buyer-intent prompts about your category. No scraping. No guessing." },
               { icon: "↻", iconBg: PURPLE, step: "02 / Fix", title: "Get your exact roadmap", body: "GeoIQ returns a 4-week fix plan with CITE tags, AI-ready content rewrites, and direct submission URLs. Every fix has a reason and a predicted impact." },
-              { icon: "↗", iconBg: "#16A34A", step: "03 / Get Found", title: "Watch your score climb", body: "Track your GEO IQ score across all 6 AI systems daily. See which AI mentions you, when your brand appears, and how you stack up against competitors." },
+              { icon: "↗", iconBg: "#16A34A", step: "03 / Get Found", title: "Fix, track, and grow", body: "Use the full GeoIQ platform to fix issues, track your score over time, monitor competitor moves, and create content that gets cited by AI systems." },
             ].map(card => (
               <div key={card.step} style={{ background: BG, padding: "36px 32px" }}>
                 <div style={{ width: 44, height: 44, background: card.iconBg, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24, fontSize: 18, color: "#fff", fontWeight: 700 }}>
@@ -588,12 +596,15 @@ export default function Home() {
           </h2>
           <div className="grid-3-mobile" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20, marginTop: 56 }}>
             {[
-              { icon: "[ ]", label: "Measure your AI visibility", body: "Get a GEO IQ score across ChatGPT, Gemini, Perplexity, Claude, Grok, and Google AI. See exactly where your brand appears and where it is missing." },
-              { icon: "->", label: "Your step-by-step roadmap", body: "A 4-week fix plan with exact tasks, generated content, CITE tags, and direct submission URLs. Not generic advice - your brand, your gaps, your fixes." },
-              { icon: "//", label: "AI-cited content generation", body: "GeoIQ rewrites your homepage copy, generates AI-ready blog posts, and creates the exact content that gets cited by ChatGPT and Gemini." },
-              { icon: "~", label: "Citation tracking", body: "See which sites AI cites when answering questions in your category. Know exactly what drives your competitors' AI mentions - and how to match it." },
-              { icon: "vs", label: "Competitor analysis", body: "Compare your AI mention rate against up to 10 competitors. See which AI systems favor them and where to attack in your content strategy." },
-              { icon: "AI", label: "GeoIQ Agent", body: "An AI strategist built into your dashboard. Run live audits, generate content, ask strategy questions - all in one conversation." },
+              { icon: "[ ]", label: "Track AI visibility across 6 systems", body: "Get your AI Presence score across ChatGPT, Gemini, Perplexity, Claude, Grok, and Google AI Overview. See exactly where your brand appears and where it is missing with a score from 0 to 100." },
+              { icon: "->", label: "Step by step fix roadmap", body: "A 4-week CITE-tagged action plan with exact tasks, generated content, schema fixes, and direct submission URLs. Every fix has a predicted score impact." },
+              { icon: "//", label: "Create content AI systems cite", body: "Repurpose any article into platform-native posts for X, LinkedIn, Reddit, Product Hunt and 6 more platforms. GEO Writer creates content optimized for AI citation from the start." },
+              { icon: "~", label: "Score any page for AI citation", body: "GeoIQ scores your content on 10 citation factors including FAQ schema, structured data, factual statements, and heading hierarchy. Get specific fixes with step by step implementation." },
+              { icon: "vs", label: "Benchmark against competitors", body: "Compare your AI visibility score against up to 10 competitors. See which topics they appear in that you do not, and get a gap analysis with specific content recommendations." },
+              { icon: "AI", label: "GEO Copilot - your AI strategist", body: "A Claude-powered AI guide in your dashboard. Run live GEO audits, diagnose visibility gaps, generate content, and get a custom fix plan - all in one conversation. 50 messages per month on Starter." },
+              { icon: "#", label: "AI Crawler Audit", body: "Check if AI systems can find and trust your site. GeoIQ checks robots.txt, llms.txt, schema markup, bot access, Core Web Vitals signals, and crawlability across 30 technical factors." },
+              { icon: "PR", label: "PR Intelligence", body: "Find journalists covering AI search and GEO topics. Monitor brand mentions across 150,000 news sources. Generate personalized pitch emails in one click. Powered by Exa AI search." },
+              { icon: ">>", label: "Answer Monitoring", body: "Track exactly what AI systems say about your brand. Add prompts like 'What is the best mobile marketing platform' and see if you appear, your position, and the full AI response - updated daily." },
             ].map(feat => (
               <div key={feat.label} style={{
                 background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12,
