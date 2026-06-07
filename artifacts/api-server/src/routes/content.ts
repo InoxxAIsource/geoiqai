@@ -213,108 +213,111 @@ router.post("/content/analyze", requireAuth, async (req: AuthRequest, res): Prom
     domain?: string;
   };
 
-  if (!content?.trim()) { res.status(400).json({ error: "content is required" }); return; }
   if (!targetTopic?.trim()) { res.status(400).json({ error: "targetTopic is required" }); return; }
 
   const userId = req.user?.id;
   if (!userId) { res.status(401).json({ error: "Not authenticated" }); return; }
 
-  // Sandbox mode - return mock immediately
-  if (process.env.DATAFORSEO_SANDBOX === "true") {
-    const mock = getMockAnalysis(targetTopic);
-    // Save mock to DB
+  // Resolve content: use passed content if present, otherwise fetch from sourceUrl
+  let resolvedContent = content?.trim() ?? "";
+
+  if (resolvedContent.length < 100 && sourceUrl?.trim()) {
     try {
-      await db.insert(contentAnalysesTable).values({
-        userId,
-        domain: domain ?? "unknown",
-        sourceUrl: sourceUrl ?? null,
-        targetTopic,
-        score: mock.overallScore,
-        scoreLabel: mock.scoreLabel,
-        factors: mock.factors,
-        topFixes: mock.topFixes,
-        missingPrompts: mock.missingPrompts,
+      const fetchUrl = /^https?:\/\//i.test(sourceUrl) ? sourceUrl : `https://${sourceUrl}`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      const resp = await fetch(fetchUrl, {
+        signal: controller.signal,
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; GeoIQ/1.0)" },
       });
-    } catch { /* non-fatal */ }
-    res.json(mock);
+      clearTimeout(timeout);
+      if (resp.ok) {
+        const html = await resp.text();
+        const stripped = html
+          .replace(/<script[\s\S]*?<\/script>/gi, "")
+          .replace(/<style[\s\S]*?<\/style>/gi, "")
+          .replace(/<nav[\s\S]*?<\/nav>/gi, "")
+          .replace(/<header[\s\S]*?<\/header>/gi, "")
+          .replace(/<footer[\s\S]*?<\/footer>/gi, "")
+          .replace(/<aside[\s\S]*?<\/aside>/gi, "");
+        const mainMatch = stripped.match(/<(?:main|article)[^>]*>([\s\S]*?)<\/(?:main|article)>/i);
+        const source = mainMatch ? mainMatch[1] : stripped;
+        const text = source.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 8000);
+        if (text.length > 100) resolvedContent = text;
+      }
+    } catch {
+      // fall through - will error below if still empty
+    }
+  }
+
+  if (!resolvedContent) {
+    res.status(400).json({ error: "Could not get page content. Paste content manually or check the URL." });
     return;
   }
 
-  const truncatedContent = content.slice(0, 8000);
+  const truncatedContent = resolvedContent.slice(0, 8000);
 
-  const prompt = `You are a GEO (Generative Engine Optimization) expert.
-Analyze this content for AI citation readiness.
-Content to analyze: ${truncatedContent}
+  const analyzeSystemPrompt = `You are a GEO (Generative Engine Optimization) expert. 
+Analyze real page content and score it strictly based on evidence present.
+Be strict and accurate. Different pages must get different scores.
+Return ONLY raw JSON. No markdown. No backticks. No explanation.`;
+
+  const prompt = `Analyze this webpage content for AI citation readiness.
+
+URL: ${sourceUrl ?? domain ?? "unknown"}
 Target topic: ${targetTopic}
 
-Score these 10 factors from 0-10:
-1. Factual Statements - clear facts AI can extract and cite
-2. FAQ Section - Q&A format that matches AI prompts
-3. Structured Data - mentions of schema markup needs
-4. Statistics & Data - numbers with sources
-5. Comparison Tables - structured comparisons
-6. Entity Definitions - clear who/what/where definitions
-7. Authoritative Citations - external source references
-8. Prompt Coverage - content answers common AI queries
-9. Quotable Statements - concise citable phrases under 30 words
-10. Heading Hierarchy - clear H1/H2/H3 structure
+Page content:
+---
+${truncatedContent}
+---
+
+Score each of the 10 factors from 0-10 based ONLY on what is actually in the content above.
+Do not give generic scores. Each feedback must reference what you specifically found or did not find.
+
+Scoring guide:
+8-10: Strong evidence clearly present in the content
+4-7: Partial or weak presence found
+0-3: Not found in the content at all
 
 Return ONLY valid JSON (no markdown, no code blocks):
 {
-  "overallScore": 67,
-  "scoreLabel": "Good",
+  "overallScore": 0,
+  "scoreLabel": "Needs Work",
   "factors": [
-    {
-      "name": "Factual Statements",
-      "score": 8,
-      "status": "good",
-      "feedback": "Content has clear factual statements AI can cite",
-      "fix": null
-    },
-    {
-      "name": "FAQ Section",
-      "score": 1,
-      "status": "missing",
-      "feedback": "No FAQ section found. AI models prefer Q&A format.",
-      "fix": "Add this FAQ section:\\n\\nQ: What is ${targetTopic}?\\nA: [2-3 sentence direct answer]\\n\\nQ: How does ${targetTopic} work?\\nA: [2-3 sentence explanation]"
-    }
+    {"name": "Factual Statements", "score": 0, "status": "good|warning|missing", "feedback": "One sentence citing specific evidence found or missing", "fix": null},
+    {"name": "FAQ Section", "score": 0, "status": "good|warning|missing", "feedback": "...", "fix": "Exact copy-pasteable FAQ content if missing, else null"},
+    {"name": "Structured Data", "score": 0, "status": "good|warning|missing", "feedback": "...", "fix": "Exact JSON-LD snippet if missing, else null"},
+    {"name": "Statistics and Data", "score": 0, "status": "good|warning|missing", "feedback": "...", "fix": null},
+    {"name": "Comparison Tables", "score": 0, "status": "good|warning|missing", "feedback": "...", "fix": null},
+    {"name": "Entity Definitions", "score": 0, "status": "good|warning|missing", "feedback": "...", "fix": null},
+    {"name": "Authoritative Citations", "score": 0, "status": "good|warning|missing", "feedback": "...", "fix": null},
+    {"name": "Prompt Coverage", "score": 0, "status": "good|warning|missing", "feedback": "...", "fix": null},
+    {"name": "Quotable Statements", "score": 0, "status": "good|warning|missing", "feedback": "...", "fix": null},
+    {"name": "Heading Hierarchy", "score": 0, "status": "good|warning|missing", "feedback": "...", "fix": null}
   ],
   "topFixes": [
-    {
-      "priority": 1,
-      "impact": "high",
-      "title": "Add FAQPage schema markup",
-      "description": "FAQPage JSON-LD is the single most effective trigger for Google AI Overview.",
-      "timeToFix": "20 minutes",
-      "scoreImpact": "+18 pts",
-      "fix": "<script type=\\"application/ld+json\\">...</script>"
-    }
+    {"priority": 1, "impact": "high", "title": "...", "description": "Specific fix based on gaps found in THIS content", "timeToFix": "20 minutes", "scoreImpact": "+18 pts", "fix": "Exact copy-pasteable implementation"},
+    {"priority": 2, "impact": "high", "title": "...", "description": "...", "timeToFix": "30 minutes", "scoreImpact": "+12 pts", "fix": "..."},
+    {"priority": 3, "impact": "medium", "title": "...", "description": "...", "timeToFix": "45 minutes", "scoreImpact": "+8 pts", "fix": null}
   ],
-  "missingPrompts": [
-    "how to get cited in ChatGPT",
-    "why is my brand not showing in ChatGPT",
-    "best ways to appear in ChatGPT answers",
-    "how to improve ChatGPT brand visibility"
-  ],
-  "competitorTips": [
-    "Pages that rank for this topic in AI typically have comparison tables",
-    "Top cited pages include statistics from credible sources",
-    "FAQ sections with 5+ questions perform best in Google AI Overview"
-  ]
+  "missingPrompts": ["real user query 1", "real user query 2", "real user query 3", "real user query 4"],
+  "competitorTips": ["tip 1 specific to this content", "tip 2", "tip 3"]
 }
 
 Rules:
 - status: "good" for score >= 7, "warning" for 4-6, "missing" for <= 3
-- scoreLabel: "Excellent" for 81+, "Good" for 61-80, "Needs Work" for 41-60, "Poor" for <= 40
-- Generate exactly 10 factors
-- Generate 3-5 topFixes ordered by impact
-- missingPrompts: Generate 4 natural AI search queries that real users would type, related to the topic "${targetTopic}". Do NOT use templates like "what is [topic]" or "how to use [topic]". Generate contextually relevant questions that sound like real searches. For example, if the topic is "get cited in ChatGPT", write queries like "how to get cited in ChatGPT", "why is my brand not showing in AI answers", "best ways to appear in Perplexity results". If the topic is "AI visibility tools", write queries like "what are the best AI visibility tools", "how to track brand mentions in ChatGPT", "free tools to check AI brand visibility".
-- For fix fields, include exact copy-pasteable content. Use null if no specific fix text is needed.`;
+- overallScore = average of all 10 factor scores rounded to nearest integer
+- scoreLabel: "Excellent" >= 80, "Good" 60-79, "Needs Work" 40-59, "Poor" < 40
+- topFixes must reference actual gaps found in this specific content, not generic advice
+- missingPrompts: 4 natural AI search queries real users type about "${targetTopic}"
+- fix fields: exact copy-pasteable content where applicable, null otherwise`;
 
   try {
     const msg = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 4096,
+      system: analyzeSystemPrompt,
       messages: [{ role: "user", content: [{ type: "text", text: prompt }] }],
     });
 

@@ -1,0 +1,217 @@
+Fix GEO Content Optimizer — currently returns 
+same fake score (54/100) for every domain.
+Must return real analysis per URL.
+
+PROBLEM:
+Sandbox mode is hardcoded ON for GEO Optimizer.
+Every domain gets identical scores:
+Factual Statements 7/10, FAQ 1/10, etc.
+This is fake data — must be replaced with 
+real Claude analysis of the actual URL content.
+
+FIX: REAL CLAUDE ANALYSIS PER URL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Step 1: Fetch the actual URL content server-side
+
+When user runs GEO Optimizer on a domain:
+
+const fetchPageContent = async (url) => {
+  try {
+    const fullUrl = url.startsWith('http') 
+      ? url : `https://${url}`;
+    const response = await fetch(fullUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; GeoIQ/1.0)'
+      },
+      timeout: 10000
+    });
+    const html = await response.text();
+    
+    // Strip HTML tags, keep text only
+    const text = html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
+      .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
+      .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 4000);
+      
+    return text;
+  } catch (err) {
+    console.error('Fetch failed:', err.message);
+    return null;
+  }
+};
+
+Step 2: Send to Claude for real scoring
+
+const analyzeGEOScore = async (url, pageContent) => {
+
+  const prompt = `You are a GEO (Generative Engine 
+Optimization) expert. Analyze this webpage content 
+and score it on 10 AI citation factors.
+
+URL: ${url}
+Page content:
+${pageContent}
+
+Score each factor 0-10 based ONLY on what is 
+actually present in the content above.
+Be strict and accurate. Do not give same scores 
+to different pages. Base scores on evidence found.
+
+Return ONLY this raw JSON, no markdown, no backticks:
+{
+  "overall_score": 0,
+  "label": "Needs Work | Developing | Good | Excellent",
+  "factors": {
+    "factual_statements": {
+      "score": 0,
+      "status": "strong | improve | missing",
+      "evidence": "One sentence explaining the score"
+    },
+    "faq_section": {
+      "score": 0,
+      "status": "strong | improve | missing",
+      "evidence": "One sentence explaining the score"
+    },
+    "structured_data": {
+      "score": 0,
+      "status": "strong | improve | missing",
+      "evidence": "One sentence explaining the score"
+    },
+    "statistics_and_data": {
+      "score": 0,
+      "status": "strong | improve | missing",
+      "evidence": "One sentence explaining the score"
+    },
+    "comparison_tables": {
+      "score": 0,
+      "status": "strong | improve | missing",
+      "evidence": "One sentence explaining the score"
+    },
+    "entity_definitions": {
+      "score": 0,
+      "status": "strong | improve | missing",
+      "evidence": "One sentence explaining the score"
+    },
+    "authoritative_citations": {
+      "score": 0,
+      "status": "strong | improve | missing",
+      "evidence": "One sentence explaining the score"
+    },
+    "prompt_coverage": {
+      "score": 0,
+      "status": "strong | improve | missing",
+      "evidence": "One sentence explaining the score"
+    },
+    "quotable_statements": {
+      "score": 0,
+      "status": "strong | improve | missing",
+      "evidence": "One sentence explaining the score"
+    },
+    "heading_hierarchy": {
+      "score": 0,
+      "status": "strong | improve | missing",
+      "evidence": "One sentence explaining the score"
+    }
+  },
+  "priority_fixes": [
+    {
+      "priority": 1,
+      "impact": "High | Medium | Low",
+      "time_estimate": "20 minutes",
+      "points_gain": 18,
+      "title": "Fix title here",
+      "description": "Specific actionable fix based on actual content gaps found",
+      "copy_fix": "Exact code or content snippet to implement"
+    },
+    {
+      "priority": 2,
+      "impact": "High | Medium | Low", 
+      "time_estimate": "30 minutes",
+      "points_gain": 12,
+      "title": "Fix title here",
+      "description": "Specific actionable fix",
+      "copy_fix": "Exact implementation"
+    },
+    {
+      "priority": 3,
+      "impact": "Medium | Low",
+      "time_estimate": "45 minutes", 
+      "points_gain": 8,
+      "title": "Fix title here",
+      "description": "Specific actionable fix",
+      "copy_fix": "Exact implementation"
+    }
+  ],
+  "strong_count": 0,
+  "improve_count": 0,
+  "missing_count": 0
+}
+
+Scoring guide:
+8-10: Strong evidence present in content
+4-7: Partial or weak presence
+0-3: Not found in content
+
+overall_score = average of all 10 factors rounded
+label rules:
+0-39: Needs Work
+40-59: Developing  
+60-79: Good
+80-100: Excellent
+
+priority_fixes must be specific to THIS page
+not generic advice. Reference actual missing 
+elements found during analysis.`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-opus-4-5',
+    max_tokens: 2000,
+    system: 'You are a GEO analysis expert. Return only raw JSON. No markdown. No backticks.',
+    messages: [{ role: 'user', content: prompt }]
+  });
+
+  const raw = response.content[0].text;
+  const cleaned = raw
+    .replace(/```json\n?/g, '')
+    .replace(/```\n?/g, '')
+    .trim();
+    
+  return JSON.parse(cleaned);
+};
+
+Step 3: Full route
+
+app.post('/api/geo-optimizer', async (req, res) => {
+  try {
+    const { url } = req.body;
+    console.log('GEO Optimizer analyzing:', url);
+    
+    if (!url) {
+      return res.status(400).json({ 
+        error: 'URL required' 
+      });
+    }
+    
+    // Fetch real page content
+    const pageContent = await fetchPageContent(url);
+    
+    if (!pageContent || pageContent.length < 100) {
+      return res.status(400).json({
+        error: 'Could not fetch page content. Check URL and try again.'
+      });
+    }
+    
+    console.log('Fetched content length:', pageContent.length);
+    
+    // Real Claude analysis
+    const analysis = await analyzeGEOScore(url, pageContent);
+    
+    // Cache in Supabase to avoid repeat API calls
+    await supa
