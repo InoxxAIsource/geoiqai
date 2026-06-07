@@ -362,32 +362,29 @@ router.post("/brand-performance", requireAuth, async (req: AuthRequest, res): Pr
 
     req.log.info({ domain: bareD }, "brand-performance: step 1 - generating prompts");
 
-    // STEP 1: Generate 20 prompts
+    // Shared abort controller - cancel all Claude calls after 90 seconds
+    const ac = new AbortController();
+    const abortTimer = setTimeout(() => ac.abort(), 90_000);
+
+    // STEP 1: Generate 10 prompts (haiku is fast enough for list generation)
     const promptGenMsg = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 8192,
+      model: "claude-haiku-4-5",
+      max_tokens: 1024,
       messages: [{
         role: "user",
-        content: `Generate exactly 20 prompts a buyer would ask an AI assistant when evaluating ${brandName}.
+        content: `Generate exactly 10 prompts a buyer would ask an AI assistant when evaluating ${brandName}.
 
-Cover these categories:
-- Product/service quality: 4 prompts
-- Pricing and value: 3 prompts
-- Vs competitors: 4 prompts
-- Reputation and trust: 3 prompts
-- Use cases and who it is for: 3 prompts
-- Weaknesses and problems: 3 prompts
+Cover: product quality (2), pricing (2), vs competitors (2), reputation (2), weaknesses (2).
 
-Return ONLY a JSON array of 20 strings.
-No markdown. No explanation. No backticks.
-Start with [ and end with ]`,
+Return ONLY a JSON array of 10 strings. No markdown. No backticks. Start with [ and end with ]`,
       }],
-    });
+    }, { signal: ac.signal as AbortSignal });
 
     const promptText = promptGenMsg.content[0]?.type === "text" ? promptGenMsg.content[0].text : "[]";
     const prompts = parseClaudeJSON<string[]>(promptText) ?? [];
 
-    if (prompts.length < 10) {
+    if (prompts.length < 5) {
+      clearTimeout(abortTimer);
       req.log.warn({ domain: bareD, count: prompts.length }, "brand-performance: too few prompts, using mock");
       res.json(getMockBrandData(bareD, brandName, competitors));
       return;
@@ -395,41 +392,30 @@ Start with [ and end with ]`,
 
     req.log.info({ domain: bareD, count: prompts.length }, "brand-performance: step 2 - getting answers");
 
-    // STEP 2: Answer all prompts in ONE call
+    // STEP 2: Answer all prompts in one haiku call - concise 1-2 sentence responses
     const answersMsg = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 8192,
+      model: "claude-haiku-4-5",
+      max_tokens: 4096,
       messages: [{
         role: "user",
-        content: `You are a neutral AI assistant.
-Answer each of these ${prompts.length} prompts about ${brandName}.
-Be balanced. Mention real competitors naturally.
-Keep each response 2-4 sentences.
+        content: `You are a neutral AI assistant. Answer each prompt about ${brandName}. Be balanced, 1-2 sentences max per answer. Mention real competitors naturally.
 
 Prompts:
 ${prompts.map((p, i) => `${i + 1}. ${p}`).join("\n")}
 
 Return ONLY a JSON array with exactly ${prompts.length} objects:
-[{
-  "prompt": "the prompt text",
-  "response": "your answer",
-  "brandMentioned": true,
-  "sentiment": "positive",
-  "competitorsMentioned": ["name1"],
-  "keyThemes": ["theme1", "theme2"],
-  "isBrandRecommended": true
-}]
+[{"prompt":"text","response":"answer","brandMentioned":true,"sentiment":"positive","competitorsMentioned":["name"],"keyThemes":["theme"]}]
 
-Sentiment must be: positive, neutral, or negative.
-Return pure JSON only. No markdown. No backticks.`,
+sentiment: positive, neutral, or negative. Pure JSON only, no markdown.`,
       }],
-    });
+    }, { signal: ac.signal as AbortSignal });
 
     const answersText = answersMsg.content[0]?.type === "text" ? answersMsg.content[0].text : "[]";
     type AnswerItem = { prompt: string; response: string; brandMentioned: boolean; sentiment: string; competitorsMentioned: string[]; keyThemes: string[]; isBrandRecommended: boolean };
     const answers = parseClaudeJSON<AnswerItem[]>(answersText) ?? [];
 
-    if (answers.length < 5) {
+    if (answers.length < 3) {
+      clearTimeout(abortTimer);
       req.log.warn({ domain: bareD, count: answers.length }, "brand-performance: too few answers, using mock");
       res.json(getMockBrandData(bareD, brandName, competitors));
       return;
@@ -446,7 +432,7 @@ Return pure JSON only. No markdown. No backticks.`,
 
     const analysisMsg = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 8192,
+      max_tokens: 4096,
       messages: [{
         role: "user",
         content: `You are a brand intelligence analyst.
@@ -552,12 +538,14 @@ Return ONLY this JSON structure. No markdown. No backticks. Pure JSON.
 IMPORTANT RULES:
 - businessDrivers: 4-6 items. For competitorFrequencies, use real competitor brand names as keys and estimate frequency 1-10.
 - competitorData: Use real brand names from competitors list, not generic "Competitor A/B". Every competitor object MUST include insightTitle, insightText (with real SoV and sentiment numbers), insightColor, and businessDrivers (5 items matching the main businessDrivers list).
-- topQuestions: Generate exactly 20 questions total - 8 branded, 6 comparison, 3 feature, 3 problem. category must be one of: branded, comparison, feature, problem.
+- topQuestions: Generate exactly 10 questions total - 4 branded, 3 comparison, 2 feature, 1 problem. category must be one of: branded, comparison, feature, problem.
 - strategicOpportunities: Generate exactly 4-5 cards. Each recommendation must be 2-3 sentences, specific to this brand's actual data, naming competitors and exact numbers where relevant.
 - All frequencies are 1-10. shareOfVoice and sentiment are 0-100 percent.
 - insightColor: "green" = you lead both SoV and sentiment, "red" = competitor leads both, "amber" = mixed.`,
       }],
-    });
+    }, { signal: ac.signal as AbortSignal });
+
+    clearTimeout(abortTimer);
 
     const analysisText = analysisMsg.content[0]?.type === "text" ? analysisMsg.content[0].text : "{}";
     type AnalysisShape = Omit<BrandPerformanceResult, "domain" | "brandName" | "scannedAt" | "methodology" | "answers" | "citedSources">;
@@ -596,7 +584,7 @@ IMPORTANT RULES:
         keyThemes: a.keyThemes ?? [],
       })),
       scannedAt: new Date().toISOString(),
-      methodology: "20 Claude AI synthetic responses",
+      methodology: "10 Claude AI synthetic responses",
     };
 
     req.log.info({ domain: bareD, score: result.overallScore }, "brand-performance: complete, caching 30 days");
@@ -615,7 +603,8 @@ IMPORTANT RULES:
     res.json(result);
   } catch (err) {
     req.log.error({ err, domain }, "brand-performance error");
-    res.status(500).json({ error: "Analysis failed. Please try again." });
+    const isAbort = err instanceof Error && err.name === "AbortError";
+    res.status(500).json({ error: isAbort ? "Analysis timed out. Please try again." : "Analysis failed. Please try again." });
   }
 });
 
