@@ -14,6 +14,7 @@ import dataforseoExtendedRouter from "./dataforseo-extended";
 import adminRouter from "./admin";
 import brandPerformanceRouter from "./brand-performance";
 import contentRouter from "./content";
+import aiPrRouter from "./ai-pr";
 
 const router: IRouter = Router();
 
@@ -32,5 +33,6 @@ router.use(dataforseoExtendedRouter);
 router.use(adminRouter);
 router.use(brandPerformanceRouter);
 router.use(contentRouter);
+router.use(aiPrRouter);
 
 export default router;

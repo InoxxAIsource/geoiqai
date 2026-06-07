@@ -4,7 +4,7 @@ import { useGetMe, useGetMonitoredBrands, useGetBrandScores, useGetBrandKeywords
 import { useQueryClient } from "@tanstack/react-query";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { getToken } from "@/lib/auth";
-import { BarChart2, Users, Search, TrendingUp, Brain, MessageSquare, HelpCircle, Wrench, Radio, FileText, Bot, Layers, Plus, ChevronDown, LogOut, Settings, Globe } from "lucide-react";
+import { BarChart2, Users, Search, TrendingUp, Brain, MessageSquare, HelpCircle, Wrench, Radio, FileText, Bot, Layers, Plus, ChevronDown, LogOut, Settings, Globe, Megaphone } from "lucide-react";
 import { VisibilityOverview } from "./dashboard/VisibilityOverview";
 import { CompetitorResearch } from "./dashboard/CompetitorResearch";
 import { PromptResearch } from "./dashboard/PromptResearch";
@@ -14,6 +14,7 @@ import { PromptTracking } from "./dashboard/PromptTracking";
 import { ContentCreation } from "./dashboard/ContentCreation";
 import { GeoAgentTab } from "./dashboard/GeoAgentTab";
 import { ContentImprovementsTab } from "./dashboard/ContentImprovementsTab";
+import { AiPRTab } from "./dashboard/AiPRTab";
 
 setAuthTokenGetter(getToken);
 
@@ -27,7 +28,7 @@ type NavId =
   | "visibility-overview" | "competitor-research" | "prompt-research"
   | "brand-performance" | "site-audit" | "prompt-tracking"
   | "content-creation" | "geo-agent" | "content-improvements"
-  | "settings";
+  | "ai-pr" | "settings";
 
 interface NavItem { id: NavId; label: string; icon: React.ReactNode }
 interface NavSection { section: string; items: NavItem[] }
@@ -60,6 +61,7 @@ const NAV: NavSection[] = [
     items: [
       { id: "geo-agent", label: "GEO Agent", icon: <Bot size={15} /> },
       { id: "content-improvements", label: "Content Improvements", icon: <Layers size={15} /> },
+      { id: "ai-pr", label: "AI PR", icon: <Megaphone size={15} /> },
     ],
   },
 ];
@@ -492,6 +494,12 @@ export function Dashboard() {
               <ContentImprovementsTab
                 brand={selectedBrand ? { id: selectedBrand.id, domain: selectedBrand.domain ?? activeDomain, brandName: selectedBrand.brandName ?? null } : null}
               />
+            </div>
+          )}
+
+          {activeNav === "ai-pr" && (
+            <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 24 }}>
+              <AiPRTab />
             </div>
           )}
 

@@ -1,0 +1,466 @@
+Add new AI PR page to GeoIQ dashboard.
+Uses Exa API (exa-js SDK) + Claude for 
+journalist discovery, coverage monitoring, 
+and pitch generation.
+
+FIRST — SETUP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Install SDK in Replit shell:
+npm install exa-js
+
+Add to Replit Secrets:
+EXA_API_KEY = [user's key from dashboard.exa.ai/api-keys]
+
+Import in backend:
+import Exa from 'exa-js';
+const exa = new Exa(process.env.EXA_API_KEY);
+
+Add to sidebar under GEOIQ TOOLS:
+Route: /dashboard/ai-pr
+Icon: megaphone or newspaper
+
+PAGE LAYOUT — 3 TABS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[Journalist Finder] [Coverage Monitor] [Pitch Generator]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TAB 1: JOURNALIST FINDER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Header: "Find journalists covering AI search and GEO"
+
+Topic input + pre-filled chips:
+[AI SEO] [GEO] [ChatGPT SEO] 
+[AI search] [LLM marketing] [Perplexity SEO]
+
+BACKEND: POST /api/ai-pr/find-journalists
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+app.post('/api/ai-pr/find-journalists', 
+async (req, res) => {
+  try {
+    const { topic } = req.body;
+    
+    // Step 1: Find recent articles on topic
+    // Use "news" category + auto type
+    // NOTE: news category supports date filters
+    const articleResults = await exa.search(
+      `${topic} SEO AI search journalist article 2026`,
+      {
+        type: 'auto',
+        numResults: 20,
+        category: 'news',
+        startPublishedDate: '2025-01-01',
+        contents: {
+          highlights: {
+            numSentences: 2,
+            highlightsPerUrl: 1
+          }
+        }
+      }
+    );
+    
+    // Step 2: Extract and deduplicate authors
+    const authorMap = {};
+    
+    articleResults.results.forEach(result => {
+      if (!result.author) return;
+      
+      const author = result.author.trim();
+      if (!authorMap[author]) {
+        authorMap[author] = {
+          name: author,
+          articles: [],
+          publication: extractDomain(result.url),
+          topics: new Set()
+        };
+      }
+      
+      authorMap[author].articles.push({
+        title: result.title,
+        url: result.url,
+        date: result.publishedDate,
+        snippet: result.highlights?.[0] || ''
+      });
+    });
+    
+    // Step 3: Find each journalist's profile
+    // Use "people" category — NO date filters
+    const journalists = await Promise.all(
+      Object.values(authorMap)
+        .slice(0, 10)
+        .map(async (journalist) => {
+          try {
+            const profileResults = await exa.search(
+              `${journalist.name} journalist writer ${journalist.publication}`,
+              {
+                type: 'auto',
+                numResults: 3,
+                category: 'people',
+                // NOTE: no date filters for people category
+                contents: {
+                  highlights: {
+                    numSentences: 2,
+                    highlightsPerUrl: 1
+                  }
+                }
+              }
+            );
+            
+            // Extract Twitter/LinkedIn from highlights
+            const profileText = profileResults.results
+              .map(r => r.highlights?.join(' ') || '')
+              .join(' ');
+              
+            const twitterMatch = profileText.match(
+              /@([a-zA-Z0-9_]+)/
+            );
+            const linkedinMatch = profileResults.results
+              .find(r => r.url?.includes('linkedin.com'));
+            
+            return {
+              ...journalist,
+              articles: journalist.articles,
+              article_count: journalist.articles.length,
+              twitter: twitterMatch 
+                ? `@${twitterMatch[1]}` : null,
+              linkedin_url: linkedinMatch?.url || null,
+              profile_snippet: profileResults
+                .results[0]?.highlights?.[0] || null
+            };
+          } catch (err) {
+            // Return journalist without profile if search fails
+            return {
+              ...journalist,
+              article_count: journalist.articles.length,
+              twitter: null,
+              linkedin_url: null
+            };
+          }
+        })
+    );
+    
+    res.json({ 
+      success: true, 
+      journalists: journalists.filter(j => j.articles.length > 0)
+    });
+    
+  } catch (error) {
+    console.error('Journalist finder error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Helper to extract domain as publication name
+const extractDomain = (url) => {
+  try {
+    const domain = new URL(url).hostname
+      .replace('www.', '')
+      .split('.')[0];
+    return domain.charAt(0).toUpperCase() + domain.slice(1);
+  } catch { return 'Unknown'; }
+};
+
+JOURNALIST CARD UI:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌──────────────────────────────────────┐
+│ Danny Goodwin                        │
+│ Search Engine Land  3 articles       │
+│                                      │
+│ "How GEO is reshaping brand         │
+│  visibility in AI search 2026..."   │
+│ May 1, 2026                          │
+│                                      │
+│ [@dannygoodwin] [LinkedIn]           │
+│              [Write Pitch →]         │
+└──────────────────────────────────────┘
+
+Grid of cards, 2 columns.
+[Write Pitch] pre-fills Tab 3.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TAB 2: COVERAGE MONITOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Two inputs: Your brand + Competitor
+[Monitor Coverage →]
+
+BACKEND: POST /api/ai-pr/monitor-coverage
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+app.post('/api/ai-pr/monitor-coverage',
+async (req, res) => {
+  try {
+    const { brand, competitor } = req.body;
+    
+    // Run 3 searches in parallel
+    const [brandMentions, competitorMentions, 
+           similarSites] = await Promise.all([
+      
+      // Search 1: Your brand mentions in news
+      exa.search(
+        `${brand} AI visibility GEO tool review`,
+        {
+          type: 'auto',
+          numResults: 10,
+          category: 'news',
+          startPublishedDate: '2025-06-01',
+          contents: {
+            highlights: {
+              numSentences: 3,
+              highlightsPerUrl: 2
+            }
+          }
+        }
+      ),
+      
+      // Search 2: Competitor mentions
+      exa.search(
+        `${competitor} AI SEO tool review mention`,
+        {
+          type: 'auto',
+          numResults: 10,
+          category: 'news',
+          startPublishedDate: '2025-06-01',
+          contents: {
+            highlights: {
+              numSentences: 3,
+              highlightsPerUrl: 2
+            }
+          }
+        }
+      ),
+      
+      // Search 3: findSimilar to find coverage opportunities
+      // Sites similar to geoiqai.com that cover AI tools
+      exa.findSimilar(
+        'https://geoiqai.com',
+        {
+          numResults: 10,
+          contents: {
+            highlights: {
+              numSentences: 2
+            }
+          }
+        }
+      )
+    ]);
+    
+    // Check if brand mentioned in competitor articles
+    const opportunityArticles = competitorMentions.results
+      .filter(article => {
+        const fullText = [
+          article.title,
+          ...(article.highlights || [])
+        ].join(' ').toLowerCase();
+        return !fullText.includes(brand.toLowerCase());
+      })
+      .map(article => ({
+        ...article,
+        opportunity: true,
+        note: `${competitor} mentioned but not ${brand}`
+      }));
+    
+    res.json({
+      success: true,
+      brand_mentions: brandMentions.results,
+      competitor_mentions: competitorMentions.results,
+      opportunities: opportunityArticles,
+      similar_sites: similarSites.results
+    });
+    
+  } catch (error) {
+    console.error('Coverage monitor error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+UI — 3 SECTIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+YOUR BRAND MENTIONS
+Each article as card with title, pub, date, 
+snippet, author, [Read] [Pitch Author] buttons
+
+COMPETITOR MENTIONS  
+Same format
+
+PITCH OPPORTUNITIES (highest priority)
+Articles that mention competitor but NOT your brand
+Red badge: "GeoIQ not mentioned"
+[Pitch This Author →] button prominent
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TAB 3: PITCH GENERATOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Journalist name + publication inputs
+Article URL (optional — fetches via Exa)
+Pitch angle radio buttons:
+○ Tool review request
+○ Original research data  
+○ Expert commentary
+○ Guest post offer
+○ Product launch
+
+BACKEND: POST /api/ai-pr/generate-pitch
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+app.post('/api/ai-pr/generate-pitch',
+async (req, res) => {
+  try {
+    const { 
+      journalistName, 
+      publication,
+      articleUrl,
+      pitchAngle,
+      keyMessage 
+    } = req.body;
+    
+    let recentWork = '';
+    
+    // Fetch journalist recent articles via Exa
+    // Use "deep" type to get richer context
+    if (articleUrl) {
+      const articleContent = await exa.search(
+        `${journalistName} ${publication} 
+         recent articles AI SEO GEO`,
+        {
+          type: 'deep',
+          numResults: 3,
+          category: 'news',
+          contents: {
+            highlights: {
+              numSentences: 3,
+              highlightsPerUrl: 2
+            }
+          }
+        }
+      );
+      
+      recentWork = articleContent.results
+        .map(r => `Title: ${r.title}\n` +
+          `Excerpt: ${r.highlights?.join(' ')}`)
+        .join('\n\n');
+    }
+    
+    // Generate pitch with Claude
+    const response = await anthropic.messages.create({
+      model: 'claude-opus-4-5',
+      max_tokens: 800,
+      system: `You are a PR specialist for B2B SaaS.
+Return ONLY raw JSON. No markdown. No backticks.`,
+      messages: [{
+        role: 'user',
+        content: `Write a personalized journalist pitch email.
+
+PRODUCT:
+GeoIQ (geoiqai.com) tracks if brands appear 
+in ChatGPT, Gemini, Perplexity, Claude, Grok,
+and Google AI Overview. Gives GEO score and 
+specific fixes. Free audit, paid from $69/mo.
+
+JOURNALIST: ${journalistName}
+PUBLICATION: ${publication}
+PITCH ANGLE: ${pitchAngle}
+KEY MESSAGE: ${keyMessage || 'not provided'}
+
+THEIR RECENT WORK:
+${recentWork || 'No articles fetched'}
+
+Write email under 150 words.
+Reference their specific work.
+No em dashes. No bullet points. No bold.
+Human founder voice not PR agency.
+
+Return this JSON only:
+{
+  "subject": "Subject line under 60 chars",
+  "body": "Full email body",
+  "personalization": "Why this works for this journalist"
+}`
+      }]
+    });
+    
+    const raw = response.content[0].text
+      .replace(/\`\`\`json\n?/g, '')
+      .replace(/\`\`\`\n?/g, '')
+      .trim();
+      
+    const pitch = JSON.parse(raw);
+    
+    // Save to outreach tracker
+    await supabase.from('pr_outreach').insert({
+      user_id: req.user.id,
+      journalist_name: journalistName,
+      publication: publication,
+      email_subject: pitch.subject,
+      email_body: pitch.body,
+      status: 'draft',
+      created_at: new Date().toISOString()
+    });
+    
+    res.json({ success: true, pitch });
+    
+  } catch (error) {
+    console.error('Pitch generator error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+PITCH OUTPUT UI:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Email preview card:
+Subject line in bold
+Body text formatted as email
+[Copy Subject] [Copy Email] [Open in Gmail] 
+[Regenerate] buttons
+
+Personalization note below in grey italic.
+
+OUTREACH TRACKER at bottom of Tab 3:
+Mini table of saved pitches with status dropdown:
+Draft / Sent / Replied / Pass
+
+Supabase table: pr_outreach
+Columns: user_id, journalist_name, 
+publication, email_subject, email_body,
+status, created_at, sent_at
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RATE LIMITING NOTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Exa free plan: 1000 requests/month.
+Each journalist finder search = 1 request
+for articles + up to 10 for profiles = 11 max.
+
+Add cache in Supabase:
+table: exa_cache
+columns: query_hash, results_json, cached_at
+
+Cache journalist searches for 24 hours.
+Check cache before calling Exa API.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Tab 1: Click [AI SEO] chip
+Should return real journalist names and 
+articles from news sources
+
+Tab 2: Enter "GeoIQ" and "Brand24"
+Brand24 should show multiple mentions
+GeoIQ likely 0 or few (expected and honest)
+Opportunity section shows articles to target
+
+Tab 3: Enter "Danny Goodwin" / "Search Engine Land"
+Select "Tool review request"
+Should generate under-150-word email
+referencing AI SEO coverage
+
+Share screenshot of Journalist Finder results.
