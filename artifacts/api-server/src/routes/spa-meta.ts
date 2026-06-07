@@ -4,6 +4,8 @@ import { readFile } from "fs/promises";
 import { resolve } from "path";
 import { logger } from "../lib/logger.js";
 
+const VITE_DEV_PORT = 22117;
+
 const router = Router();
 
 interface PageMeta {
@@ -234,6 +236,19 @@ async function getRouteHtml(routePath: string): Promise<string> {
   if (isProduction) {
     const cached = htmlCache.get(routePath);
     if (cached !== undefined) return cached;
+  }
+
+  if (!isProduction) {
+    // In development, fetch directly from the Vite dev server so that its
+    // injected scripts (/@vite/client, /@react-refresh preamble) are included.
+    // Without them the React Fast Refresh runtime throws "can't detect preamble"
+    // and the page renders blank.
+    try {
+      const res = await fetch(`http://localhost:${VITE_DEV_PORT}/`);
+      if (res.ok) return await res.text();
+    } catch {
+      // Vite not ready yet - fall through to reading from disk
+    }
   }
 
   const root = findWorkspaceRoot();
