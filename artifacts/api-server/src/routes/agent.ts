@@ -5,6 +5,7 @@ import { eq, and, desc, gt } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { runAuditEngine, generateRecommendations, extractDomain } from "../lib/audit-engine";
 import { getDomainKeywords } from "../lib/dataforseo";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -17,6 +18,7 @@ async function callClaude(
   messages: { role: "user" | "assistant"; content: string }[],
   maxTokens = 8192
 ): Promise<string> {
+  logger.info({ model: "claude-sonnet-4-6", max_tokens: maxTokens, estimated_cost: +(maxTokens * 0.000015).toFixed(4), endpoint: "GEO Copilot / callClaude (briefing or generate)", timestamp: new Date().toISOString() }, "[COST-AUDIT] CLAUDE CALL");
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: maxTokens,
@@ -364,6 +366,7 @@ async function callClaudeWithTools(
   const currentMessages = [...messages];
 
   for (let iteration = 0; iteration < 6; iteration++) {
+    logger.info({ model: "claude-sonnet-4-6", max_tokens: maxTokens, iteration, estimated_cost: +(maxTokens * 0.000015).toFixed(4), endpoint: "GEO Copilot / callClaudeWithTools (chat loop - up to 6 iters)", timestamp: new Date().toISOString() }, "[COST-AUDIT] CLAUDE CALL");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const response = await (anthropic.messages.create as any)({
       model: "claude-sonnet-4-6",

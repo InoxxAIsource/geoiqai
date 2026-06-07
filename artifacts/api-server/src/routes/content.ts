@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { requireAuth, type AuthRequest } from "../lib/auth";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { logger } from "../lib/logger";
 import OpenAI from "openai";
 import { db, dataforseoCacheTable, contentAnalysesTable } from "@workspace/db";
 
@@ -314,6 +315,7 @@ Rules:
 - fix fields: exact copy-pasteable content where applicable, null otherwise`;
 
   try {
+    logger.info({ model: "claude-sonnet-4-6", max_tokens: 4096, estimated_cost: +(4096 * 0.000015).toFixed(4), endpoint: "GEO Optimizer / content/analyze", timestamp: new Date().toISOString() }, "[COST-AUDIT] CLAUDE CALL");
     const msg = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 4096,
@@ -594,6 +596,7 @@ Return ONLY valid JSON (no markdown, no backticks):
 }`;
 
   try {
+    logger.info({ model: "claude-sonnet-4-6", max_tokens: 6000, estimated_cost: +(6000 * 0.000015).toFixed(4), endpoint: "GEO Writer / content/write", timestamp: new Date().toISOString() }, "[COST-AUDIT] CLAUDE CALL");
     const msg = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 6000,
@@ -759,6 +762,7 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanation):
 }`;
 
   try {
+    logger.info({ model: "claude-sonnet-4-6", max_tokens: 8000, estimated_cost: +(8000 * 0.000015).toFixed(4), endpoint: "Content Multiplier / content/repurpose", timestamp: new Date().toISOString() }, "[COST-AUDIT] CLAUDE CALL");
     const msg = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 8000,

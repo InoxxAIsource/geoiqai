@@ -3,6 +3,7 @@ import { requireAuth, type AuthRequest } from "../lib/auth";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { db, dataforseoCacheTable } from "@workspace/db";
 import { eq, like } from "drizzle-orm";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -274,6 +275,7 @@ router.get("/brand-performance/suggest-competitors", requireAuth, async (req: Au
   }
 
   try {
+    logger.info({ model: "claude-sonnet-4-6", max_tokens: 256, estimated_cost: +(256 * 0.000015).toFixed(4), endpoint: "Signal Tracker / suggest-competitors", timestamp: new Date().toISOString() }, "[COST-AUDIT] CLAUDE CALL");
     const msg = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 256,
@@ -367,6 +369,7 @@ router.post("/brand-performance", requireAuth, async (req: AuthRequest, res): Pr
     const abortTimer = setTimeout(() => ac.abort(), 90_000);
 
     // STEP 1: Generate 10 prompts (haiku is fast enough for list generation)
+    logger.info({ model: "claude-haiku-4-5", max_tokens: 1024, estimated_cost: +(1024 * 0.00000125).toFixed(5), endpoint: "Signal Tracker / brand-performance step1 prompt-gen", timestamp: new Date().toISOString() }, "[COST-AUDIT] CLAUDE CALL");
     const promptGenMsg = await anthropic.messages.create({
       model: "claude-haiku-4-5",
       max_tokens: 1024,
@@ -393,6 +396,7 @@ Return ONLY a JSON array of 10 strings. No markdown. No backticks. Start with [ 
     req.log.info({ domain: bareD, count: prompts.length }, "brand-performance: step 2 - getting answers");
 
     // STEP 2: Answer all prompts in one haiku call - concise 1-2 sentence responses
+    logger.info({ model: "claude-haiku-4-5", max_tokens: 4096, estimated_cost: +(4096 * 0.00000125).toFixed(5), endpoint: "Signal Tracker / brand-performance step2 answers", timestamp: new Date().toISOString() }, "[COST-AUDIT] CLAUDE CALL");
     const answersMsg = await anthropic.messages.create({
       model: "claude-haiku-4-5",
       max_tokens: 4096,
@@ -424,6 +428,7 @@ sentiment: positive, neutral, or negative. Pure JSON only, no markdown.`,
     req.log.info({ domain: bareD, count: answers.length }, "brand-performance: step 3 - analyzing");
 
     // STEP 3: Analyze all answers
+    logger.info({ model: "claude-sonnet-4-6", max_tokens: 4096, estimated_cost: +(4096 * 0.000015).toFixed(4), endpoint: "Signal Tracker / brand-performance step3 analysis", timestamp: new Date().toISOString() }, "[COST-AUDIT] CLAUDE CALL");
     const competitorsList = competitors.length > 0 ? competitors.join(", ") : "none specified";
     const competitorBrandNames = competitors.map(c =>
       extractBrandName(c.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0]?.toLowerCase() ?? c)

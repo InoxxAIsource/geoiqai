@@ -151,6 +151,7 @@ router.post("/answer-monitoring/check/:id", requireAuth, async (req: AuthRequest
 
   const checkOne = async (llm: string) => {
     try {
+      logger.info({ model: "claude-haiku-4-5", max_tokens: 2048, estimated_cost: +(2048 * 0.00000125).toFixed(5), llm, domain: tracked.domain, endpoint: "Answer Monitoring / check-prompt (per LLM)", timestamp: new Date().toISOString() }, "[COST-AUDIT] CLAUDE CALL");
       const msg = await anthropic.messages.create({
         model: "claude-haiku-4-5",
         max_tokens: 2048,
@@ -223,6 +224,7 @@ router.get("/answer-monitoring/suggest", requireAuth, async (req: AuthRequest, r
   const brandName = extractBrandName(domain);
 
   try {
+    logger.info({ model: "claude-haiku-4-5", max_tokens: 512, estimated_cost: +(512 * 0.00000125).toFixed(5), domain, endpoint: "Answer Monitoring / suggest-prompts", timestamp: new Date().toISOString() }, "[COST-AUDIT] CLAUDE CALL");
     const msg = await anthropic.messages.create({
       model: "claude-haiku-4-5",
       max_tokens: 512,
@@ -283,6 +285,7 @@ export async function runDailyPromptChecks(): Promise<Map<string, { improved: { 
           .orderBy(desc(answerMonitoringResultsTable.checkedAt))
           .limit(1);
 
+        logger.info({ model: "claude-haiku-4-5", max_tokens: 1024, estimated_cost: +(1024 * 0.00000125).toFixed(5), llm, domain: tracked.domain, endpoint: "Answer Monitoring / daily-check (scheduled)", timestamp: new Date().toISOString() }, "[COST-AUDIT] CLAUDE CALL");
         const msg = await anthropic.messages.create({
           model: "claude-haiku-4-5",
           max_tokens: 1024,

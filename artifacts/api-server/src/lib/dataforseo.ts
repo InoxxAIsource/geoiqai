@@ -160,6 +160,7 @@ export function isGenericAiOnly(keyword: string): boolean {
  * Never throws — any error returns an empty array.
  */
 export async function getDomainKeywords(domain: string, niche?: string, brandName?: string): Promise<KeywordData[]> {
+  logger.info({ domain, endpoint: "getDomainKeywords (keyword volumes + ranked + suggestions)", estimated_cost: 0.006, timestamp: new Date().toISOString() }, "[COST-AUDIT] DATAFORSEO CALL");
   const login = process.env.DATAFORSEO_LOGIN ?? "";
   const password = process.env.DATAFORSEO_PASSWORD ?? "";
 
@@ -509,6 +510,7 @@ export async function getGoogleAiOverview(
   domain: string,
   locationCode = 2356,
 ): Promise<GoogleAiOverviewResult> {
+  logger.info({ domain, keywords_count: keywords.length, endpoint: "getGoogleAiOverview (serp/google/organic - per keyword)", estimated_cost: +(keywords.length * 0.002).toFixed(4), timestamp: new Date().toISOString() }, "[COST-AUDIT] DATAFORSEO CALL");
   const empty: GoogleAiOverviewResult = {
     score: 0, mentionCount: 0, status: "not_found", keywords: [], brandEntities: [], estimatedCostUsd: 0,
   };
@@ -630,6 +632,7 @@ export interface BacklinkSummaryResult {
 }
 
 export async function getBacklinksSummary(target: string): Promise<BacklinkSummaryResult | null> {
+  logger.info({ domain: target, endpoint: "getBacklinksSummary (backlinks/summary/live)", estimated_cost: 0.002, timestamp: new Date().toISOString() }, "[COST-AUDIT] DATAFORSEO CALL");
   const login = process.env.DATAFORSEO_LOGIN ?? "";
   const password = process.env.DATAFORSEO_PASSWORD ?? "";
   if (!login || !password) return null;
@@ -1448,6 +1451,7 @@ export async function getLlmTopDomains(
   keywords: string[],
   locationCode = 2840,
 ): Promise<LlmTopDomainsResult> {
+  logger.info({ keywords_count: keywords.length, endpoint: "getLlmTopDomains (llm_mentions/top_domains - per keyword)", estimated_cost: +(keywords.length * 0.003).toFixed(4), timestamp: new Date().toISOString() }, "[COST-AUDIT] DATAFORSEO CALL");
   const empty: LlmTopDomainsResult = {
     domains: [],
     keywords,
@@ -1592,6 +1596,7 @@ export async function getChatGptScraper(
   domain: string,
   locationCode = 2840,
 ): Promise<ChatGptScraperResult> {
+  logger.info({ domain, keywords_count: keywords.length, endpoint: "getChatGptScraper (ai_optimization/chat_gpt/llm_scraper - per keyword)", estimated_cost: +(keywords.length * 0.005).toFixed(4), timestamp: new Date().toISOString() }, "[COST-AUDIT] DATAFORSEO CALL");
   const bare = domain.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? domain;
   const top3 = keywords.slice(0, 3);
 
@@ -1755,6 +1760,7 @@ export async function getGeminiScraper(
   domain: string,
   locationCode = 2840,
 ): Promise<ChatGptScraperResult> {
+  logger.info({ domain, keywords_count: keywords.length, endpoint: "getGeminiScraper (ai_optimization/gemini/llm_scraper - per keyword)", estimated_cost: +(keywords.length * 0.005).toFixed(4), timestamp: new Date().toISOString() }, "[COST-AUDIT] DATAFORSEO CALL");
   const bare = domain.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? domain;
   const top3 = keywords.slice(0, 3);
 
@@ -1904,6 +1910,7 @@ export async function getAiKeywordVolume(
   keywords: string[],
   locationCode = 2840,
 ): Promise<AiKeywordVolumeResult> {
+  logger.info({ keywords_count: keywords.length, endpoint: "getAiKeywordVolume (ai_keyword_data/keywords_search_volume)", estimated_cost: +(keywords.length * 0.001).toFixed(4), timestamp: new Date().toISOString() }, "[COST-AUDIT] DATAFORSEO CALL");
   const empty: AiKeywordVolumeResult = {
     items: keywords.map(kw => ({ keyword: kw, aiSearchVolume: 0, monthlyTrend: null })),
     estimatedCostUsd: 0,
@@ -2445,6 +2452,7 @@ export async function getLlmAggregatedMetrics(
   dateTo: string,
   platform?: "google" | "chat_gpt",
 ): Promise<LlmAggResult> {
+  logger.info({ domain, platform, endpoint: "getLlmAggregatedMetrics (llm_mentions/aggregated_metrics)", estimated_cost: 0.002, timestamp: new Date().toISOString() }, "[COST-AUDIT] DATAFORSEO CALL");
   const empty: LlmAggResult = { total: null, mentions: 0, citedPages: 0, cached: false };
   const login = process.env.DATAFORSEO_LOGIN ?? "";
   const password = process.env.DATAFORSEO_PASSWORD ?? "";
@@ -2514,6 +2522,7 @@ export async function getLlmTopPagesList(
   limit = 50,
   platform?: "google" | "chat_gpt",
 ): Promise<LlmTopPagesResult> {
+  logger.info({ domain, platform, endpoint: "getLlmTopPagesList (llm_mentions/top_pages)", estimated_cost: 0.002, timestamp: new Date().toISOString() }, "[COST-AUDIT] DATAFORSEO CALL");
   const empty: LlmTopPagesResult = { pages: [], totalCount: 0, cached: false };
   const login = process.env.DATAFORSEO_LOGIN ?? "";
   const password = process.env.DATAFORSEO_PASSWORD ?? "";
@@ -2591,6 +2600,7 @@ export async function getLlmSearchTopics(
   limit = 50,
   platform: "google" | "chat_gpt" = "google",
 ): Promise<LlmSearchTopicsResult> {
+  logger.info({ keyword, platform, endpoint: "getLlmSearchTopics (llm_mentions/search)", estimated_cost: 0.002, timestamp: new Date().toISOString() }, "[COST-AUDIT] DATAFORSEO CALL");
   const empty: LlmSearchTopicsResult = { items: [], totalCount: 0, cached: false };
   const login = process.env.DATAFORSEO_LOGIN ?? "";
   const password = process.env.DATAFORSEO_PASSWORD ?? "";
