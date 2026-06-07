@@ -406,7 +406,9 @@ router.get("/ai-pr/hunter-usage", requireAuth, async (req: AuthRequest, res): Pr
 // ─── POST /api/ai-pr/get-contact ──────────────────────────────────────────────
 
 router.post("/ai-pr/get-contact", requireAuth, async (req: AuthRequest, res): Promise<void> => {
-  const { firstName, lastName, domain } = req.body as { firstName?: string; lastName?: string; domain?: string };
+  const { firstName, lastName, domain, articleUrls } = req.body as {
+    firstName?: string; lastName?: string; domain?: string; articleUrls?: string[];
+  };
   if (!firstName || !lastName || !domain) {
     res.status(400).json({ error: "firstName, lastName, domain required" });
     return;
@@ -426,95 +428,156 @@ router.post("/ai-pr/get-contact", requireAuth, async (req: AuthRequest, res): Pr
   } catch { /* proceed */ }
 
   const results: {
-    email?: string; emailConfidence?: number; emailType?: string;
-    emailVerified?: boolean; emailNote?: string; emailPattern?: string;
+    email?: string; emailConfidence?: number; emailNote?: string; emailPattern?: string;
     twitter?: string; twitterUrl?: string; linkedinUrl?: string;
   } = {};
 
-  const hunterKey = process.env.HUNTER_API_KEY;
+  const EMAIL_BLOCKLIST = ["noreply", "no-reply", "support", "info@", "contact@", "hello@",
+    "news@", "editor@", "webmaster@", "admin@", "press@", "tips@", "letters@", "feedback@"];
+  const TWITTER_RESERVED = new Set(["search","intent","share","compose","home","explore","notifications","i","web","hashtag"]);
 
-  if (hunterKey) {
-    // Step 1: Email finder
+  function extractEmail(text: string): string | undefined {
+    const matches = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) ?? [];
+    return matches.find(e => {
+      const lower = e.toLowerCase();
+      return lower.endsWith(`@${domain}`) && !EMAIL_BLOCKLIST.some(b => lower.startsWith(b));
+    }) ?? matches.find(e => {
+      const lower = e.toLowerCase();
+      return !EMAIL_BLOCKLIST.some(b => lower.startsWith(b)) && !lower.includes("example") && lower.includes("@");
+    });
+  }
+
+  function extractTwitter(text: string): { handle: string; url: string } | undefined {
+    const m = text.match(/(?:twitter|x)\.com\/([a-zA-Z0-9_]{2,30})(?:[^a-zA-Z0-9_/]|$)/g);
+    for (const raw of m ?? []) {
+      const handle = raw.match(/(?:twitter|x)\.com\/([a-zA-Z0-9_]{2,30})/)?.[1];
+      if (handle && !TWITTER_RESERVED.has(handle.toLowerCase())) {
+        return { handle: `@${handle}`, url: `https://x.com/${handle}` };
+      }
+    }
+    return undefined;
+  }
+
+  const exa = getExa();
+
+  // Step 1: Scrape article pages directly for byline contact info
+  if (exa && articleUrls && articleUrls.length > 0) {
     try {
-      const u = new URL("https://api.hunter.io/v2/email-finder");
-      u.searchParams.set("domain", domain);
-      u.searchParams.set("first_name", firstName);
-      u.searchParams.set("last_name", lastName);
-      u.searchParams.set("api_key", hunterKey);
-      const r = await fetch(u.toString());
-      const d = await r.json() as { data?: { email?: string; score?: number; type?: string; verification?: { status?: string } } };
-      if (d.data?.email) {
-        results.email = d.data.email;
-        results.emailConfidence = d.data.score;
-        results.emailType = d.data.type;
-        results.emailVerified = d.data.verification?.status === "valid";
+      const urls = articleUrls.slice(0, 3);
+      const contents = await exa.getContents(urls, { text: { maxCharacters: 8000 } } as never);
+      const allText = (contents as { results?: { text?: string; url?: string }[] })
+        .results?.map(r => r.text ?? "").join("\n\n") ?? "";
+
+      const email = extractEmail(allText);
+      if (email) { results.email = email; results.emailConfidence = 80; results.emailNote = "Found on article page"; }
+
+      const tw = extractTwitter(allText);
+      if (tw) { results.twitter = tw.handle; results.twitterUrl = tw.url; }
+
+      const liMatch = allText.match(/linkedin\.com\/in\/([a-zA-Z0-9_-]{2,60})/);
+      if (liMatch) results.linkedinUrl = `https://linkedin.com/in/${liMatch[1]}`;
+    } catch { /* skip */ }
+  }
+
+  // Step 2: Fetch journalist author/bio page on the outlet
+  if (exa && (!results.email || !results.twitter)) {
+    try {
+      const bioSearch = await exa.search(
+        `"${name}" site:${domain} author bio contact`,
+        { type: "auto", numResults: 2, contents: { text: { maxCharacters: 5000 } } as never }
+      );
+      const bioText = (bioSearch.results as { text?: string }[]).map(r => r.text ?? "").join("\n");
+      if (bioText) {
+        if (!results.email) {
+          const email = extractEmail(bioText);
+          if (email) { results.email = email; results.emailConfidence = 75; results.emailNote = "Found on author profile"; }
+        }
+        if (!results.twitter) {
+          const tw = extractTwitter(bioText);
+          if (tw) { results.twitter = tw.handle; results.twitterUrl = tw.url; }
+        }
+        if (!results.linkedinUrl) {
+          const liMatch = bioText.match(/linkedin\.com\/in\/([a-zA-Z0-9_-]{2,60})/);
+          if (liMatch) results.linkedinUrl = `https://linkedin.com/in/${liMatch[1]}`;
+        }
       }
     } catch { /* skip */ }
+  }
 
-    // Step 2: Domain search fallback
-    if (!results.email) {
+  // Step 3: Broader Exa search for contact page / social profiles
+  if (exa && (!results.email || !results.twitter)) {
+    try {
+      const socialSearch = await exa.search(
+        `${name} ${domain} contact email twitter`,
+        { type: "auto", numResults: 3, contents: { text: { maxCharacters: 3000 } } as never }
+      );
+      const socialText = (socialSearch.results as { text?: string; url?: string }[])
+        .map(r => `${r.url ?? ""}\n${r.text ?? ""}`).join("\n\n");
+      if (!results.email) {
+        const email = extractEmail(socialText);
+        if (email) { results.email = email; results.emailConfidence = 65; results.emailNote = "Found via web search"; }
+      }
+      if (!results.twitter) {
+        const tw = extractTwitter(socialText);
+        if (tw) { results.twitter = tw.handle; results.twitterUrl = tw.url; }
+      }
+      if (!results.linkedinUrl) {
+        const found = (socialSearch.results as { url?: string }[]).find(r => r.url?.includes("linkedin.com/in/"));
+        if (found?.url) results.linkedinUrl = found.url;
+      }
+    } catch { /* skip */ }
+  }
+
+  // Step 4: Hunter.io fallback (only if key set and still no email)
+  if (!results.email) {
+    const hunterKey = process.env.HUNTER_API_KEY;
+    if (hunterKey) {
       try {
-        const u = new URL("https://api.hunter.io/v2/domain-search");
+        const u = new URL("https://api.hunter.io/v2/email-finder");
         u.searchParams.set("domain", domain);
-        u.searchParams.set("limit", "10");
+        u.searchParams.set("first_name", firstName);
+        u.searchParams.set("last_name", lastName);
         u.searchParams.set("api_key", hunterKey);
         const r = await fetch(u.toString());
-        const d = await r.json() as { data?: { emails?: { value?: string; confidence?: number; type?: string; first_name?: string; last_name?: string }[]; pattern?: string } };
-        const fn = firstName.toLowerCase();
-        const ln = lastName.toLowerCase();
-        const match = d.data?.emails?.find(e =>
-          e.first_name?.toLowerCase() === fn || e.last_name?.toLowerCase() === ln
-        );
-        if (match?.value) {
-          results.email = match.value;
-          results.emailConfidence = match.confidence;
-          results.emailType = match.type;
+        const d = await r.json() as { data?: { email?: string; score?: number; type?: string } };
+        if (d.data?.email) {
+          results.email = d.data.email;
+          results.emailConfidence = d.data.score;
+          results.emailNote = "Found via Hunter.io";
         }
-        if (d.data?.pattern) results.emailPattern = `${d.data.pattern}@${domain}`;
       } catch { /* skip */ }
-    }
-  }
 
-  // Step 3: Exa people search for Twitter/LinkedIn
-  const exa = getExa();
-  if (exa) {
-    try {
-      const exaResp = await exa.search(
-        `${name} journalist ${domain} Twitter LinkedIn contact`,
-        { type: "auto", numResults: 3, contents: { highlights: { numSentences: 1, highlightsPerUrl: 1 } } }
-      );
-      const allText = exaResp.results
-        .map(r => [r.url, r.title, ...((r.highlights as string[] | undefined) ?? [])].join(" "))
-        .join(" ");
-      const twitterMatch = allText.match(/(?:twitter|x)\.com\/([a-zA-Z0-9_]{2,30})(?:[^a-zA-Z0-9_]|$)/);
-      const TWITTER_RESERVED = new Set(["search", "intent", "share", "compose", "home", "explore", "notifications"]);
-      if (twitterMatch?.[1] && !TWITTER_RESERVED.has(twitterMatch[1])) {
-        results.twitter = `@${twitterMatch[1]}`;
-        results.twitterUrl = `https://x.com/${twitterMatch[1]}`;
+      // Domain pattern fallback
+      if (!results.email) {
+        try {
+          const u = new URL("https://api.hunter.io/v2/domain-search");
+          u.searchParams.set("domain", domain);
+          u.searchParams.set("limit", "5");
+          u.searchParams.set("api_key", hunterKey);
+          const r = await fetch(u.toString());
+          const d = await r.json() as { data?: { pattern?: string } };
+          if (d.data?.pattern) {
+            results.emailPattern = `${d.data.pattern}@${domain}`;
+            const guessed = results.emailPattern
+              .replace("{first}", firstName.toLowerCase())
+              .replace("{last}", lastName.toLowerCase())
+              .replace("{f}", (firstName[0] ?? "x").toLowerCase())
+              .replace("{l}", (lastName[0] ?? "x").toLowerCase());
+            results.email = guessed;
+            results.emailConfidence = 35;
+            results.emailNote = "Guessed from outlet email pattern";
+          }
+        } catch { /* skip */ }
       }
-      const liResult = exaResp.results.find(r => r.url?.includes("linkedin.com/in/"));
-      if (liResult) results.linkedinUrl = liResult.url;
-    } catch { /* skip */ }
-  }
-
-  // Step 4: Pattern-based email guess if still no email
-  if (!results.email && results.emailPattern) {
-    const guessed = results.emailPattern
-      .replace("{first}", firstName.toLowerCase())
-      .replace("{last}", lastName.toLowerCase())
-      .replace("{f}", (firstName[0] ?? "x").toLowerCase())
-      .replace("{l}", (lastName[0] ?? "x").toLowerCase());
-    results.email = guessed;
-    results.emailConfidence = 40;
-    results.emailNote = "Generated from outlet email pattern";
+    }
   }
 
   const contactData = {
     name, firstName, lastName, domain,
     email: results.email ?? null,
     emailConfidence: results.emailConfidence ?? null,
-    emailType: results.emailType ?? null,
-    emailVerified: results.emailVerified ?? null,
+    emailType: null,
+    emailVerified: null,
     emailNote: results.emailNote ?? null,
     emailPattern: results.emailPattern ?? null,
     twitter: results.twitter ?? null,
@@ -528,7 +591,7 @@ router.post("/ai-pr/get-contact", requireAuth, async (req: AuthRequest, res): Pr
         target: [journalistContactsTable.name, journalistContactsTable.domain],
         set: { ...contactData, lookedUpAt: sql`now()` },
       });
-  } catch { /* skip cache write */ }
+  } catch { /* skip */ }
 
   res.json({ success: true, contact: contactData, fromCache: false });
 });

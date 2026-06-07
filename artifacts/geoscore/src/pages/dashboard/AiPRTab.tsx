@@ -373,7 +373,8 @@ function ContactSearchSection({ prefillOutlet, onAddToList }: { prefillOutlet?: 
     const lastName = parts.length > 1 ? parts.slice(1).join(" ") : firstName;
     setContactLoading(s => { const n = new Set(s); n.add(key); return n; });
     try {
-      const data = await apiFetch<{ contact: ContactInfo }>("/api/ai-pr/get-contact", { firstName, lastName, domain: j.domain });
+      const articleUrls = j.articles.map(a => a.url).filter(Boolean).slice(0, 3);
+      const data = await apiFetch<{ contact: ContactInfo }>("/api/ai-pr/get-contact", { firstName, lastName, domain: j.domain, articleUrls });
       setContacts(m => { const n = new Map(m); n.set(key, data.contact); return n; });
       setHunterUsage(prev => prev ? { ...prev, used: prev.used + 1 } : prev);
     } catch { /* skip */ }
