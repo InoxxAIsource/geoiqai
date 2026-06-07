@@ -8,7 +8,7 @@ import { logger } from "../lib/logger";
 const router = Router();
 
 const BRAND_PERFORMANCE_PAID = false;
-const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const CACHE_TTL_MS = 72 * 60 * 60 * 1000;
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 

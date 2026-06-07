@@ -1,0 +1,317 @@
+Update homepage content at geoiqai.com
+to accurately reflect what is built.
+Do not change design or layout.
+Only change text content.
+
+SECTION 1: HERO — update stats bar
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current:
+"500+ audits run · 6 AI systems · 
+Free forever · 60s results"
+
+Change to:
+"500+ audits run · 6 AI systems · 
+Free audit · 60 seconds"
+
+Remove "Free forever" — misleading 
+since dashboard is paid.
+
+SECTION 2: HERO SUBHEADLINE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current:
+"Paste your URL. GeoIQ checks ChatGPT, 
+Gemini, Perplexity, Claude and Grok - 
+and returns your AI visibility score 
+with exact fixes. Free in 60 seconds."
+
+Change to:
+"Paste your URL. GeoIQ checks ChatGPT,
+Gemini, Perplexity, Claude, Grok and 
+Google AI Overview — and returns your 
+AI visibility score with exact fixes. 
+Free in 60 seconds. No signup needed."
+
+SECTION 3: WHAT YOU GET — update features
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current 6 feature cards:
+1. Measure your AI visibility
+2. Your step-by-step roadmap
+3. AI-cited content generation
+4. Citation tracking
+5. Competitor analysis
+6. GeoIQ Agent (Claude AI)
+
+Update each card copy to match 
+what is actually built:
+
+Card 1 — AI Presence:
+Title: "Track AI visibility across 6 systems"
+Body: "Get your AI Presence score across 
+ChatGPT, Gemini, Perplexity, Claude, Grok, 
+and Google AI Overview. See exactly where 
+your brand appears and where it is missing 
+with a score from 0 to 100."
+
+Card 2 — Fix Roadmap:
+Title: "Step by step fix roadmap"
+Body: "A 4-week CITE-tagged action plan 
+with exact tasks, generated content, 
+schema fixes, and direct submission URLs. 
+Every fix has a predicted score impact."
+
+Card 3 — AI Content Studio:
+Title: "Create content AI systems cite"
+Body: "Repurpose any article into 
+platform-native posts for X, LinkedIn, 
+Reddit, Product Hunt and 6 more platforms. 
+GEO Writer creates content optimized for 
+AI citation from the start."
+
+Card 4 — Citation Optimizer:
+Title: "Score any page for AI citation"
+Body: "GeoIQ scores your content on 10 
+citation factors including FAQ schema, 
+structured data, factual statements, 
+and heading hierarchy. Get specific 
+fixes with step by step implementation."
+
+Card 5 — Brand Benchmarks:
+Title: "Benchmark against competitors"
+Body: "Compare your AI visibility score 
+against up to 10 competitors. See which 
+topics they appear in that you do not, 
+and get a gap analysis with specific 
+content recommendations."
+
+Card 6 — GEO Copilot:
+Title: "GEO Copilot — your AI strategist"
+Body: "A Claude-powered AI guide in your 
+dashboard. Run live GEO audits, diagnose 
+visibility gaps, generate content, and 
+get a custom fix plan — all in one 
+conversation. 50 messages per month 
+on Starter."
+
+ADD NEW FEATURE CARDS (features built 
+but not on homepage):
+
+Card 7 — AI Crawler Audit:
+Title: "AI Crawler Audit"
+Body: "Check if AI systems can find and 
+trust your site. GeoIQ checks robots.txt, 
+llms.txt, schema markup, bot access, 
+Core Web Vitals signals, and crawlability 
+across 30 technical factors."
+
+Card 8 — PR Intelligence:
+Title: "PR Intelligence"
+Body: "Find journalists covering AI search 
+and GEO topics. Monitor brand mentions 
+across 150,000 news sources. Generate 
+personalized pitch emails in one click. 
+Powered by Exa AI search."
+
+Card 9 — Answer Monitoring:
+Title: "Answer Monitoring"
+Body: "Track exactly what AI systems say 
+about your brand. Add prompts like 
+What is the best mobile marketing platform 
+and see if you appear, your position, 
+and the full AI response — updated daily."
+
+SECTION 4: PRICING — sync with dashboard
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FREE PLAN — change to:
+- Free AI visibility audit
+- Checks 6 AI systems
+- Technical GEO audit
+- Download llms.txt and schema files
+- 5 audits per month
+- No signup required for first audit
+
+Remove: "2 audits per day" 
+(conflicts with "5 audits per month")
+Keep: "5 audits/month with email"
+
+STARTER $69/month — change to:
+
+Remove these lines (not built or misleading):
+- "Daily automated monitoring" 
+  → change to "Answer Monitoring — 50 prompts"
+- "100 GEO Agent messages/month"
+  → change to "50 GEO Copilot messages/month"
+- "90 days score history"
+  → change to "Score history (builds over time)"
+- "3 competitors tracked"
+  → keep this
+
+Add these lines (built but missing):
++ AI Crawler Audit (2 domains)
++ PR Intelligence (50 journalist lookups)
++ Content Multiplier (repurpose to 9 platforms)
++ GEO Writer (AI-optimized content)
++ Citation Optimizer (page scoring)
++ Brand Benchmarks vs 3 competitors
+
+AGENCY $129/month — change to:
+
+Remove:
+- "10 brands monitored" 
+  → change to "3 domains for AI scanning"
+- "Unlimited GEO Agent messages"
+  → change to "200 GEO Copilot messages/month"
+
+Keep:
+- "10 competitors tracked"
+- "Google AI Overview tracking"
+- "White label PDF reports — Building now"
+- "Team seats — Coming July 2026"
+- "API access — Coming July 2026"
+
+Add:
++ AI Crawler Audit (5 domains)
++ PR Intelligence (200 journalist lookups)
++ Priority DataForSEO data refresh
+
+SECTION 5: FEATURE COMPARISON TABLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Update table to match actual limits:
+
+| Feature                | Free    | Starter  | Agency    |
+|------------------------|---------|----------|-----------|
+| AI Presence score      | ✓       | ✓        | ✓         |
+| AI systems checked     | 6       | 6        | 6         |
+| Technical GEO audit    | ✓       | ✓        | ✓         |
+| GEO files download     | ✓       | ✓        | ✓         |
+| AI Crawler Audit       | 1 basic | 2 domains| 5 domains |
+| GEO Copilot            | ✕       | 50 msg/mo| 200 msg/mo|
+| Answer Monitoring      | ✕       | 50 prompts| 150 prompts|
+| AI Content Studio      | ✕       | ✓        | ✓         |
+| Citation Optimizer     | ✕       | ✓        | ✓         |
+| Brand Benchmarks       | ✕       | 3 rivals | 10 rivals |
+| PR Intelligence        | ✕       | 50/mo    | 200/mo    |
+| Signal Tracker         | ✕       | ✓        | ✓         |
+| Score history          | ✕       | ✓        | ✓         |
+| Brands monitored       | 1 audit | 1 domain | 3 domains |
+| Google AI Overview     | ✕       | ✓        | ✓         |
+| White label reports    | ✕       | ✕        | Soon       |
+| Team seats             | ✕       | ✕        | Soon       |
+| API access             | ✕       | ✕        | Soon       |
+| Audits per month       | 5       | Unlimited| Unlimited |
+
+SECTION 6: HOW IT WORKS — update step 3
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current step 3:
+"Watch your score climb
+Track your GEO IQ score across all 6 
+AI systems daily."
+
+Change to:
+"Fix, track, and grow
+Use the full GeoIQ platform to fix 
+issues, track your score over time, 
+monitor competitor moves, and create 
+content that gets cited by AI systems."
+
+SECTION 7: SOCIAL PROOF — update numbers
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current: "500+ audits run"
+
+If actual number is higher update it.
+Check Supabase free_audits table count.
+Use real number rounded down:
+If 847 audits → show "800+ audits run"
+If 1243 audits → show "1,200+ audits run"
+
+SECTION 8: META TAGS UPDATE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current meta description:
+"Check if ChatGPT, Gemini, Perplexity, 
+Claude and Grok recommend your brand. 
+Free audit in 60 seconds. No signup. 
+The Search Console for AI search."
+
+Change to:
+"GeoIQ tracks your brand across ChatGPT, 
+Gemini, Perplexity, Claude, Grok and 
+Google AI Overview. Free audit in 60 
+seconds. Get your AI visibility score, 
+competitor benchmarks, and exact fixes."
+
+Current title:
+"GeoIQ: Free AI Visibility Audit | 
+See If ChatGPT Knows Your Brand"
+
+Keep as is — good for CTR.
+
+Update OG description to match 
+new meta description.
+
+SECTION 9: FAQ — add 2 new questions
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add these 2 FAQs to existing FAQ section:
+
+Q: What is GEO Copilot?
+A: GEO Copilot is a Claude-powered AI 
+strategist inside your GeoIQ dashboard. 
+You can ask it anything about your brand 
+visibility, run live audits, get content 
+recommendations, and diagnose why AI 
+systems are not recommending your brand. 
+Available on Starter and Agency plans.
+
+Q: What is PR Intelligence?
+A: PR Intelligence uses Exa AI search 
+to find journalists covering AI search, 
+GEO, and your industry. You can search 
+for media contacts, monitor who is 
+covering your competitors, and generate 
+personalized pitch emails in one click. 
+Available on Starter and Agency plans.
+
+SECTION 10: FOOTER — update product links
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current Product links:
+How it works, Pricing, Free audit, Dashboard
+
+Add:
+GEO Copilot, AI Crawler Audit, 
+PR Intelligence, Answer Monitoring
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DO NOT CHANGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- Hero headline: "Your brand is invisible 
+  to AI right now" — keep exactly
+- Overall design and layout
+- Testimonials section
+- Real audit examples (notion, groww, lemlist)
+- CTA button text
+- Brand name and logo
+- Color scheme
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After changes check:
+1. Pricing numbers match dashboard exactly
+2. Feature list matches what is built
+3. No mention of features not built
+4. GEO Copilot message limits consistent
+5. Domain limits consistent
+6. No "Daily automated monitoring" 
+   without clarifying it is Answer Monitoring
+
+Share screenshot of updated pricing section.

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { getToken } from "@/lib/auth";
 import { Globe, RefreshCw, AlertCircle, FileDown, ChevronRight } from "lucide-react";
+import { UpgradeModal } from "@/components/UpgradeModal";
+import { CacheIndicator } from "@/components/CacheIndicator";
 
 const P = "#4F46E5";
 const BORDER = "#E5E7EB";
@@ -48,6 +50,9 @@ interface VisibilityData {
   topicOpportunities: Topic[];
   topicOpportunitiesCount: number;
   dateFrom: string;
+  from_cache?: boolean;
+  cached_at?: string;
+  expires_at?: string;
   dateTo: string;
   cached: boolean;
 }
@@ -250,6 +255,8 @@ export function VisibilityOverview({
   const [loading, setLoading] = useState(!!domain);
   const [rescanning, setRescanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [upgradeError, setUpgradeError] = useState<{ message: string; current_plan: string } | null>(null);
+  const [rescanBlocked, setRescanBlocked] = useState<{ message: string; hours_left: number } | null>(null);
   const [showModal, setShowModal] = useState(!domain);
   const [lastDomain, setLastDomain] = useState<string | undefined>(domain || undefined);
   const [topicsTab, setTopicsTab] = useState<"performing" | "opportunities" | "pages" | "sources">("performing");
@@ -259,13 +266,21 @@ export function VisibilityOverview({
   const fetchData = useCallback((d: string, force = false) => {
     if (force) setRescanning(true); else setLoading(true);
     setError(null);
+    setRescanBlocked(null);
     const token = getToken();
     const url = `/api/dataforseo/visibility-overview?domain=${encodeURIComponent(d)}${force ? "&force=true" : ""}`;
     fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
       .then(r => r.json())
-      .then((raw: VisibilityData & { error?: string }) => {
-        if (raw.error) setError(raw.error);
-        else setData(raw);
+      .then((raw: VisibilityData & { error?: string; message?: string; current_plan?: string; hours_left?: number }) => {
+        if (raw.error === "domain_limit_reached") {
+          setUpgradeError({ message: raw.message ?? "Upgrade required.", current_plan: raw.current_plan ?? "free" });
+        } else if (raw.error === "rescan_too_soon") {
+          setRescanBlocked({ message: raw.message ?? "Rescan not available yet.", hours_left: raw.hours_left ?? 0 });
+        } else if (raw.error) {
+          setError(raw.error);
+        } else {
+          setData(raw);
+        }
       })
       .catch(() => setError("Failed to load visibility data. Please try again."))
       .finally(() => { setLoading(false); setRescanning(false); });
@@ -285,6 +300,15 @@ export function VisibilityOverview({
     <div style={{ maxWidth: 1200 }}>
       {showModal && <DomainModal onDomain={handleDomain} onClose={() => setShowModal(false)} lastDomain={lastDomain !== domain ? lastDomain : undefined} />}
 
+      {upgradeError && (
+        <UpgradeModal
+          onClose={() => setUpgradeError(null)}
+          feature="AI Presence"
+          currentPlan={upgradeError.current_plan}
+          context="llm_mention"
+        />
+      )}
+
       {/* breadcrumb */}
       <div style={{ fontSize: 12, color: MUTED, marginBottom: 14, display: "flex", gap: 6, alignItems: "center" }}>
         <span>Dashboard</span>
@@ -294,27 +318,44 @@ export function VisibilityOverview({
         <span style={{ color: "#374151", fontWeight: 500 }}>AI Presence</span>
       </div>
 
+      {rescanBlocked && (
+        <div style={{ background: "#FEF3C7", border: "1px solid #FCD34D", borderRadius: 8, padding: "10px 14px", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13, color: "#92400E" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <AlertCircle size={14} />
+            <span>{rescanBlocked.message}</span>
+          </div>
+          <button onClick={() => setRescanBlocked(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#92400E", fontWeight: 600, fontSize: 12 }}>Dismiss</button>
+        </div>
+      )}
+
       {/* title row */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18, flexWrap: "wrap", gap: 10 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: "#111827" }}>
-          {domain ? <>AI Presence: <span style={{ color: P }}>{domain}</span></> : <span style={{ color: MUTED, fontWeight: 400, fontSize: 18 }}>Enter a domain to get started</span>}
-        </h1>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 4px", color: "#111827" }}>
+            {domain ? <>AI Presence: <span style={{ color: P }}>{domain}</span></> : <span style={{ color: MUTED, fontWeight: 400, fontSize: 18 }}>Enter a domain to get started</span>}
+          </h1>
+          {d?.from_cache && d.cached_at && d.expires_at && (
+            <CacheIndicator
+              cachedAt={d.cached_at}
+              expiresAt={d.expires_at}
+              onForceRefresh={domain ? () => fetchData(domain, true) : undefined}
+              refreshing={rescanning}
+            />
+          )}
+        </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {d?.cached && (
-            <span style={{ fontSize: 11, color: "#6B7280", background: "#F3F4F6", padding: "3px 8px", borderRadius: 6 }}>Cached</span>
+          {domain && !d?.from_cache && (
+            <button onClick={() => fetchData(domain, true)} disabled={rescanning || loading}
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", border: `1px solid ${rescanning ? P : BORDER}`, borderRadius: 7, background: rescanning ? "#EEF2FF" : "white", fontSize: 12, color: rescanning ? P : MUTED, cursor: rescanning ? "not-allowed" : "pointer" }}>
+              <RefreshCw size={12} style={{ animation: rescanning ? "spin 0.8s linear infinite" : "none" }} />
+              {rescanning ? "Scanning..." : "Rescan"}
+            </button>
           )}
           {domain && (
-            <>
-              <button onClick={() => fetchData(domain, true)} disabled={rescanning || loading}
-                style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", border: `1px solid ${rescanning ? P : BORDER}`, borderRadius: 7, background: rescanning ? "#EEF2FF" : "white", fontSize: 12, color: rescanning ? P : MUTED, cursor: rescanning ? "not-allowed" : "pointer" }}>
-                <RefreshCw size={12} style={{ animation: rescanning ? "spin 0.8s linear infinite" : "none" }} />
-                {rescanning ? "Scanning..." : "Rescan"}
-              </button>
-              <button onClick={() => setShowModal(true)}
-                style={{ padding: "7px 14px", border: `1px solid ${BORDER}`, borderRadius: 7, background: "white", fontSize: 12, color: MUTED, cursor: "pointer" }}>
-                Change domain
-              </button>
-            </>
+            <button onClick={() => setShowModal(true)}
+              style={{ padding: "7px 14px", border: `1px solid ${BORDER}`, borderRadius: 7, background: "white", fontSize: 12, color: MUTED, cursor: "pointer" }}>
+              Change domain
+            </button>
           )}
           <button style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", border: `1px solid ${BORDER}`, borderRadius: 7, background: "white", fontSize: 12, color: MUTED, cursor: "pointer" }}>
             <Globe size={12} /> Worldwide

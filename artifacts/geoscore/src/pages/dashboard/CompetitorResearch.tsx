@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { getToken } from "@/lib/auth";
 import { X, Plus, AlertCircle, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, Lock } from "lucide-react";
+import { UpgradeModal } from "@/components/UpgradeModal";
+import { CacheIndicator as SharedCacheIndicator } from "@/components/CacheIndicator";
 
 const P = "#4F46E5";
 const BORDER = "#E5E7EB";
@@ -50,6 +52,9 @@ interface CompData {
   sources: SourceRow[];
   cached: boolean;
   analyzedAt?: string;
+  from_cache?: boolean;
+  cached_at?: string;
+  expires_at?: string;
 }
 
 const DOMAIN_COLORS = [P, "#10B981", "#F59E0B", "#EF4444"];
@@ -697,6 +702,8 @@ export function CompetitorResearch({ initialDomain, plan = "free", onNavigate }:
   const [data, setData] = useState<CompData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [upgradeError, setUpgradeError] = useState<{ message: string; current_plan: string } | null>(null);
+  const [rescanBlocked, setRescanBlocked] = useState<{ message: string; hours_left: number } | null>(null);
   const [loadingDomains, setLoadingDomains] = useState<string[]>([]);
 
   const addCompetitor = () => { if (competitors.length < 3) setCompetitors([...competitors, ""]); };
@@ -707,6 +714,7 @@ export function CompetitorResearch({ initialDomain, plan = "free", onNavigate }:
     const allDomains = [mainDomain.trim(), ...competitors.map(c => c.trim())].filter(Boolean);
     if (allDomains.length < 2) { setError("Enter at least one competitor domain."); return; }
     setError(null);
+    setRescanBlocked(null);
     setLoading(true);
     setLoadingDomains(allDomains);
     if (forceRescan) setData(null);
@@ -721,11 +729,19 @@ export function CompetitorResearch({ initialDomain, plan = "free", onNavigate }:
         body: JSON.stringify({
           yourDomain: allDomains[0],
           competitorDomains: allDomains.slice(1),
+          force: forceRescan,
         }),
       });
-      const json = await r.json() as CompData & { error?: string };
-      if (json.error) throw new Error(json.error);
-      setData(json);
+      const json = await r.json() as CompData & { error?: string; message?: string; current_plan?: string; hours_left?: number };
+      if (json.error === "domain_limit_reached") {
+        setUpgradeError({ message: json.message ?? "Upgrade required.", current_plan: json.current_plan ?? "free" });
+      } else if (json.error === "rescan_too_soon") {
+        setRescanBlocked({ message: json.message ?? "Rescan not available yet.", hours_left: json.hours_left ?? 0 });
+      } else if (json.error) {
+        throw new Error(json.error);
+      } else {
+        setData(json);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not fetch competitor data. Check your DataForSEO credentials.");
     } finally {
@@ -741,8 +757,37 @@ export function CompetitorResearch({ initialDomain, plan = "free", onNavigate }:
 
   return (
     <div>
-      <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Brand Benchmarks</div>
-      <div style={{ fontSize: 13, color: MUTED, marginBottom: 20 }}>Compare your AI visibility against competitors</div>
+      {upgradeError && (
+        <UpgradeModal
+          onClose={() => setUpgradeError(null)}
+          feature="Brand Benchmarks"
+          currentPlan={upgradeError.current_plan}
+          context="competitor"
+        />
+      )}
+
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 4, flexWrap: "wrap", gap: 8 }}>
+        <div style={{ fontSize: 20, fontWeight: 700 }}>Brand Benchmarks</div>
+        {data?.from_cache && data.cached_at && data.expires_at && (
+          <SharedCacheIndicator
+            cachedAt={data.cached_at}
+            expiresAt={data.expires_at}
+            onForceRefresh={() => analyze(true)}
+            refreshing={loading}
+          />
+        )}
+      </div>
+      <div style={{ fontSize: 13, color: MUTED, marginBottom: rescanBlocked ? 10 : 20 }}>Compare your AI visibility against competitors</div>
+
+      {rescanBlocked && (
+        <div style={{ background: "#FEF3C7", border: "1px solid #FCD34D", borderRadius: 8, padding: "10px 14px", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13, color: "#92400E" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <AlertCircle size={14} />
+            <span>{rescanBlocked.message}</span>
+          </div>
+          <button onClick={() => setRescanBlocked(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#92400E", fontWeight: 600, fontSize: 12 }}>Dismiss</button>
+        </div>
+      )}
 
       {/* Domain inputs */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 20 }}>

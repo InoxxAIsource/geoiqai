@@ -1,0 +1,659 @@
+Implement two things:
+1. Hard plan limits for domain usage
+2. 72 hour cache for LLM and keyword data
+
+PART 1: PLAN LIMITS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const PLAN_LIMITS = {
+  free: {
+    llm_mention_domains: 0,
+    audit_domains: 1,
+    brand_performance_domains: 0,
+    geo_optimizer_domains: 1,
+    competitor_slots: 0,
+    rescan_hours: 999,
+    pr_lookups_per_month: 0,
+    content_studio: false,
+    tracked_prompts: 5
+  },
+  starter: {
+    llm_mention_domains: 1,
+    audit_domains: 2,
+    brand_performance_domains: 1,
+    geo_optimizer_domains: 1,
+    competitor_slots: 3,
+    rescan_hours: 72,
+    pr_lookups_per_month: 50,
+    content_studio: true,
+    tracked_prompts: 50
+  },
+  agency: {
+    llm_mention_domains: 3,
+    audit_domains: 5,
+    brand_performance_domains: 3,
+    geo_optimizer_domains: 3,
+    competitor_slots: 10,
+    rescan_hours: 48,
+    pr_lookups_per_month: 200,
+    content_studio: true,
+    tracked_prompts: 150
+  }
+};
+
+GET USER PLAN FROM SUPABASE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const getUserPlan = async (userId) => {
+  const { data } = await supabase
+    .from('subscriptions')
+    .select('plan, status')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .single();
+  if (!data) return 'free';
+  return data.plan;
+};
+
+const getUserLimits = async (userId) => {
+  const plan = await getUserPlan(userId);
+  return { plan, limits: PLAN_LIMITS[plan] };
+};
+
+DOMAIN SLOT SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Supabase table: user_domains
+columns:
+  id, user_id, domain,
+  added_at, is_primary,
+  llm_enabled (boolean),
+  audit_enabled (boolean)
+
+const checkDomainLimit = async (
+  userId,
+  featureType
+) => {
+  const { limits } = await getUserLimits(userId);
+  const limitKey = `${featureType}_domains`;
+  const maxDomains = limits[limitKey];
+
+  const { count } = await supabase
+    .from('user_domains')
+    .select('*', { count: 'exact' })
+    .eq('user_id', userId)
+    .eq(`${featureType}_enabled`, true);
+
+  if (count >= maxDomains) {
+    return {
+      allowed: false,
+      current: count,
+      max: maxDomains,
+      upgrade_required: true
+    };
+  }
+  return { 
+    allowed: true, 
+    current: count, 
+    max: maxDomains 
+  };
+};
+
+ENFORCE IN EVERY API ROUTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add at TOP of these routes:
+
+LLM Mentions / AI Presence:
+app.post('/api/llm-mentions', async (req, res) => {
+  const { domain } = req.body;
+  const userId = req.user.id;
+
+  const check = await checkDomainLimit(
+    userId, 'llm_mention'
+  );
+
+  if (!check.allowed) {
+    return res.status(403).json({
+      error: 'domain_limit_reached',
+      message: `Your plan allows ${check.max} domain for LLM scanning. You are using ${check.current}.`,
+      upgrade_url: '/pricing',
+      current_plan: await getUserPlan(userId)
+    });
+  }
+
+  // Auto register domain if under limit
+  await supabase.from('user_domains').upsert({
+    user_id: userId,
+    domain: domain,
+    llm_enabled: true,
+    added_at: new Date().toISOString()
+  });
+
+  // Continue with cached scan...
+});
+
+Site Audit:
+app.post('/api/site-audit', async (req, res) => {
+  const check = await checkDomainLimit(
+    req.user.id, 'audit'
+  );
+
+  if (!check.allowed) {
+    return res.status(403).json({
+      error: 'domain_limit_reached',
+      message: `Starter plan allows 2 domains for Site Audit. Upgrade to Agency for 5 domains.`,
+      upgrade_url: '/pricing'
+    });
+  }
+  // continue...
+});
+
+Apply same pattern to:
+/api/brand-performance   → brand_performance
+/api/geo-optimizer       → geo_optimizer
+/api/competitor-research → competitor_slots
+
+RESCAN FREQUENCY ENFORCEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Starter: rescan every 72 hours minimum
+Agency: rescan every 48 hours minimum
+
+const checkRescanAllowed = async (
+  userId,
+  domain,
+  endpoint
+) => {
+  const { limits } = await getUserLimits(userId);
+  const minHours = limits.rescan_hours;
+
+  const { data: lastScan } = await supabase
+    .from('geoiq_cache')
+    .select('cached_at')
+    .eq('domain', domain)
+    .eq('endpoint', endpoint)
+    .order('cached_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (!lastScan) return { allowed: true };
+
+  const hoursSince = (
+    Date.now() - new Date(lastScan.cached_at)
+  ) / (1000 * 60 * 60);
+
+  if (hoursSince < minHours) {
+    const hoursLeft = Math.ceil(
+      minHours - hoursSince
+    );
+    return {
+      allowed: false,
+      hours_left: hoursLeft,
+      message: `Next scan available in ${hoursLeft} hours`
+    };
+  }
+
+  return { allowed: true };
+};
+
+PART 2: 72 HOUR CACHE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Cache duration by endpoint:
+
+const CACHE_DURATIONS = {
+  llm_mentions:       72 * 60 * 60 * 1000,
+  keywords:           72 * 60 * 60 * 1000,
+  brand_performance:  72 * 60 * 60 * 1000,
+  competitor:         72 * 60 * 60 * 1000,
+  geo_optimizer:      24 * 60 * 60 * 1000,
+  site_audit:         48 * 60 * 60 * 1000,
+  serp:               24 * 60 * 60 * 1000,
+  page_audit:         48 * 60 * 60 * 1000
+};
+
+SUPABASE CACHE TABLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CREATE TABLE geoiq_cache (
+  id uuid DEFAULT gen_random_uuid(),
+  cache_key text UNIQUE NOT NULL,
+  endpoint text NOT NULL,
+  domain text,
+  user_id uuid,
+  response_json jsonb NOT NULL,
+  cached_at timestamptz DEFAULT now(),
+  expires_at timestamptz NOT NULL,
+  hit_count integer DEFAULT 0,
+  last_hit_at timestamptz
+);
+
+CREATE INDEX idx_cache_key 
+  ON geoiq_cache(cache_key);
+CREATE INDEX idx_cache_domain 
+  ON geoiq_cache(domain);
+CREATE INDEX idx_cache_expires 
+  ON geoiq_cache(expires_at);
+
+CACHE KEY FORMAT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const buildCacheKey = (
+  endpoint, 
+  domain, 
+  params = {}
+) => {
+  const base = `${endpoint}::${domain
+    .toLowerCase()
+    .replace('www.', '')
+    .trim()}`;
+
+  if (Object.keys(params).length === 0) 
+    return base;
+
+  const paramStr = Object.entries(params)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}=${v}`)
+    .join('::');
+
+  return `${base}::${paramStr}`;
+};
+
+CACHE UTILITY FUNCTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const getCache = async (cacheKey) => {
+  try {
+    const { data, error } = await supabase
+      .from('geoiq_cache')
+      .select(
+        'response_json, cached_at, expires_at, hit_count'
+      )
+      .eq('cache_key', cacheKey)
+      .gt('expires_at', new Date().toISOString())
+      .single();
+
+    if (error || !data) return null;
+
+    // Update hit count silently
+    supabase
+      .from('geoiq_cache')
+      .update({
+        hit_count: data.hit_count + 1,
+        last_hit_at: new Date().toISOString()
+      })
+      .eq('cache_key', cacheKey)
+      .then(() => {});
+
+    return {
+      data: data.response_json,
+      cached_at: data.cached_at,
+      expires_at: data.expires_at,
+      from_cache: true
+    };
+  } catch (err) {
+    console.error('Cache read error:', err);
+    return null;
+  }
+};
+
+const setCache = async (
+  cacheKey,
+  endpoint,
+  domain,
+  responseData,
+  userId = null
+) => {
+  try {
+    const duration = 
+      CACHE_DURATIONS[endpoint] || 
+      24 * 60 * 60 * 1000;
+
+    const expiresAt = new Date(
+      Date.now() + duration
+    ).toISOString();
+
+    await supabase
+      .from('geoiq_cache')
+      .upsert({
+        cache_key: cacheKey,
+        endpoint,
+        domain: domain
+          ?.replace('www.', '')
+          .toLowerCase(),
+        user_id: userId,
+        response_json: responseData,
+        cached_at: new Date().toISOString(),
+        expires_at: expiresAt,
+        hit_count: 0
+      }, {
+        onConflict: 'cache_key'
+      });
+
+    console.log(
+      `Cached ${endpoint} for ${domain} 
+       until ${expiresAt}`
+    );
+  } catch (err) {
+    console.error('Cache write error:', err);
+  }
+};
+
+const clearCache = async (
+  domain, 
+  endpoint = null
+) => {
+  const query = supabase
+    .from('geoiq_cache')
+    .delete()
+    .eq('domain', domain
+      ?.replace('www.', '')
+      .toLowerCase()
+    );
+
+  if (endpoint) query.eq('endpoint', endpoint);
+  await query;
+};
+
+WRAP EVERY SLOW ENDPOINT WITH CACHE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Use this exact pattern in every route:
+
+app.post('/api/llm-mentions', 
+async (req, res) => {
+  try {
+    const { domain } = req.body;
+    const cacheKey = buildCacheKey(
+      'llm_mentions', domain
+    );
+
+    // CHECK CACHE FIRST
+    const cached = await getCache(cacheKey);
+    if (cached) {
+      console.log(
+        `Cache HIT: llm_mentions ${domain}`
+      );
+      return res.json({
+        success: true,
+        data: cached.data,
+        from_cache: true,
+        cached_at: cached.cached_at,
+        expires_at: cached.expires_at
+      });
+    }
+
+    console.log(
+      `Cache MISS: llm_mentions ${domain} 
+       calling API`
+    );
+
+    // CALL REAL API
+    const result = await runLLMMentionsScan(domain);
+
+    // STORE IN CACHE
+    await setCache(
+      cacheKey,
+      'llm_mentions',
+      domain,
+      result,
+      req.user?.id
+    );
+
+    res.json({
+      success: true,
+      data: result,
+      from_cache: false,
+      cached_at: new Date().toISOString(),
+      expires_at: new Date(
+        Date.now() + 72 * 60 * 60 * 1000
+      ).toISOString()
+    });
+
+  } catch (error) {
+    res.status(500).json({ 
+      error: error.message 
+    });
+  }
+});
+
+Apply same pattern to:
+/api/brand-performance    → 72hr
+/api/competitor-research  → 72hr
+/api/keywords             → 72hr
+/api/geo-optimizer        → 24hr
+/api/site-audit           → 48hr
+/api/serp                 → 24hr
+
+SHARED CACHE ACROSS USERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Cache key is domain-based NOT user-based.
+If User A scans clevertap.com at 9am,
+User B scanning clevertap.com at 10am
+gets cached result — no new API call.
+
+Cache key format:
+"llm_mentions::clevertap.com" ✓ correct
+"llm_mentions::clevertap.com::user_123" ✗ wrong
+
+FRONTEND CACHE STATUS INDICATOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Show on every results page when 
+data comes from cache:
+
+const CacheIndicator = ({ 
+  cachedAt, 
+  expiresAt 
+}) => {
+  const hoursAgo = Math.floor(
+    (Date.now() - new Date(cachedAt)) 
+    / 3600000
+  );
+  const hoursLeft = Math.max(
+    0,
+    Math.ceil(
+      (new Date(expiresAt) - Date.now()) 
+      / 3600000
+    )
+  );
+
+  const freshness = hoursAgo < 12 
+    ? 'Fresh data' 
+    : hoursAgo < 48 
+    ? 'Recent data' 
+    : 'Aging data';
+
+  const color = hoursAgo < 12 
+    ? '#10b981'
+    : hoursAgo < 48 
+    ? '#3b82f6' 
+    : '#f59e0b';
+
+  return (
+    <div style={{ 
+      fontSize: 11, 
+      color, 
+      marginTop: 8,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8
+    }}>
+      <span>● {freshness}</span>
+      <span style={{ color: '#9ca3af' }}>
+        · Updated {hoursAgo}h ago
+        · Refreshes in {hoursLeft}h
+      </span>
+    </div>
+  );
+};
+
+FORCE REFRESH BUTTON
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Show [Force Refresh] on cache indicator.
+
+On click show confirmation:
+"Refreshing uses 1 API credit.
+AI data changes slowly — 72hr cache 
+is recommended. Refresh anyway?"
+[Yes refresh] [Keep cached data]
+
+If confirmed:
+DELETE /api/cache/clear
+Body: { domain, endpoint }
+Then re-run scan automatically.
+
+app.delete('/api/cache/clear',
+async (req, res) => {
+  const { domain, endpoint } = req.body;
+
+  // Verify user owns this domain
+  const { data: domainRecord } = await supabase
+    .from('user_domains')
+    .select('domain')
+    .eq('user_id', req.user.id)
+    .eq('domain', domain)
+    .single();
+
+  if (!domainRecord) {
+    return res.status(403).json({
+      error: 'Not authorized'
+    });
+  }
+
+  await clearCache(domain, endpoint);
+  res.json({ success: true });
+});
+
+DOMAIN LIMIT UI — SIDEBAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Show domain usage under brand switcher
+in sidebar:
+
+STARTER PLAN
+─────────────────
+🔵 LLM Scan    1/1
+🔵 Site Audit  1/2  [+ Add]
+
+When at limit show lock icon:
+🔒 LLM Scan    1/1  [Upgrade]
+
+UPGRADE MODAL — when limit hit
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When API returns domain_limit_reached
+show modal:
+
+┌────────────────────────────────────────┐
+│ 🔒 Domain Limit Reached                │
+│                                        │
+│ Your Starter plan includes:            │
+│ 1 domain for AI Presence scanning     │
+│ 2 domains for Site Audit              │
+│                                        │
+│ Currently using:                       │
+│ clevertap.com for AI Presence         │
+│                                        │
+│ Upgrade to Agency:                    │
+│ 3 domains AI Presence                 │
+│ 5 domains Site Audit                  │
+│ 10 competitor slots                   │
+│                                        │
+│ [Upgrade to Agency $129/mo →]         │
+│ [Not now]                             │
+└────────────────────────────────────────┘
+
+[Upgrade to Agency] opens Razorpay
+for agency plan payment.
+
+RESCAN LIMIT UI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When user tries Force Refresh too early:
+
+┌────────────────────────────────────────┐
+│ ⏳ Rescan not available yet            │
+│                                        │
+│ Next scan available in 48 hours.      │
+│                                        │
+│ Starter plan: rescan every 72 hours   │
+│ Agency plan: rescan every 48 hours    │
+│                                        │
+│ [Upgrade for faster rescans →]        │
+└────────────────────────────────────────┘
+
+CLEANUP JOB
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Run daily at 3am to delete expired rows:
+
+import cron from 'node-cron';
+
+cron.schedule('0 3 * * *', async () => {
+  const { count } = await supabase
+    .from('geoiq_cache')
+    .delete()
+    .lt('expires_at', new Date().toISOString());
+
+  console.log(
+    `Cleaned ${count} expired cache rows`
+  );
+});
+
+DOMAIN MANAGEMENT IN SETTINGS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add to Settings page under "My Domains":
+
+Table showing:
+DOMAIN | LLM | AUDIT | ADDED | REMOVE
+
+clevertap.com | ✓ | ✓ | Jun 1 | [Remove]
+geoiqai.com   | - | ✓ | Jun 3 | [Remove]
+
+Slot usage shown below:
+"LLM slots: 0/1 remaining"
+"Audit slots: 1/2 remaining"
+
+[Remove] frees up that slot immediately.
+Updates user_domains table.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Test 1: Domain limit
+Scan clevertap.com LLM — works
+Try to scan geoiqai.com LLM
+Upgrade modal appears immediately
+
+Test 2: Audit allows 2 domains
+Scan clevertap.com audit — works
+Scan geoiqai.com audit — works
+Try stripe.com audit
+Upgrade modal appears
+
+Test 3: Cache working
+Scan domain — takes normal time
+Scan same domain again immediately
+Returns instantly from cache
+Shows "Fresh data · Updated 0h ago"
+
+Test 4: Force refresh blocked
+Scan domain
+Click Force Refresh immediately
+Shows "Next scan in 72 hours" modal
+
+Test 5: Check Supabase
+geoiq_cache table shows rows
+expires_at is 72 hours from cached_at
+hit_count increments on repeat scans
+
+Share screenshot of:
+1. Domain limit upgrade modal
+2. Cache indicator showing "Fresh data"
+3. Supabase geoiq_cache table with rows

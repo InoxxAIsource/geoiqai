@@ -28,7 +28,8 @@ import {
 } from "../lib/dataforseo";
 import { runAuditEngine } from "../lib/audit-engine";
 import { crawlSite } from "../lib/site-crawler";
-import { db, citationsTable, keywordCacheTable, auditsTable, promptTrackingTable, siteAuditHistoryTable } from "@workspace/db";
+import { db, citationsTable, keywordCacheTable, auditsTable, promptTrackingTable, siteAuditHistoryTable, dataforseoCacheTable } from "@workspace/db";
+import { getPlanLimits } from "../lib/plan-limits";
 import { eq, and, desc, gt } from "drizzle-orm";
 import OpenAI from "openai";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
@@ -835,10 +836,53 @@ function brandKeywordCandidates(brandName: string): string[] {
 
 // Visibility Overview - uses DataForSEO LLM Mentions API (funded account required)
 router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Promise<void> => {
-  const { domain } = req.query as { domain?: string };
+  const user = (req as AuthRequest).user;
+  const { domain, force } = req.query as { domain?: string; force?: string };
   if (!domain) { res.status(400).json({ error: "domain is required" }); return; }
 
+  // Plan check: free users cannot use AI Presence
+  const planLimits = getPlanLimits(user.plan);
+  if (planLimits.llm_mention_domains === 0) {
+    res.status(403).json({
+      error: "domain_limit_reached",
+      message: "AI Presence tracking requires a Starter or Agency plan.",
+      upgrade_url: "/pricing",
+      current_plan: user.plan,
+    });
+    return;
+  }
+
   const bareD = domain.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? domain;
+  const rescanHours = planLimits.rescan_hours < 999 ? planLimits.rescan_hours : 72;
+  const cacheTtlMs = rescanHours * 60 * 60 * 1000;
+  const topCacheKey = `vis_ov_v1:${bareD}`;
+
+  // Top-level cache: serves the full assembled response without re-running all sub-requests
+  if (force !== "true") {
+    const [cacheRow] = await db.select().from(dataforseoCacheTable).where(eq(dataforseoCacheTable.key, topCacheKey)).limit(1);
+    if (cacheRow && cacheRow.expiresAt > new Date()) {
+      req.log.info({ domain: bareD, key: topCacheKey }, "visibility-overview: top-level cache hit");
+      res.json({ ...(cacheRow.data as object), from_cache: true, cached_at: cacheRow.cachedAt.toISOString(), expires_at: cacheRow.expiresAt.toISOString() });
+      return;
+    }
+  } else {
+    // Force refresh: block if minimum rescan time has not elapsed
+    const [cacheRow] = await db.select().from(dataforseoCacheTable).where(eq(dataforseoCacheTable.key, topCacheKey)).limit(1);
+    if (cacheRow) {
+      const hoursSince = (Date.now() - cacheRow.cachedAt.getTime()) / (1000 * 60 * 60);
+      if (hoursSince < rescanHours) {
+        const hoursLeft = Math.ceil(rescanHours - hoursSince);
+        res.status(429).json({
+          error: "rescan_too_soon",
+          message: `Next scan available in ${hoursLeft} hour${hoursLeft === 1 ? "" : "s"}.`,
+          hours_left: hoursLeft,
+          rescan_hours: rescanHours,
+        });
+        return;
+      }
+    }
+  }
+
   const brandName = extractBrandName(bareD);
   const today = new Date().toISOString().split("T")[0]!;
   const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]!;
@@ -965,7 +1009,9 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
     const hasData = mentions > 0 || citations > 0;
     req.log.info({ domain: bareD, bestKeyword, score, mentions, citations, citedPagesCount, hasData }, "visibility-overview: done");
 
-    res.json({
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + cacheTtlMs);
+    const resultPayload = {
       domain: bareD,
       brandName: bestKeyword,
       score,
@@ -975,7 +1021,6 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
       citedPagesCount,
       hasData,
       platforms: platformData,
-      // Note shown in UI under the platform chart
       platformsNote: "Data source: Google AI Overview + ChatGPT (GPT-5). Gemini and Perplexity data coming soon.",
       countries,
       citedSources,
@@ -987,7 +1032,20 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
       dateFrom: sixMonthsAgo,
       dateTo: today,
       cached: false,
-    });
+      from_cache: false,
+      cached_at: now.toISOString(),
+      expires_at: expiresAt.toISOString(),
+    };
+
+    // Store top-level cache
+    await db.insert(dataforseoCacheTable)
+      .values({ key: topCacheKey, data: resultPayload as unknown as Record<string, unknown>, expiresAt })
+      .onConflictDoUpdate({
+        target: dataforseoCacheTable.key,
+        set: { data: resultPayload as unknown as Record<string, unknown>, cachedAt: now, expiresAt },
+      });
+
+    res.json(resultPayload);
   } catch (err) {
     req.log.error({ err, domain }, "visibility-overview error");
     res.status(500).json({ error: "Failed to load visibility data. Please try again." });
@@ -1015,18 +1073,68 @@ function calcScore(mentions: number, citations: number, citedPages: number): num
 }
 
 router.post("/dataforseo/competitor-research", requireAuth, async (req, res): Promise<void> => {
-  const { yourDomain, competitorDomains } = req.body as {
+  const user = (req as AuthRequest).user;
+  const { yourDomain, competitorDomains, force } = req.body as {
     yourDomain?: string;
     competitorDomains?: string[];
+    force?: boolean;
   };
+
+  // Plan check: free users cannot use Brand Benchmarks
+  const planLimits = getPlanLimits(user.plan);
+  if (planLimits.competitor_slots === 0) {
+    res.status(403).json({
+      error: "domain_limit_reached",
+      message: "Brand Benchmarks requires a Starter or Agency plan.",
+      upgrade_url: "/pricing",
+      current_plan: user.plan,
+    });
+    return;
+  }
+
   if (!yourDomain) { res.status(400).json({ error: "yourDomain is required" }); return; }
 
+  // Cap competitors to plan limit
+  const cappedCompetitors = Array.isArray(competitorDomains)
+    ? competitorDomains.slice(0, planLimits.competitor_slots)
+    : [];
+
   // Normalize to lowercase so extractBrandName regex strips TLDs correctly
-  const allDomains = [yourDomain, ...(Array.isArray(competitorDomains) ? competitorDomains.slice(0, 3) : [])]
+  const allDomains = [yourDomain, ...cappedCompetitors]
     .filter(Boolean)
     .map(d => d.toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? d);
   const today = new Date().toISOString().split("T")[0]!;
   const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]!;
+
+  const rescanHours = planLimits.rescan_hours < 999 ? planLimits.rescan_hours : 72;
+  const cacheTtlMs = rescanHours * 60 * 60 * 1000;
+  const topCacheKey = `comp_res_v1:${allDomains.join(":")}`;
+
+  // Top-level cache
+  if (!force) {
+    const [cacheRow] = await db.select().from(dataforseoCacheTable).where(eq(dataforseoCacheTable.key, topCacheKey)).limit(1);
+    if (cacheRow && cacheRow.expiresAt > new Date()) {
+      req.log.info({ domains: allDomains, key: topCacheKey }, "competitor-research: top-level cache hit");
+      res.json({ ...(cacheRow.data as object), from_cache: true, cached_at: cacheRow.cachedAt.toISOString(), expires_at: cacheRow.expiresAt.toISOString() });
+      return;
+    }
+  } else {
+    // Force refresh: block if minimum rescan time has not elapsed
+    const [cacheRow] = await db.select().from(dataforseoCacheTable).where(eq(dataforseoCacheTable.key, topCacheKey)).limit(1);
+    if (cacheRow) {
+      const hoursSince = (Date.now() - cacheRow.cachedAt.getTime()) / (1000 * 60 * 60);
+      if (hoursSince < rescanHours) {
+        const hoursLeft = Math.ceil(rescanHours - hoursSince);
+        res.status(429).json({
+          error: "rescan_too_soon",
+          message: `Next scan available in ${hoursLeft} hour${hoursLeft === 1 ? "" : "s"}.`,
+          hours_left: hoursLeft,
+          rescan_hours: rescanHours,
+        });
+        return;
+      }
+    }
+  }
 
   req.log.info({ domains: allDomains, dateFrom: sixMonthsAgo, dateTo: today }, "competitor-research: start");
 
@@ -1226,7 +1334,31 @@ Each insight: specific problem + specific fix. Under 60 words each. Plain text. 
 
     req.log.info({ domains: allDomains, scores: domainResults.map(d => d.score), topics: topicList.length, topicCounts, sources: sources.length }, "competitor-research: done");
 
-    res.json({ domains: domainResults, trend: trendSeries, topics: topicList, topicCounts, insights, sources, cached: false, analyzedAt: new Date().toISOString() });
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + cacheTtlMs);
+    const resultPayload = {
+      domains: domainResults,
+      trend: trendSeries,
+      topics: topicList,
+      topicCounts,
+      insights,
+      sources,
+      cached: false,
+      analyzedAt: now.toISOString(),
+      from_cache: false,
+      cached_at: now.toISOString(),
+      expires_at: expiresAt.toISOString(),
+    };
+
+    // Store top-level cache
+    await db.insert(dataforseoCacheTable)
+      .values({ key: topCacheKey, data: resultPayload as unknown as Record<string, unknown>, expiresAt })
+      .onConflictDoUpdate({
+        target: dataforseoCacheTable.key,
+        set: { data: resultPayload as unknown as Record<string, unknown>, cachedAt: now, expiresAt },
+      });
+
+    res.json(resultPayload);
   } catch (err) {
     req.log.error({ err }, "competitor-research error");
     res.status(500).json({ error: "Could not load competitor data. Please try again." });
