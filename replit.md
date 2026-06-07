@@ -18,6 +18,7 @@ An AI Visibility Platform that helps startups and founders track how their brand
 - Optional env: `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` - Razorpay payment gateway (payments return 503 without them)
 - Optional env: `RESEND_API_KEY` - Resend for transactional email (silently skips sending without it)
 - Optional env: `APP_URL` - Public app URL used in email links (defaults to `https://geoscore.app`)
+- Optional env: `GOOGLE_PSI_API_KEY` - Google PageSpeed Insights API key for Core Web Vitals in Site Audit (falls back gracefully if quota exceeded without key)
 
 ## Stack
 

@@ -17,6 +17,8 @@ interface PageRow {
   ttfbMs: number;
   sizeBytes: number;
   isHttps: boolean;
+  isCompressed: boolean;
+  textRatio: number;
   metaTitle: string | null;
   hasH1: boolean;
   hasSchema: boolean;
@@ -25,6 +27,25 @@ interface PageRow {
   internalLinkCount: number;
   issues: string[];
   category: "healthy" | "broken" | "redirect" | "issues";
+}
+
+interface CwvMetric {
+  displayValue: string;
+  numericValue: number;
+  score: "good" | "needs-improvement" | "poor";
+}
+
+interface CoreWebVitals {
+  performanceScore: number;
+  lcp: CwvMetric | null;
+  cls: CwvMetric | null;
+  tbt: CwvMetric | null;
+  fcp: CwvMetric | null;
+  tti: CwvMetric | null;
+  speedIndex: CwvMetric | null;
+  ttfbPsi: CwvMetric | null;
+  overallCategory: "FAST" | "AVERAGE" | "SLOW" | null;
+  strategy: "mobile" | "desktop";
 }
 
 interface CrawlAudit {
@@ -42,6 +63,7 @@ interface CrawlAudit {
   hasLlmsTxt: boolean;
   hasSitemap: boolean;
   robotsTxt: string;
+  cwv: CoreWebVitals | null;
   metaTitle: string | null;
   metaTitleLength: number;
   metaDescription: string | null;
@@ -56,6 +78,7 @@ interface CrawlAudit {
   ttfbMs: number;
   statusCode: number;
   isHttps: boolean;
+  isJsRendered: boolean;
   gptBotAllowed: boolean;
   perplexityBotAllowed: boolean;
   claudeBotAllowed: boolean;
@@ -69,9 +92,10 @@ type Tab = "overview" | "issues" | "pages" | "bots" | "ai";
 
 const LOADING_STEPS = [
   "Fetching sitemap...",
+  "Running Google PageSpeed for Core Web Vitals...",
   "Crawling pages...",
   "Checking meta tags and headings...",
-  "Analyzing internal links...",
+  "Checking compression and text quality...",
   "Reviewing bot access...",
   "Calculating scores...",
 ];
@@ -162,6 +186,7 @@ function FixGuide({ fixType, onClose }: { fixType: string; onClose: () => void }
     missing_canonical: { title: "Add a canonical tag", steps: ["Add <link rel='canonical' href='https://yourdomain.com/this-page/' /> in <head>.", "Point to the preferred version of each URL.", "This prevents duplicate content issues."] },
     missing_alt: { title: "Fix missing image alt text", steps: ["Add alt='description of image' to every <img> tag.", "Describe what the image shows, not just the file name.", "Keep alt text under 125 characters.", "Decorative images can use alt=''."] },
     slow_server: { title: "Improve server response time", steps: ["Enable gzip/brotli compression.", "Use a CDN like Cloudflare.", "Cache static assets aggressively.", "Optimize database queries if using a dynamic backend."] },
+    no_compression: { title: "Enable gzip or brotli compression", steps: ["Add 'AddOutputFilterByType DEFLATE text/html text/css application/javascript' to .htaccess (Apache).", "For Nginx: add 'gzip on;' and 'gzip_types text/html text/css application/javascript;' to your server block.", "Cloudflare and most CDNs compress responses automatically once enabled.", "Verify with: curl -I -H 'Accept-Encoding: gzip' https://yourdomain.com - look for 'Content-Encoding: gzip' in the response."] },
     bot_blocked: { title: "Allow AI crawlers in robots.txt", steps: ["Open your robots.txt file.", "Remove or update any Disallow rules for GPTBot, PerplexityBot, ClaudeBot.", "Verify: https://yourdomain.com/robots.txt", "Add explicit Allow: / rules for each AI bot."] },
   };
   const g = guides[fixType];
@@ -218,6 +243,25 @@ function ThematicCard({ label, score, detail }: { label: string; score: number; 
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "#111827", marginBottom: 2 }}>{label}</div>
         {detail && <div style={{ fontSize: 11, color: MUTED, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{detail}</div>}
+      </div>
+    </div>
+  );
+}
+
+const CWV_COLORS: Record<string, string> = { good: GREEN, "needs-improvement": AMBER, poor: RED };
+
+function CwvMetricCell({ label, metric, hint }: { label: string; metric: CwvMetric | null; hint?: string }) {
+  if (!metric) return null;
+  const color = CWV_COLORS[metric.score] ?? MUTED;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 2, padding: "10px 14px", background: "white", borderRadius: 10, border: `1px solid ${BORDER}`, minWidth: 100 }}>
+      <div style={{ fontSize: 11, color: MUTED, fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 18, fontWeight: 800, color, lineHeight: 1 }}>{metric.displayValue}</div>
+      {hint && <div style={{ fontSize: 10, color: MUTED }}>{hint}</div>}
+      <div style={{ marginTop: 2 }}>
+        <span style={{ fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 4, background: `${color}1A`, color }}>
+          {metric.score === "good" ? "Good" : metric.score === "needs-improvement" ? "Improve" : "Poor"}
+        </span>
       </div>
     </div>
   );
@@ -303,7 +347,7 @@ export function SiteAuditSection({ domain }: { domain: string }) {
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: 20, fontWeight: 700, color: "#111827", margin: "0 0 4px" }}>Site Audit</h2>
-        <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>Real crawl of up to 25 pages - detects broken pages, missing meta, slow responses, AI bot access, and more.</p>
+        <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>Crawls up to 25 pages and runs Google PageSpeed for real Core Web Vitals. Checks broken pages, missing meta, compression, AI bot access, and more.</p>
       </div>
 
       {/* Domain input */}
@@ -367,8 +411,19 @@ export function SiteAuditSection({ domain }: { domain: string }) {
       {/* Results */}
       {audit && !loading && (
         <>
+          {/* JS-rendered site warning */}
+          {audit.isJsRendered && (
+            <div style={{ background: "#FFFBEB", border: `1px solid #FCD34D`, borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <AlertTriangle size={15} color={AMBER} style={{ flexShrink: 0, marginTop: 1 }} />
+              <div>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "#92400E" }}>JavaScript-rendered site detected</span>
+                <span style={{ fontSize: 13, color: "#92400E" }}> - meta tags and content may be injected by {audit.techStack.framework ?? "a JS framework"} after page load. The raw HTML our crawler fetched may show fewer meta tags than what users actually see. Consider server-side rendering (SSR) for better AI crawlability.</span>
+              </div>
+            </div>
+          )}
+
           {/* Top 4 cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: audit.cwv ? 12 : 20 }}>
             {/* Site Health */}
             <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "16px 20px" }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: MUTED, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5 }}>Site Health</div>
@@ -456,6 +511,48 @@ export function SiteAuditSection({ domain }: { domain: string }) {
             </div>
           </div>
 
+          {/* Core Web Vitals card (Google PageSpeed data) */}
+          {!audit.cwv && (
+            <div style={{ background: BG, border: `1px solid ${BORDER}`, borderRadius: 10, padding: "10px 16px", marginBottom: 12, display: "flex", gap: 8, alignItems: "center" }}>
+              <Info size={13} color={MUTED} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: MUTED }}>Core Web Vitals not available - Google PageSpeed API quota was exceeded. Add a <code style={{ background: "#F3F4F6", padding: "1px 4px", borderRadius: 3 }}>GOOGLE_PSI_API_KEY</code> env var to get real CWV data.</span>
+            </div>
+          )}
+          {audit.cwv && (
+            <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "16px 20px", marginBottom: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5 }}>Core Web Vitals</div>
+                  <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>Google PageSpeed Insights - Mobile</div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <ScoreRing score={audit.cwv.performanceScore} size={64} />
+                  {audit.cwv.overallCategory && (
+                    <span style={{
+                      fontSize: 12, fontWeight: 700, padding: "4px 10px", borderRadius: 6,
+                      background: audit.cwv.overallCategory === "FAST" ? "#ECFDF5" : audit.cwv.overallCategory === "AVERAGE" ? "#FFFBEB" : "#FEF2F2",
+                      color: audit.cwv.overallCategory === "FAST" ? GREEN : audit.cwv.overallCategory === "AVERAGE" ? AMBER : RED,
+                    }}>
+                      {audit.cwv.overallCategory}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                <CwvMetricCell label="LCP" metric={audit.cwv.lcp} hint="Largest Contentful Paint" />
+                <CwvMetricCell label="CLS" metric={audit.cwv.cls} hint="Cumulative Layout Shift" />
+                <CwvMetricCell label="TBT" metric={audit.cwv.tbt} hint="Total Blocking Time" />
+                <CwvMetricCell label="FCP" metric={audit.cwv.fcp} hint="First Contentful Paint" />
+                <CwvMetricCell label="Speed Index" metric={audit.cwv.speedIndex} />
+                <CwvMetricCell label="TTFB" metric={audit.cwv.ttfbPsi} hint="Server Response Time" />
+                <CwvMetricCell label="TTI" metric={audit.cwv.tti} hint="Time to Interactive" />
+              </div>
+              <div style={{ marginTop: 10, fontSize: 11, color: MUTED }}>
+                LCP under 2.5s, CLS under 0.1, and TBT under 200ms are considered good by Google.
+              </div>
+            </div>
+          )}
+
           {/* Tabs */}
           <div style={{ display: "flex", gap: 0, borderBottom: `2px solid ${BORDER}`, marginBottom: 20 }}>
             {([
@@ -532,7 +629,7 @@ export function SiteAuditSection({ domain }: { domain: string }) {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
                   <ThematicCard label="Crawlability" score={audit.thematicScores.crawlability} detail={`${audit.crawledCount} pages checked`} />
                   <ThematicCard label="HTTPS" score={audit.thematicScores.https} detail="Secure pages" />
-                  <ThematicCard label="Performance" score={audit.thematicScores.performance} detail="TTFB under 2s" />
+                  <ThematicCard label="Performance" score={audit.thematicScores.performance} detail={audit.cwv ? `PSI score: ${audit.cwv.performanceScore}%` : "TTFB under 2s"} />
                   <ThematicCard label="Internal Linking" score={audit.thematicScores.internalLinking} detail="Pages with links" />
                   <ThematicCard label="Schema / Markup" score={audit.thematicScores.markup} detail="Structured data" />
                   <ThematicCard label="AI Search" score={audit.thematicScores.aiSearch} detail="AI optimization" />
