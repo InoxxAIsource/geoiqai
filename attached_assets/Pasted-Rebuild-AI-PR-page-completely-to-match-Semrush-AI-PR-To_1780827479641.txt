@@ -1,0 +1,458 @@
+Rebuild AI PR page completely to match 
+Semrush AI PR Toolkit structure.
+Current version is too basic — just a 
+journalist search that returns nothing.
+
+Semrush AI PR has 4 main sections:
+1. AI-Cited Media (find outlets AI trusts)
+2. Media Database (find + organize journalists)
+3. Outreach / Emails (send campaigns)
+4. Media Monitoring (track mentions)
+
+Build all 4 sections in GeoIQ AI PR.
+
+SIDEBAR NAVIGATION FOR AI PR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Left sidebar within AI PR page:
+
+Dashboard (overview)
+AI-Cited Media
+─────────────────
+Media Database
+  Contact Search
+  Media Lists
+─────────────────
+Outreach
+  Your Emails
+─────────────────
+Media Monitoring
+  Monitor Mentions
+  Alerts
+
+SECTION 1: DASHBOARD (landing page)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Title: "AI PR Toolkit"
+Subtitle: "Find AI-trusted media, 
+pitch journalists, monitor your coverage"
+
+4 action cards:
+
+┌──────────────────────────────────┐
+│ 🎯 Find AI-Cited Media           │
+│ Discover outlets LLMs trust most │
+│ in your industry                 │
+│ [Find Media →]                   │
+└──────────────────────────────────┘
+
+┌──────────────────────────────────┐
+│ 👤 Find Journalists              │
+│ Search by topic, keyword,        │
+│ or outlet name                   │
+│ [Search Contacts →]              │
+└──────────────────────────────────┘
+
+┌──────────────────────────────────┐
+│ ✉ Create Pitch Email             │
+│ AI writes personalized pitches   │
+│ from your press release or angle │
+│ [Draft Pitch →]                  │
+└──────────────────────────────────┘
+
+┌──────────────────────────────────┐
+│ 👁 Monitor Coverage              │
+│ Track brand mentions across      │
+│ news, blogs, and media           │
+│ [Set Up Monitoring →]            │
+└──────────────────────────────────┘
+
+SECTION 2: AI-CITED MEDIA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Title: "Find AI-Cited Media Outlets"
+Subtitle: "Discover media outlets that 
+LLMs cite most in your niche. Being 
+covered by these gives your brand the 
+highest chance of appearing in AI answers."
+
+Input form:
+┌─────────────────────────────┐
+│ Topic of interest           │
+│ e.g. AI SEO, GEO, SaaS tools│
+└─────────────────────────────┘
+[Worldwide ▼] [English ▼] [Find Media →]
+
+BACKEND: POST /api/ai-pr/cited-media
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Use Exa to find outlets that cover this topic
+AND are cited by AI systems:
+
+Step 1: Find top publications on topic
+const results = await exa.search(
+  `top media outlets writing about ${topic} 
+   technology marketing 2025 2026`,
+  {
+    type: 'deep',
+    numResults: 20,
+    category: 'news',
+    startPublishedDate: '2025-01-01',
+    contents: {
+      highlights: {
+        numSentences: 2,
+        highlightsPerUrl: 1
+      }
+    }
+  }
+);
+
+Step 2: Group by domain/publication
+Deduplicate results by domain.
+Each unique domain = one media outlet.
+
+Step 3: For each outlet calculate AI Trust score
+Send to Claude:
+"Rate this media outlet's likelihood of 
+being cited by AI systems like ChatGPT 
+and Perplexity when answering questions 
+about ${topic}. 
+Outlet: ${domain}
+Recent articles: ${headlines}
+Score 1-100. Consider: domain authority 
+signals, content quality, how often 
+authoritative sources cite this outlet.
+Return JSON: { score: 0, reason: 'brief reason' }"
+
+Step 4: Return sorted by AI Trust score
+
+Display as table:
+
+OUTLET          AI TRUST  ARTICLES  ACTIONS
+TechCrunch      94        12        [Add to List] [Find Contact]
+Search Eng Land 89         8        [Add to List] [Find Contact]  
+Moz Blog        82         5        [Add to List] [Find Contact]
+Search Eng Jour 78         7        [Add to List] [Find Contact]
+
+Columns:
+- Outlet name + favicon
+- AI Trust score (colored bar: green >70, orange 40-70, red <40)
+- Articles found on topic (count)
+- [Add to List] saves to Media Lists
+- [Find Contact] goes to Contact Search 
+  pre-filled with that outlet
+
+Show "Collective AI Media Impact" at top
+when user selects multiple outlets:
+"Selected 3 outlets: Combined AI reach score: 87"
+
+SECTION 3: CONTACT SEARCH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Title: "Find Journalists"
+3 search mode tabs:
+
+[Search with AI] [Search by keyword] [Search by outlet]
+
+TAB A — Search with AI:
+Text area: "Describe your story and industry"
+Example: "We built an AI visibility tool 
+that tracks if brands appear in ChatGPT. 
+Looking for journalists covering AI search 
+and marketing technology"
+[Find Journalists →]
+
+BACKEND for AI search:
+const results = await exa.search(
+  `journalist writer reporter ${storyDescription} 
+   recent articles 2025 2026`,
+  {
+    type: 'deep',
+    numResults: 15,
+    category: 'news',
+    startPublishedDate: '2025-01-01',
+    contents: {
+      highlights: {
+        numSentences: 3,
+        highlightsPerUrl: 2
+      }
+    }
+  }
+);
+
+Then Claude explains why each journalist 
+was selected:
+"Why this journalist: Covered ChatGPT's 
+impact on search rankings in March 2026. 
+Focuses on marketing technology and AI tools."
+
+TAB B — Search by keyword:
+Input: keyword chips + text field
+Pre-filled: [AI SEO] [GEO] [ChatGPT SEO]
+           [AI search] [LLM] [Brand visibility]
+
+Uses same Exa news search as before.
+Fixed: was returning "Not Found" because 
+query was too narrow. New query:
+
+const results = await exa.search(
+  `"${keyword}" site:searchengineland.com 
+   OR site:moz.com OR site:semrush.com/blog 
+   OR site:searchenginejournal.com 
+   OR site:techcrunch.com 
+   OR site:marketingland.com 
+   journalist reporter writer 2026`,
+  {
+    type: 'neural',
+    numResults: 20,
+    contents: {
+      highlights: { numSentences: 2 }
+    }
+  }
+);
+
+Also try broader fallback if no results:
+const fallback = await exa.search(
+  `who writes about ${keyword} marketing 
+   technology 2025`,
+  {
+    type: 'auto',
+    numResults: 15,
+    category: 'news',
+    contents: {
+      highlights: { numSentences: 2 }
+    }
+  }
+);
+
+TAB C — Search by outlet:
+Input: outlet name text field
+Dropdown filters: Region, Language, Topic
+[Search →]
+
+const results = await exa.search(
+  `${outletName} journalist contact writer`,
+  {
+    type: 'auto',
+    numResults: 10,
+    category: 'people',
+    contents: {
+      highlights: { numSentences: 2 }
+    }
+  }
+);
+
+JOURNALIST RESULT CARD:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌────────────────────────────────────────┐
+│ 👤 Danny Goodwin                       │
+│ Search Engine Land                     │
+│                                        │
+│ Why selected: Covers AI search impact  │
+│ on SEO regularly. 8 articles on GEO   │
+│ published in 2026.                     │
+│                                        │
+│ Recent: "How AI Overviews are changing │
+│ click-through rates" — Apr 2026       │
+│                                        │
+│ Topics: AI SEO  GEO  Search Rankings  │
+│                                        │
+│ [+ Add to List] [✉ Write Pitch]       │
+└────────────────────────────────────────┘
+
+SECTION 4: MEDIA LISTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Title: "Media Lists"
+[+ Create New List] button
+
+Lists display as cards:
+┌──────────────────────────────┐
+│ AI SEO Journalists           │
+│ 12 contacts · Created Jun 1  │
+│ [View] [Send Email] [Delete] │
+└──────────────────────────────┘
+
+Clicking [View] shows all contacts 
+in that list as a table:
+Name | Outlet | Added | [Write Pitch] [Remove]
+
+Supabase tables:
+media_lists: id, user_id, name, created_at
+media_contacts: id, list_id, user_id, 
+  journalist_name, publication, twitter,
+  linkedin_url, recent_article_url,
+  recent_article_title, notes, added_at
+
+SECTION 5: YOUR EMAILS / OUTREACH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Title: "Create Pitch Email"
+
+3 starting options (like Semrush):
+○ Write from scratch
+○ Generate from press release URL
+○ Generate from key messages
+
+OPTION B — from press release URL:
+Input: paste URL of your press release
+Exa fetches the content:
+const content = await exa.search(
+  pressReleaseUrl,
+  {
+    type: 'auto',
+    numResults: 1,
+    contents: { text: true }
+  }
+);
+
+Then Claude generates pitch email from it.
+
+OPTION C — from key messages:
+Text area: "What is your story?"
+e.g. "GeoIQ found that 95% of Indian 
+startups are invisible to ChatGPT"
+Claude generates pitch from this.
+
+PITCH EDITOR UI:
+After generation show editable email:
+Subject: [editable input]
+Body: [editable textarea]
+
+Personalization tokens:
+{{journalist_name}} {{publication}} 
+{{their_recent_article}}
+
+[Copy Email] [Open in Gmail →] 
+[Save to Drafts] [Send Campaign →]
+
+Send Campaign goes to:
+Select from Media Lists which list to send to
+Preview: "Sending to 12 contacts in 
+AI SEO Journalists list"
+[Send Now] — opens Gmail compose for each
+
+Supabase table: email_campaigns
+columns: user_id, subject, body, 
+  list_id, status, created_at, sent_at
+
+SECTION 6: MEDIA MONITORING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Title: "Monitor Mentions"
+Subtitle: "Track when your brand or 
+competitors appear in media coverage"
+
+Create monitoring query:
+┌─────────────────────────────────┐
+│ Keywords to monitor             │
+│ e.g. GeoIQ, AI visibility tool  │
+└─────────────────────────────────┘
+[+ Add keyword] [Start Monitoring →]
+
+BACKEND: POST /api/ai-pr/monitor
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const mentions = await exa.search(
+  `"${keyword}" mentioned review article 
+   news blog 2025 2026`,
+  {
+    type: 'auto',
+    numResults: 20,
+    category: 'news',
+    startPublishedDate: '2025-01-01',
+    contents: {
+      highlights: {
+        numSentences: 3,
+        highlightsPerUrl: 2
+      }
+    }
+  }
+);
+
+DISPLAY:
+
+MENTIONS FOR "GeoIQ" — Last 90 days
+Total: 3 mentions | Reach: estimated 45K
+
+Each mention as card:
+┌───────────────────────────────────────┐
+│ Search Engine Journal                 │
+│ "Best AI SEO tools of 2026"          │
+│ Published: May 15, 2026              │
+│                                       │
+│ "...GeoIQ tracks brand visibility    │
+│  across ChatGPT, Gemini..."          │
+│                                       │
+│ Sentiment: Positive                   │
+│ [Read Article] [Pitch Author →]      │
+└───────────────────────────────────────┘
+
+Sentiment: Claude analyzes highlight text
+and returns Positive / Neutral / Negative
+
+ALERTS section:
+[+ Create Alert] button
+Form: keyword + email frequency (Daily/Weekly)
+
+Supabase table: monitoring_alerts
+columns: user_id, keyword, frequency,
+  last_sent_at, created_at
+
+Show saved alerts as list:
+"GeoIQ" — Weekly digest — [Edit] [Delete]
+"AI visibility" — Daily — [Edit] [Delete]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX THE "NOT FOUND" BUG FIRST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The current journalist search returns 
+"Not Found" for "AI SEO".
+
+Root cause: query too narrow OR 
+Exa returning results with null authors.
+
+Fix:
+1. Broaden the query as shown above
+2. If author is null, use the domain as 
+   "publication staff writer"
+3. Add fallback: if 0 results from news 
+   category, retry with no category filter
+4. Log raw Exa response in console so 
+   we can see what is returning
+
+Add error display:
+If Exa returns 0 results show:
+"No journalists found for this topic. 
+Try broader terms like 'SEO' or 'AI search'"
+Not just "Not Found"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST ALL SECTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. AI-Cited Media: search "AI SEO"
+   Should show 10+ outlets with AI Trust scores
+
+2. Contact Search (AI tab): 
+   Enter "AI visibility tool for brands"
+   Should show journalists with "why selected" notes
+
+3. Contact Search (keyword tab):
+   Click [GEO] chip
+   Should show journalists not "Not Found"
+
+4. Create list: 
+   Add 2 journalists to "AI SEO Outreach" list
+   List appears in Media Lists section
+
+5. Create pitch from key message:
+   "95% of Indian startups invisible to ChatGPT"
+   Should generate under 150 word email
+
+6. Monitor: search "Brand24"
+   Should show real mentions with snippets
+
+Share screenshot of AI-Cited Media results first.
