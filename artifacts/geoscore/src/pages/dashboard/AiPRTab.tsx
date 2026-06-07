@@ -579,6 +579,7 @@ function CreatePitchSection({ prefill }: { prefill: { name?: string; publication
   const [journalistName, setJournalistName] = useState(prefill?.name ?? "");
   const [publication, setPublication] = useState(prefill?.publication ?? "");
   const [journalistEmail, setJournalistEmail] = useState("");
+  const [xHandle, setXHandle] = useState("");
   const [pressReleaseUrl, setPressReleaseUrl] = useState("");
   const [keyMessage, setKeyMessage] = useState("");
   const [pitchAngle, setPitchAngle] = useState("Tool review request");
@@ -587,7 +588,7 @@ function CreatePitchSection({ prefill }: { prefill: { name?: string; publication
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [personalization, setPersonalization] = useState("");
-  const [copiedField, setCopiedField] = useState<"subject" | "body" | null>(null);
+  const [copiedField, setCopiedField] = useState<"subject" | "body" | "dm" | null>(null);
 
   const [outreach, setOutreach] = useState<OutreachEntry[]>(() => lsGet("geo_pr_outreach", []));
 
@@ -650,7 +651,7 @@ function CreatePitchSection({ prefill }: { prefill: { name?: string; publication
         ))}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
         <div>
           <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>Journalist name</label>
           <input value={journalistName} onChange={e => setJournalistName(e.target.value)} placeholder="e.g. Danny Goodwin"
@@ -661,9 +662,16 @@ function CreatePitchSection({ prefill }: { prefill: { name?: string; publication
           <input value={publication} onChange={e => setPublication(e.target.value)} placeholder="e.g. Search Engine Land"
             style={{ width: "100%", padding: "9px 12px", border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
         </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
         <div>
-          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>Journalist email <span style={{ fontWeight: 400, color: MUTED }}>(for Gmail)</span></label>
+          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>Email <span style={{ fontWeight: 400, color: MUTED }}>(optional, for Gmail)</span></label>
           <input value={journalistEmail} onChange={e => setJournalistEmail(e.target.value)} placeholder="journalist@outlet.com" type="email"
+            style={{ width: "100%", padding: "9px 12px", border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+        </div>
+        <div>
+          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>X handle <span style={{ fontWeight: 400, color: MUTED }}>(optional, for DM)</span></label>
+          <input value={xHandle} onChange={e => setXHandle(e.target.value.replace(/^@/, ""))} placeholder="username (without @)"
             style={{ width: "100%", padding: "9px 12px", border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
         </div>
       </div>
@@ -721,6 +729,19 @@ function CreatePitchSection({ prefill }: { prefill: { name?: string; publication
                 style={{ fontSize: 11, color: P, background: "white", border: `1px solid ${P}44`, borderRadius: 5, padding: "3px 9px", textDecoration: "none", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
                 <ExternalLink size={11} /> Open in Gmail
               </a>
+              {xHandle && (
+                <button onClick={() => {
+                  const dmText = body.split("\n").filter(Boolean).slice(0, 3).join(" ").slice(0, 260) + "...";
+                  navigator.clipboard.writeText(dmText);
+                  setCopiedField("dm");
+                  setTimeout(() => setCopiedField(null), 2000);
+                  window.open(`https://x.com/${xHandle}`, "_blank");
+                }}
+                  style={{ fontSize: 11, color: "#000", background: "white", border: "1px solid #000", borderRadius: 5, padding: "3px 9px", cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+                  {copiedField === "dm" ? <Check size={11} color={GREEN} /> : <ExternalLink size={11} />}
+                  {copiedField === "dm" ? "Copied - DM sent?" : "DM on X"}
+                </button>
+              )}
               <button onClick={generate}
                 style={{ fontSize: 11, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 5, padding: "3px 9px", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                 <RefreshCw size={11} /> Regenerate
