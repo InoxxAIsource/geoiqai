@@ -1,0 +1,368 @@
+Fix AI PR contact details — currently users 
+get no contact info and have to manually 
+search. Integrate Hunter.io API to show 
+real email + confidence score automatically.
+
+SETUP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add to Replit Secrets:
+HUNTER_API_KEY = [get free key from hunter.io]
+
+Free plan: 50 credits/month
+Each email lookup = 1 credit
+Enough for testing and early users.
+
+No npm package needed — use fetch directly.
+
+HUNTER LOGO API — FREE NO KEY NEEDED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Replace Google favicon with Hunter logo API.
+Returns real high-quality outlet logos.
+
+URL format:
+https://logo.clearbit.com/${domain}
+
+Fallback if Clearbit fails:
+https://www.google.com/s2/favicons?domain=${domain}&sz=64
+
+Use in outlet table and journalist cards:
+<img 
+  src="https://logo.clearbit.com/${domain}"
+  onError={(e) => e.target.src = 
+    `https://www.google.com/s2/favicons?domain=${domain}&sz=64`}
+  style={{ width: 32, height: 32, borderRadius: 4 }}
+/>
+
+BACKEND: /api/ai-pr/get-contact
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+New endpoint called when user clicks 
+journalist card or opens profile modal.
+
+app.post('/api/ai-pr/get-contact', 
+async (req, res) => {
+  try {
+    const { firstName, lastName, domain } = req.body;
+    
+    // Check Supabase cache first
+    const { data: cached } = await supabase
+      .from('journalist_contacts')
+      .select('*')
+      .eq('name', `${firstName} ${lastName}`)
+      .eq('domain', domain)
+      .single();
+    
+    if (cached) {
+      return res.json({ 
+        success: true, 
+        contact: cached,
+        from_cache: true 
+      });
+    }
+    
+    const results = {};
+    
+    // Step 1: Hunter Email Finder
+    // Find email from name + domain
+    try {
+      const hunterUrl = new URL(
+        'https://api.hunter.io/v2/email-finder'
+      );
+      hunterUrl.searchParams.set('domain', domain);
+      hunterUrl.searchParams.set('first_name', firstName);
+      hunterUrl.searchParams.set('last_name', lastName);
+      hunterUrl.searchParams.set(
+        'api_key', 
+        process.env.HUNTER_API_KEY
+      );
+      
+      const hunterResp = await fetch(hunterUrl.toString());
+      const hunterData = await hunterResp.json();
+      
+      if (hunterData.data?.email) {
+        results.email = hunterData.data.email;
+        results.email_confidence = 
+          hunterData.data.score; // 0-100
+        results.email_type = 
+          hunterData.data.type; // personal or generic
+        results.email_verified = 
+          hunterData.data.verification?.status === 'valid';
+      }
+    } catch (e) {
+      console.log('Hunter email lookup failed:', e.message);
+    }
+    
+    // Step 2: Hunter Domain Search
+    // Get all emails at this outlet domain
+    // Use to find journalist even if name lookup fails
+    if (!results.email) {
+      try {
+        const domainUrl = new URL(
+          'https://api.hunter.io/v2/domain-search'
+        );
+        domainUrl.searchParams.set('domain', domain);
+        domainUrl.searchParams.set('limit', '10');
+        domainUrl.searchParams.set(
+          'api_key',
+          process.env.HUNTER_API_KEY
+        );
+        
+        const domainResp = await fetch(domainUrl.toString());
+        const domainData = await domainResp.json();
+        
+        // Find matching journalist in results
+        const match = domainData.data?.emails?.find(e => 
+          e.first_name?.toLowerCase() === 
+            firstName.toLowerCase() ||
+          e.last_name?.toLowerCase() === 
+            lastName.toLowerCase()
+        );
+        
+        if (match) {
+          results.email = match.value;
+          results.email_confidence = match.confidence;
+          results.email_type = match.type;
+        }
+        
+        // Also get domain pattern for manual outreach
+        results.email_pattern = 
+          domainData.data?.pattern;
+        // e.g. "{first}.{last}@searchengineland.com"
+        
+      } catch (e) {
+        console.log('Hunter domain search failed:', e.message);
+      }
+    }
+    
+    // Step 3: Find Twitter/LinkedIn via Exa
+    try {
+      const exaResp = await exa.search(
+        `${firstName} ${lastName} journalist 
+         ${domain} Twitter LinkedIn contact`,
+        {
+          type: 'auto',
+          numResults: 3,
+          category: 'people',
+          contents: {
+            highlights: {
+              numSentences: 2
+            }
+          }
+        }
+      );
+      
+      // Extract Twitter handle from results
+      const allText = exaResp.results
+        .map(r => [
+          r.url, 
+          r.title,
+          ...(r.highlights || [])
+        ].join(' '))
+        .join(' ');
+      
+      // Find Twitter handle
+      const twitterMatch = allText.match(
+        /twitter\.com\/([a-zA-Z0-9_]+)/
+      ) || allText.match(/@([a-zA-Z0-9_]+)/);
+      
+      if (twitterMatch) {
+        results.twitter = `@${twitterMatch[1]}`;
+        results.twitter_url = 
+          `https://twitter.com/${twitterMatch[1]}`;
+      }
+      
+      // Find LinkedIn URL
+      const linkedinResult = exaResp.results
+        .find(r => r.url?.includes('linkedin.com/in/'));
+      
+      if (linkedinResult) {
+        results.linkedin_url = linkedinResult.url;
+        // Extract handle from URL
+        const handle = linkedinResult.url
+          .split('linkedin.com/in/')[1]
+          ?.replace(/\/$/, '');
+        results.linkedin_handle = handle;
+      }
+      
+    } catch (e) {
+      console.log('Exa people search failed:', e.message);
+    }
+    
+    // Step 4: Build email from pattern if no email found
+    if (!results.email && results.email_pattern) {
+      const pattern = results.email_pattern;
+      const guessed = pattern
+        .replace('{first}', firstName.toLowerCase())
+        .replace('{last}', lastName.toLowerCase())
+        .replace('{f}', firstName[0].toLowerCase())
+        .replace('{l}', lastName[0].toLowerCase());
+      
+      results.email_guessed = guessed;
+      results.email_confidence = 40;
+      results.email_note = 
+        'Generated from outlet email pattern';
+    }
+    
+    // Cache result in Supabase
+    const contactData = {
+      name: `${firstName} ${lastName}`,
+      first_name: firstName,
+      last_name: lastName,
+      domain,
+      email: results.email || results.email_guessed,
+      email_confidence: results.email_confidence,
+      email_type: results.email_type,
+      email_verified: results.email_verified,
+      email_note: results.email_note,
+      twitter: results.twitter,
+      twitter_url: results.twitter_url,
+      linkedin_url: results.linkedin_url,
+      looked_up_at: new Date().toISOString()
+    };
+    
+    await supabase
+      .from('journalist_contacts')
+      .upsert(contactData);
+    
+    res.json({ 
+      success: true, 
+      contact: contactData,
+      from_cache: false
+    });
+    
+  } catch (error) {
+    console.error('Contact lookup error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+Supabase table:
+journalist_contacts (
+  id, name, first_name, last_name, domain,
+  email, email_confidence, email_type,
+  email_verified, email_note,
+  twitter, twitter_url, linkedin_url,
+  looked_up_at
+)
+
+FRONTEND — CONTACT INFO IN PROFILE MODAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When journalist modal opens:
+1. Show skeleton loading on contact section
+2. Call /api/ai-pr/get-contact
+3. Display results:
+
+CONTACT INFORMATION section:
+
+EMAIL (if found with confidence 70+):
+✉ danny.goodwin@searchengineland.com
+  [Verified ✓] [Copy] [Open in Gmail →]
+  Confidence: 87%
+
+EMAIL (if found with confidence 40-69):
+✉ danny.goodwin@searchengineland.com
+  [Unverified] [Copy]
+  Confidence: 54% — send with caution
+
+EMAIL (guessed from pattern):
+✉ d.goodwin@searchengineland.com
+  [Pattern match] [Copy]
+  Based on outlet email format
+
+EMAIL (not found):
+✉ Not found via Hunter.io
+  [Search manually →] 
+  links to hunter.io/find/${domain}
+
+TWITTER (if found):
+𝕏 @dannygoodwin
+  [Follow] [Send DM →]
+  Both are direct Twitter links
+
+TWITTER (if not found):
+𝕏 Not found automatically
+  [Search on X →]
+  links to twitter.com/search?q=Danny+Goodwin+SEO
+
+LINKEDIN (if found):
+in Danny Goodwin
+  [View Profile →]
+  Direct LinkedIn profile link
+
+LINKEDIN (if not found):
+in Not found automatically  
+  [Search on LinkedIn →]
+  links to linkedin.com/search with name prefilled
+
+EMAIL PATTERN note (always show):
+"Outlet email format: 
+{first}.{last}@searchengineland.com"
+Helps user guess other contacts at same outlet.
+
+WRITE PITCH button:
+When email is found, pre-fill Gmail:
+[Write Pitch →]
+Opens: 
+mailto:${email}?subject=&body=
+Pre-filled with journalist name and outlet.
+
+CONFIDENCE COLOR CODING:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+90-100%: green badge "Verified"
+70-89%:  blue badge "High confidence"  
+50-69%:  orange badge "Medium confidence"
+below 50: grey badge "Low confidence"
+
+IN THE JOURNALIST TABLE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add contact preview in table rows.
+After user clicks [Get Contact] button
+on any row, show inline under name:
+
+Danny Goodwin
+Search Engine Land
+✉ danny@sel.com [87%] 𝕏 @dannygoodwin
+
+So user sees contact without opening modal.
+
+RATE LIMIT PROTECTION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hunter free = 50 credits/month.
+Only call Hunter API when user 
+explicitly clicks [Get Contact] button.
+Never auto-call for all results.
+
+Show counter in UI:
+"Hunter lookups: 12/50 used this month"
+Pull from Supabase count of looked_up_at 
+records this month.
+
+When limit reached show:
+"Monthly lookup limit reached.
+Resets on [date].
+Upgrade Hunter plan for more lookups."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Search "AI SEO" in Contact Search.
+Click any journalist from 
+searchengineland.com or techcrunch.com.
+Click [Get Contact] button.
+
+Should show within 3 seconds:
+- Real email or pattern match
+- Confidence score with color badge
+- Twitter handle if found
+- LinkedIn URL if found
+- [Write Pitch] button pre-filled
+
+Share screenshot of contact modal 
+with real email showing.

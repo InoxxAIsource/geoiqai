@@ -17,3 +17,4 @@ export * from "./competitor_audits";
 export * from "./prompt_tracking";
 export * from "./content_analyses";
 export * from "./site_audit_history";
+export * from "./journalist_contacts";

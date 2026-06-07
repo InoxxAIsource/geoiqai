@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { ExternalLink, Search, Loader2, Copy, Check, RefreshCw, Plus, Trash2, ChevronRight, BarChart2, Mail, Eye, AlertCircle } from "lucide-react";
 import { getToken } from "@/lib/auth";
 
@@ -26,6 +26,19 @@ interface Journalist {
   whySelected: string | null;
   country: string | null;
   topics: string[];
+}
+
+interface ContactInfo {
+  email: string | null;
+  emailConfidence: number | null;
+  emailType: string | null;
+  emailVerified: boolean | null;
+  emailNote: string | null;
+  emailPattern: string | null;
+  twitter: string | null;
+  twitterUrl: string | null;
+  linkedinUrl: string | null;
+  fromCache?: boolean;
 }
 
 interface Outlet {
@@ -93,11 +106,12 @@ function lsSet(key: string, value: unknown) {
 
 // ─── API helper ───────────────────────────────────────────────────────────────
 
-async function apiFetch<T>(path: string, body: unknown): Promise<T> {
+async function apiFetch<T>(path: string, body: unknown, method: "POST" | "GET" = "POST"): Promise<T> {
+  const isGet = method === "GET";
   const res = await fetch(path, {
-    method: "POST",
+    method,
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-    body: JSON.stringify(body),
+    ...(isGet ? {} : { body: JSON.stringify(body) }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText })) as { error?: string };
@@ -263,15 +277,19 @@ function AiCitedMediaSection({ onFindContact }: { onFindContact: (outlet: string
 
 const KW_CHIPS = ["AI SEO", "GEO", "ChatGPT SEO", "AI search", "LLM", "Brand visibility"];
 
-function OutletFavicon({ domain }: { domain: string }) {
+function OutletLogo({ domain, size = 20 }: { domain: string; size?: number }) {
   return (
     <img
-      src={`https://www.google.com/s2/favicons?domain=${domain}&sz=16`}
+      src={`https://logo.clearbit.com/${domain}`}
       alt=""
-      width={16}
-      height={16}
-      style={{ borderRadius: 2, flexShrink: 0 }}
-      onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+      width={size}
+      height={size}
+      style={{ borderRadius: 4, flexShrink: 0, objectFit: "contain" }}
+      onError={e => {
+        const el = e.target as HTMLImageElement;
+        el.src = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+        el.onerror = () => { el.style.display = "none"; };
+      }}
     />
   );
 }
@@ -281,6 +299,49 @@ function TopicTag({ label }: { label: string }) {
     <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 10, background: "#EEF2FF", color: P, whiteSpace: "nowrap" }}>
       {label}
     </span>
+  );
+}
+
+function confidenceBadge(conf: number | null): { label: string; color: string; bg: string } {
+  if (conf === null || conf === undefined) return { label: "Unknown", color: MUTED, bg: "#F3F4F6" };
+  if (conf >= 90) return { label: "Verified", color: "#166534", bg: "#DCFCE7" };
+  if (conf >= 70) return { label: "High confidence", color: "#1D4ED8", bg: "#DBEAFE" };
+  if (conf >= 50) return { label: "Medium", color: "#92400E", bg: "#FEF3C7" };
+  return { label: "Low", color: MUTED, bg: "#F3F4F6" };
+}
+
+function InlineContact({ contact, email }: { contact: ContactInfo; email?: string }) {
+  const [copied, setCopied] = useState(false);
+  const copyEmail = (e: string) => { navigator.clipboard.writeText(e).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); }); };
+  const displayEmail = contact.email ?? email ?? null;
+  const conf = contact.emailConfidence;
+  const badge = confidenceBadge(conf);
+
+  return (
+    <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
+      {displayEmail ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 11, color: "#374151" }}>{displayEmail}</span>
+          <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 8, color: badge.color, background: badge.bg }}>
+            {badge.label}{conf ? ` ${conf}%` : ""}
+          </span>
+          <button onClick={() => copyEmail(displayEmail)}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: "1px 4px", borderRadius: 3, color: copied ? GREEN : MUTED, display: "flex", alignItems: "center" }}>
+            {copied ? <Check size={11} /> : <Copy size={11} />}
+          </button>
+          <a href={`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(displayEmail)}`} target="_blank" rel="noopener noreferrer"
+            style={{ fontSize: 10, color: P, textDecoration: "none", fontWeight: 600 }}>Gmail</a>
+        </div>
+      ) : (
+        <span style={{ fontSize: 11, color: MUTED }}>Email not found</span>
+      )}
+      {contact.twitter && (
+        <a href={contact.twitterUrl ?? `https://x.com/${contact.twitter.replace("@","")}`} target="_blank" rel="noopener noreferrer"
+          style={{ fontSize: 11, color: "#1D9BF0", textDecoration: "none", fontWeight: 600 }}>
+          {contact.twitter}
+        </a>
+      )}
+    </div>
   );
 }
 
@@ -294,9 +355,33 @@ function ContactSearchSection({ prefillOutlet, onAddToList }: { prefillOutlet?: 
   const [journalists, setJournalists] = useState<Journalist[]>([]);
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [contacts, setContacts] = useState<Map<string, ContactInfo>>(new Map());
+  const [contactLoading, setContactLoading] = useState<Set<string>>(new Set());
+  const [hunterUsage, setHunterUsage] = useState<{ used: number; limit: number; resetDate: string | null } | null>(null);
+
+  useEffect(() => {
+    apiFetch<{ used: number; limit: number; resetDate: string | null }>("/api/ai-pr/hunter-usage", null, "GET")
+      .then(d => setHunterUsage(d))
+      .catch(() => {});
+  }, []);
+
+  const getContact = useCallback(async (j: Journalist) => {
+    const key = `${j.name}:${j.domain}`;
+    if (contacts.has(key) || contactLoading.has(key)) return;
+    const parts = j.name.trim().split(/\s+/);
+    const firstName = parts[0] ?? j.name;
+    const lastName = parts.length > 1 ? parts.slice(1).join(" ") : firstName;
+    setContactLoading(s => { const n = new Set(s); n.add(key); return n; });
+    try {
+      const data = await apiFetch<{ contact: ContactInfo }>("/api/ai-pr/get-contact", { firstName, lastName, domain: j.domain });
+      setContacts(m => { const n = new Map(m); n.set(key, data.contact); return n; });
+      setHunterUsage(prev => prev ? { ...prev, used: prev.used + 1 } : prev);
+    } catch { /* skip */ }
+    finally { setContactLoading(s => { const n = new Set(s); n.delete(key); return n; }); }
+  }, [contacts, contactLoading]);
 
   const search = useCallback(async (mode: "ai" | "keyword" | "outlet", params: Record<string, string>) => {
-    setLoading(true); setError(null); setJournalists([]); setSelected(new Set());
+    setLoading(true); setError(null); setJournalists([]); setSelected(new Set()); setContacts(new Map());
     try {
       const data = await apiFetch<{ journalists: Journalist[] }>("/api/ai-pr/find-journalists", { mode, ...params });
       setJournalists(data.journalists);
@@ -380,11 +465,9 @@ function ContactSearchSection({ prefillOutlet, onAddToList }: { prefillOutlet?: 
       {journalists.length > 0 && (
         <div style={{ marginTop: 20 }}>
           {/* Toolbar */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>
-                All {journalists.length}
-              </div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>All {journalists.length}</div>
               {selected.size > 0 && (
                 <>
                   <span style={{ color: BORDER }}>|</span>
@@ -396,7 +479,14 @@ function ContactSearchSection({ prefillOutlet, onAddToList }: { prefillOutlet?: 
                 </>
               )}
             </div>
-            <div style={{ display: "flex", gap: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {hunterUsage && (
+                <span style={{ fontSize: 11, color: hunterUsage.used >= hunterUsage.limit ? RED : MUTED }}>
+                  {hunterUsage.used >= hunterUsage.limit
+                    ? "Hunter limit reached"
+                    : `Hunter lookups: ${hunterUsage.used}/${hunterUsage.limit}`}
+                </span>
+              )}
               {(["card", "table"] as const).map(v => (
                 <button key={v} onClick={() => setViewMode(v)}
                   style={{ fontSize: 12, padding: "4px 11px", border: `1px solid ${viewMode === v ? P : BORDER}`, borderRadius: 6, background: viewMode === v ? "#EEF2FF" : "white", color: viewMode === v ? P : MUTED, cursor: "pointer", fontWeight: viewMode === v ? 600 : 400, textTransform: "capitalize" }}>
@@ -409,45 +499,57 @@ function ContactSearchSection({ prefillOutlet, onAddToList }: { prefillOutlet?: 
           {/* Table view */}
           {viewMode === "table" && (
             <div style={{ border: `1px solid ${BORDER}`, borderRadius: 10, overflow: "hidden" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "28px 2fr 2fr 100px 1fr 50px 100px", gap: 10, padding: "9px 14px", background: BG, borderBottom: `1px solid ${BORDER}`, fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", alignItems: "center" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "28px 2fr 2fr 90px 1fr 40px 180px", gap: 10, padding: "9px 14px", background: BG, borderBottom: `1px solid ${BORDER}`, fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", alignItems: "center" }}>
                 <input type="checkbox" checked={selected.size === journalists.length && journalists.length > 0} onChange={toggleAll} style={{ accentColor: P }} />
                 <div>Name</div>
                 <div>Outlet</div>
                 <div>Country</div>
                 <div>Topics</div>
-                <div>Articles</div>
-                <div>Action</div>
+                <div>Art.</div>
+                <div>Actions</div>
               </div>
               {journalists.map(j => {
                 const key = `${j.name}:${j.domain}`;
+                const contact = contacts.get(key);
+                const isLoadingContact = contactLoading.has(key);
+                const limitReached = hunterUsage ? hunterUsage.used >= hunterUsage.limit : false;
                 return (
-                  <div key={key} style={{ display: "grid", gridTemplateColumns: "28px 2fr 2fr 100px 1fr 50px 100px", gap: 10, padding: "10px 14px", borderBottom: `1px solid ${BORDER}`, alignItems: "center", background: selected.has(key) ? "#F5F3FF" : "white" }}>
-                    <input type="checkbox" checked={selected.has(key)} onChange={() => toggleSelect(key)} style={{ accentColor: P }} />
+                  <div key={key} style={{ display: "grid", gridTemplateColumns: "28px 2fr 2fr 90px 1fr 40px 180px", gap: 10, padding: "10px 14px", borderBottom: `1px solid ${BORDER}`, alignItems: "start", background: selected.has(key) ? "#F5F3FF" : "white" }}>
+                    <input type="checkbox" checked={selected.has(key)} onChange={() => toggleSelect(key)} style={{ accentColor: P, marginTop: 3 }} />
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{j.name}</div>
-                      {j.whySelected && <div style={{ fontSize: 11, color: "#059669", marginTop: 2 }}>{j.whySelected}</div>}
+                      {j.whySelected && <div style={{ fontSize: 11, color: "#059669", marginTop: 2, lineHeight: 1.4 }}>{j.whySelected}</div>}
+                      {contact && <InlineContact contact={contact} />}
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <OutletFavicon domain={j.domain} />
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 6, paddingTop: 2 }}>
+                      <OutletLogo domain={j.domain} size={20} />
                       <div>
                         <div style={{ fontSize: 12, fontWeight: 500, color: "#374151" }}>{j.publication}</div>
                         {j.articles[0] && (
                           <a href={j.articles[0].url} target="_blank" rel="noopener noreferrer"
                             style={{ fontSize: 11, color: P, textDecoration: "none", display: "flex", alignItems: "center", gap: 3 }}>
-                            <ExternalLink size={10} /> {j.articles[0].title.slice(0, 40)}{j.articles[0].title.length > 40 ? "..." : ""}
+                            <ExternalLink size={10} /> {j.articles[0].title.slice(0, 38)}{j.articles[0].title.length > 38 ? "..." : ""}
                           </a>
                         )}
                       </div>
                     </div>
-                    <div style={{ fontSize: 12, color: MUTED }}>{j.country ?? "-"}</div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+                    <div style={{ fontSize: 12, color: MUTED, paddingTop: 2 }}>{j.country ?? "-"}</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 3, paddingTop: 2 }}>
                       {(j.topics ?? []).slice(0, 2).map(t => <TopicTag key={t} label={t} />)}
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: MUTED, textAlign: "center" }}>{j.article_count}</div>
-                    <button onClick={() => onAddToList(j)}
-                      style={{ fontSize: 11, color: P, background: "#EEF2FF", border: "none", borderRadius: 5, padding: "4px 9px", cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", gap: 3, whiteSpace: "nowrap" }}>
-                      <Plus size={11} /> Add to List
-                    </button>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: MUTED, textAlign: "center", paddingTop: 2 }}>{j.article_count}</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <button onClick={() => onAddToList(j)}
+                        style={{ fontSize: 11, color: P, background: "#EEF2FF", border: "none", borderRadius: 5, padding: "4px 9px", cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", gap: 3, whiteSpace: "nowrap" }}>
+                        <Plus size={11} /> Add to List
+                      </button>
+                      {!contact && (
+                        <button onClick={() => getContact(j)} disabled={isLoadingContact || limitReached}
+                          style={{ fontSize: 11, color: limitReached ? MUTED : GREEN, background: limitReached ? "#F3F4F6" : "#F0FDF4", border: "none", borderRadius: 5, padding: "4px 9px", cursor: isLoadingContact || limitReached ? "default" : "pointer", fontWeight: 600, display: "flex", alignItems: "center", gap: 3, whiteSpace: "nowrap", opacity: limitReached ? 0.6 : 1 }}>
+                          {isLoadingContact ? <><Loader2 size={10} style={{ animation: "spin 1s linear infinite" }} /> Finding...</> : <><Mail size={11} /> Get Contact</>}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -459,15 +561,18 @@ function ContactSearchSection({ prefillOutlet, onAddToList }: { prefillOutlet?: 
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {journalists.map(j => {
                 const key = `${j.name}:${j.domain}`;
+                const contact = contacts.get(key);
+                const isLoadingContact = contactLoading.has(key);
+                const limitReached = hunterUsage ? hunterUsage.used >= hunterUsage.limit : false;
                 return (
                   <div key={key} style={{ border: `1px solid ${selected.has(key) ? P : BORDER}`, borderRadius: 10, padding: "14px 16px", background: selected.has(key) ? "#F5F3FF" : "white" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: 10, flex: 1 }}>
                         <input type="checkbox" checked={selected.has(key)} onChange={() => toggleSelect(key)} style={{ accentColor: P, marginTop: 3 }} />
-                        <div>
+                        <div style={{ flex: 1 }}>
                           <div style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>{j.name}</div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
-                            <OutletFavicon domain={j.domain} />
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
+                            <OutletLogo domain={j.domain} size={16} />
                             <span style={{ fontSize: 12, color: MUTED }}>{j.publication}</span>
                             {j.country && <span style={{ fontSize: 11, color: MUTED }}>- {j.country}</span>}
                           </div>
@@ -476,12 +581,21 @@ function ContactSearchSection({ prefillOutlet, onAddToList }: { prefillOutlet?: 
                               {(j.topics ?? []).map(t => <TopicTag key={t} label={t} />)}
                             </div>
                           )}
+                          {contact && <InlineContact contact={contact} />}
                         </div>
                       </div>
-                      <button onClick={() => onAddToList(j)}
-                        style={{ fontSize: 12, color: P, background: "#EEF2FF", border: "none", borderRadius: 6, padding: "5px 12px", cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-                        <Plus size={12} /> Add to List
-                      </button>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0, marginLeft: 8 }}>
+                        <button onClick={() => onAddToList(j)}
+                          style={{ fontSize: 12, color: P, background: "#EEF2FF", border: "none", borderRadius: 6, padding: "5px 12px", cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
+                          <Plus size={12} /> Add to List
+                        </button>
+                        {!contact && (
+                          <button onClick={() => getContact(j)} disabled={isLoadingContact || limitReached}
+                            style={{ fontSize: 12, color: limitReached ? MUTED : GREEN, background: limitReached ? "#F3F4F6" : "#F0FDF4", border: "none", borderRadius: 6, padding: "5px 12px", cursor: isLoadingContact || limitReached ? "default" : "pointer", fontWeight: 600, display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap", opacity: limitReached ? 0.6 : 1 }}>
+                            {isLoadingContact ? <><Loader2 size={12} style={{ animation: "spin 1s linear infinite" }} /> Finding...</> : <><Mail size={12} /> Get Contact</>}
+                          </button>
+                        )}
+                      </div>
                     </div>
                     {j.whySelected && (
                       <div style={{ marginTop: 8, padding: "6px 10px", background: "#F0FDF4", border: `1px solid ${GREEN}33`, borderRadius: 6, fontSize: 12, color: "#166534" }}>

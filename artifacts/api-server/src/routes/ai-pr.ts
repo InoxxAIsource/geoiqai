@@ -2,6 +2,8 @@ import { Router } from "express";
 import { requireAuth, type AuthRequest } from "../lib/auth";
 import OpenAI from "openai";
 import Exa from "exa-js";
+import { db, journalistContactsTable } from "@workspace/db";
+import { eq, and, sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -381,6 +383,154 @@ Return JSON: { "subject": "under 60 chars", "body": "plain text email with newli
     req.log.error({ err }, "pitch error");
     res.status(500).json({ error: err instanceof Error ? err.message : "Generation failed" });
   }
+});
+
+// ─── GET /api/ai-pr/hunter-usage ──────────────────────────────────────────────
+
+router.get("/ai-pr/hunter-usage", requireAuth, async (req: AuthRequest, res): Promise<void> => {
+  try {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const result = await db.select({ count: sql<number>`count(*)::int` })
+      .from(journalistContactsTable)
+      .where(sql`looked_up_at >= ${startOfMonth.toISOString()} AND email IS NOT NULL`);
+    const used = result[0]?.count ?? 0;
+    const resetDate = new Date(startOfMonth.getFullYear(), startOfMonth.getMonth() + 1, 1);
+    res.json({ success: true, used, limit: 50, resetDate: resetDate.toISOString() });
+  } catch {
+    res.json({ success: true, used: 0, limit: 50, resetDate: null });
+  }
+});
+
+// ─── POST /api/ai-pr/get-contact ──────────────────────────────────────────────
+
+router.post("/ai-pr/get-contact", requireAuth, async (req: AuthRequest, res): Promise<void> => {
+  const { firstName, lastName, domain } = req.body as { firstName?: string; lastName?: string; domain?: string };
+  if (!firstName || !lastName || !domain) {
+    res.status(400).json({ error: "firstName, lastName, domain required" });
+    return;
+  }
+
+  const name = `${firstName} ${lastName}`;
+
+  // Check DB cache
+  try {
+    const cached = await db.select().from(journalistContactsTable)
+      .where(and(eq(journalistContactsTable.name, name), eq(journalistContactsTable.domain, domain)))
+      .limit(1);
+    if (cached[0]) {
+      res.json({ success: true, contact: cached[0], fromCache: true });
+      return;
+    }
+  } catch { /* proceed */ }
+
+  const results: {
+    email?: string; emailConfidence?: number; emailType?: string;
+    emailVerified?: boolean; emailNote?: string; emailPattern?: string;
+    twitter?: string; twitterUrl?: string; linkedinUrl?: string;
+  } = {};
+
+  const hunterKey = process.env.HUNTER_API_KEY;
+
+  if (hunterKey) {
+    // Step 1: Email finder
+    try {
+      const u = new URL("https://api.hunter.io/v2/email-finder");
+      u.searchParams.set("domain", domain);
+      u.searchParams.set("first_name", firstName);
+      u.searchParams.set("last_name", lastName);
+      u.searchParams.set("api_key", hunterKey);
+      const r = await fetch(u.toString());
+      const d = await r.json() as { data?: { email?: string; score?: number; type?: string; verification?: { status?: string } } };
+      if (d.data?.email) {
+        results.email = d.data.email;
+        results.emailConfidence = d.data.score;
+        results.emailType = d.data.type;
+        results.emailVerified = d.data.verification?.status === "valid";
+      }
+    } catch { /* skip */ }
+
+    // Step 2: Domain search fallback
+    if (!results.email) {
+      try {
+        const u = new URL("https://api.hunter.io/v2/domain-search");
+        u.searchParams.set("domain", domain);
+        u.searchParams.set("limit", "10");
+        u.searchParams.set("api_key", hunterKey);
+        const r = await fetch(u.toString());
+        const d = await r.json() as { data?: { emails?: { value?: string; confidence?: number; type?: string; first_name?: string; last_name?: string }[]; pattern?: string } };
+        const fn = firstName.toLowerCase();
+        const ln = lastName.toLowerCase();
+        const match = d.data?.emails?.find(e =>
+          e.first_name?.toLowerCase() === fn || e.last_name?.toLowerCase() === ln
+        );
+        if (match?.value) {
+          results.email = match.value;
+          results.emailConfidence = match.confidence;
+          results.emailType = match.type;
+        }
+        if (d.data?.pattern) results.emailPattern = `${d.data.pattern}@${domain}`;
+      } catch { /* skip */ }
+    }
+  }
+
+  // Step 3: Exa people search for Twitter/LinkedIn
+  const exa = getExa();
+  if (exa) {
+    try {
+      const exaResp = await exa.search(
+        `${name} journalist ${domain} Twitter LinkedIn contact`,
+        { type: "auto", numResults: 3, contents: { highlights: { numSentences: 1, highlightsPerUrl: 1 } } }
+      );
+      const allText = exaResp.results
+        .map(r => [r.url, r.title, ...((r.highlights as string[] | undefined) ?? [])].join(" "))
+        .join(" ");
+      const twitterMatch = allText.match(/(?:twitter|x)\.com\/([a-zA-Z0-9_]{2,30})(?:[^a-zA-Z0-9_]|$)/);
+      const TWITTER_RESERVED = new Set(["search", "intent", "share", "compose", "home", "explore", "notifications"]);
+      if (twitterMatch?.[1] && !TWITTER_RESERVED.has(twitterMatch[1])) {
+        results.twitter = `@${twitterMatch[1]}`;
+        results.twitterUrl = `https://x.com/${twitterMatch[1]}`;
+      }
+      const liResult = exaResp.results.find(r => r.url?.includes("linkedin.com/in/"));
+      if (liResult) results.linkedinUrl = liResult.url;
+    } catch { /* skip */ }
+  }
+
+  // Step 4: Pattern-based email guess if still no email
+  if (!results.email && results.emailPattern) {
+    const guessed = results.emailPattern
+      .replace("{first}", firstName.toLowerCase())
+      .replace("{last}", lastName.toLowerCase())
+      .replace("{f}", (firstName[0] ?? "x").toLowerCase())
+      .replace("{l}", (lastName[0] ?? "x").toLowerCase());
+    results.email = guessed;
+    results.emailConfidence = 40;
+    results.emailNote = "Generated from outlet email pattern";
+  }
+
+  const contactData = {
+    name, firstName, lastName, domain,
+    email: results.email ?? null,
+    emailConfidence: results.emailConfidence ?? null,
+    emailType: results.emailType ?? null,
+    emailVerified: results.emailVerified ?? null,
+    emailNote: results.emailNote ?? null,
+    emailPattern: results.emailPattern ?? null,
+    twitter: results.twitter ?? null,
+    twitterUrl: results.twitterUrl ?? null,
+    linkedinUrl: results.linkedinUrl ?? null,
+  };
+
+  try {
+    await db.insert(journalistContactsTable).values(contactData)
+      .onConflictDoUpdate({
+        target: [journalistContactsTable.name, journalistContactsTable.domain],
+        set: { ...contactData, lookedUpAt: sql`now()` },
+      });
+  } catch { /* skip cache write */ }
+
+  res.json({ success: true, contact: contactData, fromCache: false });
 });
 
 export default router;
