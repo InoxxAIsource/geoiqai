@@ -59,7 +59,7 @@ async function aiJson<T>(prompt: string, fallback: T): Promise<T> {
 
 // ─── POST /api/ai-pr/cited-media ──────────────────────────────────────────────
 
-router.post("/api/ai-pr/cited-media", requireAuth, async (req: AuthRequest, res): Promise<void> => {
+router.post("/ai-pr/cited-media", requireAuth, async (req: AuthRequest, res): Promise<void> => {
   const exa = getExa();
   if (!exa) { res.status(503).json({ error: "EXA_API_KEY not configured." }); return; }
 
@@ -121,7 +121,7 @@ Return JSON: { "score": 0-100, "reason": "brief one-sentence reason" }`,
 
 // ─── POST /api/ai-pr/find-journalists ─────────────────────────────────────────
 
-router.post("/api/ai-pr/find-journalists", requireAuth, async (req: AuthRequest, res): Promise<void> => {
+router.post("/ai-pr/find-journalists", requireAuth, async (req: AuthRequest, res): Promise<void> => {
   const exa = getExa();
   if (!exa) { res.status(503).json({ error: "EXA_API_KEY not configured." }); return; }
 
@@ -224,7 +224,7 @@ Return JSON: { "reason": "one sentence" }`,
 
 // ─── POST /api/ai-pr/monitor ──────────────────────────────────────────────────
 
-router.post("/api/ai-pr/monitor", requireAuth, async (req: AuthRequest, res): Promise<void> => {
+router.post("/ai-pr/monitor", requireAuth, async (req: AuthRequest, res): Promise<void> => {
   const exa = getExa();
   if (!exa) { res.status(503).json({ error: "EXA_API_KEY not configured." }); return; }
 
@@ -273,7 +273,7 @@ router.post("/api/ai-pr/monitor", requireAuth, async (req: AuthRequest, res): Pr
 
 // ─── POST /api/ai-pr/generate-pitch ───────────────────────────────────────────
 
-router.post("/api/ai-pr/generate-pitch", requireAuth, async (req: AuthRequest, res): Promise<void> => {
+router.post("/ai-pr/generate-pitch", requireAuth, async (req: AuthRequest, res): Promise<void> => {
   const exa = getExa();
 
   const { journalistName, publication, pressReleaseUrl, keyMessage, pitchAngle, mode } = req.body as {
