@@ -6,6 +6,22 @@ const P = "#4F46E5";
 const BORDER = "#E5E7EB";
 const MUTED = "#6B7280";
 
+function getAiLogo(key: string): string | null {
+  const s = key.toLowerCase();
+  if (s.includes("chat_gpt") || s.includes("chatgpt") || s.includes("openai")) return "/logos/chatgpt.svg";
+  if (s.includes("perplexity")) return "/logos/perplexity.svg";
+  if (s.includes("claude") || s.includes("anthropic")) return "/logos/claude.png";
+  if (s.includes("gemini") || s.includes("google") || s.includes("ai_overview")) return "/logos/gemini.svg";
+  return null;
+}
+
+function AiLogo({ k, size = 16, fallbackColor }: { k: string; size?: number; fallbackColor?: string }) {
+  const src = getAiLogo(k);
+  if (src) return <img src={src} alt={k} style={{ width: size, height: size, objectFit: "contain", flexShrink: 0, borderRadius: 3 }} />;
+  if (fallbackColor) return <span style={{ width: size, height: size, borderRadius: 3, background: fallbackColor, flexShrink: 0, display: "inline-block" }} />;
+  return null;
+}
+
 /* ---- API response types ---- */
 interface PlatformRow { key: string; displayName: string; color: string; mentions: number; ai_search_volume: number; pct: number }
 interface CountryRow { code: number; name: string; mentions: number; pct: number }
@@ -375,7 +391,7 @@ export function VisibilityOverview({
                   <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
                     {d.platforms.map(p => (
                       <div key={p.key} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", background: "#F9FAFB", borderRadius: 8, border: `1px solid ${BORDER}` }}>
-                        <span style={{ width: 8, height: 8, borderRadius: 2, background: p.color, flexShrink: 0, display: "inline-block" }} />
+                        <AiLogo k={p.key} size={14} fallbackColor={p.color} />
                         <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{p.displayName}</span>
                         <span style={{ fontSize: 12, color: MUTED }}>{fmt(p.mentions)}</span>
                       </div>
@@ -405,8 +421,8 @@ export function VisibilityOverview({
                 ) : (
                   d.platforms.map(p => (
                     <div key={p.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: `1px solid ${BORDER}` }}>
-                      <div style={{ width: 160, display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ width: 10, height: 10, borderRadius: 2, background: p.color, flexShrink: 0, display: "inline-block" }} />
+                      <div style={{ width: 170, display: "flex", alignItems: "center", gap: 8 }}>
+                        <AiLogo k={p.key} size={16} fallbackColor={p.color} />
                         <span style={{ fontSize: 13, fontWeight: 500, color: "#374151", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.displayName}</span>
                       </div>
                       <div style={{ flex: 1, height: 8, background: "#F3F4F6", borderRadius: 4, overflow: "hidden" }}>

@@ -11,6 +11,15 @@ const MUTED = "#6B7280";
 const BORDER = "#E5E7EB";
 const BG = "#F9FAFB";
 
+function getAiLogo(id: string): string | null {
+  const s = id.toLowerCase();
+  if (s.includes("gptbot") || s.includes("chatgpt") || s.includes("openai") || s.includes("gpt")) return "/logos/chatgpt.svg";
+  if (s.includes("perplexity")) return "/logos/perplexity.svg";
+  if (s.includes("claude") || s.includes("anthropic")) return "/logos/claude.png";
+  if (s.includes("gemini") || s.includes("google")) return "/logos/gemini.svg";
+  return null;
+}
+
 interface PageRow {
   url: string;
   status: number;
@@ -529,18 +538,26 @@ export function SiteAuditSection({ domain }: { domain: string }) {
             <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "16px 20px" }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: MUTED, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5 }}>AI Bot Access</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {audit.botAccess.map(bot => (
-                  <div key={bot.bot} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    {bot.allowed
-                      ? <CheckCircle size={13} color={GREEN} style={{ flexShrink: 0 }} />
-                      : <XCircle size={13} color={RED} style={{ flexShrink: 0 }} />
-                    }
-                    <span style={{ fontSize: 12, color: "#111827", fontWeight: 500, flex: 1 }}>{bot.name}</span>
-                    <span style={{ fontSize: 11, color: bot.allowed ? GREEN : RED, fontWeight: 600 }}>
-                      {bot.allowed ? "Allowed" : "Blocked"}
-                    </span>
-                  </div>
-                ))}
+                {audit.botAccess.map(bot => {
+                  const logo = getAiLogo(bot.bot + " " + bot.name);
+                  return (
+                    <div key={bot.bot} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {logo
+                        ? <img src={logo} alt={bot.name} style={{ width: 16, height: 16, objectFit: "contain", flexShrink: 0 }} />
+                        : (bot.allowed
+                            ? <CheckCircle size={13} color={GREEN} style={{ flexShrink: 0 }} />
+                            : <XCircle size={13} color={RED} style={{ flexShrink: 0 }} />)
+                      }
+                      <span style={{ fontSize: 12, color: "#111827", fontWeight: 500, flex: 1 }}>{bot.name}</span>
+                      <span style={{ fontSize: 11, color: bot.allowed ? GREEN : RED, fontWeight: 600, display: "flex", alignItems: "center", gap: 3 }}>
+                        {bot.allowed
+                          ? <><CheckCircle size={10} color={GREEN} /> Allowed</>
+                          : <><XCircle size={10} color={RED} /> Blocked</>
+                        }
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
               {!audit.hasRobotsTxt && (
                 <div style={{ marginTop: 10, fontSize: 11, color: AMBER, display: "flex", gap: 4, alignItems: "center" }}>
