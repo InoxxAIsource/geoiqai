@@ -267,7 +267,7 @@ function PriorityActionCards({ fixActions, brand }: { fixActions: FixAction[]; b
   };
   return (
     <VisualCard>
-      <VisualTitle>Priority Actions for {brand.brandName ?? brand.domain}</VisualTitle>
+      <VisualTitle>Priority Actions for {brand.brandName || brand.domain || "your brand"}</VisualTitle>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {shown.map(a => {
           const cfg = prioConfig[a.priority] ?? prioConfig.medium;

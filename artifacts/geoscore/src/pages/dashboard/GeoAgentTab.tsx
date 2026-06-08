@@ -603,6 +603,9 @@ export function GeoAgentTab({
                           get_competitor_data: "Competitor scores",
                           generate_geo_file: "Generated file",
                           check_technical_audit: "Technical audit",
+                          get_next_sprint_step: "Next sprint step",
+                          get_sprint_status: "Sprint progress",
+                          complete_sprint_step: "Step completed",
                         };
                         const label = labels[t.name] ?? t.name;
                         const domain = t.domain || (t.input?.domain as string) || "";
