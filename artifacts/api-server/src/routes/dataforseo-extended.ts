@@ -851,7 +851,7 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
   const bareD = domain.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? domain;
   const rescanHours = planLimits.rescan_hours < 999 ? planLimits.rescan_hours : 72;
   const cacheTtlMs = rescanHours * 60 * 60 * 1000;
-  const topCacheKey = `vis_ov_v1:${bareD}`;
+  const topCacheKey = `vis_ov_v2:${bareD}`;
 
   // Top-level cache: serves the full assembled response without re-running all sub-requests
   if (force !== "true") {
@@ -887,22 +887,46 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
   req.log.info({ domain: bareD, brandName, candidates }, "visibility-overview: starting");
 
   try {
-    // DataForSEO LLM Mentions API calls removed to eliminate ~$1.60/call cost.
-    // Mention/citation/topic metrics are zeroed pending an alternative data source.
-    const bestKeyword = candidates[0]!;
-    const mentions = 0;
+    // DataForSEO LLM API calls removed. Pull data from the most recent GeoIQ audit instead.
+    const recentAudits = await db
+      .select()
+      .from(auditsTable)
+      .where(eq(auditsTable.domain, bareD))
+      .orderBy(desc(auditsTable.createdAt))
+      .limit(1);
+    const audit = recentAudits[0] ?? null;
+
+    const bestKeyword = audit?.brandName ?? candidates[0]!;
+    const score = audit?.scoreTotal ?? 0;
+    const hasData = audit != null && (audit.chatgptFound || audit.geminiFound || audit.perplexityFound);
+
+    // Build per-platform rows from the audit scores
+    const platformDefs = [
+      { key: "chat_gpt", displayName: "ChatGPT", color: "#10A37F", found: audit?.chatgptFound ?? false, score: audit?.scoreChatgpt ?? 0 },
+      { key: "gemini", displayName: "Gemini", color: "#4285F4", found: audit?.geminiFound ?? false, score: audit?.scoreGemini ?? 0 },
+      { key: "perplexity", displayName: "Perplexity", color: "#20B2AA", found: audit?.perplexityFound ?? false, score: audit?.scorePerplexity ?? 0 },
+    ];
+    const activePlatforms = platformDefs.filter(p => p.found);
+    const totalPlatformScore = activePlatforms.reduce((s, p) => s + p.score, 0);
+    const platformData = activePlatforms.map(p => ({
+      key: p.key,
+      displayName: p.displayName,
+      color: p.color,
+      mentions: p.score,
+      ai_search_volume: p.score,
+      pct: totalPlatformScore > 0 ? Math.round((p.score / totalPlatformScore) * 100) : 0,
+    }));
+
+    const mentions = activePlatforms.length;
     const aiSearchVolume = 0;
     const citations = 0;
     const citedPagesCount = 0;
-    const score = 0;
-    const hasData = false;
     const mergedPages: { url: string; mentions: number; ai_search_volume: number }[] = [];
     const performingData = { items: [] as Array<{ question: string; platform: string; model_name: string; ai_search_volume: number; location_code: number }>, totalCount: 0, cached: false };
     const opportunitiesData = { items: [] as Array<{ question: string; platform: string; model_name: string; ai_search_volume: number; location_code: number }>, totalCount: 0, cached: false };
-    const platformData: { key: string; displayName: string; color: string; mentions: number; ai_search_volume: number; pct: number }[] = [];
     const countries: { code: number; name: string; mentions: number; pct: number }[] = [];
     const citedSources: { domain: string; mentions: number; ai_search_volume: number }[] = [];
-    req.log.info({ domain: bareD, bestKeyword, score }, "visibility-overview: done (LLM API calls disabled)");
+    req.log.info({ domain: bareD, bestKeyword, score, hasData, platforms: activePlatforms.length, auditId: audit?.id ?? null }, "visibility-overview: done (from GeoIQ audit)");
 
     const now = new Date();
     const expiresAt = new Date(now.getTime() + cacheTtlMs);
