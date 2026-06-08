@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { CheckCircle, Circle, ExternalLink, Copy, Check, RefreshCw, Bot, ArrowRight, Rocket } from "lucide-react";
+import { CheckCircle, Circle, ExternalLink, Copy, Check, RefreshCw, Bot, ArrowRight, Rocket, ChevronDown, ChevronRight as ChevronRightIcon } from "lucide-react";
 import { getToken } from "@/lib/auth";
 
 const P = "#4F46E5";
@@ -54,7 +54,9 @@ interface SprintData {
 
 interface GenerateModal {
   step: SprintStep;
-  content: string;
+  code: string;
+  questions: Array<{ name: string; answer: string }>;
+  fields: Array<{ label: string; value: string }>;
   loading: boolean;
 }
 
@@ -111,6 +113,7 @@ export function GeoSprint({ domain, onNavigate, onOpenCopilot }: GeoSprintProps)
   const [completingId, setCompletingId] = useState<string | null>(null);
   const [generateModal, setGenerateModal] = useState<GenerateModal | null>(null);
   const [copiedModal, setCopiedModal] = useState(false);
+  const [codeExpanded, setCodeExpanded] = useState(false);
   const [rescanning, setRescanning] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -176,7 +179,8 @@ export function GeoSprint({ domain, onNavigate, onOpenCopilot }: GeoSprintProps)
 
   async function handleGenerate(step: SprintStep) {
     if (!step.action_endpoint) return;
-    setGenerateModal({ step, content: "", loading: true });
+    setCodeExpanded(false);
+    setGenerateModal({ step, code: "", questions: [], fields: [], loading: true });
     try {
       const res = await fetch(step.action_endpoint, {
         method: "POST",
@@ -187,19 +191,80 @@ export function GeoSprint({ domain, onNavigate, onOpenCopilot }: GeoSprintProps)
         body: JSON.stringify({ domain }),
       });
       const json = await res.json() as Record<string, unknown>;
-      const content = (json.content ?? json.result ?? JSON.stringify(json, null, 2)) as string;
-      setGenerateModal({ step, content, loading: false });
+      const code = ((json.code ?? json.content) as string | undefined) ?? "";
+      const questions = (json.questions ?? []) as Array<{ name: string; answer: string }>;
+      const fields = (json.fields ?? []) as Array<{ label: string; value: string }>;
+      setGenerateModal({ step, code, questions, fields, loading: false });
     } catch {
-      setGenerateModal({ step, content: "Failed to generate content. Try again.", loading: false });
+      setGenerateModal({ step, code: "Failed to generate content. Try again.", questions: [], fields: [], loading: false });
     }
   }
 
   function handleCopyModal() {
-    if (!generateModal?.content) return;
-    navigator.clipboard.writeText(generateModal.content).then(() => {
+    if (!generateModal?.code) return;
+    navigator.clipboard.writeText(generateModal.code).then(() => {
       setCopiedModal(true);
       setTimeout(() => setCopiedModal(false), 2000);
     });
+  }
+
+  function handleSprintAction(step: SprintStep) {
+    if (step.action_type === "generate") { handleGenerate(step); return; }
+    if (step.action_type === "link" && step.action_url) {
+      window.open(step.action_url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    // Internal steps: store intent in sessionStorage then navigate
+    type PrefillData = Record<string, string | undefined>;
+    let prefill: PrefillData | null = null;
+    let navTarget = "content-creation";
+
+    switch (step.id) {
+      case "definition_page":
+        prefill = { tab: "writer", topic: "Brand definition page", contentType: "Landing page", step_id: step.id, step_title: step.title };
+        break;
+      case "statistics_page":
+        prefill = { tab: "optimizer", url: `https://${domain}`, step_id: step.id, step_title: step.title };
+        break;
+      case "faq_content":
+        prefill = { tab: "writer", topic: "FAQ page - common questions about this product", contentType: "FAQ page", step_id: step.id, step_title: step.title };
+        break;
+      case "comparison_content":
+        prefill = { tab: "writer", topic: `${domain} vs competitors comparison`, contentType: "Comparison page (X vs Y)", step_id: step.id, step_title: step.title };
+        break;
+      case "reddit":
+        prefill = { tab: "repurposer", platform: "reddit", url: `https://${domain}`, step_id: step.id, step_title: step.title };
+        break;
+      case "linkedin_content":
+        prefill = { tab: "repurposer", platform: "linkedin", url: `https://${domain}`, step_id: step.id, step_title: step.title };
+        break;
+      case "product_hunt":
+        prefill = { tab: "repurposer", platform: "producthunt", url: `https://${domain}`, step_id: step.id, step_title: step.title };
+        break;
+      case "hacker_news":
+        prefill = { tab: "repurposer", platform: "hackernews", url: `https://${domain}`, step_id: step.id, step_title: step.title };
+        break;
+      case "x_thread":
+        prefill = { tab: "repurposer", platform: "twitter", url: `https://${domain}`, step_id: step.id, step_title: step.title };
+        break;
+      case "journalist_find":
+        prefill = { section: "journalist-search", step_id: step.id, step_title: step.title };
+        navTarget = "ai-pr";
+        break;
+      case "journalist_pitch":
+        prefill = { section: "pitch-studio", step_id: step.id, step_title: step.title };
+        navTarget = "ai-pr";
+        break;
+      case "monitor_mentions":
+        prefill = { section: "mention-radar", step_id: step.id, step_title: step.title };
+        navTarget = "ai-pr";
+        break;
+      default:
+        if (step.action_route) navTarget = step.action_route.replace("/dashboard/", "");
+    }
+
+    if (prefill) sessionStorage.setItem("sprint_prefill", JSON.stringify(prefill));
+    onNavigate(navTarget);
   }
 
   async function handleRescan() {
@@ -392,16 +457,7 @@ export function GeoSprint({ domain, onNavigate, onOpenCopilot }: GeoSprintProps)
                   isLast={idx === phaseSteps.length - 1}
                   completing={completingId === step.id}
                   onCheck={() => setConfirmDialog({ step })}
-                  onAction={() => {
-                    if (step.action_type === "generate") {
-                      handleGenerate(step);
-                    } else if (step.action_type === "internal" && step.action_route) {
-                      const navId = step.action_route.replace("/dashboard/", "");
-                      onNavigate(navId);
-                    } else if (step.action_type === "link" && step.action_url) {
-                      window.open(step.action_url, "_blank", "noopener,noreferrer");
-                    }
-                  }}
+                  onAction={() => handleSprintAction(step)}
                 />
               ))}
             </div>
@@ -442,61 +498,158 @@ export function GeoSprint({ domain, onNavigate, onOpenCopilot }: GeoSprintProps)
 
       {/* Generate modal */}
       {generateModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999, padding: 20 }}>
-          <div style={{ background: "white", borderRadius: 12, padding: 28, maxWidth: 640, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", maxHeight: "80vh", display: "flex", flexDirection: "column" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999, padding: 20 }}>
+          <div style={{ background: "white", borderRadius: 12, padding: 28, maxWidth: 640, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", maxHeight: "88vh", display: "flex", flexDirection: "column" }}>
+
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: "#111827" }}>{generateModal.step.title}</div>
                 <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{generateModal.step.why}</div>
               </div>
-              <button onClick={() => setGenerateModal(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 22, color: MUTED, lineHeight: 1, padding: "0 4px" }}>
+              <button onClick={() => setGenerateModal(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: MUTED, lineHeight: 1, padding: "0 4px", flexShrink: 0 }}>
                 x
               </button>
             </div>
 
             {generateModal.loading ? (
-              <div style={{ textAlign: "center", padding: "40px 20px", flex: 1 }}>
+              <div style={{ textAlign: "center", padding: "48px 20px", flex: 1 }}>
                 <div style={{ width: 28, height: 28, border: `3px solid ${BORDER}`, borderTopColor: P, borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
-                <div style={{ fontSize: 13, color: MUTED }}>Generating...</div>
+                <div style={{ fontSize: 13, color: MUTED }}>Generating for {domain}...</div>
               </div>
             ) : (
-              <>
-                <div style={{ flex: 1, overflowY: "auto", background: BG, borderRadius: 8, padding: 16, fontFamily: "monospace", fontSize: 12, lineHeight: 1.7, color: "#1F2937", whiteSpace: "pre-wrap", wordBreak: "break-word", minHeight: 200, marginBottom: 16 }}>
-                  {generateModal.content}
+              <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 16 }}>
+
+                {/* SECTION 1: Human-readable preview */}
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: MUTED, marginBottom: 10 }}>Preview</div>
+
+                  {/* FAQ Q&A */}
+                  {generateModal.step.id === "faq_schema" && generateModal.questions.length > 0 && (
+                    <div style={{ maxHeight: 260, overflowY: "auto" }}>
+                      {generateModal.questions.map((q, i) => (
+                        <div key={i} style={{ marginBottom: 14, paddingBottom: 14, borderBottom: i < generateModal.questions.length - 1 ? `1px solid ${BORDER}` : "none" }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "#111827", marginBottom: 4 }}>Q: {q.name}</div>
+                          <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.55 }}>A: {q.answer.length > 220 ? q.answer.slice(0, 220) + "..." : q.answer}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Org schema key-value */}
+                  {generateModal.step.id === "org_schema" && generateModal.fields.length > 0 && (
+                    <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, overflow: "hidden" }}>
+                      {generateModal.fields.map((f, i) => (
+                        <div key={f.label} style={{ display: "flex", gap: 12, padding: "9px 14px", borderBottom: i < generateModal.fields.length - 1 ? `1px solid ${BORDER}` : "none", fontSize: 13 }}>
+                          <span style={{ color: MUTED, width: 110, flexShrink: 0 }}>{f.label}</span>
+                          <span style={{ color: "#111827" }}>{f.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Plain text (llms.txt or robots.txt) */}
+                  {(generateModal.step.id === "llmstxt" || generateModal.step.id === "robots_txt") && (
+                    <pre style={{ fontSize: 12, background: BG, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 14, whiteSpace: "pre-wrap", wordBreak: "break-word", color: "#374151", margin: 0, maxHeight: 240, overflowY: "auto", lineHeight: 1.65, fontFamily: "monospace" }}>
+                      {generateModal.code}
+                    </pre>
+                  )}
+
+                  {/* Fallback for unknown step */}
+                  {generateModal.step.id !== "faq_schema" && generateModal.step.id !== "org_schema" && generateModal.step.id !== "llmstxt" && generateModal.step.id !== "robots_txt" && (
+                    <pre style={{ fontSize: 12, background: BG, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 14, whiteSpace: "pre-wrap", wordBreak: "break-word", color: "#374151", margin: 0, maxHeight: 200, overflowY: "auto", lineHeight: 1.65 }}>
+                      {generateModal.code}
+                    </pre>
+                  )}
                 </div>
-                {generateModal.step.verify_url && (
-                  <div style={{ fontSize: 12, color: MUTED, marginBottom: 12 }}>
-                    After adding this to your site, verify at:{" "}
-                    <a
-                      href={generateModal.step.verify_url.replace("{domain}", domain)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ color: P, textDecoration: "none" }}
+
+                {/* SECTION 2: Collapsible code (for schema steps only) */}
+                {(generateModal.step.id === "faq_schema" || generateModal.step.id === "org_schema") && (
+                  <div>
+                    <button
+                      onClick={() => setCodeExpanded(v => !v)}
+                      style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 12, fontWeight: 600, color: MUTED }}
                     >
-                      {generateModal.step.verify_url.replace("{domain}", domain)}
-                    </a>
+                      {codeExpanded ? <ChevronDown size={13} /> : <ChevronRightIcon size={13} />}
+                      {codeExpanded ? "Hide code" : "Show code"}
+                    </button>
+                    {codeExpanded && (
+                      <pre style={{ fontSize: 11, background: "#F8FAFC", border: `1px solid ${BORDER}`, borderRadius: 8, padding: 14, whiteSpace: "pre-wrap", wordBreak: "break-word", color: "#374151", marginTop: 10, maxHeight: 200, overflowY: "auto", lineHeight: 1.5, fontFamily: "monospace" }}>
+                        {generateModal.code}
+                      </pre>
+                    )}
                   </div>
                 )}
-                <div style={{ display: "flex", gap: 10 }}>
-                  <button
-                    onClick={handleCopyModal}
-                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", background: "white", border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 13, fontWeight: 500, color: "#374151", cursor: "pointer" }}
-                  >
-                    {copiedModal ? <Check size={14} color="#059669" /> : <Copy size={14} />}
-                    {copiedModal ? "Copied!" : "Copy"}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setGenerateModal(null);
-                      setConfirmDialog({ step: generateModal.step });
-                    }}
-                    style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 16px", background: "#059669", color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}
-                  >
-                    <Check size={14} />
-                    Mark as done
-                  </button>
+
+                {/* SECTION 3: How to implement */}
+                <div style={{ background: BG, borderRadius: 8, padding: "14px 16px" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#111827", marginBottom: 10 }}>How to add this</div>
+
+                  {(generateModal.step.id === "faq_schema" || generateModal.step.id === "org_schema") && (
+                    <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: "#374151", lineHeight: 2.1 }}>
+                      <li>Click "Copy code" below</li>
+                      <li>Open your website editor. In Replit: <code style={{ background: "#E5E7EB", padding: "1px 5px", borderRadius: 3 }}>index.html</code> or <code style={{ background: "#E5E7EB", padding: "1px 5px", borderRadius: 3 }}>_document.tsx</code>. In Webflow: Settings - Custom Code - Head. In WordPress: Plugins - Insert Headers</li>
+                      <li>Paste before the <code style={{ background: "#E5E7EB", padding: "1px 5px", borderRadius: 3 }}>&lt;/head&gt;</code> tag</li>
+                      <li>Save and verify it works using the Verify button</li>
+                    </ol>
+                  )}
+
+                  {generateModal.step.id === "llmstxt" && (
+                    <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: "#374151", lineHeight: 2.1 }}>
+                      <li>Click "Copy content" below</li>
+                      <li>Create a new file named <code style={{ background: "#E5E7EB", padding: "1px 5px", borderRadius: 3 }}>llms.txt</code></li>
+                      <li>In Replit: add it to the <code style={{ background: "#E5E7EB", padding: "1px 5px", borderRadius: 3 }}>/public</code> folder. It will be live at <code style={{ background: "#E5E7EB", padding: "1px 5px", borderRadius: 3 }}>{domain}/llms.txt</code></li>
+                      <li>Click "Check it's live" to confirm</li>
+                    </ol>
+                  )}
+
+                  {generateModal.step.id === "robots_txt" && (
+                    <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: "#374151", lineHeight: 2.1 }}>
+                      <li>Click "Copy content" below</li>
+                      <li>Find or create <code style={{ background: "#E5E7EB", padding: "1px 5px", borderRadius: 3 }}>robots.txt</code> in your site's root directory</li>
+                      <li>In Replit: add it to the <code style={{ background: "#E5E7EB", padding: "1px 5px", borderRadius: 3 }}>/public</code> folder. In other hosts: upload to domain root</li>
+                      <li>Click "Check it's live" to confirm it's accessible</li>
+                    </ol>
+                  )}
                 </div>
-              </>
+              </div>
+            )}
+
+            {/* Footer buttons */}
+            {!generateModal.loading && (
+              <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
+                <button
+                  onClick={handleCopyModal}
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", background: "white", border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 13, fontWeight: 500, color: "#374151", cursor: "pointer" }}
+                >
+                  {copiedModal ? <Check size={14} color="#059669" /> : <Copy size={14} />}
+                  {copiedModal ? "Copied!" : (generateModal.step.id === "faq_schema" || generateModal.step.id === "org_schema") ? "Copy code" : "Copy content"}
+                </button>
+
+                {generateModal.step.verify_url && (
+                  <a
+                    href={generateModal.step.verify_url.replace("{domain}", domain)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", background: "white", border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 13, fontWeight: 500, color: "#374151", cursor: "pointer", textDecoration: "none" }}
+                  >
+                    <ExternalLink size={13} />
+                    {generateModal.step.id === "llmstxt" || generateModal.step.id === "robots_txt" ? "Check it's live" : "Verify"}
+                  </a>
+                )}
+
+                <button
+                  onClick={() => {
+                    const step = generateModal.step;
+                    setGenerateModal(null);
+                    setConfirmDialog({ step });
+                  }}
+                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 16px", background: "#059669", color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", minWidth: 130 }}
+                >
+                  <Check size={14} />
+                  Mark as done
+                </button>
+              </div>
             )}
           </div>
         </div>

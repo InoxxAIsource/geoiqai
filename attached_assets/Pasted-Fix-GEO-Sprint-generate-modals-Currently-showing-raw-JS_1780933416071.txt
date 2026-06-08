@@ -1,0 +1,309 @@
+Fix GEO Sprint generate modals.
+Currently showing raw JSON dump.
+Must show formatted human-readable content
+with clear instructions.
+
+Fix ALL generate modals:
+- Generate FAQ (faq_schema)
+- Generate org schema (org_schema)
+- Generate llms.txt (llmstxt)
+- Generate robots.txt (robots_txt)
+
+MODAL REDESIGN — SAME FOR ALL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Modal has 3 sections:
+
+SECTION 1: PREVIEW (human readable)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For FAQ Schema — show as readable Q&A:
+
+PREVIEW:
+━━━━━━━━━━━━━━
+Q: What is CleverTap?
+A: CleverTap is a mobile marketing platform 
+   designed to help businesses enhance 
+   customer lifetime value...
+
+Q: How can I schedule a demo with CleverTap?
+A: You can schedule a personalized demo by 
+   filling out the form on their website...
+
+Q: What capabilities does CleverTap offer?
+A: CleverTap offers customer data analytics,
+   campaign orchestration, personalization...
+
+For Org Schema — show as key-value:
+
+PREVIEW:
+━━━━━━━━━━━━━━
+Name: CleverTap
+URL: clevertap.com
+Type: Organization
+Description: Mobile marketing platform...
+Social: Twitter, LinkedIn, Crunchbase
+
+For llms.txt — show as plain text:
+
+PREVIEW:
+━━━━━━━━━━━━━━
+# CleverTap - Mobile Marketing Platform
+> CleverTap helps businesses enhance 
+  customer lifetime value...
+
+## Products
+- Customer Data Analytics
+- Campaign Orchestration
+...
+
+For robots.txt — show as plain text:
+
+PREVIEW:
+━━━━━━━━━━━━━━
+User-agent: *
+Allow: /
+User-agent: GPTBot
+Allow: /
+...
+
+SECTION 2: CODE TO COPY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Collapsible section below preview:
+[Show code ▼]
+
+When expanded shows formatted code:
+<pre style="background: #f8f9ff; 
+            border-radius: 8px; 
+            padding: 16px; 
+            font-size: 12px;
+            overflow-x: auto;
+            max-height: 200px;
+            overflow-y: auto;">
+{code here — properly formatted}
+</pre>
+
+[Copy code] button copies this.
+
+SECTION 3: HOW TO IMPLEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Below the code show numbered steps:
+
+For FAQ Schema:
+━━━━━━━━━━━━━━
+
+HOW TO ADD THIS:
+
+1. Click [Copy code] above
+
+2. Open your website editor
+   In Replit: open index.html or _document.tsx
+   In Webflow: Settings → Custom Code → Head
+   In WordPress: Plugins → Insert Headers
+
+3. Paste before </head> tag
+
+4. Click [Verify →] to test it works
+
+[Copy code]  [Verify →]  [Mark as done ✓]
+
+For llms.txt:
+━━━━━━━━━━━━━━
+
+HOW TO ADD THIS:
+
+1. Click [Copy file content]
+
+2. Create a new file named: llms.txt
+
+3. In Replit: add to /public folder
+   File will be at: yourdomain.com/llms.txt
+
+4. Click [Check it's live →]
+   Opens: https://yourdomain.com/llms.txt
+
+[Copy content]  [Check live →]  [Mark as done ✓]
+
+IMPLEMENTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In the modal component find where
+raw JSON is being displayed.
+
+For FAQ Schema parse and render:
+
+const renderFAQPreview = (rawContent) => {
+  try {
+    // Parse the JSON-LD
+    const parsed = JSON.parse(
+      rawContent
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .replace(/"charCount":\s*\d+/g, '')
+        .replace(/,\s*\}(\s*\])/g, '}$1')
+        .trim()
+    );
+    
+    const questions = parsed.mainEntity || 
+      parsed['@graph']?.[0]?.mainEntity || 
+      [];
+    
+    return (
+      <div style={{ 
+        maxHeight: 300, 
+        overflowY: 'auto',
+        padding: '12px 0'
+      }}>
+        {questions.map((q, i) => (
+          <div key={i} style={{ 
+            marginBottom: 16,
+            paddingBottom: 16,
+            borderBottom: '1px solid #f0f0f0'
+          }}>
+            <p style={{ 
+              fontWeight: 500,
+              fontSize: 13,
+              color: '#1a1a2e',
+              marginBottom: 4
+            }}>
+              Q: {q.name}
+            </p>
+            <p style={{ 
+              fontSize: 13,
+              color: '#6b7280',
+              lineHeight: 1.5
+            }}>
+              A: {q.acceptedAnswer?.text
+                ?.slice(0, 200)}
+              {q.acceptedAnswer?.text?.length > 200 
+                ? '...' : ''}
+            </p>
+          </div>
+        ))}
+      </div>
+    );
+  } catch (e) {
+    // Fallback: show cleaned text
+    return (
+      <pre style={{ 
+        fontSize: 12,
+        whiteSpace: 'pre-wrap',
+        color: '#374151'
+      }}>
+        {rawContent
+          .replace(/"charCount":\s*\d+/g,'')
+          .replace(/\\"/g, '"')
+          .replace(/\\n/g, '\n')
+          .slice(0, 600)}...
+      </pre>
+    );
+  }
+};
+
+For Org Schema:
+
+const renderOrgPreview = (rawContent) => {
+  try {
+    const parsed = JSON.parse(rawContent
+      .replace(/```json\n?/g,'')
+      .replace(/```\n?/g,'')
+      .trim()
+    );
+    
+    const fields = [
+      { label: 'Name', value: parsed.name },
+      { label: 'URL', value: parsed.url },
+      { label: 'Type', value: parsed['@type'] },
+      { label: 'Description', 
+        value: parsed.description?.slice(0,150) },
+      { label: 'Founded', value: parsed.foundingDate },
+    ].filter(f => f.value);
+    
+    return (
+      <div style={{ padding: '8px 0' }}>
+        {fields.map(f => (
+          <div key={f.label} style={{
+            display: 'flex',
+            gap: 12,
+            padding: '6px 0',
+            borderBottom: '1px solid #f0f0f0',
+            fontSize: 13
+          }}>
+            <span style={{ 
+              color: '#9ca3af', 
+              width: 100,
+              flexShrink: 0
+            }}>
+              {f.label}
+            </span>
+            <span style={{ color: '#1a1a2e' }}>
+              {f.value}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  } catch {
+    return <pre>{rawContent.slice(0,400)}</pre>;
+  }
+};
+
+ALSO FIX: charCount showing in output
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Backend is returning:
+{
+  ...schema,
+  "charCount": 2007
+}
+
+Remove charCount from API response.
+It is an internal metric not for users.
+
+In /api/generate/faq-schema:
+Remove charCount from response JSON
+before returning to frontend.
+
+Also clean the JSON before returning:
+Return ONLY valid JSON-LD in a 
+<script> tag format ready to paste.
+
+Response format should be:
+{
+  preview_questions: [...],  // for human display
+  code: "<script type='application/ld+json'>...</script>",  // for copy
+  char_count: 2007  // internal only, not shown to user
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Click Generate FAQ on clevertap.com step.
+
+Modal should show:
+
+SECTION 1 — readable Q&A list:
+Q: What is CleverTap?
+A: CleverTap is a mobile marketing...
+
+Q: How do I schedule a demo?
+A: Fill out the form on...
+
+(NOT raw JSON)
+
+SECTION 2 — collapsed code:
+[Show code ▼]
+When clicked: shows formatted JSON-LD
+
+SECTION 3 — instructions:
+Step 1: Copy code
+Step 2: Open your editor
+Step 3: Paste before </head>
+Step 4: [Verify →]
+
+[Copy code] [Verify →] [Mark as done ✓]
+
+Share screenshot of fixed modal.

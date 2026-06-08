@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { getToken } from "@/lib/auth";
 import {
   FileText, Link, ChevronDown, ChevronRight, Copy, Check,
-  AlertCircle, ArrowRight, RefreshCw, Loader2, ExternalLink,
+  AlertCircle, ArrowRight, ArrowLeft, RefreshCw, Loader2, ExternalLink,
   PenTool, Search, Bookmark, Wand2, Repeat2, Download,
 } from "lucide-react";
 
@@ -725,13 +725,20 @@ function GeoOptimizerTab({ domain, onTopicSelect, prefilledContent }: {
 
 // ─── AI Writer Tab ───────────────────────────────────────────────────────────────
 
-function AIWriterTab({ domain: _domain, onSendToOptimizer, onRepurpose }: {
+function AIWriterTab({ domain: _domain, prefilledTopic, prefilledContentType, onSendToOptimizer, onRepurpose }: {
   domain: string;
+  prefilledTopic?: string;
+  prefilledContentType?: string;
   onSendToOptimizer: (content: string) => void;
   onRepurpose: (content: string) => void;
 }) {
-  const [contentType, setContentType] = useState("Blog post / Article");
-  const [topic, setTopic] = useState("");
+  const [contentType, setContentType] = useState(prefilledContentType ?? "Blog post / Article");
+  const [topic, setTopic] = useState(prefilledTopic ?? "");
+
+  useEffect(() => {
+    if (prefilledTopic) setTopic(prefilledTopic);
+    if (prefilledContentType) setContentType(prefilledContentType);
+  }, [prefilledTopic, prefilledContentType]);
   const [targetKeyword, setTargetKeyword] = useState("");
   const [tone, setTone] = useState("Professional");
   const [wordCount, setWordCount] = useState("1000 words");
@@ -1469,10 +1476,50 @@ function ProgressCard({ platformLabel, step }: { platformLabel: string; step: nu
   );
 }
 
-function RepurposerTab({ domain, prefilledContent, onSendToOptimizer }: {
+function SprintDoneBanner({ stepId, domain, onDone }: { stepId: string; domain: string; onDone: () => void }) {
+  const [dismissed, setDismissed] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  if (dismissed) return null;
+
+  const markDone = async () => {
+    setSaving(true);
+    try {
+      const token = getToken();
+      await fetch("/api/sprint/complete-step", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ domain, step_id: stepId }),
+      });
+    } catch {}
+    setSaving(false);
+    setDismissed(true);
+    onDone();
+  };
+
+  return (
+    <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 8, padding: "12px 16px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+      <div style={{ fontSize: 13, color: "#065F46", fontWeight: 500 }}>Ready to mark this sprint step as done?</div>
+      <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+        <button onClick={markDone} disabled={saving} style={{ padding: "6px 14px", background: "#059669", color: "white", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer" }}>
+          {saving ? "Saving..." : "Yes, mark done"}
+        </button>
+        <button onClick={() => setDismissed(true)} style={{ padding: "6px 12px", background: "white", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 12, cursor: "pointer" }}>
+          Not yet
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RepurposerTab({ domain, prefilledContent, prefilledPlatform, prefilledUrl, sprintStepId, onSendToOptimizer, onSprintMarkDone }: {
   domain: string;
   prefilledContent?: string;
+  prefilledPlatform?: string;
+  prefilledUrl?: string;
+  sprintStepId?: string;
   onSendToOptimizer: (content: string) => void;
+  onSprintMarkDone?: () => void;
 }) {
   const [inputMode, setInputMode] = useState<"paste" | "url">("paste");
   const [pastedContent, setPastedContent] = useState(prefilledContent ?? "");
@@ -1488,6 +1535,14 @@ function RepurposerTab({ domain, prefilledContent, onSendToOptimizer }: {
   useEffect(() => {
     if (prefilledContent) { setPastedContent(prefilledContent); setInputMode("paste"); setFetchedData(null); }
   }, [prefilledContent]);
+
+  useEffect(() => {
+    if (prefilledPlatform) setSelectedPlatforms([prefilledPlatform]);
+  }, [prefilledPlatform]);
+
+  useEffect(() => {
+    if (prefilledUrl) { setUrl(prefilledUrl); setInputMode("url"); }
+  }, [prefilledUrl]);
 
   useEffect(() => {
     if (!loading) { setProgressStep(0); return; }
@@ -1710,6 +1765,9 @@ function RepurposerTab({ domain, prefilledContent, onSendToOptimizer }: {
         {/* Result cards */}
         {result && !loading && (
           <div>
+            {sprintStepId && onSprintMarkDone && (
+              <SprintDoneBanner stepId={sprintStepId} domain={domain} onDone={onSprintMarkDone} />
+            )}
             <div style={{ background: "#EEF2FF", border: "1px solid #C7D2FE", borderRadius: 8,
               padding: "10px 14px", marginBottom: 14, display: "flex", alignItems: "center",
               justifyContent: "space-between", gap: 12 }}>
@@ -2138,6 +2196,38 @@ export function ContentCreation({ domain, onNavigate }: { domain: string; onNavi
   const [optimizerContent, setOptimizerContent] = useState<string | undefined>();
   const [repurposerContent, setRepurposerContent] = useState<string | undefined>();
 
+  // Sprint context
+  const [fromSprint, setFromSprint] = useState(false);
+  const [sprintStepId, setSprintStepId] = useState<string | undefined>();
+  const [sprintStepTitle, setSprintStepTitle] = useState<string | undefined>();
+  const [sprintPlatform, setSprintPlatform] = useState<string | undefined>();
+  const [sprintPrefillUrl, setSprintPrefillUrl] = useState<string | undefined>();
+  const [writerPrefillTopic, setWriterPrefillTopic] = useState<string | undefined>();
+  const [writerPrefillContentType, setWriterPrefillContentType] = useState<string | undefined>();
+
+  useEffect(() => {
+    const raw = sessionStorage.getItem("sprint_prefill");
+    if (!raw) return;
+    try {
+      const data = JSON.parse(raw) as Record<string, string | undefined>;
+      sessionStorage.removeItem("sprint_prefill");
+      setFromSprint(true);
+      if (data.step_id) setSprintStepId(data.step_id);
+      if (data.step_title) setSprintStepTitle(data.step_title);
+      const tab = data.tab;
+      if (tab && (["optimizer", "writer", "repurposer", "topics", "content"] as string[]).includes(tab)) {
+        setActiveTab(tab as TabId);
+      }
+      if (data.platform) setSprintPlatform(data.platform);
+      if (data.url) {
+        setSprintPrefillUrl(data.url);
+        if (tab === "optimizer") setOptimizerUrl(data.url);
+      }
+      if (data.topic) setWriterPrefillTopic(data.topic);
+      if (data.contentType) setWriterPrefillContentType(data.contentType);
+    } catch {}
+  }, []);
+
   const handleTopicSelect = (topic: string) => {
     setPrefilledTopic(topic);
     setActiveTab("topics");
@@ -2166,6 +2256,22 @@ export function ContentCreation({ domain, onNavigate }: { domain: string; onNavi
 
   return (
     <div>
+      {/* Sprint back button */}
+      {fromSprint && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+          <button
+            onClick={() => onNavigate?.("geo-sprint")}
+            style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", color: P, fontSize: 13, cursor: "pointer", padding: 0, fontWeight: 600 }}
+          >
+            <ArrowLeft size={14} />
+            Back to GEO Sprint
+          </button>
+          {sprintStepTitle && (
+            <span style={{ fontSize: 12, color: MUTED }}>- Step: {sprintStepTitle}</span>
+          )}
+        </div>
+      )}
+
       <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 2 }}>Content Creation</div>
       <div style={{ fontSize: 13, color: MUTED, marginBottom: 20 }}>
         Create and optimize content to get cited in ChatGPT, Gemini and Perplexity
@@ -2201,6 +2307,8 @@ export function ContentCreation({ domain, onNavigate }: { domain: string; onNavi
       {activeTab === "writer" && (
         <AIWriterTab
           domain={domain}
+          prefilledTopic={writerPrefillTopic}
+          prefilledContentType={writerPrefillContentType}
           onSendToOptimizer={handleSendToOptimizer}
           onRepurpose={handleRepurpose}
         />
@@ -2209,7 +2317,15 @@ export function ContentCreation({ domain, onNavigate }: { domain: string; onNavi
         <RepurposerTab
           domain={domain}
           prefilledContent={repurposerContent}
+          prefilledPlatform={sprintPlatform}
+          prefilledUrl={sprintPrefillUrl}
+          sprintStepId={sprintStepId}
           onSendToOptimizer={handleSendToOptimizer}
+          onSprintMarkDone={() => {
+            setFromSprint(false);
+            setSprintStepId(undefined);
+            onNavigate?.("geo-sprint");
+          }}
         />
       )}
       {activeTab === "topics" && (

@@ -1,0 +1,347 @@
+Fix GEO Sprint routing — all action buttons 
+must navigate to the correct tab within
+AI Content Studio with the right platform
+or content type pre-selected.
+
+ROUTING RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When user clicks action button on sprint page
+store the intent in sessionStorage first:
+then navigate to the correct tab.
+
+const handleSprintAction = (step) => {
+  switch(step.id) {
+    
+    // PHASE 2 — GEO Writer tab
+    case 'definition_page':
+      sessionStorage.setItem(
+        'sprint_prefill', 
+        JSON.stringify({
+          tab: 'geo-writer',
+          prompt: `Write a brand definition 
+            page for ${domain}. Include: 
+            what the product is, who it is for,
+            key features, and why it is unique.
+            Format as a webpage section with 
+            H1, intro paragraph, and key points.`
+        })
+      );
+      navigate('/dashboard/content-creation?tab=writer');
+      break;
+      
+    case 'statistics_page':
+      sessionStorage.setItem(
+        'sprint_prefill',
+        JSON.stringify({
+          tab: 'citation-optimizer',
+          url: `https://${domain}`,
+          topic: 'AI visibility statistics'
+        })
+      );
+      navigate('/dashboard/content-creation?tab=optimizer');
+      break;
+      
+    case 'faq_content':
+      sessionStorage.setItem(
+        'sprint_prefill',
+        JSON.stringify({
+          tab: 'geo-writer',
+          prompt: `Write 10 FAQ questions and 
+            answers for ${domain}.
+            Focus on questions buyers ask 
+            when researching this product.
+            Format each as Q: and A: pairs.`
+        })
+      );
+      navigate('/dashboard/content-creation?tab=writer');
+      break;
+      
+    case 'comparison_content':
+      sessionStorage.setItem(
+        'sprint_prefill',
+        JSON.stringify({
+          tab: 'geo-writer',
+          prompt: `Write a comparison article:
+            ${domain} vs top competitors.
+            Include: feature comparison table,
+            use case differences, pricing overview,
+            who each is best for.`
+        })
+      );
+      navigate('/dashboard/content-creation?tab=writer');
+      break;
+
+    // PHASE 3 — Content Multiplier tab
+    // Pre-select the specific platform
+    
+    case 'reddit':
+      sessionStorage.setItem(
+        'sprint_prefill',
+        JSON.stringify({
+          tab: 'repurposer',
+          platform: 'reddit',
+          url: `https://${domain}`,
+          instruction: 'Create a Reddit post about this product. Authentic founder voice. No marketing speak.'
+        })
+      );
+      navigate('/dashboard/content-creation?tab=repurposer&platform=reddit');
+      break;
+      
+    case 'linkedin_content':
+      sessionStorage.setItem(
+        'sprint_prefill',
+        JSON.stringify({
+          tab: 'repurposer',
+          platform: 'linkedin_post',
+          url: `https://${domain}`
+        })
+      );
+      navigate('/dashboard/content-creation?tab=repurposer&platform=linkedin_post');
+      break;
+      
+    case 'product_hunt':
+      sessionStorage.setItem(
+        'sprint_prefill',
+        JSON.stringify({
+          tab: 'repurposer',
+          platform: 'producthunt',
+          url: `https://${domain}`
+        })
+      );
+      navigate('/dashboard/content-creation?tab=repurposer&platform=producthunt');
+      break;
+      
+    case 'hacker_news':
+      sessionStorage.setItem(
+        'sprint_prefill',
+        JSON.stringify({
+          tab: 'repurposer',
+          platform: 'hackernews',
+          url: `https://${domain}`
+        })
+      );
+      navigate('/dashboard/content-creation?tab=repurposer&platform=hackernews');
+      break;
+      
+    case 'x_thread':
+      sessionStorage.setItem(
+        'sprint_prefill',
+        JSON.stringify({
+          tab: 'repurposer',
+          platform: 'twitter',
+          url: `https://${domain}`
+        })
+      );
+      navigate('/dashboard/content-creation?tab=repurposer&platform=twitter');
+      break;
+      
+    // PR Intelligence
+    case 'journalist_find':
+      navigate('/dashboard/ai-pr?section=journalist-search');
+      break;
+      
+    case 'journalist_pitch':
+      navigate('/dashboard/ai-pr?section=pitch-studio');
+      break;
+      
+    case 'monitor_mentions':
+      navigate('/dashboard/ai-pr?section=mention-radar');
+      break;
+      
+    // External links
+    case 'g2_listing':
+      window.open('https://sell.g2.com/get-listed', '_blank');
+      break;
+      
+    case 'google_biz':
+      window.open('https://business.google.com', '_blank');
+      break;
+  }
+};
+
+READ sessionStorage IN AI CONTENT STUDIO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In AI Content Studio page component
+on mount read sessionStorage:
+
+useEffect(() => {
+  const prefill = sessionStorage
+    .getItem('sprint_prefill');
+  
+  if (prefill) {
+    const data = JSON.parse(prefill);
+    sessionStorage.removeItem('sprint_prefill');
+    
+    // Switch to correct tab
+    if (data.tab) setActiveTab(data.tab);
+    
+    // Pre-fill content based on tab
+    if (data.tab === 'geo-writer' && data.prompt) {
+      setWriterPrompt(data.prompt);
+      // Auto-trigger generation after 500ms
+      setTimeout(() => triggerWriter(), 500);
+    }
+    
+    if (data.tab === 'repurposer') {
+      if (data.url) setRepurposerUrl(data.url);
+      if (data.platform) {
+        setSelectedPlatform(data.platform);
+        // Auto-fetch URL content
+        setTimeout(() => fetchUrl(), 500);
+      }
+    }
+    
+    if (data.tab === 'optimizer') {
+      if (data.url) setOptimizerUrl(data.url);
+      setTimeout(() => runAnalysis(), 500);
+    }
+  }
+}, []);
+
+BACK BUTTON IN AI CONTENT STUDIO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When user navigates from Sprint to 
+Content Studio, show back button:
+
+Check if document.referrer includes 
+'/dashboard/geo-sprint' OR if
+sessionStorage had sprint_prefill.
+
+If yes, show at top of page:
+
+<div style={{
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  padding: '8px 0',
+  marginBottom: 16
+}}>
+  <button 
+    onClick={() => navigate(
+      '/dashboard/geo-sprint'
+    )}
+    style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      background: 'none',
+      border: 'none',
+      color: '#6366f1',
+      fontSize: 13,
+      cursor: 'pointer',
+      padding: 0
+    }}
+  >
+    <i className="ti ti-arrow-left" />
+    Back to GEO Sprint
+  </button>
+  <span style={{ 
+    fontSize: 12, 
+    color: '#9ca3af' 
+  }}>
+    · Step: {stepName}
+  </span>
+</div>
+
+ALSO FIX: URL PARAMS READING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AI Content Studio should read URL params:
+
+const searchParams = new URLSearchParams(
+  window.location.search
+);
+const tabParam = searchParams.get('tab');
+const platformParam = searchParams.get('platform');
+
+if (tabParam) setActiveTab(tabParam);
+if (platformParam) setSelectedPlatform(platformParam);
+
+Tab param values:
+?tab=writer → GEO Writer tab
+?tab=repurposer → Content Multiplier tab
+?tab=optimizer → Citation Optimizer tab
+?tab=finder → Prompt Gap Finder tab
+
+Platform param for repurposer:
+?platform=reddit → Reddit post selected
+?platform=linkedin_post → LinkedIn selected
+?platform=producthunt → Product Hunt selected
+?platform=hackernews → HN Show HN selected
+?platform=twitter → X thread selected
+
+MARK AS DONE AFTER CONTENT CREATED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When user copies content or clicks 
+Share button in Content Multiplier:
+
+Check if user came from Sprint step.
+If yes, show prompt:
+
+"Mark this sprint step as complete?
+ '[step name]' +X pts"
+[Yes, mark done ✓] [Not yet]
+
+If confirmed: POST /api/sprint/complete-step
+Navigate back to GEO Sprint.
+
+Store which sprint step triggered this:
+sessionStorage.setItem(
+  'sprint_step_id', step.id
+);
+
+Read in Content Studio after content 
+is generated:
+const sprintStepId = sessionStorage
+  .getItem('sprint_step_id');
+
+if (sprintStepId) {
+  // Show "Mark as done" prompt
+  // after content is generated
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Test 1: Phase 2 — definition page
+Click "Write with GEO Writer" on 
+"Write a brand definition page" step.
+Should land on GEO Writer tab
+with prompt pre-filled.
+NOT on default/empty state.
+
+Test 2: Phase 3 — Reddit
+Click "Create Reddit post" on 
+"Build Reddit presence" step.
+Should land on Content Multiplier tab
+with Reddit post platform pre-selected
+and domain URL pre-filled.
+NOT on empty repurposer.
+
+Test 3: Phase 3 — Product Hunt
+Click "Create PH post".
+Should land on Content Multiplier
+with Product Hunt platform selected.
+
+Test 4: Back button
+After navigating to Content Studio
+from Sprint page, back button visible.
+Click it → returns to GEO Sprint.
+Sprint page shows same position.
+
+Test 5: Mark as done flow
+In Content Multiplier after generating
+Reddit post, "Mark sprint step done?"
+prompt appears.
+Clicking yes → returns to Sprint.
+Reddit step shows as complete.
+
+Share screenshot of:
+Content Multiplier opening with 
+Reddit pre-selected after clicking
+from Sprint page.

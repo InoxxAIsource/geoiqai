@@ -4,6 +4,17 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
+function extractJsonFromScriptTag(scriptTag: string): Record<string, unknown> | null {
+  try {
+    const match = scriptTag.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
+    const raw = match ? match[1].trim() : scriptTag.trim();
+    const parsed = JSON.parse(raw);
+    return parsed as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 const aiClient = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? "placeholder",
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
@@ -78,7 +89,7 @@ Keep it under 400 words. Write in plain, factual prose - not marketing speak.`,
     });
 
     const output = completion.choices[0]?.message?.content ?? "";
-    res.json({ content: output, filename: "llms.txt", charCount: output.length });
+    res.json({ content: output, filename: "llms.txt" });
   } catch (err) {
     logger.error({ err, domain }, "generate/llmstxt failed");
     res.status(500).json({ error: "Generation failed. Please try again." });
@@ -114,7 +125,17 @@ Use real values where you can infer them. Leave out fields you cannot reasonably
     });
 
     const output = completion.choices[0]?.message?.content ?? "";
-    res.json({ code: output, charCount: output.length });
+    const parsed = extractJsonFromScriptTag(output);
+    const fieldCandidates: Array<{ label: string; value: string | undefined }> = parsed ? [
+      { label: "Name", value: parsed.name as string },
+      { label: "URL", value: parsed.url as string },
+      { label: "Type", value: parsed["@type"] as string },
+      { label: "Description", value: (parsed.description as string)?.slice(0, 150) },
+      { label: "Founded", value: parsed.foundingDate as string },
+      { label: "Location", value: typeof parsed.address === "string" ? parsed.address as string : (parsed.address as Record<string, string>)?.addressLocality },
+    ] : [];
+    const fields = fieldCandidates.filter((f): f is { label: string; value: string } => typeof f.value === "string" && f.value.length > 0);
+    res.json({ code: output, fields });
   } catch (err) {
     logger.error({ err, domain }, "generate/org-schema failed");
     res.status(500).json({ error: "Generation failed. Please try again." });
@@ -150,7 +171,18 @@ Return the complete <script type="application/ld+json"> tag ready to paste into 
     });
 
     const output = completion.choices[0]?.message?.content ?? "";
-    res.json({ code: output, charCount: output.length });
+    const parsed = extractJsonFromScriptTag(output);
+    let questions: Array<{ name: string; answer: string }> = [];
+    if (parsed) {
+      const entities = (parsed.mainEntity ?? (parsed["@graph"] as Array<Record<string, unknown>>)?.[0]?.mainEntity ?? []) as Array<Record<string, unknown>>;
+      questions = entities
+        .map((q) => ({
+          name: (q.name as string) ?? "",
+          answer: ((q.acceptedAnswer as Record<string, string>)?.text) ?? "",
+        }))
+        .filter((q) => q.name && q.answer);
+    }
+    res.json({ code: output, questions });
   } catch (err) {
     logger.error({ err, domain }, "generate/faq-schema failed");
     res.status(500).json({ error: "Generation failed. Please try again." });
@@ -189,7 +221,7 @@ Allow: /
 
 Sitemap: https://${domain}/sitemap.xml`;
 
-  res.json({ content, filename: "robots.txt", charCount: content.length });
+  res.json({ content, filename: "robots.txt" });
 });
 
 export default router;
