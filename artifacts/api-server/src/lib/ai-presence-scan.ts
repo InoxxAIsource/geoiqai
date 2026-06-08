@@ -46,7 +46,6 @@ interface TavilyResult {
   title?: string;
   url?: string;
   content?: string;
-  score?: number;
 }
 
 interface ExaResult {
@@ -55,44 +54,56 @@ interface ExaResult {
   highlights?: string[];
 }
 
-function scoreFromResults(
-  results: TavilyResult[],
-  exaResults: ExaResult[],
-  brandName: string,
+/**
+ * Determines if a result mentions the brand.
+ * Checks the domain slug, the full domain, and common brand name variants.
+ * Uses OR logic - any match counts.
+ */
+function resultMentionsBrand(
+  text: string,
   domain: string,
-): { found: boolean; score: number; evidence: string | null; urlCited: boolean } {
-  const brandLower = brandName.toLowerCase();
-  const domainLower = domain.toLowerCase();
+  brandSlug: string,
+): boolean {
+  const t = text.toLowerCase();
+  // Match the bare domain slug (e.g. "jiostar"), the full domain ("jiostar.com"),
+  // and a few common variant patterns (e.g. "jio star", hyphenated)
+  return (
+    t.includes(brandSlug) ||
+    t.includes(domain.toLowerCase()) ||
+    t.includes(brandSlug.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase())
+  );
+}
 
-  // Combine Tavily content + Exa highlights for matching
-  const combined: { text: string; url?: string }[] = [
-    ...results.map(r => ({ text: `${r.title ?? ""} ${r.content ?? ""}`, url: r.url })),
-    ...exaResults.map(r => ({ text: `${r.title ?? ""} ${(r.highlights ?? []).join(" ")}`, url: r.url })),
-  ];
-
-  const matching = combined.filter(c =>
-    c.text.toLowerCase().includes(brandLower),
+/**
+ * Scores a single AI platform based on Tavily search results only.
+ * Exa results are handled separately as a platform-wide boost signal.
+ * Strategy:
+ *   - Tavily results that mention the brand: up to 75 points (25 per result, max 3)
+ *   - found = score >= 25 (at least one Tavily result mentions the brand)
+ */
+function scorePlatform(
+  tavilyResults: TavilyResult[],
+  domain: string,
+  brandSlug: string,
+): { found: boolean; score: number; evidence: string | null } {
+  const matchingTavily = tavilyResults.filter(r =>
+    resultMentionsBrand(`${r.title ?? ""} ${r.content ?? ""}`, domain, brandSlug),
   );
 
-  if (matching.length === 0) return { found: false, score: 0, evidence: null, urlCited: false };
+  const score = Math.min(matchingTavily.length * 25, 75);
+  const found = score >= 25;
 
-  // Score: each matching result adds up to 25 points, capped at 100
-  const score = Math.min(matching.length * 25, 100);
-  const urlCited = matching.some(c => c.url?.toLowerCase().includes(domainLower));
-
-  // Best evidence snippet
-  const bestTavily = results.find(r =>
-    (r.title?.toLowerCase().includes(brandLower) || r.content?.toLowerCase().includes(brandLower))
-  );
+  // Best evidence snippet from Tavily (more readable than Exa highlights)
+  const bestTavily = matchingTavily[0];
   const evidence = bestTavily?.content?.slice(0, 250) ?? null;
 
-  return { found: true, score, evidence, urlCited };
+  return { found, score, evidence };
 }
 
 /**
  * Runs a web-evidence-based AI presence scan for a domain.
  * Uses Exa neural search + Tavily targeted searches to find real evidence
- * of the brand being mentioned in AI-generated content.
+ * of the brand being mentioned across AI systems.
  *
  * Returns null if neither EXA_API_KEY nor TAVILY_API_KEY is set,
  * signaling the caller to fall back to the existing audit engine.
@@ -106,61 +117,62 @@ export async function runAIPresenceScan(domain: string): Promise<AIPresenceScanR
     return null;
   }
 
+  // Extract brand name from domain: "jiostar.com" -> "Jiostar", "hubspot.com" -> "Hubspot"
   const rawBrand = domain.replace(/^www\./, "").split(".")[0] ?? domain;
   const brandName = rawBrand.charAt(0).toUpperCase() + rawBrand.slice(1);
-  const brandLower = rawBrand.toLowerCase();
+  const brandSlug = rawBrand.toLowerCase();
 
-  logger.info({ domain, brandName, hasExa: !!exa, hasTavily: !!tvly }, "ai-presence-scan: starting");
+  logger.info({ domain, brandName, brandSlug, hasExa: !!exa, hasTavily: !!tvly }, "ai-presence-scan: starting");
 
-  // Run all searches in parallel - fail gracefully per search
-  const [
-    exaBrandSearch,
-    tavilyChatGPT,
-    tavilyGemini,
-    tavilyPerplexity,
-  ] = await Promise.allSettled([
-    exa
-      ? exa.searchAndContents(
-          `${brandName} ${domain} mentioned recommended cited by AI assistant`,
-          {
-            type: "neural",
-            numResults: 10,
-            startPublishedDate: "2025-01-01",
-            highlights: {
-              query: `${brandName} recommended mentioned AI`,
-              numSentences: 2,
-              highlightsPerUrl: 2,
+  // Run all 4 searches in parallel - each failure is isolated
+  const [exaBrandSearch, tavilyChatGPT, tavilyGemini, tavilyPerplexity] =
+    await Promise.allSettled([
+      // Exa: neural search for brand in AI-related content (supporting signal for all platforms)
+      exa
+        ? exa.searchAndContents(
+            `${brandName} ${domain} mentioned recommended cited AI ChatGPT Gemini Perplexity`,
+            {
+              type: "neural",
+              numResults: 10,
+              startPublishedDate: "2025-01-01",
+              highlights: {
+                query: `${brandName} AI recommended`,
+                numSentences: 2,
+                highlightsPerUrl: 2,
+              },
             },
-          },
-        )
-      : Promise.resolve(null),
+          )
+        : Promise.resolve(null),
 
-    tvly
-      ? tvly.search(`${brandName} ${domain} ChatGPT recommended suggests`, {
-          searchDepth: "basic",
-          maxResults: 5,
-          topic: "general",
-        })
-      : Promise.resolve(null),
+      // Tavily: ChatGPT-specific evidence
+      tvly
+        ? tvly.search(`${brandName} ChatGPT recommended suggests`, {
+            searchDepth: "basic",
+            maxResults: 5,
+            topic: "general",
+          })
+        : Promise.resolve(null),
 
-    tvly
-      ? tvly.search(`${brandName} ${domain} Gemini Google AI recommended`, {
-          searchDepth: "basic",
-          maxResults: 5,
-          topic: "general",
-        })
-      : Promise.resolve(null),
+      // Tavily: Gemini-specific evidence
+      tvly
+        ? tvly.search(`${brandName} Gemini Google AI recommended`, {
+            searchDepth: "basic",
+            maxResults: 5,
+            topic: "general",
+          })
+        : Promise.resolve(null),
 
-    tvly
-      ? tvly.search(`${brandName} ${domain} Perplexity cited source`, {
-          searchDepth: "basic",
-          maxResults: 5,
-          topic: "general",
-        })
-      : Promise.resolve(null),
-  ]);
+      // Tavily: Perplexity-specific evidence
+      tvly
+        ? tvly.search(`${brandName} Perplexity cited source`, {
+            searchDepth: "basic",
+            maxResults: 5,
+            topic: "general",
+          })
+        : Promise.resolve(null),
+    ]);
 
-  // Extract Exa results safely
+  // Extract Exa results
   const exaResults: ExaResult[] =
     exaBrandSearch.status === "fulfilled" && exaBrandSearch.value
       ? (exaBrandSearch.value.results ?? []).map(r => ({
@@ -171,49 +183,65 @@ export async function runAIPresenceScan(domain: string): Promise<AIPresenceScanR
       : [];
 
   if (exaBrandSearch.status === "rejected") {
-    logger.warn({ err: exaBrandSearch.reason, domain }, "ai-presence-scan: Exa search failed");
+    logger.warn({ err: exaBrandSearch.reason, domain }, "ai-presence-scan: Exa failed");
   }
 
-  // Extract Tavily results safely
+  // Extract Tavily results
   const extractTavily = (
-    settled: PromiseSettledResult<{ results?: TavilyResult[] } | null>,
-  ): TavilyResult[] => {
-    if (settled.status !== "fulfilled" || !settled.value) return [];
-    return settled.value.results ?? [];
-  };
+    s: PromiseSettledResult<{ results?: TavilyResult[] } | null>,
+  ): TavilyResult[] =>
+    s.status === "fulfilled" && s.value ? (s.value.results ?? []) : [];
 
   const chatgptRaw = extractTavily(tavilyChatGPT);
   const geminiRaw = extractTavily(tavilyGemini);
   const perplexityRaw = extractTavily(tavilyPerplexity);
 
-  if (tavilyChatGPT.status === "rejected") {
-    logger.warn({ err: tavilyChatGPT.reason, domain }, "ai-presence-scan: Tavily ChatGPT search failed");
+  // Score each platform from Tavily only (Exa handled separately as a boost signal)
+  const chatgpt = scorePlatform(chatgptRaw, domain, brandSlug);
+  const gemini = scorePlatform(geminiRaw, domain, brandSlug);
+  const perplexity = scorePlatform(perplexityRaw, domain, brandSlug);
+
+  // If Tavily gave nothing but Exa found strong evidence, attribute it as general presence
+  // This prevents big brands from scoring 0 just because Tavily phrasing didn't match
+  const exaMatchCount = exaResults.filter(r =>
+    resultMentionsBrand(`${r.title ?? ""} ${(r.highlights ?? []).join(" ")}`, domain, brandSlug),
+  ).length;
+
+  // Boost: if Exa found brand in multiple results but Tavily searches came back empty,
+  // attribute Exa evidence as general AI presence signal across all 3 platforms.
+  // Scale: 5 matches = 40pts, 8+ matches = 65pts, 10 matches = 80pts
+  if (exaMatchCount >= 5 && !chatgpt.found && !gemini.found && !perplexity.found) {
+    const boostedScore = exaMatchCount >= 9
+      ? 80
+      : exaMatchCount >= 7
+        ? 65
+        : exaMatchCount >= 5
+          ? 40
+          : 25;
+    chatgpt.found = true; chatgpt.score = boostedScore;
+    gemini.found = true; gemini.score = boostedScore;
+    perplexity.found = true; perplexity.score = Math.round(boostedScore * 0.85);
+    logger.info({ domain, exaMatchCount, boostedScore }, "ai-presence-scan: Exa boost applied");
   }
 
-  // Score each platform using Tavily evidence + Exa as supporting signal
-  const chatgpt = scoreFromResults(chatgptRaw, exaResults, brandLower, domain);
-  const gemini = scoreFromResults(geminiRaw, exaResults, brandLower, domain);
-  const perplexity = scoreFromResults(perplexityRaw, exaResults, brandLower, domain);
-
   // Overall score: average of the 3 platform scores
-  const rawTotal = chatgpt.score + gemini.score + perplexity.score;
-  const overallScore = Math.min(Math.round(rawTotal / 3), 100);
+  const overallScore = Math.min(
+    Math.round((chatgpt.score + gemini.score + perplexity.score) / 3),
+    100,
+  );
   const hasData = chatgpt.found || gemini.found || perplexity.found;
 
   // Top Exa evidence snippet
   const topEvidence =
-    exaResults.length > 0
-      ? (exaResults[0]?.highlights?.[0] ?? null)
-      : null;
+    exaResults.length > 0 ? (exaResults[0]?.highlights?.[0] ?? null) : null;
 
-  // Build platform breakdown (only found platforms shown in UI)
+  // Build platform rows for UI
   const platformDefs: AIPresencePlatform[] = [
     { key: "chat_gpt", displayName: "ChatGPT", color: "#10A37F", found: chatgpt.found, score: chatgpt.score, pct: 0, evidence: chatgpt.evidence },
     { key: "gemini", displayName: "Gemini", color: "#4285F4", found: gemini.found, score: gemini.score, pct: 0, evidence: gemini.evidence },
     { key: "perplexity", displayName: "Perplexity", color: "#20B2AA", found: perplexity.found, score: perplexity.score, pct: 0, evidence: perplexity.evidence },
   ];
-  const activePlatforms = platformDefs.filter(p => p.found);
-  const totalScore = activePlatforms.reduce((s, p) => s + p.score, 0);
+  const totalScore = platformDefs.reduce((s, p) => s + p.score, 0);
   const platforms: AIPresencePlatform[] = platformDefs.map(p => ({
     ...p,
     pct: totalScore > 0 ? Math.round((p.score / totalScore) * 100) : 0,
@@ -225,9 +253,12 @@ export async function runAIPresenceScan(domain: string): Promise<AIPresenceScanR
       overallScore,
       hasData,
       chatgptFound: chatgpt.found,
+      chatgptScore: chatgpt.score,
       geminiFound: gemini.found,
+      geminiScore: gemini.score,
       perplexityFound: perplexity.found,
-      exaResultsCount: exaResults.length,
+      perplexityScore: perplexity.score,
+      exaMatchCount,
     },
     "ai-presence-scan: complete",
   );

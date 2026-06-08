@@ -23,6 +23,7 @@ import {
   logDfsCost,
 } from "../lib/dataforseo";
 import { runAuditEngine } from "../lib/audit-engine";
+import { runAIPresenceScan } from "../lib/ai-presence-scan";
 import { crawlSite } from "../lib/site-crawler";
 import { db, citationsTable, keywordCacheTable, auditsTable, promptTrackingTable, siteAuditHistoryTable, dataforseoCacheTable } from "@workspace/db";
 import { getPlanLimits } from "../lib/plan-limits";
@@ -862,11 +863,14 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
       return;
     }
   } else {
-    // Force refresh: block if minimum rescan time has not elapsed
+    // Force refresh: only block if the cached result has real data and minimum time has not elapsed.
+    // Allow re-scanning if the cached result was empty/zero (hasData=false) - no point rate-limiting that.
     const [cacheRow] = await db.select().from(dataforseoCacheTable).where(eq(dataforseoCacheTable.key, topCacheKey)).limit(1);
     if (cacheRow) {
+      const cachedData = cacheRow.data as Record<string, unknown>;
+      const cachedHasData = cachedData?.hasData === true;
       const hoursSince = (Date.now() - cacheRow.cachedAt.getTime()) / (1000 * 60 * 60);
-      if (hoursSince < rescanHours) {
+      if (cachedHasData && hoursSince < rescanHours) {
         const hoursLeft = Math.ceil(rescanHours - hoursSince);
         res.status(429).json({
           error: "rescan_too_soon",
@@ -898,51 +902,81 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
       .limit(1);
     let audit = recentAudits[0] ?? null;
 
-    // No recent audit found - run one on-demand (same engine as the Audit page)
+    // No recent audit found - try Exa+Tavily web-evidence scan first, fall back to audit engine
     if (!audit) {
-      req.log.info({ domain: bareD }, "visibility-overview: no recent audit found, running on-demand");
+      req.log.info({ domain: bareD }, "visibility-overview: no recent audit, trying Exa+Tavily scan");
       try {
-        const AUDIT_TIMEOUT_MS = 90_000;
-        const engineResult = await Promise.race([
-          runAuditEngine(`https://${bareD}`, null, null, null),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("Audit timed out after 90s")), AUDIT_TIMEOUT_MS)
-          ),
-        ]);
-        if (!engineResult.unreachable) {
-          const { brandName: engBrand, category: engCat, market: engMarket, chatgpt, gemini, perplexity, technicalAudit, keywordsUsed } = engineResult;
-          const rawAiTotal = chatgpt.score + gemini.score + perplexity.score;
-          const aiVisibilityScore = Math.min(Math.round(rawAiTotal * 100 / (3 * 33)), 100);
-          const scoreTechnical = technicalAudit.overallScore;
-          const scoreTotal = Math.round(aiVisibilityScore * 0.6 + scoreTechnical * 0.4);
-          const allCompetitors = [...new Set([...chatgpt.competitors, ...gemini.competitors, ...perplexity.competitors])];
+        const scanResult = await runAIPresenceScan(bareD);
+        if (scanResult) {
+          // Store scan result as an audit record so subsequent loads are fast
           const [inserted] = await db.insert(auditsTable).values({
             url: `https://${bareD}`,
             domain: bareD,
-            brandName: engBrand,
-            category: engCat,
-            market: engMarket,
-            scoreTotal,
-            scoreChatgpt: chatgpt.score,
-            scoreGemini: gemini.score,
-            scorePerplexity: perplexity.score,
-            chatgptFound: chatgpt.found,
-            geminiFound: gemini.found,
-            perplexityFound: perplexity.found,
-            chatgptDetail: chatgpt.detail,
-            geminiDetail: gemini.detail,
-            perplexityDetail: perplexity.detail,
-            competitorsFound: allCompetitors,
-            keywordsUsed,
-            rawResults: { scoreAiVisibility: aiVisibilityScore, scoreTechnical, technicalAudit },
+            brandName: scanResult.brandName,
+            category: null,
+            market: null,
+            scoreTotal: scanResult.score,
+            scoreChatgpt: scanResult.chatgptScore,
+            scoreGemini: scanResult.geminiScore,
+            scorePerplexity: scanResult.perplexityScore,
+            chatgptFound: scanResult.chatgptFound,
+            geminiFound: scanResult.geminiFound,
+            perplexityFound: scanResult.perplexityFound,
+            chatgptDetail: scanResult.chatgptEvidence,
+            geminiDetail: scanResult.geminiEvidence,
+            perplexityDetail: scanResult.perplexityEvidence,
+            competitorsFound: [],
+            keywordsUsed: [],
+            rawResults: {
+              source: "exa_tavily_scan",
+              evidenceCount: scanResult.evidenceCount,
+              topEvidence: scanResult.topEvidence,
+            },
           }).returning();
           audit = inserted ?? null;
-          req.log.info({ domain: bareD, scoreTotal, chatgptFound: chatgpt.found, geminiFound: gemini.found, perplexityFound: perplexity.found }, "visibility-overview: on-demand audit complete");
+          req.log.info({ domain: bareD, score: scanResult.score, hasData: scanResult.hasData }, "visibility-overview: Exa+Tavily scan complete");
         } else {
-          req.log.warn({ domain: bareD }, "visibility-overview: on-demand audit - domain unreachable");
+          // Neither API key set - fall back to the full audit engine
+          req.log.info({ domain: bareD }, "visibility-overview: no scan keys, falling back to audit engine");
+          const AUDIT_TIMEOUT_MS = 90_000;
+          const engineResult = await Promise.race([
+            runAuditEngine(`https://${bareD}`, null, null, null),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("Audit timed out after 90s")), AUDIT_TIMEOUT_MS)
+            ),
+          ]);
+          if (!engineResult.unreachable) {
+            const { brandName: engBrand, category: engCat, market: engMarket, chatgpt, gemini, perplexity, technicalAudit, keywordsUsed } = engineResult;
+            const rawAiTotal = chatgpt.score + gemini.score + perplexity.score;
+            const aiVisibilityScore = Math.min(Math.round(rawAiTotal * 100 / (3 * 33)), 100);
+            const scoreTechnical = technicalAudit.overallScore;
+            const scoreTotal = Math.round(aiVisibilityScore * 0.6 + scoreTechnical * 0.4);
+            const allCompetitors = [...new Set([...chatgpt.competitors, ...gemini.competitors, ...perplexity.competitors])];
+            const [inserted] = await db.insert(auditsTable).values({
+              url: `https://${bareD}`,
+              domain: bareD,
+              brandName: engBrand,
+              category: engCat,
+              market: engMarket,
+              scoreTotal,
+              scoreChatgpt: chatgpt.score,
+              scoreGemini: gemini.score,
+              scorePerplexity: perplexity.score,
+              chatgptFound: chatgpt.found,
+              geminiFound: gemini.found,
+              perplexityFound: perplexity.found,
+              chatgptDetail: chatgpt.detail,
+              geminiDetail: gemini.detail,
+              perplexityDetail: perplexity.detail,
+              competitorsFound: allCompetitors,
+              keywordsUsed,
+              rawResults: { source: "audit_engine", scoreAiVisibility: aiVisibilityScore, scoreTechnical },
+            }).returning();
+            audit = inserted ?? null;
+          }
         }
-      } catch (engErr) {
-        req.log.warn({ err: engErr, domain: bareD }, "visibility-overview: on-demand audit failed, returning empty state");
+      } catch (scanErr) {
+        req.log.warn({ err: scanErr, domain: bareD }, "visibility-overview: scan failed, returning empty state");
       }
     }
 
