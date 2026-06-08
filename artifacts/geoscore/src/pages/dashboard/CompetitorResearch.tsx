@@ -612,6 +612,28 @@ function LoadingSteps({ domains }: { domains: string[] }) {
   );
 }
 
+/* ───── Domain helpers ───── */
+function normalizeDomain(raw: string): string {
+  return raw.toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0]?.trim() ?? "";
+}
+
+function isValidDomainFormat(d: string): boolean {
+  return /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/i.test(d) && d.includes(".");
+}
+
+async function checkDomainReachable(domain: string): Promise<boolean> {
+  try {
+    await fetch(`https://${domain}`, {
+      method: "HEAD",
+      mode: "no-cors",
+      signal: AbortSignal.timeout(5000),
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /* ───── Main Component ───── */
 export function CompetitorResearch({ initialDomain, plan = "free", onNavigate }: {
   initialDomain: string;
@@ -622,20 +644,45 @@ export function CompetitorResearch({ initialDomain, plan = "free", onNavigate }:
   const [competitors, setCompetitors] = useState([""]);
   const [data, setData] = useState<CompData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [validating, setValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [domainErrors, setDomainErrors] = useState<Record<number, string>>({});
   const [upgradeError, setUpgradeError] = useState<{ message: string; current_plan: string } | null>(null);
   const [rescanBlocked, setRescanBlocked] = useState<{ message: string; hours_left: number } | null>(null);
   const [loadingDomains, setLoadingDomains] = useState<string[]>([]);
 
   const addCompetitor = () => { if (competitors.length < 3) setCompetitors([...competitors, ""]); };
   const removeCompetitor = (i: number) => setCompetitors(competitors.filter((_, idx) => idx !== i));
-  const setComp = (i: number, v: string) => setCompetitors(competitors.map((c, idx) => idx === i ? v : c));
+  const setComp = (i: number, v: string) => { setCompetitors(competitors.map((c, idx) => idx === i ? v : c)); setDomainErrors(prev => { const n = { ...prev }; delete n[i + 1]; return n; }); };
+
+  const validateAllDomains = async (rawDomains: string[]): Promise<boolean> => {
+    const newErrors: Record<number, string> = {};
+    const checks = rawDomains.map(async (raw, idx) => {
+      const clean = normalizeDomain(raw);
+      if (!clean) { newErrors[idx] = "Enter a domain"; return false; }
+      if (!isValidDomainFormat(clean)) { newErrors[idx] = `"${clean}" doesn't look like a valid domain`; return false; }
+      const ok = await checkDomainReachable(clean);
+      if (!ok) { newErrors[idx] = `Cannot reach ${clean}. Check the spelling.`; return false; }
+      return true;
+    });
+    const results = await Promise.all(checks);
+    setDomainErrors(newErrors);
+    return results.every(Boolean);
+  };
 
   const analyze = async (forceRescan = false) => {
-    const allDomains = [mainDomain.trim(), ...competitors.map(c => c.trim())].filter(Boolean);
-    if (allDomains.length < 2) { setError("Enter at least one competitor domain."); return; }
+    const rawDomains = [mainDomain.trim(), ...competitors.map(c => c.trim())].filter(Boolean);
+    if (rawDomains.length < 2) { setError("Enter at least one competitor domain."); return; }
     setError(null);
     setRescanBlocked(null);
+    setDomainErrors({});
+
+    setValidating(true);
+    const valid = await validateAllDomains(rawDomains);
+    setValidating(false);
+    if (!valid) return;
+
+    const allDomains = rawDomains.map(normalizeDomain);
     setLoading(true);
     setLoadingDomains(allDomains);
     if (forceRescan) setData(null);
@@ -664,7 +711,7 @@ export function CompetitorResearch({ initialDomain, plan = "free", onNavigate }:
         setData(json);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not fetch competitor data. Check your DataForSEO credentials.");
+      setError(err instanceof Error ? err.message : "Could not fetch competitor data. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -711,53 +758,66 @@ export function CompetitorResearch({ initialDomain, plan = "free", onNavigate }:
       )}
 
       {/* Domain inputs */}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "white", border: `1.5px solid ${P}`, borderRadius: 8, padding: "8px 12px" }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: P, textTransform: "uppercase", letterSpacing: "0.06em" }}>You</span>
-          <input type="text" value={mainDomain} onChange={e => setMainDomain(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && analyze()}
-            placeholder="yourdomain.com"
-            style={{ border: "none", outline: "none", fontSize: 13, width: 160, color: "#111827", background: "transparent" }} />
-        </div>
-
-        {competitors.map((c, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, background: "white", border: `1.5px solid ${BORDER}`, borderRadius: 8, padding: "8px 12px" }}>
-            <span style={{ fontSize: 11, fontWeight: 600, color: "#10B981", textTransform: "uppercase", letterSpacing: "0.06em" }}>vs</span>
-            <input type="text" value={c} onChange={e => setComp(i, e.target.value)}
-              onKeyDown={e => e.key === "Enter" && analyze()}
-              placeholder={`Competitor ${i + 1}`}
-              style={{ border: "none", outline: "none", fontSize: 13, width: 150, color: "#111827", background: "transparent" }} />
-            <button onClick={() => removeCompetitor(i)}
-              style={{ background: "none", border: "none", cursor: "pointer", color: MUTED, display: "flex", alignItems: "center", padding: 0 }}>
-              <X size={13} />
-            </button>
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
+          {/* Your domain */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "white", border: `1.5px solid ${domainErrors[0] ? DANGER : P}`, borderRadius: 8, padding: "8px 12px" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: domainErrors[0] ? DANGER : P, textTransform: "uppercase", letterSpacing: "0.06em" }}>You</span>
+              <input type="text" value={mainDomain}
+                onChange={e => { setMainDomain(e.target.value); setDomainErrors(prev => { const n = { ...prev }; delete n[0]; return n; }); }}
+                onKeyDown={e => e.key === "Enter" && analyze()}
+                placeholder="yourdomain.com"
+                style={{ border: "none", outline: "none", fontSize: 13, width: 160, color: "#111827", background: "transparent" }} />
+            </div>
+            {domainErrors[0] && <div style={{ fontSize: 11, color: DANGER, paddingLeft: 4 }}>{domainErrors[0]}</div>}
           </div>
-        ))}
 
-        {competitors.length < 3 && (
-          <button onClick={addCompetitor}
-            style={{ display: "flex", alignItems: "center", gap: 6, background: "white", border: `1.5px dashed ${BORDER}`, borderRadius: 8, padding: "9px 14px", fontSize: 12, color: MUTED, cursor: "pointer" }}>
-            <Plus size={13} /> Add competitor
+          {/* Competitor inputs */}
+          {competitors.map((c, i) => (
+            <div key={i} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, background: "white", border: `1.5px solid ${domainErrors[i + 1] ? DANGER : BORDER}`, borderRadius: 8, padding: "8px 12px" }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: domainErrors[i + 1] ? DANGER : "#10B981", textTransform: "uppercase", letterSpacing: "0.06em" }}>vs</span>
+                <input type="text" value={c} onChange={e => setComp(i, e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && analyze()}
+                  placeholder={`Competitor ${i + 1}`}
+                  style={{ border: "none", outline: "none", fontSize: 13, width: 150, color: "#111827", background: "transparent" }} />
+                <button onClick={() => removeCompetitor(i)}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: MUTED, display: "flex", alignItems: "center", padding: 0 }}>
+                  <X size={13} />
+                </button>
+              </div>
+              {domainErrors[i + 1] && <div style={{ fontSize: 11, color: DANGER, paddingLeft: 4 }}>{domainErrors[i + 1]}</div>}
+            </div>
+          ))}
+
+          {/* Add competitor */}
+          {competitors.length < 3 && (
+            <button onClick={addCompetitor}
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "white", border: `1.5px dashed ${BORDER}`, borderRadius: 8, padding: "9px 14px", fontSize: 12, color: MUTED, cursor: "pointer", marginTop: 1 }}>
+              <Plus size={13} /> Add competitor
+            </button>
+          )}
+
+          {/* Actions */}
+          <button onClick={() => analyze()} disabled={loading || validating}
+            style={{ padding: "9px 22px", background: (loading || validating) ? "#C7D2FE" : P, color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: (loading || validating) ? "not-allowed" : "pointer", marginTop: 1 }}>
+            {validating ? "Checking..." : loading ? "Analyzing..." : "Analyze"}
           </button>
-        )}
 
-        <button onClick={() => analyze()} disabled={loading}
-          style={{ padding: "9px 22px", background: loading ? "#C7D2FE" : P, color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
-          {loading ? "Analyzing..." : "Analyze"}
-        </button>
-
-        {data && !loading && (
-          <>
-            <button onClick={() => analyze(true)}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", background: "white", border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 12, color: MUTED, cursor: "pointer" }}>
-              <RefreshCw size={12} /> Rescan
-            </button>
-            <button onClick={() => { setData(null); setError(null); setCompetitors([""]); }}
-              style={{ padding: "9px 14px", background: "white", border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 13, color: MUTED, cursor: "pointer" }}>
-              Clear
-            </button>
-          </>
-        )}
+          {data && !loading && !validating && (
+            <>
+              <button onClick={() => analyze(true)}
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", background: "white", border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 12, color: MUTED, cursor: "pointer", marginTop: 1 }}>
+                <RefreshCw size={12} /> Rescan
+              </button>
+              <button onClick={() => { setData(null); setError(null); setCompetitors([""]); setDomainErrors({}); }}
+                style={{ padding: "9px 14px", background: "white", border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 13, color: MUTED, cursor: "pointer", marginTop: 1 }}>
+                Clear
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Error */}
@@ -783,45 +843,106 @@ export function CompetitorResearch({ initialDomain, plan = "free", onNavigate }:
       {data && !loading && (
         <>
           {/* Score cards */}
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-            {data.domains.map((d, i) => {
-              const delta = i > 0 ? d.score - (data.domains[0]?.score ?? 0) : null;
-              return (
-                <div key={d.domain} style={{
-                  background: "white",
-                  border: `1.5px solid ${d.isYou ? P : BORDER}`,
-                  borderRadius: 10,
-                  padding: "16px 24px",
-                  minWidth: 160,
-                  position: "relative",
-                }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: d.isYou ? P : MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>
-                    {d.isYou ? "You" : "Competitor"}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                    <span style={{ fontSize: 42, fontWeight: 800, color: "#111827", lineHeight: 1 }}>{d.score}</span>
-                    {delta !== null && (
-                      <span style={{ fontSize: 13, fontWeight: 600, color: delta > 0 ? DANGER : SUCCESS }}>
-                        {delta > 0 ? `+${delta}` : String(delta)}
+          {data.domains.length === 2 ? (
+            /* Two-domain layout: YOU | diff badge | COMPETITOR */
+            <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 16, flexWrap: "wrap" }}>
+              {data.domains.map((d, i) => {
+                const youScore = data.domains[0]?.score ?? 0;
+                const compScore = data.domains[1]?.score ?? 0;
+                const diff = youScore - compScore;
+                const isLast = i === data.domains.length - 1;
+                return (
+                  <React.Fragment key={d.domain}>
+                    <div style={{
+                      background: d.isYou ? "linear-gradient(135deg, #f8f9ff 0%, #eef0ff 100%)" : "white",
+                      border: `2px solid ${d.isYou ? P : BORDER}`,
+                      borderRadius: 14,
+                      padding: "20px 28px",
+                      minWidth: 180,
+                      position: "relative",
+                    }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: d.isYou ? P : MUTED, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                        {d.isYou ? "You" : "Competitor"}
+                      </div>
+                      <div style={{ fontSize: 56, fontWeight: 800, color: d.isYou ? P : "#111827", lineHeight: 1, marginBottom: 6 }}>
+                        {d.score}
+                      </div>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>AI Presence Score</div>
+                      <div style={{ height: 4, borderRadius: 4, background: "#E5E7EB", overflow: "hidden", marginBottom: 10 }}>
+                        <div style={{ height: "100%", width: `${d.score}%`, borderRadius: 4, background: d.isYou ? P : "#9CA3AF", transition: "width 0.6s ease" }} />
+                      </div>
+                      <div style={{ fontSize: 12, color: MUTED }}>{d.domain}</div>
+                      <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 2 }}>{fmtNum(d.mentions)} mentions tracked</div>
+                      {data.cached && d.isYou && (
+                        <span style={{ position: "absolute", top: 12, right: 12, fontSize: 10, fontWeight: 600, color: WARNING, background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, padding: "1px 6px" }}>
+                          Cached
+                        </span>
+                      )}
+                    </div>
+                    {/* Diff badge between cards */}
+                    {!isLast && (
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "0 14px", gap: 4 }}>
+                        <div style={{
+                          background: "white",
+                          border: `2px solid ${diff > 0 ? SUCCESS : diff < 0 ? DANGER : BORDER}`,
+                          borderRadius: 100,
+                          padding: "8px 16px",
+                          fontSize: 15, fontWeight: 700,
+                          color: diff > 0 ? SUCCESS : diff < 0 ? DANGER : MUTED,
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                          whiteSpace: "nowrap",
+                        }}>
+                          {diff > 0 ? `+${diff}` : diff < 0 ? String(diff) : "Tied"}
+                        </div>
+                        <div style={{ fontSize: 10, color: MUTED, fontWeight: 500 }}>
+                          {diff > 0 ? "ahead" : diff < 0 ? "behind" : ""}
+                        </div>
+                      </div>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          ) : (
+            /* Multi-domain layout: flex wrap */
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+              {data.domains.map((d, i) => {
+                const delta = i > 0 ? d.score - (data.domains[0]?.score ?? 0) : null;
+                return (
+                  <div key={d.domain} style={{
+                    background: d.isYou ? "linear-gradient(135deg, #f8f9ff 0%, #eef0ff 100%)" : "white",
+                    border: `2px solid ${d.isYou ? P : BORDER}`,
+                    borderRadius: 14,
+                    padding: "18px 24px",
+                    minWidth: 160,
+                    position: "relative",
+                  }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: d.isYou ? P : MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>
+                      {d.isYou ? "You" : `Competitor ${i}`}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                      <span style={{ fontSize: 48, fontWeight: 800, color: d.isYou ? P : "#111827", lineHeight: 1 }}>{d.score}</span>
+                      {delta !== null && (
+                        <span style={{ fontSize: 13, fontWeight: 600, color: delta > 0 ? DANGER : SUCCESS }}>
+                          {delta > 0 ? `+${delta}` : String(delta)}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ height: 4, borderRadius: 4, background: "#E5E7EB", overflow: "hidden", margin: "8px 0" }}>
+                      <div style={{ height: "100%", width: `${d.score}%`, borderRadius: 4, background: d.isYou ? P : "#9CA3AF" }} />
+                    </div>
+                    <div style={{ fontSize: 11, color: MUTED }}>{d.domain}</div>
+                    <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 2 }}>{fmtNum(d.mentions)} mentions</div>
+                    {data.cached && d.isYou && (
+                      <span style={{ position: "absolute", top: 10, right: 10, fontSize: 10, fontWeight: 600, color: WARNING, background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, padding: "1px 6px" }}>
+                        Cached
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>{d.domain}</div>
-                  <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{fmtNum(d.mentions)} AI mentions</div>
-                  {!d.isYou && d.mentions === 0 && d.score === 0 && (
-                    <div style={{ marginTop: 8, fontSize: 11, color: "#92400E", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 6, padding: "4px 8px", lineHeight: 1.4 }}>
-                      No data found. Double-check the domain spelling.
-                    </div>
-                  )}
-                  {data.cached && i === 0 && (
-                    <span style={{ position: "absolute", top: 10, right: 10, fontSize: 10, fontWeight: 600, color: WARNING, background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, padding: "1px 6px" }}>
-                      Cached
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
 
           <CacheIndicator analyzedAt={data.analyzedAt} />
 
@@ -852,7 +973,7 @@ export function CompetitorResearch({ initialDomain, plan = "free", onNavigate }:
             </div>
             {data.topicCounts.all === 0 && data.sources.length === 0 ? (
               <div style={{ textAlign: "center", padding: "32px 20px", color: MUTED, fontSize: 13 }}>
-                No topic data found. This may happen if DataForSEO has limited data for these brand keywords.
+                No topic data found for these brands. Try running the analysis again or check that both domains are correct.
               </div>
             ) : (
               <TopicsTable
