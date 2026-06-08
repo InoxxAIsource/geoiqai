@@ -931,6 +931,7 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
               source: "exa_tavily_scan",
               evidenceCount: scanResult.evidenceCount,
               topEvidence: scanResult.topEvidence,
+              googleAio: scanResult.googleAio ?? null,
             },
           }).returning();
           audit = inserted ?? null;
@@ -983,6 +984,16 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
     const bestKeyword = audit?.brandName ?? candidates[0]!;
     const score = audit?.scoreTotal ?? 0;
     const hasData = audit != null && (audit.chatgptFound || audit.geminiFound || audit.perplexityFound);
+
+    // Extract Google AIO data stored by runAIPresenceScan (in rawResults JSON)
+    type GoogleAioStored = {
+      citedInAio: boolean;
+      aioExists: boolean;
+      aioText: string | null;
+      keywordChecked: string | null;
+    } | null;
+    const rawData = (audit?.rawResults ?? null) as Record<string, unknown> | null;
+    const googleAio = (rawData?.googleAio ?? null) as GoogleAioStored;
 
     // Build per-platform rows from the audit scores
     const platformDefs = [
@@ -1038,6 +1049,7 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
       from_cache: false,
       cached_at: now.toISOString(),
       expires_at: expiresAt.toISOString(),
+      googleAio: googleAio ?? null,
     };
 
     // Store top-level cache

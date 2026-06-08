@@ -31,6 +31,13 @@ interface CitedSource { domain: string; mentions: number; ai_search_volume: numb
 interface CitedPage { url: string; mentions: number; ai_search_volume: number }
 interface Topic { question: string; platform: string; model_name: string; ai_search_volume: number; location_code: number }
 
+interface GoogleAioData {
+  citedInAio: boolean;
+  aioExists: boolean;
+  aioText: string | null;
+  keywordChecked: string | null;
+}
+
 interface VisibilityData {
   domain: string;
   brandName: string;
@@ -55,6 +62,7 @@ interface VisibilityData {
   expires_at?: string;
   dateTo: string;
   cached: boolean;
+  googleAio?: GoogleAioData | null;
 }
 
 /* ---- helpers ---- */
@@ -500,6 +508,57 @@ export function VisibilityOverview({
               )}
             </div>
           </div>
+
+          {/* Google AI Overview presence row */}
+          {d.googleAio != null && (
+            <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "20px 24px", marginBottom: 16 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#111827", marginBottom: 16 }}>Google AI Overview</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 200 }}>
+                  <AiLogo k="ai_overview" size={20} fallbackColor="#4285F4" />
+                  <span style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Google AI Overview</span>
+                </div>
+                {d.googleAio.aioExists ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {d.googleAio.citedInAio ? (
+                      <>
+                        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", background: "#D1FAE5" }}>
+                          <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#059669" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        </span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#059669" }}>Cited in AI Overview</span>
+                        {d.googleAio.keywordChecked && (
+                          <span style={{ fontSize: 12, color: MUTED }}>for "{d.googleAio.keywordChecked}"</span>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", background: "#F3F4F6" }}>
+                          <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M3 3l6 6M9 3l-6 6" stroke="#9CA3AF" strokeWidth="1.8" strokeLinecap="round"/></svg>
+                        </span>
+                        <span style={{ fontSize: 13, fontWeight: 500, color: MUTED }}>Not cited in AI Overview</span>
+                        {d.googleAio.keywordChecked && (
+                          <span style={{ fontSize: 12, color: MUTED }}>checked: "{d.googleAio.keywordChecked}"</span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", background: "#F3F4F6" }}>
+                      <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M3 3l6 6M9 3l-6 6" stroke="#9CA3AF" strokeWidth="1.8" strokeLinecap="round"/></svg>
+                    </span>
+                    <span style={{ fontSize: 13, color: MUTED }}>No AI Overview found for these queries</span>
+                  </div>
+                )}
+              </div>
+              {d.googleAio.aioText && (
+                <div style={{ marginTop: 12, padding: "10px 14px", background: "#F9FAFB", borderRadius: 8, fontSize: 12, color: "#6B7280", lineHeight: 1.6, borderLeft: "3px solid #E5E7EB" }}>
+                  {d.googleAio.aioText}
+                  {d.googleAio.aioText.length >= 250 && <span style={{ color: "#9CA3AF" }}>...</span>}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* no data state */}
           {!d.hasData && (

@@ -524,6 +524,7 @@ export async function getGoogleAiOverview(
     keyword: kw,
     location_code: locationCode,
     language_code: "en",
+    load_async_ai_overview: true,
   }));
 
   try {
@@ -616,6 +617,111 @@ export async function getGoogleAiOverview(
       brandEntities,
       estimatedCostUsd: top5.length * 0.003,
     };
+  } catch {
+    return empty;
+  }
+}
+
+// ─── Google AI Overview - fast brand check ($0.0026/keyword) ──────────────────
+
+export interface GoogleAioCheckResult {
+  citedInAio: boolean;
+  aioExists: boolean;
+  aioText: string | null;
+  keywordChecked: string | null;
+  estimatedCostUsd: number;
+}
+
+/**
+ * Quick check: does the brand's domain appear in a Google AI Overview
+ * for 2 brand-adjacent queries? Uses load_async_ai_overview on the
+ * live/advanced SERP endpoint. Cost: ~$0.0052 total (2 x $0.0026).
+ */
+export async function checkBrandInGoogleAio(
+  domain: string,
+  brandName: string,
+): Promise<GoogleAioCheckResult> {
+  const login = process.env.DATAFORSEO_LOGIN ?? "";
+  const password = process.env.DATAFORSEO_PASSWORD ?? "";
+  const empty: GoogleAioCheckResult = {
+    citedInAio: false, aioExists: false, aioText: null, keywordChecked: null, estimatedCostUsd: 0,
+  };
+  if (!login || !password) return empty;
+
+  // "review" and "alternatives" queries reliably trigger AI Overviews for
+  // established brands; newer brands correctly score 0.
+  const keywords = [`${brandName} review`, `${brandName} alternatives`];
+  const costPerKw = 0.0026;
+
+  logger.info(
+    {
+      domain,
+      keywords,
+      endpoint: "checkBrandInGoogleAio (serp/google/organic/live/advanced + load_async_ai_overview)",
+      estimated_cost: +(keywords.length * costPerKw).toFixed(4),
+    },
+    "[COST-AUDIT] DATAFORSEO CALL",
+  );
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000);
+    const resp = await fetch(`${DATAFORSEO_BASE}/v3/serp/google/organic/live/advanced`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: getAuthHeader(),
+      body: JSON.stringify(
+        keywords.map(kw => ({
+          keyword: kw,
+          location_name: "United States",
+          language_name: "English",
+          device: "desktop",
+          load_async_ai_overview: true,
+        })),
+      ),
+    });
+    clearTimeout(timeout);
+    if (!resp.ok) return empty;
+
+    const data = (await resp.json()) as Record<string, unknown>;
+    const tasks = (data.tasks as Array<Record<string, unknown>>) ?? [];
+
+    for (let i = 0; i < tasks.length; i++) {
+      const kw = keywords[i] ?? "";
+      const result = (tasks[i]?.result as Array<Record<string, unknown>>)?.[0];
+      const items = (result?.items as Array<Record<string, unknown>>) ?? [];
+      const aiItem = items.find(it => it.type === "ai_overview");
+      if (!aiItem) continue;
+
+      // AIO block found for this keyword
+      const subItems = (aiItem.items as Array<Record<string, unknown>>) ?? [];
+      let citedInAio = false;
+      const aioText: string | null = subItems[0]
+        ? String((subItems[0] as Record<string, unknown>).content ?? "").slice(0, 250) || null
+        : null;
+
+      for (const sub of subItems) {
+        const content = String((sub as Record<string, unknown>).content ?? "");
+        const links = ((sub as Record<string, unknown>).links as Array<Record<string, unknown>>) ?? [];
+        const inLinks = links.some(l => domainMatchesTarget(String((l as Record<string, unknown>).domain ?? (l as Record<string, unknown>).url ?? ""), domain));
+        const inText = domainMatchesTarget(content, domain);
+        if (inLinks || inText) {
+          citedInAio = true;
+          break;
+        }
+      }
+
+      return {
+        citedInAio,
+        aioExists: true,
+        aioText,
+        keywordChecked: kw,
+        estimatedCostUsd: keywords.length * costPerKw,
+      };
+    }
+
+    // No AIO block found for any keyword
+    return { ...empty, estimatedCostUsd: keywords.length * costPerKw };
   } catch {
     return empty;
   }

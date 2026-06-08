@@ -1,6 +1,7 @@
 import Exa from "exa-js";
 import { tavily } from "@tavily/core";
 import { logger } from "./logger";
+import { checkBrandInGoogleAio, type GoogleAioCheckResult } from "./dataforseo";
 
 function getExaClient(): Exa | null {
   const key = process.env.EXA_API_KEY;
@@ -42,6 +43,12 @@ export interface AIPresenceScanResult {
   platforms: AIPresencePlatform[];
   evidenceCount: number;
   topEvidence: string | null;
+  googleAio: {
+    citedInAio: boolean;
+    aioExists: boolean;
+    aioText: string | null;
+    keywordChecked: string | null;
+  } | null;
 }
 
 interface TavilyResult {
@@ -281,7 +288,9 @@ export async function runAIPresenceScan(domain: string): Promise<AIPresenceScanR
     "ai-presence-scan: starting",
   );
 
-  // Run Tavily + general Exa in parallel; per-platform Exa runs concurrently too
+  // Run Tavily + Exa + Google AIO check all in parallel
+  const googleAioPromise: Promise<GoogleAioCheckResult> = checkBrandInGoogleAio(domain, brandName);
+
   const [
     exaBrandSearch,
     tavilyChatGPT,
@@ -404,6 +413,24 @@ export async function runAIPresenceScan(domain: string): Promise<AIPresenceScanR
     pct: totalScore > 0 ? Math.round((p.score / totalScore) * 100) : 0,
   }));
 
+  // Collect Google AIO result (was started in parallel at scan begin)
+  let googleAio: AIPresenceScanResult["googleAio"] = null;
+  try {
+    const aioResult = await googleAioPromise;
+    googleAio = {
+      citedInAio: aioResult.citedInAio,
+      aioExists: aioResult.aioExists,
+      aioText: aioResult.aioText,
+      keywordChecked: aioResult.keywordChecked,
+    };
+    logger.info(
+      { domain, citedInAio: aioResult.citedInAio, aioExists: aioResult.aioExists, kw: aioResult.keywordChecked },
+      "ai-presence-scan: Google AIO result",
+    );
+  } catch (err) {
+    logger.warn({ err, domain }, "ai-presence-scan: Google AIO check failed");
+  }
+
   logger.info(
     {
       domain,
@@ -433,5 +460,6 @@ export async function runAIPresenceScan(domain: string): Promise<AIPresenceScanR
     platforms,
     evidenceCount: exaResults.length,
     topEvidence,
+    googleAio,
   };
 }
