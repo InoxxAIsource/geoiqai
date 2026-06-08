@@ -296,6 +296,8 @@ export async function runAIPresenceScan(domain: string): Promise<AIPresenceScanR
     tavilyChatGPT,
     tavilyGemini,
     tavilyPerplexity,
+    tavilyClaude,
+    tavilyGrok,
   ] = await Promise.allSettled([
     // General Exa: used for topEvidence snippet shown in UI
     exa
@@ -335,6 +337,22 @@ export async function runAIPresenceScan(domain: string): Promise<AIPresenceScanR
       ? tvly.search(
           `Does Perplexity AI recommend or cite ${brandName}? Perplexity answer ${domain}`,
           { searchDepth: "advanced", maxResults: 7, topic: "general", days: 180 },
+        )
+      : Promise.resolve(null),
+
+    // Tavily: Claude-specific
+    tvly
+      ? tvly.search(
+          `Does Anthropic Claude recommend or mention ${brandName}? Claude AI response ${domain}`,
+          { searchDepth: "advanced", maxResults: 5, topic: "general", days: 180 },
+        )
+      : Promise.resolve(null),
+
+    // Tavily: Grok-specific
+    tvly
+      ? tvly.search(
+          `Does xAI Grok recommend or mention ${brandName}? Grok AI response ${domain}`,
+          { searchDepth: "advanced", maxResults: 5, topic: "general", days: 180 },
         )
       : Promise.resolve(null),
   ]);
@@ -381,9 +399,11 @@ export async function runAIPresenceScan(domain: string): Promise<AIPresenceScanR
   const chatgptRaw = extractTavily(tavilyChatGPT);
   const geminiRaw = extractTavily(tavilyGemini);
   const perplexityRaw = extractTavily(tavilyPerplexity);
+  const claudeRaw = extractTavily(tavilyClaude);
+  const grokRaw = extractTavily(tavilyGrok);
 
   logger.info(
-    { domain, chatgptResults: chatgptRaw.length, geminiResults: geminiRaw.length, perplexityResults: perplexityRaw.length },
+    { domain, chatgptResults: chatgptRaw.length, geminiResults: geminiRaw.length, perplexityResults: perplexityRaw.length, claudeResults: claudeRaw.length, grokResults: grokRaw.length },
     "ai-presence-scan: Tavily raw counts",
   );
 
@@ -391,12 +411,14 @@ export async function runAIPresenceScan(domain: string): Promise<AIPresenceScanR
   const chatgpt = scorePlatform(chatgptRaw, domain, brandSlug, exaPlatformEvidence?.chatgpt);
   const gemini = scorePlatform(geminiRaw, domain, brandSlug, exaPlatformEvidence?.gemini);
   const perplexity = scorePlatform(perplexityRaw, domain, brandSlug, exaPlatformEvidence?.perplexity);
+  const claude = scorePlatform(claudeRaw, domain, brandSlug, undefined);
+  const grok = scorePlatform(grokRaw, domain, brandSlug, undefined);
 
   const overallScore = Math.min(
     Math.round((chatgpt.score + gemini.score + perplexity.score) / 3),
     99,
   );
-  const hasData = chatgpt.found || gemini.found || perplexity.found;
+  const hasData = chatgpt.found || gemini.found || perplexity.found || claude.found || grok.found;
 
   const topEvidence = exaResults.length > 0
     ? (exaResults[0]?.highlights?.[0] ?? null)
@@ -406,6 +428,8 @@ export async function runAIPresenceScan(domain: string): Promise<AIPresenceScanR
     { key: "chat_gpt", displayName: "ChatGPT", color: "#10A37F", found: chatgpt.found, score: chatgpt.score, pct: 0, evidence: chatgpt.evidence },
     { key: "gemini", displayName: "Gemini", color: "#4285F4", found: gemini.found, score: gemini.score, pct: 0, evidence: gemini.evidence },
     { key: "perplexity", displayName: "Perplexity", color: "#20B2AA", found: perplexity.found, score: perplexity.score, pct: 0, evidence: perplexity.evidence },
+    { key: "claude", displayName: "Claude", color: "#F97316", found: claude.found, score: claude.score, pct: 0, evidence: claude.evidence },
+    { key: "grok", displayName: "Grok", color: "#111827", found: grok.found, score: grok.score, pct: 0, evidence: grok.evidence },
   ];
   const totalScore = platformDefs.reduce((s, p) => s + p.score, 0);
   const platforms: AIPresencePlatform[] = platformDefs.map(p => ({

@@ -1,0 +1,431 @@
+AI Presence merge is incomplete.
+Technical site score and AI crawler readiness
+both showing 0/100. Issues section missing.
+Fix by connecting crawl scan to main scan.
+
+PROBLEM 1: CRAWL NOT RUNNING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When AI Presence page loads for a domain
+the crawl scan is NOT running automatically.
+
+Technical site score: 0/100
+AI crawler readiness: 0/100
+Both because no crawl data exists.
+
+Fix: run crawl scan in parallel with 
+AI Presence scan in the full-scan endpoint.
+
+In POST /api/full-scan or equivalent:
+
+const [aiPresenceData, crawlData] = 
+  await Promise.all([
+    runAIPresenceScan(domain),
+    runCrawlScan(domain)
+  ]);
+
+runCrawlScan should:
+1. Fetch homepage HTML
+2. Check robots.txt
+3. Check sitemap.xml
+4. Check llms.txt
+5. Check schema types
+6. Check H1, meta title, meta description
+7. Calculate site health score
+8. Calculate AI readiness score
+9. Return issues list
+
+const runCrawlScan = async (domain) => {
+  const baseUrl = `https://${domain
+    .replace('www.','').replace('https://','')
+    .replace('http://','')}`;
+  
+  const results = {
+    issues: [],
+    site_health_score: 0,
+    ai_readiness_score: 0
+  };
+  
+  try {
+    // Fetch homepage
+    const start = Date.now();
+    const resp = await fetch(baseUrl, {
+      headers: { 
+        'User-Agent': 'GeoIQ-Audit/1.0' 
+      },
+      signal: AbortSignal.timeout(10000)
+    });
+    const responseMs = Date.now() - start;
+    const html = await resp.text();
+    
+    // Check llms.txt
+    let hasLlmsTxt = false;
+    try {
+      const llms = await fetch(
+        `${baseUrl}/llms.txt`,
+        { signal: AbortSignal.timeout(5000) }
+      );
+      hasLlmsTxt = llms.status === 200;
+    } catch {}
+    
+    // Check robots.txt
+    let robotsTxt = '';
+    let hasRobots = false;
+    try {
+      const robots = await fetch(
+        `${baseUrl}/robots.txt`,
+        { signal: AbortSignal.timeout(5000) }
+      );
+      hasRobots = robots.status === 200;
+      if (hasRobots) {
+        robotsTxt = await robots.text();
+      }
+    } catch {}
+    
+    // Check sitemap
+    let hasSitemap = false;
+    try {
+      const sitemap = await fetch(
+        `${baseUrl}/sitemap.xml`,
+        { signal: AbortSignal.timeout(5000) }
+      );
+      hasSitemap = sitemap.status === 200;
+    } catch {}
+    
+    // Parse HTML signals
+    const hasOrgSchema = html.includes(
+      '"Organization"'
+    );
+    const hasFaqSchema = html.includes(
+      '"FAQPage"'
+    );
+    const hasH1 = /<h1[^>]*>/i.test(html);
+    const titleMatch = html.match(
+      /<title[^>]*>(.*?)<\/title>/i
+    );
+    const metaTitle = titleMatch?.[1] || '';
+    const descMatch = html.match(
+      /<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["']/i
+    );
+    const metaDesc = descMatch?.[1] || '';
+    const isHttps = baseUrl.startsWith('https');
+    
+    // Bot access checks
+    const gptBotBlocked = robotsTxt
+      .includes('GPTBot') && 
+      robotsTxt.match(
+        /User-agent: GPTBot[\s\S]*?Disallow: \//
+      );
+    const claudeBotBlocked = robotsTxt
+      .includes('ClaudeBot') && 
+      robotsTxt.match(
+        /User-agent: ClaudeBot[\s\S]*?Disallow: \//
+      );
+    
+    // Build issues list
+    if (!hasLlmsTxt) {
+      results.issues.push({
+        type: 'llmstxt',
+        severity: 'error',
+        title: 'llms.txt file missing',
+        affects: ['ChatGPT','Claude','Grok'],
+        score_impact: 8,
+        fix_type: 'generate'
+      });
+    }
+    
+    if (!hasOrgSchema) {
+      results.issues.push({
+        type: 'org_schema',
+        severity: 'warning',
+        title: 'Organization schema missing',
+        affects: ['ChatGPT','Gemini','Perplexity',
+                  'Claude','Grok','Google AI'],
+        score_impact: 10,
+        fix_type: 'generate'
+      });
+    }
+    
+    if (!hasFaqSchema) {
+      results.issues.push({
+        type: 'faq_schema',
+        severity: 'warning',
+        title: 'FAQPage schema missing',
+        affects: ['Perplexity','Google AI Overview'],
+        score_impact: 12,
+        fix_type: 'generate'
+      });
+    }
+    
+    if (!hasRobots) {
+      results.issues.push({
+        type: 'robots_txt',
+        severity: 'warning',
+        title: 'robots.txt not found',
+        affects: ['ChatGPT','Gemini','Perplexity',
+                  'Claude','Grok','Google AI'],
+        score_impact: 5,
+        fix_type: 'generate'
+      });
+    }
+    
+    if (!hasSitemap) {
+      results.issues.push({
+        type: 'sitemap',
+        severity: 'warning',
+        title: 'sitemap.xml not found',
+        affects: ['Gemini','Google AI Overview'],
+        score_impact: 4,
+        fix_type: 'generate'
+      });
+    }
+    
+    if (!isHttps) {
+      results.issues.push({
+        type: 'https',
+        severity: 'error',
+        title: 'HTTPS not enabled',
+        affects: ['ChatGPT','Google AI Overview'],
+        score_impact: 6,
+        fix_type: 'info'
+      });
+    }
+    
+    if (!hasH1) {
+      results.issues.push({
+        type: 'h1_missing',
+        severity: 'warning',
+        title: 'No H1 tag on homepage',
+        affects: ['Gemini','Google AI Overview'],
+        score_impact: 3,
+        fix_type: 'info'
+      });
+    }
+    
+    if (!metaTitle) {
+      results.issues.push({
+        type: 'meta_title',
+        severity: 'error',
+        title: 'Meta title missing',
+        affects: ['Google AI Overview'],
+        score_impact: 5,
+        fix_type: 'info'
+      });
+    }
+    
+    // Calculate scores
+    const aiChecks = [
+      hasLlmsTxt, hasOrgSchema, hasFaqSchema,
+      hasRobots, !gptBotBlocked, !claudeBotBlocked,
+      hasSitemap
+    ];
+    const aiPassing = aiChecks
+      .filter(Boolean).length;
+    results.ai_readiness_score = Math.round(
+      (aiPassing / aiChecks.length) * 100
+    );
+    
+    const siteChecks = [
+      isHttps, hasH1, !!metaTitle, 
+      !!metaDesc, hasRobots, hasSitemap,
+      responseMs < 2000
+    ];
+    const sitePassing = siteChecks
+      .filter(Boolean).length;
+    results.site_health_score = Math.round(
+      (sitePassing / siteChecks.length) * 100
+    );
+    
+    // Thematic scores
+    results.thematic = {
+      crawlability: hasRobots && hasSitemap 
+        ? 90 : 40,
+      https: isHttps ? 100 : 0,
+      performance: responseMs < 800 ? 100
+        : responseMs < 2000 ? 70 : 30,
+      internal_linking: 20,
+      schema: hasOrgSchema && hasFaqSchema 
+        ? 90 : hasOrgSchema ? 50 : 0,
+      ai_search: results.ai_readiness_score
+    };
+    
+  } catch (err) {
+    console.error('Crawl error:', err.message);
+  }
+  
+  return results;
+};
+
+PROBLEM 2: DISPLAY ISSUES SECTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Issues section is not showing on the page.
+Add between Platform Breakdown 
+and Google AI Overview:
+
+ERRORS AND WARNINGS section:
+
+{crawlData.issues.length > 0 && (
+  <div className="issues-section">
+    <h3>Issues Affecting Your AI Visibility</h3>
+    
+    {/* Errors first */}
+    {crawlData.issues
+      .filter(i => i.severity === 'error')
+      .map(issue => (
+        <IssueRow 
+          key={issue.type}
+          issue={issue}
+          domain={domain}
+        />
+    ))}
+    
+    {/* Warnings */}
+    {crawlData.issues
+      .filter(i => i.severity === 'warning')
+      .map(issue => (
+        <IssueRow 
+          key={issue.type}
+          issue={issue}
+          domain={domain}
+        />
+    ))}
+  </div>
+)}
+
+IssueRow component:
+
+const IssueRow = ({ issue, domain }) => {
+  const [expanded, setExpanded] = 
+    useState(false);
+  const [generated, setGenerated] = 
+    useState(null);
+  const [copying, setCopying] = 
+    useState(false);
+  
+  const handleGenerate = async () => {
+    const resp = await fetch(
+      `/api/generate/${issue.type}`,
+      { method: 'POST',
+        body: JSON.stringify({ domain }) }
+    );
+    const data = await resp.json();
+    setGenerated(data.content || data.code);
+  };
+  
+  return (
+    <div className="issue-row">
+      <div className="issue-header"
+           onClick={() => setExpanded(!expanded)}>
+        
+        <span className={`badge ${issue.severity}`}>
+          {issue.severity.toUpperCase()}
+        </span>
+        
+        <span className="issue-title">
+          {issue.title}
+        </span>
+        
+        <div className="issue-meta">
+          <span className="score-impact 
+                           text-green">
+            +{issue.score_impact} pts
+          </span>
+          <span className="affects">
+            {issue.affects.join(' • ')}
+          </span>
+          <span className="expand-icon">
+            {expanded ? '▲' : '▼'}
+          </span>
+        </div>
+      </div>
+      
+      {expanded && (
+        <div className="issue-details">
+          <FixSteps 
+            issueType={issue.type}
+            domain={domain}
+            onGenerate={handleGenerate}
+            generated={generated}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+PROBLEM 3: REMOVE DISCLAIMER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Remove: 
+"Data source: Google AI Overview + 
+ChatGPT (GPT-5). Gemini and Perplexity 
+data coming soon."
+
+Replace with:
+"Powered by live web intelligence"
+
+PROBLEM 4: ADD CLAUDE AND GROK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Still only 3 platforms in Distribution.
+ChatGPT, Gemini, Perplexity.
+Claude and Grok missing.
+
+Find where platforms array is built.
+Add Claude and Grok with their scores.
+
+const allPlatforms = [
+  { name: 'ChatGPT', score: chatgptScore,
+    color: '#10b981', icon: 'chatgpt' },
+  { name: 'Gemini', score: geminiScore,
+    color: '#4285f4', icon: 'gemini' },
+  { name: 'Perplexity', score: perplexityScore,
+    color: '#20b2aa', icon: 'perplexity' },
+  { name: 'Claude', score: claudeScore,
+    color: '#f97316', icon: 'claude' },
+  { name: 'Grok', score: grokScore,
+    color: '#000000', icon: 'grok' },
+  { name: 'Google AI', score: aioScore,
+    color: '#ea4335', icon: 'google' }
+];
+
+PROBLEM 5: FIX 0 SCORES FOR 
+TECHNICAL AND READINESS GAUGES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The two right gauges show 0/100.
+They need crawlData to populate.
+
+After crawlData returns:
+Technical site score = 
+  crawlData.site_health_score
+
+AI crawler readiness = 
+  crawlData.ai_readiness_score
+
+If crawl fails or times out:
+Show "Checking..." not 0/100
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST ON lovable.dev
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After fix run scan on lovable.dev.
+
+Should show:
+1. Technical site score: real number not 0
+2. AI crawler readiness: real number not 0
+3. Issues section visible with:
+   - llms.txt missing (if true)
+   - Schema issues
+   - Each with AI system badges
+   - Each with +X pts score impact
+   - [Fix Steps] expandable
+4. All 6 platforms in Distribution
+5. No "coming soon" disclaimer
+
+Share screenshot showing:
+- 3 real score gauges
+- Issues section with badges
+- All 6 platforms in distribution

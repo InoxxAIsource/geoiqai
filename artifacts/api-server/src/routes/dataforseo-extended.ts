@@ -932,6 +932,7 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
               evidenceCount: scanResult.evidenceCount,
               topEvidence: scanResult.topEvidence,
               googleAio: scanResult.googleAio ?? null,
+              platforms: scanResult.platforms,
             },
           }).returning();
           audit = inserted ?? null;
@@ -995,12 +996,16 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
     const rawData = (audit?.rawResults ?? null) as Record<string, unknown> | null;
     const googleAio = (rawData?.googleAio ?? null) as GoogleAioStored;
 
-    // Build per-platform rows from the audit scores
-    const platformDefs = [
-      { key: "chat_gpt", displayName: "ChatGPT", color: "#10A37F", found: audit?.chatgptFound ?? false, score: audit?.scoreChatgpt ?? 0 },
-      { key: "gemini", displayName: "Gemini", color: "#4285F4", found: audit?.geminiFound ?? false, score: audit?.scoreGemini ?? 0 },
-      { key: "perplexity", displayName: "Perplexity", color: "#20B2AA", found: audit?.perplexityFound ?? false, score: audit?.scorePerplexity ?? 0 },
-    ];
+    // Build per-platform rows - prefer full platform list stored by runAIPresenceScan
+    type StoredPlatform = { key: string; displayName: string; color: string; found: boolean; score: number; pct: number };
+    const storedPlatforms = (rawData?.platforms ?? null) as StoredPlatform[] | null;
+    const platformDefs: StoredPlatform[] = storedPlatforms?.length
+      ? storedPlatforms
+      : [
+          { key: "chat_gpt", displayName: "ChatGPT", color: "#10A37F", found: audit?.chatgptFound ?? false, score: audit?.scoreChatgpt ?? 0, pct: 0 },
+          { key: "gemini", displayName: "Gemini", color: "#4285F4", found: audit?.geminiFound ?? false, score: audit?.scoreGemini ?? 0, pct: 0 },
+          { key: "perplexity", displayName: "Perplexity", color: "#20B2AA", found: audit?.perplexityFound ?? false, score: audit?.scorePerplexity ?? 0, pct: 0 },
+        ];
     const activePlatforms = platformDefs.filter(p => p.found);
     const totalPlatformScore = activePlatforms.reduce((s, p) => s + p.score, 0);
     const platformData = activePlatforms.map(p => ({
@@ -1035,7 +1040,7 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
       citedPagesCount,
       hasData,
       platforms: platformData,
-      platformsNote: "Data source: Google AI Overview + ChatGPT (GPT-5). Gemini and Perplexity data coming soon.",
+      platformsNote: "Powered by live web intelligence",
       countries,
       citedSources,
       citedPages: mergedPages.slice(0, 50),

@@ -698,7 +698,7 @@ export function VisibilityOverview({
 
   const fetchSiteAudit = useCallback((d: string) => {
     setSiteAuditLoading(true);
-    fetch("/api/dataforseo/onpage/quick", {
+    fetch("/api/onpage/quick", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ domain: d }),
