@@ -4,7 +4,7 @@ import { useGetMe, useGetMonitoredBrands, useGetBrandScores, useGetBrandKeywords
 import { useQueryClient } from "@tanstack/react-query";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { getToken } from "@/lib/auth";
-import { BarChart2, Users, Search, TrendingUp, Brain, MessageSquare, HelpCircle, Radio, FileText, Bot, Layers, Plus, ChevronDown, LogOut, Settings, Globe, Megaphone } from "lucide-react";
+import { BarChart2, Users, Search, TrendingUp, Brain, MessageSquare, HelpCircle, Radio, FileText, Bot, Layers, Plus, ChevronDown, LogOut, Settings, Globe, Megaphone, Rocket } from "lucide-react";
 import { VisibilityOverview } from "./dashboard/VisibilityOverview";
 import { CompetitorResearch } from "./dashboard/CompetitorResearch";
 import { PromptResearch } from "./dashboard/PromptResearch";
@@ -15,6 +15,7 @@ import { ContentCreation } from "./dashboard/ContentCreation";
 import { GeoAgentTab } from "./dashboard/GeoAgentTab";
 import { ContentImprovementsTab } from "./dashboard/ContentImprovementsTab";
 import { AiPRTab } from "./dashboard/AiPRTab";
+import { GeoSprint } from "./dashboard/GeoSprint";
 
 setAuthTokenGetter(getToken);
 
@@ -28,7 +29,7 @@ type NavId =
   | "visibility-overview" | "competitor-research" | "prompt-research"
   | "brand-performance" | "site-audit" | "prompt-tracking"
   | "content-creation" | "geo-agent" | "content-improvements"
-  | "ai-pr" | "settings";
+  | "ai-pr" | "settings" | "geo-sprint";
 
 interface NavItem { id: NavId; label: string; icon: React.ReactNode }
 interface NavSection { section: string; items: NavItem[] }
@@ -58,6 +59,7 @@ const NAV: NavSection[] = [
   {
     section: "GEO Toolkit",
     items: [
+      { id: "geo-sprint", label: "GEO Sprint", icon: <Rocket size={15} /> },
       { id: "geo-agent", label: "GEO Copilot", icon: <Bot size={15} /> },
       { id: "content-improvements", label: "Citation Builder", icon: <Layers size={15} /> },
       { id: "ai-pr", label: "PR Intelligence", icon: <Megaphone size={15} /> },
@@ -494,6 +496,14 @@ export function Dashboard() {
                 brand={selectedBrand ? { id: selectedBrand.id, domain: selectedBrand.domain ?? activeDomain, brandName: selectedBrand.brandName ?? null } : null}
               />
             </div>
+          )}
+
+          {activeNav === "geo-sprint" && (
+            <GeoSprint
+              domain={activeDomain}
+              onNavigate={(nav) => setActiveNav(nav as NavId)}
+              onOpenCopilot={() => setActiveNav("geo-agent")}
+            />
           )}
 
           {activeNav === "ai-pr" && (

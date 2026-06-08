@@ -17,6 +17,7 @@ import contentRouter from "./content";
 import aiPrRouter from "./ai-pr";
 import { answerMonitoringRouter } from "./answer-monitoring";
 import generateRouter from "./generate";
+import sprintRouter from "./sprint";
 
 const router: IRouter = Router();
 
@@ -38,5 +39,6 @@ router.use(contentRouter);
 router.use(aiPrRouter);
 router.use(answerMonitoringRouter);
 router.use(generateRouter);
+router.use(sprintRouter);
 
 export default router;

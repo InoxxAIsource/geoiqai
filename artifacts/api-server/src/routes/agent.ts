@@ -1,9 +1,10 @@
 import { Router, type IRouter } from "express";
 import { requireAuth, type AuthRequest } from "../lib/auth";
-import { db, usersTable, monitoredBrandsTable, dailyScoresTable, auditsTable, keywordCacheTable } from "@workspace/db";
+import { db, usersTable, monitoredBrandsTable, dailyScoresTable, auditsTable, keywordCacheTable, sprintSessionsTable, sprintProgressTable } from "@workspace/db";
 import { eq, and, desc, gt } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { runAuditEngine, generateRecommendations, extractDomain } from "../lib/audit-engine";
+import { SPRINT_STEPS } from "./sprint";
 import { getDomainKeywords } from "../lib/dataforseo";
 import { logger } from "../lib/logger";
 
@@ -89,6 +90,40 @@ const TOOLS: any[] = [
   {
     name: "check_technical_audit",
     description: "Get the latest technical GEO audit results for a domain. Use when user asks about technical setup, robots.txt, schema markup, llms.txt, or crawler access.",
+    input_schema: {
+      type: "object",
+      properties: {
+        domain: { type: "string" },
+      },
+      required: ["domain"],
+    },
+  },
+  {
+    name: "get_sprint_status",
+    description: "Get the user's current GEO Sprint progress. Use when the user asks about their progress, what to do next, or how to improve their AI visibility score.",
+    input_schema: {
+      type: "object",
+      properties: {
+        domain: { type: "string", description: "The brand domain" },
+      },
+      required: ["domain"],
+    },
+  },
+  {
+    name: "complete_sprint_step",
+    description: "Mark a GEO Sprint step as complete when the user confirms they have done it. Updates their progress and score.",
+    input_schema: {
+      type: "object",
+      properties: {
+        domain: { type: "string" },
+        step_id: { type: "string", description: "The step id to mark complete, e.g. llmstxt, org_schema, reddit" },
+      },
+      required: ["domain", "step_id"],
+    },
+  },
+  {
+    name: "get_next_sprint_step",
+    description: "Get the single most impactful next incomplete step for this user. Use when the user asks what to do today or what their next action should be.",
     input_schema: {
       type: "object",
       properties: {
@@ -327,7 +362,147 @@ async function checkTechnicalAuditTool(domain: string): Promise<unknown> {
   };
 }
 
-async function executeTool(name: string, input: Record<string, unknown>): Promise<unknown> {
+// ─── Sprint tool implementations ──────────────────────────────────────────────
+
+async function getSprintStatusTool(domain: string, userId: string): Promise<unknown> {
+  const [session] = await db
+    .select()
+    .from(sprintSessionsTable)
+    .where(and(eq(sprintSessionsTable.userId, userId), eq(sprintSessionsTable.domain, domain)))
+    .limit(1);
+
+  if (!session) {
+    return { message: `No sprint found for ${domain}. The user should visit the GEO Sprint page to start.`, domain, started: false };
+  }
+
+  const completedRows = await db
+    .select({ stepId: sprintProgressTable.stepId, completedAt: sprintProgressTable.completedAt })
+    .from(sprintProgressTable)
+    .where(and(eq(sprintProgressTable.userId, userId), eq(sprintProgressTable.domain, domain), eq(sprintProgressTable.completed, true)));
+
+  const completedIds = new Set(completedRows.map((r) => r.stepId));
+  const completedSteps = SPRINT_STEPS.filter((s) => completedIds.has(s.id));
+  const completedPts = completedSteps.reduce((sum, s) => sum + s.score_impact, 0);
+  const projectedScore = Math.min((session.currentScore ?? 0) + completedPts, 99);
+
+  const incompleteSteps = SPRINT_STEPS.filter((s) => !completedIds.has(s.id));
+  const nextStep = incompleteSteps.sort((a, b) => b.score_impact - a.score_impact)[0];
+
+  return {
+    domain,
+    current_score: session.currentScore,
+    projected_score: projectedScore,
+    target_score: 30,
+    completed_count: completedIds.size,
+    total_steps: SPRINT_STEPS.length,
+    completed_steps: completedSteps.map((s) => ({ id: s.id, title: s.title, phase: s.phase })),
+    next_recommended_step: nextStep ? {
+      id: nextStep.id,
+      title: nextStep.title,
+      phase: nextStep.phase,
+      score_impact: nextStep.score_impact,
+      time: nextStep.time,
+      why: nextStep.why,
+      research: nextStep.research,
+      affects: nextStep.affects,
+    } : null,
+  };
+}
+
+async function completeSprintStepTool(domain: string, stepId: string, userId: string): Promise<unknown> {
+  const step = SPRINT_STEPS.find((s) => s.id === stepId);
+  if (!step) return { error: `Step "${stepId}" not found. Valid ids: ${SPRINT_STEPS.map((s) => s.id).join(", ")}` };
+
+  const [session] = await db
+    .select({ currentScore: sprintSessionsTable.currentScore })
+    .from(sprintSessionsTable)
+    .where(and(eq(sprintSessionsTable.userId, userId), eq(sprintSessionsTable.domain, domain)))
+    .limit(1);
+
+  const scoreBefore = session?.currentScore ?? 0;
+  const scoreAfter = scoreBefore + step.score_impact;
+
+  await db
+    .insert(sprintProgressTable)
+    .values({ userId, domain, stepId: step.id, phase: step.phase, completed: true, completedAt: new Date(), scoreBefore, scoreAfter })
+    .onConflictDoUpdate({
+      target: [sprintProgressTable.userId, sprintProgressTable.domain, sprintProgressTable.stepId],
+      set: { completed: true, completedAt: new Date(), scoreBefore, scoreAfter },
+    });
+
+  const completedRows = await db
+    .select({ stepId: sprintProgressTable.stepId })
+    .from(sprintProgressTable)
+    .where(and(eq(sprintProgressTable.userId, userId), eq(sprintProgressTable.domain, domain), eq(sprintProgressTable.completed, true)));
+
+  const completedIds = new Set(completedRows.map((r) => r.stepId));
+  const totalPts = SPRINT_STEPS.filter((s) => completedIds.has(s.id)).reduce((sum, s) => sum + s.score_impact, 0);
+  const newProjected = Math.min(scoreBefore + totalPts, 99);
+
+  return {
+    success: true,
+    step_completed: step.title,
+    score_impact: step.score_impact,
+    new_projected_score: newProjected,
+    total_completed: completedIds.size,
+    total_steps: SPRINT_STEPS.length,
+  };
+}
+
+async function getNextSprintStepTool(domain: string, userId: string): Promise<unknown> {
+  const completedRows = await db
+    .select({ stepId: sprintProgressTable.stepId })
+    .from(sprintProgressTable)
+    .where(and(eq(sprintProgressTable.userId, userId), eq(sprintProgressTable.domain, domain), eq(sprintProgressTable.completed, true)));
+
+  const completedIds = new Set(completedRows.map((r) => r.stepId));
+
+  // Find lowest phase that has incomplete steps
+  const incompleteByPhase: Record<number, typeof SPRINT_STEPS> = {};
+  for (const step of SPRINT_STEPS) {
+    if (!completedIds.has(step.id)) {
+      if (!incompleteByPhase[step.phase]) incompleteByPhase[step.phase] = [];
+      incompleteByPhase[step.phase]!.push(step);
+    }
+  }
+
+  const lowestPhase = Math.min(...Object.keys(incompleteByPhase).map(Number));
+  const candidates = incompleteByPhase[lowestPhase] ?? [];
+  // Sort by score_impact desc, then time asc (quick wins first)
+  const next = candidates.sort((a, b) => b.score_impact - a.score_impact)[0];
+
+  if (!next) {
+    return { message: "All sprint steps complete. The user has finished the GEO Sprint.", completed_all: true };
+  }
+
+  const [session] = await db
+    .select({ currentScore: sprintSessionsTable.currentScore })
+    .from(sprintSessionsTable)
+    .where(and(eq(sprintSessionsTable.userId, userId), eq(sprintSessionsTable.domain, domain)))
+    .limit(1);
+
+  return {
+    domain,
+    next_step: {
+      id: next.id,
+      title: next.title,
+      phase: next.phase,
+      phase_name: next.phase_name,
+      score_impact: next.score_impact,
+      time: next.time,
+      why: next.why,
+      research: next.research,
+      affects: next.affects,
+      action_type: next.action_type,
+      action_label: next.action_label,
+    },
+    current_score: session?.currentScore ?? 0,
+    completed_count: completedIds.size,
+    total_steps: SPRINT_STEPS.length,
+  };
+}
+
+async function executeTool(name: string, input: Record<string, unknown>, userId?: string): Promise<unknown> {
   switch (name) {
     case "run_audit":
       return runAuditTool(String(input.domain ?? ""));
@@ -342,6 +517,12 @@ async function executeTool(name: string, input: Record<string, unknown>): Promis
       return generateGeoFileTool(String(input.domain ?? ""), String(input.file_type ?? ""));
     case "check_technical_audit":
       return checkTechnicalAuditTool(String(input.domain ?? ""));
+    case "get_sprint_status":
+      return getSprintStatusTool(String(input.domain ?? ""), userId ?? "");
+    case "complete_sprint_step":
+      return completeSprintStepTool(String(input.domain ?? ""), String(input.step_id ?? ""), userId ?? "");
+    case "get_next_sprint_step":
+      return getNextSprintStepTool(String(input.domain ?? ""), userId ?? "");
     default:
       return { error: `Unknown tool: ${name}` };
   }
@@ -359,7 +540,8 @@ async function callClaudeWithTools(
   systemPrompt: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   messages: any[],
-  maxTokens = 4096
+  maxTokens = 4096,
+  userId?: string
 ): Promise<{ text: string; toolsUsed: ToolUsed[]; toolResults: Record<string, unknown> }> {
   const toolsUsed: ToolUsed[] = [];
   const capturedToolResults: Record<string, unknown> = {};
@@ -402,7 +584,7 @@ async function callClaudeWithTools(
         });
         let result: unknown;
         try {
-          result = await executeTool(block.name, block.input);
+          result = await executeTool(block.name, block.input, userId);
         } catch (err) {
           result = { error: String(err) };
         }
@@ -575,6 +757,16 @@ get_keyword_data: Get real keyword data from DataForSEO. Use when discussing key
 get_competitor_data: Compare with competitors using real scores. Use when user asks about competition.
 generate_geo_file: Generate llms.txt, robots.txt additions, or Schema JSON. Use when user asks for these files.
 check_technical_audit: Get technical scores from the latest audit. Use when discussing technical setup.
+get_sprint_status: Get the user's GEO Sprint progress - completed steps, current score, next recommended step. Use when user asks about progress or what to do.
+get_next_sprint_step: Get the single highest-impact next step for this user based on their progress. Use when user asks what to do today or what their next action is.
+complete_sprint_step: Mark a GEO Sprint step as done when the user confirms they have completed it. Use when user says "I did X" or "I just added X".
+
+GEO SPRINT BEHAVIOR:
+You have access to the user's GEO Sprint - a 30-day plan to reach 30% AI visibility across 18 research-backed steps.
+When user asks what to do: call get_next_sprint_step, tell them their current score, recommend the single highest-impact next step, explain WHY it helps (cite the research), and offer to generate the content or navigate to the right feature.
+When user says they completed something (e.g. "I just posted on Reddit", "I added the llms.txt"): call complete_sprint_step with the matching step_id, then acknowledge with their new projected score.
+Celebrate completions - tell them the exact score impact and what to do next.
+Example response after completing a step: "Reddit done - that is +15 pts. You are at an estimated 31%. You have hit the 30% target. Next phase: PR outreach. One article in TechCrunch or Search Engine Land will push you to 50%. Want me to find journalists covering your space?"
 
 Always prefer real data over estimates. When user asks to run an audit - use run_audit immediately. Do not say you cannot run audits.
 
@@ -717,7 +909,7 @@ router.post("/agent/chat", requireAuth, async (req, res): Promise<void> => {
     { role: "user" as const, content: message },
   ];
 
-  const { text: reply, toolsUsed, toolResults } = await callClaudeWithTools(systemPrompt, chatMessages, 4096);
+  const { text: reply, toolsUsed, toolResults } = await callClaudeWithTools(systemPrompt, chatMessages, 4096, user.id);
 
   await db
     .update(usersTable)

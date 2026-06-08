@@ -1,0 +1,781 @@
+Build GEO Sprint page — the guided journey 
+from 0% to 30% AI visibility.
+Research-backed steps. Connected to all 
+existing GeoIQ features. Integrated with 
+GEO Copilot via shared Supabase state.
+
+SUPABASE TABLES NEEDED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Run these in Supabase SQL editor:
+
+CREATE TABLE IF NOT EXISTS sprint_progress (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  domain text NOT NULL,
+  step_id text NOT NULL,
+  phase integer NOT NULL,
+  completed boolean DEFAULT false,
+  completed_at timestamptz,
+  score_before integer DEFAULT 0,
+  score_after integer DEFAULT 0,
+  notes text,
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(user_id, domain, step_id)
+);
+
+CREATE TABLE IF NOT EXISTS sprint_sessions (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL,
+  domain text NOT NULL,
+  started_at timestamptz DEFAULT now(),
+  target_score integer DEFAULT 30,
+  current_score integer DEFAULT 0,
+  last_updated timestamptz DEFAULT now()
+);
+
+CREATE INDEX idx_sprint_user_domain 
+  ON sprint_progress(user_id, domain);
+
+SIDEBAR NAVIGATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add to sidebar under GEO TOOLKIT:
+Name: "GEO Sprint"
+Icon: ti-rocket
+Route: /dashboard/geo-sprint
+Style: highlighted with indigo background
+       to stand out as primary CTA
+
+Move above GEO Copilot in sidebar order.
+
+PAGE: /dashboard/geo-sprint
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+On page load:
+1. Get user's domain from their account
+2. Fetch their AI Presence score from 
+   latest scan in Supabase
+3. Fetch their completed sprint steps
+4. Generate personalized sprint if 
+   no sprint exists yet
+
+SPRINT INITIALIZATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When user opens GEO Sprint for first time:
+
+Check if sprint_sessions record exists
+for this user + domain.
+
+If NO: Create new sprint session:
+await supabase.from('sprint_sessions').insert({
+  user_id: userId,
+  domain: domain,
+  target_score: 30,
+  current_score: currentAIPresenceScore || 0,
+  started_at: new Date().toISOString()
+});
+
+Mark all steps as incomplete.
+
+If YES: Load existing progress.
+
+SPRINT STEPS DATA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Based on Princeton GEO research (KDD 2024)
+and 2026 citation data (680M citations analyzed).
+
+const SPRINT_STEPS = [
+  
+  // PHASE 1: TECHNICAL FOUNDATION
+  // Fix AI crawler issues first
+  // These unblock everything else
+  
+  {
+    id: 'llmstxt',
+    phase: 1,
+    phase_name: 'Technical foundation',
+    title: 'Add llms.txt to domain root',
+    why: 'Helps ChatGPT, Claude and Grok 
+          understand your brand without crawling',
+    affects: ['ChatGPT','Claude','Grok'],
+    score_impact: 8,
+    time: '5 minutes',
+    action_label: 'Generate file',
+    action_type: 'generate',
+    action_endpoint: '/api/generate/llmstxt',
+    verify_url: 'https://{domain}/llms.txt',
+    research: 'Direct signal to LLM crawlers'
+  },
+  {
+    id: 'org_schema',
+    phase: 1,
+    phase_name: 'Technical foundation',
+    title: 'Add Organization schema',
+    why: 'All 6 AI systems use this to 
+          identify your brand entity',
+    affects: ['ChatGPT','Gemini','Perplexity',
+              'Claude','Grok','Google AI'],
+    score_impact: 10,
+    time: '10 minutes',
+    action_label: 'Generate schema',
+    action_type: 'generate',
+    action_endpoint: '/api/generate/org-schema',
+    verify_url: 'https://search.google.com/test/rich-results',
+    research: 'Entity recognition across all platforms'
+  },
+  {
+    id: 'faq_schema',
+    phase: 1,
+    phase_name: 'Technical foundation',
+    title: 'Add FAQPage schema',
+    why: 'Perplexity and Google AI Overview 
+          heavily cite FAQ structured content',
+    affects: ['Perplexity','Google AI Overview'],
+    score_impact: 12,
+    time: '15 minutes',
+    action_label: 'Generate FAQ',
+    action_type: 'generate',
+    action_endpoint: '/api/generate/faq-schema',
+    verify_url: 'https://search.google.com/test/rich-results',
+    research: 'Princeton GEO: structured content +30% citation'
+  },
+  {
+    id: 'robots_txt',
+    phase: 1,
+    phase_name: 'Technical foundation',
+    title: 'Allow AI bots in robots.txt',
+    why: 'GPTBot, ClaudeBot, PerplexityBot 
+          must be explicitly allowed',
+    affects: ['ChatGPT','Claude','Perplexity',
+              'Grok','Google AI'],
+    score_impact: 5,
+    time: '5 minutes',
+    action_label: 'Generate robots.txt',
+    action_type: 'generate',
+    action_endpoint: '/api/generate/robots',
+    verify_url: 'https://{domain}/robots.txt',
+    research: 'Required for AI crawler access'
+  },
+  {
+    id: 'google_biz',
+    phase: 1,
+    phase_name: 'Technical foundation',
+    title: 'Set up Google Business Profile',
+    why: 'Gemini relies on Google Knowledge Graph. 
+          GBP is the fastest path into it.',
+    affects: ['Gemini','Google AI Overview'],
+    score_impact: 8,
+    time: '20 minutes',
+    action_label: 'Open Google Business',
+    action_type: 'link',
+    action_url: 'https://business.google.com',
+    research: 'Gemini draws from Google ecosystem directly'
+  },
+
+  // PHASE 2: CONTENT THAT AI CITES
+  // Princeton study: statistics +41%, 
+  // citations +40%, quotations +28%
+  
+  {
+    id: 'definition_page',
+    phase: 2,
+    phase_name: 'Content AI systems cite',
+    title: 'Write a brand definition page',
+    why: '"What is [brand]" is the most 
+          cited page format by AI systems',
+    affects: ['ChatGPT','Claude','Perplexity'],
+    score_impact: 10,
+    time: '20 minutes',
+    action_label: 'Write with GEO Writer',
+    action_type: 'internal',
+    action_route: '/dashboard/content-creation',
+    research: 'Authoritative voice +40% citation rate (Princeton)'
+  },
+  {
+    id: 'statistics_page',
+    phase: 2,
+    phase_name: 'Content AI systems cite',
+    title: 'Add statistics with cited sources',
+    why: 'Adding verifiable stats is the 
+          single highest-impact content tactic',
+    affects: ['ChatGPT','Perplexity','Claude'],
+    score_impact: 12,
+    time: '30 minutes',
+    action_label: 'Open Citation Optimizer',
+    action_type: 'internal',
+    action_route: '/dashboard/content-creation',
+    research: 'Princeton GEO: statistics addition +41% visibility'
+  },
+  {
+    id: 'faq_content',
+    phase: 2,
+    phase_name: 'Content AI systems cite',
+    title: 'Create a 10-question FAQ page',
+    why: 'Claude is 30% more likely to cite 
+          structured, bullet-pointed content',
+    affects: ['Claude','Perplexity',
+              'Google AI Overview'],
+    score_impact: 8,
+    time: '25 minutes',
+    action_label: 'Write with GEO Writer',
+    action_type: 'internal',
+    action_route: '/dashboard/content-creation',
+    research: 'Claude prefers structured content +30%'
+  },
+  {
+    id: 'comparison_content',
+    phase: 2,
+    phase_name: 'Content AI systems cite',
+    title: 'Write a comparison article',
+    why: '[Brand] vs [Competitor] pages rank 
+          in AI recommendation queries',
+    affects: ['ChatGPT','Perplexity'],
+    score_impact: 6,
+    time: '30 minutes',
+    action_label: 'Write with GEO Writer',
+    action_type: 'internal',
+    action_route: '/dashboard/content-creation',
+    research: 'Competitor comparison cited in recommendation queries'
+  },
+
+  // PHASE 3: DISTRIBUTION ON AI-CITED PLATFORMS
+  // Research: Reddit #1 cited source across all LLMs
+  // Perplexity: 46.7% citations from Reddit
+  // ChatGPT: Wikipedia + editorial sites
+  
+  {
+    id: 'reddit',
+    phase: 3,
+    phase_name: 'Distribute on AI-cited platforms',
+    title: 'Build Reddit presence in your niche',
+    why: 'Reddit is #1 cited source across ALL AI platforms. 
+          Perplexity gets 46.7% citations from Reddit.',
+    affects: ['Perplexity','ChatGPT','Google AI'],
+    score_impact: 15,
+    time: '30 minutes',
+    action_label: 'Create Reddit post',
+    action_type: 'internal',
+    action_route: '/dashboard/content-creation',
+    research: '23.6M Reddit pages cited in AI. 46.7% of Perplexity citations. (Peec AI, 30M sources)'
+  },
+  {
+    id: 'g2_listing',
+    phase: 3,
+    phase_name: 'Distribute on AI-cited platforms',
+    title: 'Create G2 and Capterra profile',
+    why: 'G2 and Capterra are top Perplexity 
+          citation sources for B2B SaaS',
+    affects: ['Perplexity','ChatGPT'],
+    score_impact: 10,
+    time: '30 minutes',
+    action_label: 'Open G2',
+    action_type: 'link',
+    action_url: 'https://sell.g2.com/get-listed',
+    research: 'G2 appears in top Perplexity B2B citations (Peec AI)'
+  },
+  {
+    id: 'linkedin_content',
+    phase: 3,
+    phase_name: 'Distribute on AI-cited platforms',
+    title: 'Publish LinkedIn article or post',
+    why: 'LinkedIn cited across ChatGPT, 
+          Perplexity and Google AI Overview',
+    affects: ['ChatGPT','Perplexity',
+              'Google AI Overview'],
+    score_impact: 7,
+    time: '20 minutes',
+    action_label: 'Create LinkedIn post',
+    action_type: 'internal',
+    action_route: '/dashboard/content-creation',
+    research: 'LinkedIn top 5 most cited across all LLMs (SearchEngineLand)'
+  },
+  {
+    id: 'product_hunt',
+    phase: 3,
+    phase_name: 'Distribute on AI-cited platforms',
+    title: 'Launch on Product Hunt',
+    why: 'PH pages indexed quickly and cited 
+          by ChatGPT for product recommendations',
+    affects: ['ChatGPT','Claude'],
+    score_impact: 8,
+    time: '45 minutes',
+    action_label: 'Create PH post',
+    action_type: 'internal',
+    action_route: '/dashboard/content-creation',
+    research: 'PH cited in product recommendation queries'
+  },
+  {
+    id: 'hacker_news',
+    phase: 3,
+    phase_name: 'Distribute on AI-cited platforms',
+    title: 'Post Show HN on Hacker News',
+    why: 'HN indexed by all AI systems. 
+          Technical audience = high authority signal',
+    affects: ['ChatGPT','Claude','Perplexity'],
+    score_impact: 6,
+    time: '20 minutes',
+    action_label: 'Create HN post',
+    action_type: 'internal',
+    action_route: '/dashboard/content-creation',
+    research: 'HN cited in technical and developer queries'
+  },
+  {
+    id: 'x_thread',
+    phase: 3,
+    phase_name: 'Distribute on AI-cited platforms',
+    title: 'Post X thread about your product',
+    why: 'X/Twitter content indexed by Grok. 
+          Long threads cited by multiple AI systems',
+    affects: ['Grok','ChatGPT'],
+    score_impact: 5,
+    time: '15 minutes',
+    action_label: 'Create X thread',
+    action_type: 'internal',
+    action_route: '/dashboard/content-creation',
+    research: 'X indexed by Grok natively. ChatGPT cites X for brand info'
+  },
+  
+  // PHASE 4: PR + JOURNALIST OUTREACH
+  // One article in TechCrunch = massive AI citation spike
+  // Perplexity indexes new articles within hours
+  
+  {
+    id: 'journalist_find',
+    phase: 4,
+    phase_name: 'PR and media coverage',
+    title: 'Find 5 journalists covering your space',
+    why: 'One article in TechCrunch, SEL or Wired = 
+          immediate AI visibility across all platforms',
+    affects: ['ChatGPT','Perplexity','Google AI'],
+    score_impact: 5,
+    time: '15 minutes',
+    action_label: 'Open Media Scout',
+    action_type: 'internal',
+    action_route: '/dashboard/ai-pr',
+    research: 'Editorial sources cited heavily by ChatGPT (Forbes, TechCrunch)'
+  },
+  {
+    id: 'journalist_pitch',
+    phase: 4,
+    phase_name: 'PR and media coverage',
+    title: 'Send pitches to 3 journalists',
+    why: 'Perplexity indexes new articles within hours. 
+          One coverage hit = 15+ point score jump',
+    affects: ['Perplexity','ChatGPT',
+              'Google AI Overview'],
+    score_impact: 15,
+    time: '30 minutes',
+    action_label: 'Open Pitch Studio',
+    action_type: 'internal',
+    action_route: '/dashboard/ai-pr',
+    research: 'Perplexity results in 2-4 weeks from new coverage (Effinity, May 2026)'
+  },
+  {
+    id: 'monitor_mentions',
+    phase: 4,
+    phase_name: 'PR and media coverage',
+    title: 'Set up brand mention monitoring',
+    why: 'Track when AI starts citing your brand 
+          and respond to coverage opportunities',
+    affects: ['All platforms'],
+    score_impact: 3,
+    time: '5 minutes',
+    action_label: 'Open Mention Radar',
+    action_type: 'internal',
+    action_route: '/dashboard/ai-pr',
+    research: 'Active monitoring enables faster response to citation opportunities'
+  }
+];
+
+BACKEND ROUTE: /api/sprint
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+app.get('/api/sprint/:domain', 
+async (req, res) => {
+  const { domain } = req.params;
+  const userId = req.user.id;
+  
+  // Get or create sprint session
+  let { data: session } = await supabase
+    .from('sprint_sessions')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('domain', domain)
+    .single();
+  
+  if (!session) {
+    // Get current AI presence score
+    const { data: latestScan } = await supabase
+      .from('geoiq_cache')
+      .select('response_json')
+      .eq('domain', domain)
+      .eq('endpoint', 'ai_presence')
+      .order('cached_at', { ascending: false })
+      .limit(1)
+      .single();
+    
+    const currentScore = latestScan
+      ?.response_json?.score || 0;
+    
+    const { data: newSession } = await supabase
+      .from('sprint_sessions')
+      .insert({
+        user_id: userId,
+        domain,
+        target_score: 30,
+        current_score: currentScore,
+        started_at: new Date().toISOString(),
+        last_updated: new Date().toISOString()
+      })
+      .select()
+      .single();
+    
+    session = newSession;
+  }
+  
+  // Get completed steps
+  const { data: completedSteps } = await supabase
+    .from('sprint_progress')
+    .select('step_id, completed_at, score_after')
+    .eq('user_id', userId)
+    .eq('domain', domain)
+    .eq('completed', true);
+  
+  const completedIds = new Set(
+    completedSteps?.map(s => s.step_id) || []
+  );
+  
+  // Calculate projected score
+  const completedPts = SPRINT_STEPS
+    .filter(s => completedIds.has(s.id))
+    .reduce((sum, s) => sum + s.score_impact, 0);
+  
+  const projectedScore = Math.min(
+    (session.current_score || 0) + completedPts,
+    99
+  );
+  
+  res.json({
+    session,
+    steps: SPRINT_STEPS.map(s => ({
+      ...s,
+      completed: completedIds.has(s.id),
+      completed_at: completedSteps
+        ?.find(c => c.step_id === s.id)
+        ?.completed_at
+    })),
+    stats: {
+      total_steps: SPRINT_STEPS.length,
+      completed_count: completedIds.size,
+      current_score: session.current_score,
+      projected_score: projectedScore,
+      target_score: 30,
+      pts_remaining: Math.max(
+        30 - projectedScore, 0
+      )
+    }
+  });
+});
+
+app.post('/api/sprint/complete-step',
+async (req, res) => {
+  const { domain, step_id } = req.body;
+  const userId = req.user.id;
+  
+  // Get current score
+  const { data: session } = await supabase
+    .from('sprint_sessions')
+    .select('current_score')
+    .eq('user_id', userId)
+    .eq('domain', domain)
+    .single();
+  
+  const step = SPRINT_STEPS.find(
+    s => s.id === step_id
+  );
+  
+  await supabase
+    .from('sprint_progress')
+    .upsert({
+      user_id: userId,
+      domain,
+      step_id,
+      phase: step?.phase || 1,
+      completed: true,
+      completed_at: new Date().toISOString(),
+      score_before: session?.current_score || 0,
+      score_after: (session?.current_score || 0) 
+        + (step?.score_impact || 0)
+    }, { onConflict: 'user_id,domain,step_id' });
+  
+  res.json({ success: true });
+});
+
+FRONTEND PAGE STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Page title: "GEO Sprint"
+Subtitle: "Your 30-day plan to get cited by AI"
+
+HEADER SECTION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Show sprint status card:
+
+┌─────────────────────────────────────────┐
+│ YOUR JOURNEY — {domain}                 │
+│                                         │
+│ {current_score}% → 30% AI Visibility   │
+│ {completed} of {total} steps done      │
+│                                         │
+│ ████░░░░░░░░░░░░░░░░░░ {current}%      │
+│                              30% goal   │
+│                                         │
+│ Complete all steps → ~{projected}%     │
+└─────────────────────────────────────────┘
+
+Show estimated time to target:
+If on track: "On track for 30% this month"
+If behind: "Complete 3 more steps this week"
+
+PHASE SECTIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Group steps by phase (1-4).
+Each phase has:
+- Phase number badge (colored)
+- Phase name and description
+- Step count + completion count
+- Total points available
+- Research source cited in small text
+
+Each step row shows:
+- Checkbox (click to mark complete)
+- Step title
+- Why it matters (1 line)
+- AI systems affected (badges)
+- Time estimate
+- Score impact badge (+X pts)
+- Action button
+
+Action button behavior per type:
+'generate': calls /api/generate/[type]
+  Shows generated content in modal
+  [Copy] button
+  [Mark as done ✓] button
+
+'internal': navigates to GeoIQ feature
+  Opens in same tab
+  Breadcrumb shows "← Back to GEO Sprint"
+
+'link': opens external URL in new tab
+
+On step completion (checkbox click):
+1. Show confirmation: 
+   "Mark '[step name]' as complete? +X pts"
+   [Yes, done] [Not yet]
+2. If confirmed:
+   POST /api/sprint/complete-step
+   Checkbox turns green with checkmark
+   Progress bar animates forward
+   Toast: "Step complete! +X pts toward 30%"
+3. If all phase steps complete:
+   Phase badge turns green
+   Celebration: "Phase 1 complete! 
+   You unlocked Phase 2."
+
+RESEARCH CALLOUT BOX:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Show at top of page:
+
+"Why these steps?
+ Based on Princeton University GEO research
+ (10,000 queries), 680M AI citation analysis
+ (5W Communications, 2026), and Perplexity
+ citation data from 30M sources (Peec AI).
+ Each step is ranked by proven citation impact."
+
+GEO COPILOT INTEGRATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add these tools to GEO Copilot agent.ts:
+
+Tool 1: get_sprint_status
+━━━━━━━━━━━━━━━━━━
+const getSprintStatusTool = {
+  name: 'get_sprint_status',
+  description: `Get user's current GEO Sprint
+    progress. Use when user asks about their
+    progress, what to do next, or how to
+    improve their AI visibility score.`,
+  input_schema: {
+    type: 'object',
+    properties: {
+      domain: { type: 'string' }
+    },
+    required: ['domain']
+  }
+};
+
+When called:
+const sprintData = await fetch(
+  `/api/sprint/${domain}`,
+  { headers: { Authorization: req.headers.authorization }}
+);
+
+Return to Claude:
+- Current score
+- Completed steps
+- Next recommended step
+- Projected score if next step done
+
+Tool 2: complete_sprint_step
+━━━━━━━━━━━━━━━━━━
+const completeStepTool = {
+  name: 'complete_sprint_step', 
+  description: `Mark a GEO Sprint step as 
+    complete when user confirms they have
+    done it. Updates their progress.`,
+  input_schema: {
+    type: 'object',
+    properties: {
+      domain: { type: 'string' },
+      step_id: { type: 'string' }
+    },
+    required: ['domain', 'step_id']
+  }
+};
+
+Tool 3: get_next_sprint_step
+━━━━━━━━━━━━━━━━━━
+Returns the single most impactful 
+next incomplete step for this user.
+
+Based on:
+1. Phase completion order
+   (must complete phase 1 before phase 2)
+2. Highest score_impact among incomplete steps
+3. Lowest time estimate (quick wins first)
+
+GEO Copilot system prompt addition:
+━━━━━━━━━━━━━━━━━━
+Add to existing Copilot system prompt:
+
+"You have access to the user's GEO Sprint —
+a 30-day plan to reach 30% AI visibility.
+Use get_sprint_status to check their progress.
+Use get_next_sprint_step to recommend actions.
+Use complete_sprint_step when they confirm
+they have completed a step.
+
+When user asks what to do:
+1. Check their sprint status
+2. Tell them their current score
+3. Recommend the single highest-impact
+   next step
+4. Explain WHY that step helps
+   (cite the research)
+5. Offer to generate the content 
+   or navigate to the right feature
+
+Celebrate completions:
+When a step is marked complete,
+acknowledge it and show score progress.
+Example: 'Great — llms.txt is live.
+That is +8 pts. You are at 16% now.
+Next: Organization schema for +10 pts.
+Want me to generate it?'"
+
+EXAMPLE COPILOT CONVERSATIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+User: "what should I do today?"
+[calls get_next_sprint_step]
+
+Copilot:
+"Your score is 8%. You have 4 steps done.
+
+Most impactful next step:
+Add FAQPage schema (+12 pts)
+
+Why: Perplexity and Google AI Overview 
+heavily cite FAQ structured content.
+This single step can get you appearing in 
+Perplexity searches within 2-4 weeks.
+
+Want me to generate your FAQ schema now?
+[Yes, generate it →]"
+
+───────────────────────────────────────
+User: "I just posted on Reddit"
+[calls complete_sprint_step with 'reddit']
+
+Copilot:
+"Reddit done — that is +15 pts.
+You are now at an estimated 31%.
+
+You have hit the 30% target!
+
+Your brand is now:
+→ Appearing in Perplexity searches
+→ Indexed by ChatGPT
+→ Visible to Google AI Overview
+
+Next phase: PR outreach.
+One article in TechCrunch or Search 
+Engine Land will push you to 50%.
+
+Want me to find journalists covering 
+your space? [Find journalists →]"
+
+PAGE ACTIONS BAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Top right of GEO Sprint page:
+[Rescan AI Presence] [Ask GEO Copilot]
+
+Rescan: triggers new AI Presence scan
+        updates current_score in sprint_sessions
+        shows before/after score change
+
+Ask GEO Copilot: opens Copilot with 
+        sprint context pre-loaded
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Open GEO Sprint for geoiqai.com
+   Shows current score from AI Presence
+   Shows 18 steps in 4 phases
+   Progress bar at current %
+
+2. Click [Generate file] on llms.txt step
+   Modal shows generated llms.txt content
+   [Copy] button works
+   [Mark as done] marks step complete
+   Progress bar moves forward
+
+3. Click action on Reddit step
+   Opens Content Multiplier with 
+   Reddit post pre-selected
+   Breadcrumb shows "← Back to GEO Sprint"
+
+4. Open GEO Copilot
+   Type: "what should I do today?"
+   Copilot reads sprint status
+   Recommends next highest-impact step
+   Explains the research behind it
+
+5. Type: "I just added my FAQ schema"
+   Copilot marks faq_schema step complete
+   Shows updated score estimate
+   Celebrates and recommends next step
+
+Share screenshot of:
+1. GEO Sprint page with all 4 phases
+2. GEO Copilot recommending next step
