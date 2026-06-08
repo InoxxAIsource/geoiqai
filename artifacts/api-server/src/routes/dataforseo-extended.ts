@@ -890,47 +890,57 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
   const candidates = brandKeywordCandidates(brandName);
   req.log.info({ domain: bareD, brandName, candidates }, "visibility-overview: starting");
 
-  try {
-    // Round 1: all parallel — keyword candidates per platform + domain citations + cited pages
-    // DataForSEO only has data for 2 platforms: "google" (AI Overview) and "chat_gpt" (ChatGPT)
-    const round1 = await Promise.all([
-      getLlmKeywordAggMetrics(candidates[0]!, sixMonthsAgo, today, "google"),
-      getLlmKeywordAggMetrics(candidates[0]!, sixMonthsAgo, today, "chat_gpt"),
-      candidates[1] ? getLlmKeywordAggMetrics(candidates[1], sixMonthsAgo, today, "google")    : Promise.resolve(null),
-      candidates[1] ? getLlmKeywordAggMetrics(candidates[1], sixMonthsAgo, today, "chat_gpt")  : Promise.resolve(null),
-      getLlmAggregatedMetrics(bareD, sixMonthsAgo, today, "google"),
-      getLlmAggregatedMetrics(bareD, sixMonthsAgo, today, "chat_gpt"),
-      getLlmTopPagesList(bareD, sixMonthsAgo, today, 50, "google"),
-      getLlmTopPagesList(bareD, sixMonthsAgo, today, 50, "chat_gpt"),
-    ]);
-    const [kw1Google, kw1Chatgpt, kw2Google, kw2Chatgpt, domainGoogle, domainChatgpt, pagesGoogle, pagesChatgpt] = round1;
+  // Helper: extract per-platform mentions from the combined total.platform[] array.
+  // Calling without a platform filter returns one call with all-platform data instead of
+  // making 2 separate calls (one per platform). Saves ~$1.60 per consolidated call.
+  function extractPlatformMentions(
+    total: unknown,
+    platformKey: string,
+  ): { mentions: number; aiSearchVolume: number } {
+    const t = total as { platform?: Array<{ key: string; mentions: number; ai_search_volume?: number }> } | null | undefined;
+    const entry = (t?.platform ?? []).find(p => p.key === platformKey);
+    return { mentions: entry?.mentions ?? 0, aiSearchVolume: entry?.ai_search_volume ?? 0 };
+  }
 
-    // Pick best keyword: compare total mentions across both platforms
-    const kw1Total = kw1Google.mentions + kw1Chatgpt.mentions;
-    const kw2Total = (kw2Google?.mentions ?? 0) + (kw2Chatgpt?.mentions ?? 0);
+  try {
+    // Round 1 (4 calls, all parallel) - no platform filter so each call returns combined data
+    // for ALL platforms in one request. Previously: 8 calls (2 platforms x 4 functions).
+    // Per-platform breakdown is extracted from total.platform[] in the response.
+    const round1 = await Promise.all([
+      getLlmKeywordAggMetrics(candidates[0]!, sixMonthsAgo, today),
+      candidates[1] ? getLlmKeywordAggMetrics(candidates[1], sixMonthsAgo, today) : Promise.resolve(null),
+      getLlmAggregatedMetrics(bareD, sixMonthsAgo, today),
+      getLlmTopPagesList(bareD, sixMonthsAgo, today, 50),
+    ]);
+    const [kw1All, kw2All, domainAll, pagesAll] = round1;
+
+    // Pick best keyword by comparing combined platform mention totals
+    const kw1Total = kw1All.mentions;
+    const kw2Total = kw2All?.mentions ?? 0;
     const useKw2 = kw2Total > kw1Total;
     const bestKeyword = useKw2 ? candidates[1]! : candidates[0]!;
-    const kwGoogle = useKw2 ? kw2Google! : kw1Google;
-    const kwChatgpt = useKw2 ? kw2Chatgpt! : kw1Chatgpt;
+    const bestKwAll   = useKw2 ? kw2All! : kw1All;
 
-    // Round 2: topics using the best keyword (parallel)
+    // Round 2: topics using best keyword (2 calls, parallel)
     const [performingData, opportunitiesData] = await Promise.all([
       getLlmSearchTopics(bestKeyword, sixMonthsAgo, today, "include", 50),
       getLlmSearchTopics(bestKeyword, sixMonthsAgo, today, "exclude", 30),
     ]);
 
-    // Keyword mentions: sum from both platforms
-    const googleMentions  = kwGoogle.mentions;
-    const chatgptMentions = kwChatgpt.mentions;
-    const mentions        = googleMentions + chatgptMentions;
-    const aiSearchVolume  = kwGoogle.aiSearchVolume + kwChatgpt.aiSearchVolume;
+    // Per-platform breakdown for the distribution chart - extracted from combined response
+    const googleMentions  = extractPlatformMentions(bestKwAll.total, "google").mentions;
+    const chatgptMentions = extractPlatformMentions(bestKwAll.total, "chat_gpt").mentions;
 
-    // Domain citations: sum from both platforms (from search_scope: ["sources"])
-    const citations   = domainGoogle.mentions + domainChatgpt.mentions;
-    const citedPagesFromMetrics = domainGoogle.citedPages + domainChatgpt.citedPages;
+    // Total mentions and AI search volume from the combined call
+    const mentions       = bestKwAll.mentions;
+    const aiSearchVolume = bestKwAll.aiSearchVolume;
 
-    // Cited pages: merge both platform page lists, deduplicate by URL, sum mentions
-    const allPages = [...pagesGoogle.pages, ...pagesChatgpt.pages];
+    // Domain citations from combined call
+    const citations   = domainAll.mentions;
+    const citedPagesFromMetrics = domainAll.citedPages;
+
+    // Pages: combined call already returns all platforms - deduplicate by URL
+    const allPages = pagesAll.pages;
     const pageMap = new Map<string, { url: string; mentions: number; ai_search_volume: number }>();
     for (const page of allPages) {
       const existing = pageMap.get(page.url);
@@ -954,8 +964,6 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
       mentions,
       citations,
       citedPagesCount,
-      domainGoogleMentions: domainGoogle.mentions,
-      domainChatgptMentions: domainChatgpt.mentions,
     }, "visibility-overview: raw results");
 
     // Score formula (final): mentions 70pts log-scale, citations bonus 20pts, pages bonus 10pts
@@ -965,11 +973,12 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
     const score = mentions === 0 ? 0 : Math.min(100, Math.round(mentionScore + citationBonus + pageBonus));
     req.log.info({ mentions, citations, citedPages: citedPagesCount, mentionScore, citationBonus, pageBonus, finalScore: score }, "SCORE DEBUG");
 
-    // Platform distribution: directly from per-platform keyword calls
-    // Only show platforms with data > 0 (DataForSEO only has google + chat_gpt)
+    // Platform distribution: extracted from the combined per-platform breakdown
+    const googleAiSearchVol  = extractPlatformMentions(bestKwAll.total, "google").aiSearchVolume;
+    const chatgptAiSearchVol = extractPlatformMentions(bestKwAll.total, "chat_gpt").aiSearchVolume;
     const rawPlatforms = [
-      { key: "google",   mentions: googleMentions,  ai_search_volume: kwGoogle.aiSearchVolume },
-      { key: "chat_gpt", mentions: chatgptMentions, ai_search_volume: kwChatgpt.aiSearchVolume },
+      { key: "google",   mentions: googleMentions,  ai_search_volume: googleAiSearchVol },
+      { key: "chat_gpt", mentions: chatgptMentions, ai_search_volume: chatgptAiSearchVol },
     ].filter(p => p.mentions > 0);
     const totalPlatMentions = Math.max(rawPlatforms.reduce((s, p) => s + p.mentions, 0), 1);
     const platformData = rawPlatforms
@@ -980,27 +989,24 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
         color: PLATFORM_COLORS[p.key] ?? "#6B7280",
         mentions: p.mentions,
         ai_search_volume: p.ai_search_volume,
-        // Actual % of total; never round to 0 if mentions > 0
         pct: p.mentions > 0 ? Math.max(parseFloat(((p.mentions / totalPlatMentions) * 100).toFixed(1)), 0.1) : 0,
       }));
 
-    // Countries: from keyword agg total breakdown (google platform preferred for volume)
-    const kwTotal = kwGoogle.total ?? kwChatgpt.total;
-    const kwLocations = (kwTotal?.location ?? []) as Array<{ key: string; mentions: number }>;
+    // Countries: from combined keyword agg total location breakdown
+    const kwLocations = ((bestKwAll.total as unknown as { location?: Array<{ key: string; mentions: number }> } | null)?.location ?? []);
     const totalLocMentions = Math.max(kwLocations.reduce((s, l) => s + (l.mentions || 0), 0), 1);
     const countries = [...kwLocations]
       .sort((a, b) => b.mentions - a.mentions)
       .slice(0, 10)
       .map(l => ({
         code: Number(l.key),
-        name: LOCATION_NAMES[Number(l.key)] ?? "🌐 Other",
+        name: LOCATION_NAMES[Number(l.key)] ?? "Other",
         mentions: l.mentions,
         pct: Math.round((l.mentions / totalLocMentions) * 100),
       }));
 
-    // Cited sources from domain breakdown
-    const domainTotal = domainGoogle.total ?? domainChatgpt.total;
-    const sourcesDomain = (domainTotal?.sources_domain ?? []) as Array<{ key: string; mentions: number; ai_search_volume: number }>;
+    // Cited sources from combined domain breakdown
+    const sourcesDomain = ((domainAll.total as unknown as { sources_domain?: Array<{ key: string; mentions: number; ai_search_volume: number }> } | null)?.sources_domain ?? []);
     const citedSources = [...sourcesDomain]
       .sort((a, b) => b.mentions - a.mentions)
       .slice(0, 20)
