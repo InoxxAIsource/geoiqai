@@ -496,25 +496,114 @@ export async function crawlSite(domain: string, maxPages = 25): Promise<SiteCraw
     }
   }
 
-  const issues: CrawlIssue[] = ISSUE_DEFS
+  const perPageIssues: CrawlIssue[] = ISSUE_DEFS
     .filter(d => (issueCounts.get(d.id) ?? 0) > 0)
     .map(d => ({ ...d, pageCount: issueCounts.get(d.id) ?? 0, affectedPages: issuePages.get(d.id) ?? [] }))
     .sort((a, b) => ({ error: 0, warning: 1, notice: 2 }[a.severity] - { error: 0, warning: 1, notice: 2 }[b.severity] || b.pageCount - a.pageCount));
+
+  // ─── Synthetic homepage-level issues ─────────────────────────────────────────
+  // These site-wide signals (llms.txt, schema, etc.) are not per-page crawl
+  // findings but still critically affect AI visibility and score. We add them
+  // as real issues so they surface in both the Top Issues overview and Issues tab.
+  const siteIssues: CrawlIssue[] = [];
+  const homepageUrl = `${origin}/`;
+
+  if (!hasLlmsTxt) {
+    siteIssues.push({
+      id: "no_llmstxt", severity: "error",
+      title: "llms.txt file missing",
+      description: "llms.txt is the primary signal to AI systems about your site's content and permissions. Without it, AI crawlers have no explicit guidance on what to index and cite.",
+      fixType: "llmstxt",
+      pageCount: 1,
+      affectedPages: [homepageUrl],
+    });
+  }
+  if (!hasOrgSchema) {
+    siteIssues.push({
+      id: "no_org_schema", severity: "warning",
+      title: "Organization schema missing",
+      description: "Organization schema tells AI systems your brand is a real entity. Without it, AI models may cite you inconsistently or not at all.",
+      fixType: "org_schema",
+      pageCount: 1,
+      affectedPages: [homepageUrl],
+    });
+  }
+  if (!hasFaqSchema) {
+    siteIssues.push({
+      id: "no_faq_schema", severity: "warning",
+      title: "FAQPage schema missing",
+      description: "FAQ schema is one of the highest-ROI changes for AI citation rate. AI models are trained on Q&A data and actively look for structured question-answer pairs.",
+      fixType: "faq_schema",
+      pageCount: 1,
+      affectedPages: [homepageUrl],
+    });
+  }
+  if (!hasRobotsTxt) {
+    siteIssues.push({
+      id: "no_robots_txt", severity: "warning",
+      title: "robots.txt not found",
+      description: "Without a robots.txt, AI crawlers have no explicit guidance on what they can access. Some crawlers may be conservative and skip uncertain sites.",
+      fixType: "robots_txt",
+      pageCount: 1,
+      affectedPages: [homepageUrl],
+    });
+  }
+  if (!hasSitemap) {
+    siteIssues.push({
+      id: "no_sitemap", severity: "warning",
+      title: "sitemap.xml not found",
+      description: "Sitemaps help AI crawlers discover all your pages quickly. Without one, many pages may never be crawled or cited.",
+      fixType: "sitemap_missing",
+      pageCount: 1,
+      affectedPages: [homepageUrl],
+    });
+  }
+
+  // Site-level issues first, then per-page issues (already sorted by severity)
+  const issues: CrawlIssue[] = [
+    ...siteIssues.sort((a, b) => ({ error: 0, warning: 1, notice: 2 }[a.severity] - { error: 0, warning: 1, notice: 2 }[b.severity])),
+    ...perPageIssues,
+  ];
 
   const errorsCount = issues.filter(i => i.severity === "error").reduce((s, i) => s + i.pageCount, 0);
   const warningsCount = issues.filter(i => i.severity === "warning").reduce((s, i) => s + i.pageCount, 0);
 
   // Thematic scores
+  // Note: htmlPages excludes redirects. For sites that redirect (e.g. http->https,
+  // non-www->www), htmlPages can be empty even for healthy sites. We use homepage
+  // signals as fallbacks so scores are never all-zero on a real working site.
   const n = htmlPages.length || 1;
   const crawlability = Math.round((1 - broken / (pages.length || 1)) * 100);
-  const httpsScore = Math.round(htmlPages.filter(p => p.isHttps).length / n * 100);
+
+  // HTTPS: if the homepage itself loaded over https, the site is https.
+  // Per-page calculation breaks when all pages redirect (classified as "redirect" category,
+  // excluded from htmlPages) - e.g. policybazaar.com which redirects non-www -> www.
+  const httpsScore = isHttps ? 100
+    : htmlPages.length > 0 ? Math.round(htmlPages.filter(p => p.isHttps).length / n * 100)
+    : 0;
+
   const compressedPages = htmlPages.filter(p => p.isCompressed).length;
+
+  // Performance: prefer PSI, then per-page TTFB ratio, then homepage TTFB as last resort
   const performanceScore = cwv
     ? cwv.performanceScore
-    : Math.round(htmlPages.filter(p => p.ttfbMs < 2000 && p.ttfbMs > 0).length / n * 100);
-  const linkingScore = Math.round(htmlPages.filter(p => p.internalLinkCount > 0).length / n * 100);
-  const markupScore = Math.round(htmlPages.filter(p => p.hasSchema).length / n * 100);
-  const compressionScore = Math.round(compressedPages / n * 100);
+    : htmlPages.length > 0
+      ? Math.round(htmlPages.filter(p => p.ttfbMs < 2000 && p.ttfbMs > 0).length / n * 100)
+      : (ttfbMs < 800 ? 100 : ttfbMs < 1500 ? 75 : ttfbMs < 3000 ? 50 : 25);
+
+  // Internal linking: fall back to counting href="/" patterns in homepage HTML
+  const homepageInternalLinkCount = (html.match(/href=["']\//g) ?? []).length;
+  const linkingScore = htmlPages.length > 0
+    ? Math.round(htmlPages.filter(p => p.internalLinkCount > 0).length / n * 100)
+    : (homepageInternalLinkCount > 30 ? 90 : homepageInternalLinkCount > 15 ? 70 : homepageInternalLinkCount > 5 ? 50 : 20);
+
+  // Schema/markup: fall back to homepage schema detection
+  const schemaTypeCount = [...html.matchAll(/"@type"\s*:\s*"([^"]+)"/g)].length;
+  const markupScore = htmlPages.length > 0
+    ? Math.round(htmlPages.filter(p => p.hasSchema).length / n * 100)
+    : (schemaTypeCount > 3 ? 90 : schemaTypeCount > 1 ? 65 : schemaTypeCount === 1 ? 40 : 0);
+
+  const compressionScore = htmlPages.length > 0 ? Math.round(compressedPages / n * 100) : 0;
 
   const aiChecks = [hasLlmsTxt, hasOrgSchema, hasFaqSchema, gptBot.allowed, perplexityBot.allowed, claudeBot.allowed, hasSchema, hasCanonical];
   const aiSearchScore = Math.round(aiChecks.filter(Boolean).length / aiChecks.length * 100);

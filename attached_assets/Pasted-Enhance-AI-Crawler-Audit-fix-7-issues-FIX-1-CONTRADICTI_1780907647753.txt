@@ -1,0 +1,312 @@
+Enhance AI Crawler Audit — fix 7 issues.
+
+FIX 1: CONTRADICTION — SCORE VS ISSUES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+"No issues found" showing when score 
+is 25% Poor is wrong and breaks trust.
+
+In the Top Issues section logic:
+Remove the "No issues found" green message
+when score is below 80.
+
+Replace with: always pull issues from 
+AI Search Health card findings:
+
+const getTopIssues = (auditData) => {
+  const issues = [];
+  
+  if (!auditData.llmstxt) issues.push({
+    severity: 'ERROR',
+    title: 'llms.txt file missing',
+    pages: 1,
+    fix: 'llmstxt'
+  });
+  
+  if (!auditData.orgSchema) issues.push({
+    severity: 'WARNING', 
+    title: 'Organization schema missing',
+    pages: 1,
+    fix: 'org_schema'
+  });
+  
+  if (!auditData.faqSchema) issues.push({
+    severity: 'WARNING',
+    title: 'FAQPage schema missing', 
+    pages: 1,
+    fix: 'faq_schema'
+  });
+  
+  if (!auditData.robotsTxt) issues.push({
+    severity: 'WARNING',
+    title: 'robots.txt not found',
+    pages: 1,
+    fix: 'robots_txt'
+  });
+  
+  if (!auditData.sitemap) issues.push({
+    severity: 'WARNING',
+    title: 'sitemap.xml not found',
+    pages: 1,
+    fix: 'sitemap'
+  });
+  
+  if (auditData.metaTitleLength > 60) issues.push({
+    severity: 'WARNING',
+    title: 'Meta title too long',
+    pages: auditData.longTitlePages || 1,
+    fix: 'meta_title'
+  });
+  
+  if (!auditData.h1) issues.push({
+    severity: 'WARNING',
+    title: 'No H1 tag on homepage',
+    pages: 1,
+    fix: 'h1_tag'
+  });
+  
+  return issues;
+};
+
+Show issues in Top Issues table:
+SEVERITY | ISSUE | PAGES | HOW TO FIX
+ERROR    | llms.txt missing | 1 page | How to fix
+WARNING  | Org schema missing | 1 page | How to fix
+
+FIX 2: HTTPS DETECTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current shows 0% for HTTPS on 
+policybazaar.com — clearly wrong.
+
+Fix HTTPS thematic report score:
+
+const getHttpsScore = (domain) => {
+  // Check if domain uses HTTPS
+  const isHttps = domain.startsWith('https://') 
+    || !domain.startsWith('http://');
+  
+  // Actually verify with fetch
+  try {
+    const url = `https://${domain
+      .replace('https://','')
+      .replace('http://','')}`;
+    return { score: 100, secure: true };
+  } catch {
+    return { score: 0, secure: false };
+  }
+};
+
+Also check for HSTS header in response:
+const hasHSTS = response.headers
+  .get('strict-transport-security');
+if (hasHSTS) score = 100;
+
+FIX 3: REAL THEMATIC REPORT SCORES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+All showing 0% — calculate from real data.
+
+Performance score (from response time):
+const perfScore = responseMs < 800 ? 100
+  : responseMs < 1500 ? 75
+  : responseMs < 3000 ? 50
+  : 25;
+
+Internal Linking score (from HTML):
+const links = html.match(
+  /href=["'](\/[^"']*|https?:\/\/${domain}[^"']*)/g
+) || [];
+const internalCount = links.length;
+const linkScore = internalCount > 30 ? 90
+  : internalCount > 15 ? 70
+  : internalCount > 5 ? 50
+  : 20;
+
+Schema/Markup score:
+const schemaTypes = [...html.matchAll(
+  /"@type"\s*:\s*"([^"]+)"/g
+)].map(m => m[1]);
+const schemaScore = schemaTypes.length > 3 ? 90
+  : schemaTypes.length > 1 ? 65
+  : schemaTypes.length === 1 ? 40
+  : 0;
+
+Crawlability score:
+const crawlScore = hasSitemap ? 80 : 40
+  + hasRobots ? 20 : 0;
+
+AI Search score (already built — keep):
+Based on llms.txt + schema + bot access
+
+FIX 4: GOOGLE PAGESPEED API INTEGRATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Get free key: console.developers.google.com
+Enable: PageSpeed Insights API
+Add to Replit Secrets: GOOGLE_PSI_API_KEY
+
+In audit-engine.ts or site-audit route:
+
+const getPageSpeedData = async (url) => {
+  if (!process.env.GOOGLE_PSI_API_KEY) {
+    return null;
+  }
+  
+  try {
+    const apiUrl = new URL(
+      'https://www.googleapis.com/pagespeedonline/v5/runPagespeed'
+    );
+    apiUrl.searchParams.set('url', 
+      `https://${url}`
+    );
+    apiUrl.searchParams.set('key', 
+      process.env.GOOGLE_PSI_API_KEY
+    );
+    apiUrl.searchParams.set('strategy', 'mobile');
+    
+    const response = await fetch(apiUrl.toString());
+    const data = await response.json();
+    
+    return {
+      performance: Math.round(
+        data.lighthouseResult
+          .categories.performance.score * 100
+      ),
+      lcp: data.lighthouseResult.audits[
+        'largest-contentful-paint'
+      ].displayValue,
+      cls: data.lighthouseResult.audits[
+        'cumulative-layout-shift'
+      ].displayValue,
+      fcp: data.lighthouseResult.audits[
+        'first-contentful-paint'
+      ].displayValue,
+      ttfb: data.lighthouseResult.audits[
+        'server-response-time'
+      ].displayValue
+    };
+  } catch (err) {
+    console.log('PSI API error:', err.message);
+    return null;
+  }
+};
+
+In Performance thematic report:
+If PSI data available: show real score
+If not: show response time based score
+
+Display Core Web Vitals:
+LCP: 2.4s (Good / Needs Improvement / Poor)
+CLS: 0.12 (Good / Needs Improvement / Poor)
+FCP: 1.8s (Good / Needs Improvement / Poor)
+
+Color code:
+LCP < 2.5s = green
+LCP 2.5-4s = orange  
+LCP > 4s = red
+
+FIX 5: TAVILY FOR MULTI-PAGE CRAWL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Install: npm install @tavily/core
+
+Add to Replit Secrets: TAVILY_API_KEY
+Get free key: app.tavily.com (1000 free/mo)
+
+Replace single-page fetch with 
+Tavily crawl for up to 10 pages:
+
+import { tavily } from '@tavily/core';
+const tvly = tavily({ 
+  apiKey: process.env.TAVILY_API_KEY 
+});
+
+const crawlSite = async (domain) => {
+  try {
+    const result = await tvly.crawl(
+      `https://${domain}`,
+      {
+        maxDepth: 2,
+        maxPages: 10,
+        extractContent: true
+      }
+    );
+    
+    return result.pages.map(page => ({
+      url: page.url,
+      statusCode: page.statusCode || 200,
+      title: page.title,
+      content: page.content,
+      hasH1: page.content?.includes('<h1'),
+      wordCount: page.content?.split(' ').length
+    }));
+    
+  } catch (err) {
+    console.log('Tavily crawl failed, 
+      falling back to direct fetch');
+    return null;
+  }
+};
+
+If Tavily key not set: 
+Fall back to existing direct fetch.
+Never break if Tavily unavailable.
+
+With Tavily crawl:
+Crawled Pages card shows real count
+Healthy/Broken/Issues breakdown real
+Pages tab shows all crawled pages
+
+Cost: 10 pages × $0.008 = $0.08 per audit
+Free tier: 1000 credits/month free
+= 100 free audits per month
+
+FIX 6: REMOVE "WELL OPTIMIZED" FALSE POSITIVE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find in frontend:
+"No issues found - this site is well optimized"
+
+Change logic:
+Only show this message when:
+- Score > 85 AND
+- issues.length === 0
+
+Otherwise show the real issues list.
+
+FIX 7: ADD RERUN COST INDICATOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Next to Re-run audit button show:
+
+With Tavily: "Audit uses ~10 page crawl"
+Without Tavily: "Quick audit (homepage only)"
+
+Small grey text below button.
+Sets user expectation correctly.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Run audit on policybazaar.com
+
+Expect:
+1. HTTPS shows 100% not 0%
+2. Top Issues shows llms.txt, 
+   Org Schema, FAQ Schema as issues
+   NOT "No issues found"
+3. Performance shows real score
+   from PSI or response time
+4. Schema shows real % based on 
+   detected schema types
+5. Crawled Pages shows 5-10 pages
+   not just 1
+6. Score stays at 25% Poor (correct
+   given missing AI signals)
+   BUT issues are now visible
+
+Share screenshot comparing:
+Before vs After for Top Issues section
+and Thematic Reports scores.

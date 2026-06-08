@@ -202,6 +202,11 @@ function FixGuide({ fixType, onClose }: { fixType: string; onClose: () => void }
     low_text_ratio: { title: "Improve text-to-HTML ratio", steps: ["Check if content is loaded dynamically by JavaScript - if so, use server-side rendering (SSR) so crawlers see the real text.", "Remove large inline style or script blocks from the HTML - move them to external files.", "Add more actual written content to the page - thin pages with little text rank poorly with AI.", "Remove hidden/invisible HTML elements that add markup without visible content."] },
     no_internal_links: { title: "Add internal links to isolated pages", steps: ["Find pages in your sitemap that are not linked from any other page.", "Add contextual links from related content - for example, link to a product page from a blog post that mentions it.", "Include the page in your main navigation or footer.", "A page that only exists in the sitemap but is never linked internally will be crawled less frequently."] },
     bot_blocked: { title: "Allow AI crawlers in robots.txt", steps: ["Open your robots.txt file at https://yourdomain.com/robots.txt.", "Remove or update any Disallow: / rules that apply to GPTBot, PerplexityBot, ClaudeBot, or Google-Extended.", "Add explicit Allow: / rules for each AI bot you want to permit.", "Redeploy the file and wait 24-48 hours for bots to pick up the change."] },
+    llmstxt: { title: "Create llms.txt", steps: ["Create a plain text file at https://yourdomain.com/llms.txt.", "Start with a short description of your company and what you do.", "List your most important pages with a one-line description each.", "Include your key products, services, and pricing information.", "Upload and deploy the file - no special format required, just clear prose AI can read.", "Check geoiqai.com/llms-txt-guide for a full example template."] },
+    org_schema: { title: "Add Organization schema", steps: ["Add a <script type='application/ld+json'> block to your homepage's <head>.", "Use the Organization type with at minimum: @type, name, url, logo, and description.", "Add sameAs with links to your LinkedIn, Twitter/X, and Crunchbase pages.", "Validate it at search.google.com/test/rich-results before publishing.", "Once live, AI systems can reliably identify your brand as a real entity."] },
+    faq_schema: { title: "Add FAQPage schema", steps: ["Write 5-8 real questions your customers ask, with direct answers.", "Add a <script type='application/ld+json'> block with @type: FAQPage.", "Each question becomes a Question object with @type, name (the question), and acceptedAnswer.", "Add this to your product page, pricing page, and homepage - not just a dedicated FAQ page.", "Validate at search.google.com/test/rich-results. AI citation rates typically improve within 2-4 weeks."] },
+    robots_txt: { title: "Create robots.txt", steps: ["Create a plain text file at https://yourdomain.com/robots.txt.", "At minimum, add: User-agent: * followed by Allow: /", "Explicitly allow AI bots: User-agent: GPTBot, User-agent: PerplexityBot, User-agent: ClaudeBot, User-agent: Google-Extended - each followed by Allow: /", "If you have pages you want to exclude (admin, login), add Disallow: /admin/ etc.", "Add Sitemap: https://yourdomain.com/sitemap.xml at the bottom."] },
+    sitemap_missing: { title: "Create sitemap.xml", steps: ["Most CMSs generate sitemaps automatically - check if yours is already at /sitemap.xml or /sitemap_index.xml.", "For static sites, use a free tool like xml-sitemaps.com to generate one.", "Include all public-facing URLs you want crawled - homepage, product pages, blog posts.", "Submit your sitemap in Google Search Console under Indexing > Sitemaps.", "Reference it in your robots.txt: Sitemap: https://yourdomain.com/sitemap.xml"] },
   };
   const g = guides[fixType];
   if (!g) return null;
@@ -468,13 +473,16 @@ export function SiteAuditSection({ domain }: { domain: string }) {
             style={{ flex: 1, border: "none", outline: "none", padding: "9px 12px", fontSize: 14, background: "transparent", color: "#111827" }}
           />
         </div>
-        <button
-          onClick={() => runAudit()}
-          disabled={loading || !inputDomain.trim()}
-          style={{ padding: "9px 20px", background: loading ? "#9CA3AF" : P, color: "white", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}
-        >
-          {loading ? <><RefreshCw size={14} style={{ animation: "spin 1s linear infinite" }} />Crawling...</> : "Re-run audit"}
-        </button>
+        <div style={{ display: "flex", flexDirection: "column", gap: 3, flexShrink: 0 }}>
+          <button
+            onClick={() => runAudit()}
+            disabled={loading || !inputDomain.trim()}
+            style={{ padding: "9px 20px", background: loading ? "#9CA3AF" : P, color: "white", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8 }}
+          >
+            {loading ? <><RefreshCw size={14} style={{ animation: "spin 1s linear infinite" }} />Crawling...</> : "Re-run audit"}
+          </button>
+          <span style={{ fontSize: 11, color: MUTED, textAlign: "center" }}>Crawls up to 25 pages</span>
+        </div>
         {audit && (
           <div style={{ fontSize: 12, color: MUTED }}>
             {audit.crawledCount} pages crawled on {audit.domain}
@@ -695,9 +703,13 @@ export function SiteAuditSection({ domain }: { domain: string }) {
 
                 <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: "16px 20px" }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 12 }}>Top Issues</div>
-                  {audit.issues.length === 0 ? (
+                  {audit.issues.length === 0 && audit.siteHealthScore > 85 && audit.aiHealthScore > 85 ? (
                     <div style={{ display: "flex", alignItems: "center", gap: 8, color: GREEN, fontSize: 13 }}>
                       <CheckCircle size={16} /> No issues found - this site is well optimized.
+                    </div>
+                  ) : audit.issues.length === 0 ? (
+                    <div style={{ fontSize: 13, color: MUTED }}>
+                      Check the AI Readiness tab for specific improvements.
                     </div>
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
