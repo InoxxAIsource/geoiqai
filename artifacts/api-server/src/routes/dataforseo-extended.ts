@@ -16,10 +16,6 @@ import {
   getDfAccountInfo,
   filterRankedKeywords,
   buildCategoryFallbackKeywords,
-  getLlmAggregatedMetrics,
-  getLlmTopPagesList,
-  getLlmSearchTopics,
-  getLlmKeywordAggMetrics,
   getLlmTopicPrompts,
   sandboxMode,
   getDfCache,
@@ -890,130 +886,23 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
   const candidates = brandKeywordCandidates(brandName);
   req.log.info({ domain: bareD, brandName, candidates }, "visibility-overview: starting");
 
-  // Helper: extract per-platform mentions from the combined total.platform[] array.
-  // Calling without a platform filter returns one call with all-platform data instead of
-  // making 2 separate calls (one per platform). Saves ~$1.60 per consolidated call.
-  function extractPlatformMentions(
-    total: unknown,
-    platformKey: string,
-  ): { mentions: number; aiSearchVolume: number } {
-    const t = total as { platform?: Array<{ key: string; mentions: number; ai_search_volume?: number }> } | null | undefined;
-    const entry = (t?.platform ?? []).find(p => p.key === platformKey);
-    return { mentions: entry?.mentions ?? 0, aiSearchVolume: entry?.ai_search_volume ?? 0 };
-  }
-
   try {
-    // Round 1 (4 calls, all parallel) - no platform filter so each call returns combined data
-    // for ALL platforms in one request. Previously: 8 calls (2 platforms x 4 functions).
-    // Per-platform breakdown is extracted from total.platform[] in the response.
-    const round1 = await Promise.all([
-      getLlmKeywordAggMetrics(candidates[0]!, sixMonthsAgo, today),
-      candidates[1] ? getLlmKeywordAggMetrics(candidates[1], sixMonthsAgo, today) : Promise.resolve(null),
-      getLlmAggregatedMetrics(bareD, sixMonthsAgo, today),
-      getLlmTopPagesList(bareD, sixMonthsAgo, today, 50),
-    ]);
-    const [kw1All, kw2All, domainAll, pagesAll] = round1;
-
-    // Pick best keyword by comparing combined platform mention totals
-    const kw1Total = kw1All.mentions;
-    const kw2Total = kw2All?.mentions ?? 0;
-    const useKw2 = kw2Total > kw1Total;
-    const bestKeyword = useKw2 ? candidates[1]! : candidates[0]!;
-    const bestKwAll   = useKw2 ? kw2All! : kw1All;
-
-    // Round 2: topics using best keyword (2 calls, parallel)
-    const [performingData, opportunitiesData] = await Promise.all([
-      getLlmSearchTopics(bestKeyword, sixMonthsAgo, today, "include", 50),
-      getLlmSearchTopics(bestKeyword, sixMonthsAgo, today, "exclude", 30),
-    ]);
-
-    // Per-platform breakdown for the distribution chart - extracted from combined response
-    const googleMentions  = extractPlatformMentions(bestKwAll.total, "google").mentions;
-    const chatgptMentions = extractPlatformMentions(bestKwAll.total, "chat_gpt").mentions;
-
-    // Total mentions and AI search volume from the combined call
-    const mentions       = bestKwAll.mentions;
-    const aiSearchVolume = bestKwAll.aiSearchVolume;
-
-    // Domain citations from combined call
-    const citations   = domainAll.mentions;
-    const citedPagesFromMetrics = domainAll.citedPages;
-
-    // Pages: combined call already returns all platforms - deduplicate by URL
-    const allPages = pagesAll.pages;
-    const pageMap = new Map<string, { url: string; mentions: number; ai_search_volume: number }>();
-    for (const page of allPages) {
-      const existing = pageMap.get(page.url);
-      if (existing) {
-        existing.mentions += page.mentions;
-        existing.ai_search_volume += page.ai_search_volume;
-      } else {
-        pageMap.set(page.url, { ...page });
-      }
-    }
-    const mergedPages = [...pageMap.values()].sort((a, b) => b.mentions - a.mentions);
-    const citedPagesCount = citedPagesFromMetrics > 0 ? citedPagesFromMetrics : mergedPages.length;
-
-    req.log.info({
-      brandName,
-      bestKeyword,
-      kw1Total,
-      kw2Total,
-      googleMentions,
-      chatgptMentions,
-      mentions,
-      citations,
-      citedPagesCount,
-    }, "visibility-overview: raw results");
-
-    // Score formula (final): mentions 70pts log-scale, citations bonus 20pts, pages bonus 10pts
-    const mentionScore  = Math.min(Math.log10(Math.max(mentions, 1)) / Math.log10(10_000_000) * 70, 70);
-    const citationBonus = citations > 0 ? Math.min(Math.log10(citations) / 6 * 20, 20) : 0;
-    const pageBonus     = citedPagesCount > 0 ? Math.min(citedPagesCount / 100 * 10, 10) : 0;
-    const score = mentions === 0 ? 0 : Math.min(100, Math.round(mentionScore + citationBonus + pageBonus));
-    req.log.info({ mentions, citations, citedPages: citedPagesCount, mentionScore, citationBonus, pageBonus, finalScore: score }, "SCORE DEBUG");
-
-    // Platform distribution: extracted from the combined per-platform breakdown
-    const googleAiSearchVol  = extractPlatformMentions(bestKwAll.total, "google").aiSearchVolume;
-    const chatgptAiSearchVol = extractPlatformMentions(bestKwAll.total, "chat_gpt").aiSearchVolume;
-    const rawPlatforms = [
-      { key: "google",   mentions: googleMentions,  ai_search_volume: googleAiSearchVol },
-      { key: "chat_gpt", mentions: chatgptMentions, ai_search_volume: chatgptAiSearchVol },
-    ].filter(p => p.mentions > 0);
-    const totalPlatMentions = Math.max(rawPlatforms.reduce((s, p) => s + p.mentions, 0), 1);
-    const platformData = rawPlatforms
-      .sort((a, b) => b.mentions - a.mentions)
-      .map(p => ({
-        key: p.key,
-        displayName: PLATFORM_NAMES[p.key] ?? p.key,
-        color: PLATFORM_COLORS[p.key] ?? "#6B7280",
-        mentions: p.mentions,
-        ai_search_volume: p.ai_search_volume,
-        pct: p.mentions > 0 ? Math.max(parseFloat(((p.mentions / totalPlatMentions) * 100).toFixed(1)), 0.1) : 0,
-      }));
-
-    // Countries: from combined keyword agg total location breakdown
-    const kwLocations = ((bestKwAll.total as unknown as { location?: Array<{ key: string; mentions: number }> } | null)?.location ?? []);
-    const totalLocMentions = Math.max(kwLocations.reduce((s, l) => s + (l.mentions || 0), 0), 1);
-    const countries = [...kwLocations]
-      .sort((a, b) => b.mentions - a.mentions)
-      .slice(0, 10)
-      .map(l => ({
-        code: Number(l.key),
-        name: LOCATION_NAMES[Number(l.key)] ?? "Other",
-        mentions: l.mentions,
-        pct: Math.round((l.mentions / totalLocMentions) * 100),
-      }));
-
-    // Cited sources from combined domain breakdown
-    const sourcesDomain = ((domainAll.total as unknown as { sources_domain?: Array<{ key: string; mentions: number; ai_search_volume: number }> } | null)?.sources_domain ?? []);
-    const citedSources = [...sourcesDomain]
-      .sort((a, b) => b.mentions - a.mentions)
-      .slice(0, 20)
-      .map(s => ({ domain: s.key, mentions: s.mentions, ai_search_volume: s.ai_search_volume }));
-
-    const hasData = mentions > 0 || citations > 0;
-    req.log.info({ domain: bareD, bestKeyword, score, mentions, citations, citedPagesCount, hasData }, "visibility-overview: done");
+    // DataForSEO LLM Mentions API calls removed to eliminate ~$1.60/call cost.
+    // Mention/citation/topic metrics are zeroed pending an alternative data source.
+    const bestKeyword = candidates[0]!;
+    const mentions = 0;
+    const aiSearchVolume = 0;
+    const citations = 0;
+    const citedPagesCount = 0;
+    const score = 0;
+    const hasData = false;
+    const mergedPages: { url: string; mentions: number; ai_search_volume: number }[] = [];
+    const performingData = { items: [] as Array<{ question: string; platform: string; model_name: string; ai_search_volume: number; location_code: number }>, totalCount: 0, cached: false };
+    const opportunitiesData = { items: [] as Array<{ question: string; platform: string; model_name: string; ai_search_volume: number; location_code: number }>, totalCount: 0, cached: false };
+    const platformData: { key: string; displayName: string; color: string; mentions: number; ai_search_volume: number; pct: number }[] = [];
+    const countries: { code: number; name: string; mentions: number; pct: number }[] = [];
+    const citedSources: { domain: string; mentions: number; ai_search_volume: number }[] = [];
+    req.log.info({ domain: bareD, bestKeyword, score }, "visibility-overview: done (LLM API calls disabled)");
 
     const now = new Date();
     const expiresAt = new Date(now.getTime() + cacheTtlMs);
@@ -1144,65 +1033,21 @@ router.post("/dataforseo/competitor-research", requireAuth, async (req, res): Pr
 
   req.log.info({ domains: allDomains, dateFrom: sixMonthsAgo, dateTo: today }, "competitor-research: start");
 
-  // Per-request DataForSEO call counter - hard cap prevents runaway costs
-  let dfsCallCount = 0;
-  const DFS_CALL_LIMIT = 30;
-  async function tracked<T>(label: string, fn: () => Promise<T>): Promise<T> {
-    dfsCallCount++;
-    if (dfsCallCount > DFS_CALL_LIMIT) {
-      req.log.error({ dfsCallCount, label }, "competitor-research: DFS call limit exceeded, aborting");
-      throw new Error("API call limit reached for this request. Data has been partially cached - try again in a moment.");
-    }
-    req.log.debug({ dfsCallCount, label }, "competitor-research: DFS call");
-    return fn();
-  }
-
   try {
-    // Per-domain: fetch sequentially (NOT parallel across domains) to avoid bursting
-    // 8 calls per domain still run in parallel since they're independent for that domain.
-    // Max concurrent at any moment: 8 (not 8 * numDomains).
+    // DataForSEO LLM Mentions API calls removed to eliminate ~$1.60/call cost.
+    // Competitor scores are zeroed pending an alternative data source.
     const domainResults: { domain: string; brandName: string; bestKeyword: string; mentions: number; citations: number; citedPages: number; score: number; isYou: boolean }[] = [];
     for (const [idx, domain] of allDomains.entries()) {
       const brandName = extractBrandName(domain);
       const candidates = brandKeywordCandidates(brandName);
-      const [kw1G, kw1C, kw2G, kw2C, pagesG, pagesC, domG, domC] = await Promise.all([
-        tracked(`kw1-google:${domain}`,   () => getLlmKeywordAggMetrics(candidates[0]!, sixMonthsAgo, today, "google")),
-        tracked(`kw1-chatgpt:${domain}`,  () => getLlmKeywordAggMetrics(candidates[0]!, sixMonthsAgo, today, "chat_gpt")),
-        candidates[1] ? tracked(`kw2-google:${domain}`,  () => getLlmKeywordAggMetrics(candidates[1]!, sixMonthsAgo, today, "google"))  : Promise.resolve(null),
-        candidates[1] ? tracked(`kw2-chatgpt:${domain}`, () => getLlmKeywordAggMetrics(candidates[1]!, sixMonthsAgo, today, "chat_gpt")) : Promise.resolve(null),
-        tracked(`pages-google:${domain}`,  () => getLlmTopPagesList(domain, sixMonthsAgo, today, 50, "google")),
-        tracked(`pages-chatgpt:${domain}`, () => getLlmTopPagesList(domain, sixMonthsAgo, today, 50, "chat_gpt")),
-        tracked(`agg-google:${domain}`,    () => getLlmAggregatedMetrics(domain, sixMonthsAgo, today, "google")),
-        tracked(`agg-chatgpt:${domain}`,   () => getLlmAggregatedMetrics(domain, sixMonthsAgo, today, "chat_gpt")),
-      ]);
-      const kw1Total = kw1G.mentions + kw1C.mentions;
-      const kw2Total = (kw2G?.mentions ?? 0) + (kw2C?.mentions ?? 0);
-      const useKw2 = kw2Total > kw1Total;
-      const bestKeyword = useKw2 ? candidates[1]! : candidates[0]!;
-      const mentions  = useKw2 ? kw2Total : kw1Total;
-      const citations = domG.mentions + domC.mentions;
-      const pageUrlSet = new Set<string>();
-      for (const p of [...pagesG.pages, ...pagesC.pages]) if (p.url) pageUrlSet.add(p.url);
-      const citedPages = pageUrlSet.size;
-      const score = calcScore(mentions, citations, citedPages);
-      req.log.info({ domain, brandName, mentions, citations, citedPages, score, dfsCallCount }, "competitor-research: domain metrics");
-      domainResults.push({ domain, brandName, bestKeyword, mentions, citations, citedPages, score, isYou: idx === 0 });
+      const bestKeyword = candidates[0]!;
+      domainResults.push({ domain, brandName, bestKeyword, mentions: 0, citations: 0, citedPages: 0, score: 0, isYou: idx === 0 });
     }
 
-    // Topics: fetch sequentially (your brand first, then competitor)
-    const yourBrand = domainResults[0]!.bestKeyword;
-    const compBrand = domainResults[1]?.bestKeyword;
-
-    const yourTopics = await tracked(`topics-yours:${yourBrand}`, () => getLlmSearchTopics(yourBrand, sixMonthsAgo, today, "include", 100));
-    const compTopics = compBrand
-      ? await tracked(`topics-comp:${compBrand}`, () => getLlmSearchTopics(compBrand, sixMonthsAgo, today, "include", 100))
-      : { items: [], totalCount: 0, cached: false };
-
-    req.log.info({
-      yourTopics: yourTopics.items.length,
-      compTopics: compTopics.items.length,
-      totalDfsCallsThisRequest: dfsCallCount,
-    }, "competitor-research: secondary data");
+    type TopicItem = { question: string; platform: string; model_name: string; ai_search_volume: number; location_code: number; sources: string[]; brandEntities: string[]; monthlySearches: Array<{ year: number; month: number; count: number }>; answer: string };
+    const yourTopics: { items: TopicItem[]; totalCount: number; cached: boolean } = { items: [], totalCount: 0, cached: false };
+    const compTopics: { items: TopicItem[]; totalCount: number; cached: boolean } = { items: [], totalCount: 0, cached: false };
+    req.log.info({ domains: allDomains }, "competitor-research: LLM API calls disabled, returning zeroed metrics");
 
     // Build rank maps (1-based: rank 1 = most prominent in results)
     const yourRankMap = new Map<string, number>();
@@ -1328,10 +1173,8 @@ Each insight: specific problem + specific fix. Under 60 words each. Plain text. 
       req.log.warn({ err }, "competitor-research: insights generation failed");
     }
 
-    req.log.info({ domains: allDomains, scores: domainResults.map(d => d.score), topics: topicList.length, topicCounts, sources: sources.length, totalDfsCalls: dfsCallCount }, "competitor-research: done");
-    // Log cost estimate - each DFS function has its own per-call cache so actual API calls
-    // may be fewer than dfsCallCount. Estimate: ~$0.002 per unique (non-cached) call.
-    logDfsCost("competitor-research", dfsCallCount * 0.002, allDomains.join(","), user.id ?? "unknown");
+    req.log.info({ domains: allDomains, scores: domainResults.map(d => d.score), topics: topicList.length, topicCounts, sources: sources.length }, "competitor-research: done");
+    logDfsCost("competitor-research", 0, allDomains.join(","), user.id ?? "unknown");
 
     const now = new Date();
     const expiresAt = new Date(now.getTime() + cacheTtlMs);
@@ -1407,13 +1250,10 @@ router.post("/dataforseo/prompt-research", requireAuth, async (req, res): Promis
   req.log.info({ input, brandName }, "prompt-research: start");
 
   try {
-    const [googleResult, chatgptResult] = await Promise.all([
-      getLlmSearchTopics(brandName, sixMonthsAgo, today, "include", 100, "google"),
-      getLlmSearchTopics(brandName, sixMonthsAgo, today, "include", 100, "chat_gpt"),
-    ]);
-
-    const allItems = [...googleResult.items, ...chatgptResult.items];
-    req.log.info({ brandName, google: googleResult.items.length, chatgpt: chatgptResult.items.length, total: allItems.length }, "prompt-research: items fetched");
+    // DataForSEO LLM Mentions API calls removed to eliminate ~$1.60/call cost.
+    type PromptItem = { question: string; platform: string; model_name: string; ai_search_volume: number; location_code: number; sources: string[]; brandEntities: string[]; monthlySearches: Array<{ year: number; month: number; count: number }>; answer: string };
+    const allItems: PromptItem[] = [];
+    req.log.info({ brandName, total: 0 }, "prompt-research: LLM API calls disabled");
 
     // Filter to brand-relevant items (brand name must appear in the question or answer)
     const brandLower = brandName.toLowerCase();
@@ -1585,7 +1425,7 @@ router.post("/dataforseo/prompt-research", requireAuth, async (req, res): Promis
       sourceDomains,
       dateFrom: sixMonthsAgo,
       dateTo: today,
-      cached: googleResult.cached && chatgptResult.cached,
+      cached: false,
     });
   } catch (err) {
     req.log.error({ err }, "prompt-research error");

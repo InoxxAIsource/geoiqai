@@ -737,25 +737,20 @@ async function queryGemini(prompt: string): Promise<{ text: string; simulated: b
     }
   }
 
-  // Fallback: OpenAI simulating Gemini
-  try {
-    const response = await openaiClient.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a helpful AI assistant. Answer questions about products, tools, and services with balanced, helpful information. Mention specific tools and services by name where you know them.",
-        },
-        { role: "user", content: prompt },
-      ],
-      max_tokens: 500,
-      temperature: 0.4,
-    });
-    return { text: response.choices[0]?.message?.content ?? "", simulated: true };
-  } catch {
-    return { text: "", simulated: true };
+  // Fallback: Claude Haiku simulating Gemini
+  if (anthropicClient) {
+    try {
+      const msg = await anthropicClient.messages.create({
+        model: "claude-haiku-4-5",
+        max_tokens: 500,
+        system: "You are a helpful AI assistant. Answer questions about products, tools, and services with balanced, helpful information. Mention specific tools and services by name where you know them.",
+        messages: [{ role: "user", content: prompt }],
+      });
+      const block = msg.content[0];
+      return { text: block?.type === "text" ? block.text : "", simulated: true };
+    } catch { /* fall through */ }
   }
+  return { text: "", simulated: true };
 }
 
 async function queryPerplexity(prompt: string): Promise<{ text: string; simulated: boolean }> {
@@ -801,25 +796,20 @@ async function queryPerplexity(prompt: string): Promise<{ text: string; simulate
     }
   }
 
-  // Fallback: OpenAI when RAPIDAPI_KEY is not set
-  try {
-    const response = await openaiClient.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a search-augmented AI assistant. Answer with specific information about products and services. Be direct and recommend specific options by name.",
-        },
-        { role: "user", content: prompt },
-      ],
-      max_tokens: 500,
-      temperature: 0.5,
-    });
-    return { text: response.choices[0]?.message?.content ?? "", simulated: true };
-  } catch {
-    return { text: "", simulated: true };
+  // Fallback: Claude Haiku simulating Perplexity
+  if (anthropicClient) {
+    try {
+      const msg = await anthropicClient.messages.create({
+        model: "claude-haiku-4-5",
+        max_tokens: 500,
+        system: "You are a search-augmented AI assistant. Answer with specific information about products and services. Be direct and recommend specific options by name.",
+        messages: [{ role: "user", content: prompt }],
+      });
+      const block = msg.content[0];
+      return { text: block?.type === "text" ? block.text : "", simulated: true };
+    } catch { /* fall through */ }
   }
+  return { text: "", simulated: true };
 }
 
 async function queryClaude(prompt: string): Promise<{ text: string; simulated: boolean }> {
@@ -878,25 +868,20 @@ async function queryGrok(prompt: string): Promise<{ text: string; simulated: boo
     }
   }
 
-  // Fallback: OpenAI simulating Grok
-  try {
-    const response = await openaiClient.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are Grok, an AI assistant made by xAI. Answer questions about products, tools, and services with direct, honest information. Name specific products and services where you know them.",
-        },
-        { role: "user", content: prompt },
-      ],
-      max_tokens: 500,
-      temperature: 0.35,
-    });
-    return { text: response.choices[0]?.message?.content ?? "", simulated: true };
-  } catch {
-    return { text: "", simulated: true };
+  // Fallback: Claude Haiku simulating Grok
+  if (anthropicClient) {
+    try {
+      const msg = await anthropicClient.messages.create({
+        model: "claude-haiku-4-5",
+        max_tokens: 500,
+        system: "You are Grok, an AI assistant made by xAI. Answer questions about products, tools, and services with direct, honest information. Name specific products and services where you know them.",
+        messages: [{ role: "user", content: prompt }],
+      });
+      const block = msg.content[0];
+      return { text: block?.type === "text" ? block.text : "", simulated: true };
+    } catch { /* fall through */ }
   }
+  return { text: "", simulated: true };
 }
 
 // --- Scoring ---

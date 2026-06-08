@@ -1,0 +1,108 @@
+PART 1: REMOVE ALL DATAFORSEO LLM CALLS
+═══════════════════════════════════════
+
+Search entire codebase for these function 
+names and DELETE every call to them:
+
+getLlmKeywordAggMetrics
+getLlmAggregatedMetrics
+getLlmTopPagesList
+getLlmSearchTopics
+
+Also delete:
+- The function definitions themselves
+- Any loop iterating over monthSlices
+- Any code with slice.from or slice.to
+- Any trend data array building
+- The trendData field in API responses
+
+After deleting run this verification:
+grep -r "getLlmKeywordAggMetrics" .
+grep -r "getLlmAggregatedMetrics" .
+grep -r "getLlmTopPagesList" .
+grep -r "getLlmSearchTopics" .
+grep -r "slice.from" .
+grep -r "monthSlices" .
+
+All must return ZERO results.
+If any return results — delete those lines.
+
+═══════════════════════════════════════
+PART 2: SWITCH AI PRESENCE TO CLAUDE ONLY
+═══════════════════════════════════════
+
+File: audit-engine.ts
+
+Current: 6 separate API calls to different
+AI systems using OpenAI/Gemini/etc fallbacks
+
+Replace all fallback blocks with Claude Haiku.
+Keep real API first-try logic intact.
+
+For queryChatGPT fallback:
+Replace openaiClient call with:
+
+const response = await anthropicClient
+  .messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 512,
+    system: `You are simulating how ChatGPT 
+responds to brand and product queries.
+Answer as ChatGPT would based on your 
+knowledge of how that AI system typically 
+responds. Be accurate about whether this 
+brand is likely known to ChatGPT.
+Return JSON only.`,
+    messages: [{
+      role: 'user',
+      content: prompt
+    }]
+  });
+const text = response.content[0].text;
+
+For queryGemini fallback:
+Same pattern, system prompt says "Gemini"
+
+For queryPerplexity fallback:
+Same pattern, system prompt says "Perplexity"
+
+For queryGrok fallback:
+Same pattern, system prompt says "Grok"
+
+queryClaude already uses Anthropic — keep.
+
+Remove these imports if only used 
+for fallbacks:
+- openai package
+- @google/generative-ai package
+
+Keep UI labels unchanged:
+"ChatGPT said..." / "Gemini said..." etc.
+
+Update AI Presence score display.
+Remove DataForSEO metric fields:
+- "2.4M AI mentions" → delete
+- "Citations count" → delete  
+- "Cited pages count" → delete
+
+Replace KEY METRICS with:
+
+const metrics = {
+  ai_presence_pct: Math.round(
+    (systemsMentioned / 6) * 100
+  ),
+  systems_found: `${systemsMentioned} of 6`,
+  top_position: Math.min(
+    ...results
+      .filter(r => r.mentioned && r.position)
+      .map(r => r.position)
+  ) || null,
+  urls_cited: results
+    .filter(r => r.url_cited).length
+};
+
+Display:
+┌──────────────┬──────────────┬──────────────┬──────────────┐
+│ AI PRESENCE  │ SYSTEMS FOUND│ TOP POSITION │ URLs CITED   │
+│    67%       │    4 of 6    │      3       │      1       │
+└──────────────┴──────────────┴──────────────┴──────────────┘

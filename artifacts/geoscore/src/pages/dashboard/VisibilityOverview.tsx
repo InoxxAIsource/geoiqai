@@ -477,10 +477,10 @@ export function VisibilityOverview({
                 <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em" }}>Key Metrics</div>
               </div>
               <div style={{ display: "flex", gap: 32, marginBottom: 28, flexWrap: "wrap" }}>
-                <KpiCard label="Mentions" value={d.mentions} color={P} sub={`"${d.brandName}" in AI answers`} />
-                <KpiCard label="AI Search Volume" value={d.aiSearchVolume} color="#10B981" sub="Monthly AI searches" />
-                <KpiCard label="Citations" value={d.citations} color="#F59E0B" sub="Domain URL cited as source" showZero />
-                <KpiCard label="Cited Pages" value={d.citedPagesCount} color="#8B5CF6" sub="Unique pages cited" showZero />
+                <KpiCard label="AI Presence %" value={d.score} color={P} sub="GEO score across all AI systems" showZero />
+                <KpiCard label="Systems Found" value={d.platforms.length} color="#10B981" sub="AI platforms with brand data" showZero />
+                <KpiCard label="URLs Cited" value={d.citedPagesCount} color="#8B5CF6" sub="Unique pages cited by AI" showZero />
+                <KpiCard label="Cited Sources" value={d.citedSources.length} color="#F59E0B" sub="External domains referencing brand" showZero />
               </div>
 
               {/* platform mini bars */}
