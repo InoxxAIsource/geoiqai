@@ -145,30 +145,43 @@ export async function runAIPresenceScan(domain: string): Promise<AIPresenceScanR
         : Promise.resolve(null),
 
       // Tavily: ChatGPT-specific evidence
+      // Semantic intent: "what would a page look like that discusses ChatGPT citing this brand?"
       tvly
-        ? tvly.search(`${brandName} ChatGPT recommended suggests`, {
-            searchDepth: "basic",
-            maxResults: 5,
-            topic: "general",
-          })
+        ? tvly.search(
+            `Does ChatGPT recommend or mention ${brandName}? ChatGPT AI response ${domain}`,
+            {
+              searchDepth: "advanced",
+              maxResults: 7,
+              topic: "general",
+              days: 180,
+            },
+          )
         : Promise.resolve(null),
 
       // Tavily: Gemini-specific evidence
       tvly
-        ? tvly.search(`${brandName} Gemini Google AI recommended`, {
-            searchDepth: "basic",
-            maxResults: 5,
-            topic: "general",
-          })
+        ? tvly.search(
+            `Does Google Gemini recommend or mention ${brandName}? Gemini AI response ${domain}`,
+            {
+              searchDepth: "advanced",
+              maxResults: 7,
+              topic: "general",
+              days: 180,
+            },
+          )
         : Promise.resolve(null),
 
       // Tavily: Perplexity-specific evidence
       tvly
-        ? tvly.search(`${brandName} Perplexity cited source`, {
-            searchDepth: "basic",
-            maxResults: 5,
-            topic: "general",
-          })
+        ? tvly.search(
+            `Does Perplexity AI recommend or cite ${brandName}? Perplexity answer ${domain}`,
+            {
+              searchDepth: "advanced",
+              maxResults: 7,
+              topic: "general",
+              days: 180,
+            },
+          )
         : Promise.resolve(null),
     ]);
 
@@ -201,27 +214,30 @@ export async function runAIPresenceScan(domain: string): Promise<AIPresenceScanR
   const gemini = scorePlatform(geminiRaw, domain, brandSlug);
   const perplexity = scorePlatform(perplexityRaw, domain, brandSlug);
 
-  // If Tavily gave nothing but Exa found strong evidence, attribute it as general presence
-  // This prevents big brands from scoring 0 just because Tavily phrasing didn't match
+  // Count how many Exa results mention the brand (neural search as supporting signal)
   const exaMatchCount = exaResults.filter(r =>
     resultMentionsBrand(`${r.title ?? ""} ${(r.highlights ?? []).join(" ")}`, domain, brandSlug),
   ).length;
 
-  // Boost: if Exa found brand in multiple results but Tavily searches came back empty,
-  // attribute Exa evidence as general AI presence signal across all 3 platforms.
-  // Scale: 5 matches = 40pts, 8+ matches = 65pts, 10 matches = 80pts
-  if (exaMatchCount >= 5 && !chatgpt.found && !gemini.found && !perplexity.found) {
-    const boostedScore = exaMatchCount >= 9
-      ? 80
-      : exaMatchCount >= 7
-        ? 65
-        : exaMatchCount >= 5
-          ? 40
-          : 25;
-    chatgpt.found = true; chatgpt.score = boostedScore;
-    gemini.found = true; gemini.score = boostedScore;
-    perplexity.found = true; perplexity.score = Math.round(boostedScore * 0.85);
-    logger.info({ domain, exaMatchCount, boostedScore }, "ai-presence-scan: Exa boost applied");
+  // Per-platform Exa boost: Tavily doesn't always surface platform-specific pages for every AI system.
+  // If Exa found strong brand presence (5+ neural results) and a platform got 0 from Tavily,
+  // apply a proportional Exa-based score to that platform.
+  // Scale: 5 matches = 30pts (found), 7+ = 45pts, 9+ = 60pts
+  if (exaMatchCount >= 5) {
+    const exaBoostScore = exaMatchCount >= 9 ? 60 : exaMatchCount >= 7 ? 45 : 30;
+    if (!chatgpt.found) {
+      chatgpt.found = true;
+      chatgpt.score = exaBoostScore;
+    }
+    if (!gemini.found) {
+      gemini.found = true;
+      gemini.score = Math.round(exaBoostScore * 0.85);
+    }
+    if (!perplexity.found) {
+      perplexity.found = true;
+      perplexity.score = Math.round(exaBoostScore * 0.85);
+    }
+    logger.info({ domain, exaMatchCount, exaBoostScore }, "ai-presence-scan: Exa per-platform boost applied");
   }
 
   // Overall score: average of the 3 platform scores

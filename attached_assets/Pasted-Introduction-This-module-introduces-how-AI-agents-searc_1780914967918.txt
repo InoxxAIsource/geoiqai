@@ -1,0 +1,428 @@
+Introduction
+This module introduces how AI agents search the web, why search quality matters, and how modern agents use semantic search, recency signals, and multi-step reasoning to retrieve reliable information. You'll learn the fundamentals behind real-time data access, explore common failure modes in agent search, and understand what makes a source trustworthy. These concepts form the foundation for building agents that produce accurate and grounded outputs.
+
+Imagine you're building a research assistant for your team. It needs to gather fresh information, summarize findings, and answer questions accurately. But LLMs alone can't access up-to-date data, and relying only on internal reasoning can lead to hallucinations or outdated answers. To build a reliable assistant, you need a search system that understands intent, surfaces relevant sources, and adapts when queries are too broad or too narrow. That's where well-designed agent search comes in, and this module shows you how it works.
+
+In this module, you will learn about:
+
+• Why agents need web search
+• Keyword, semantic, and hybrid search
+• Recency, domain filters, and source trustworthiness
+• High recall and multi-step search flows
+• Common search failure modes and how to avoid them
+By the end of this module, you will understand how agents retrieve information effectively, how to evaluate the quality of retrieved sources, and how search strategy impacts the reliability of your agent's output
+
+
+
+AI agents are capable of impressive reasoning, but they cannot operate reliably without access to real-time information. This unit explains the fundamental limitations of LLMs, why these limitations matter in practical scenarios, and how web search becomes a critical component in building dependable agents.
+
+LLMs Have a Knowledge Cutoff
+Every LLM is trained on static data. Once training ends, the model cannot learn new events or updates unless developers perform a new training cycle or fine-tune it.
+
+This creates real problems for agents:
+
+• News and global events shift daily.
+
+• Company information, product details, and prices change constantly.
+
+• Technical documentation gets updated frequently.
+
+• Scientific research evolves faster than training cycles.
+
+For any task that depends on the present, the model's internal knowledge becomes stale almost immediately.
+
+Example: Ask an LLM trained in early 2024 about API changes made in 2025. It will attempt to answer, but the content will be incomplete or wrong because those updates do not exist in its training data.
+
+Search gives the agent access to information that the LLM has never seen.
+
+Internal Reasoning Alone Causes Hallucinations
+LLMs generate text by predicting likely sequences of tokens. Without verifiable external data, they often "invent" details that sound plausible but are factually incorrect.
+
+Common hallucination patterns include:
+
+• Citing articles that do not exist
+
+• Creating fake statistics
+
+• Mixing unrelated facts
+
+• Confidently presenting outdated or wrong information
+
+• Overgeneralizing from limited context
+
+Web search grounds the agent in real sources, reducing the chance of incorrect or fabricated outputs.
+
+The World Changes Faster Than Model Updates
+Some domains require hourly accuracy:
+
+• News events and press releases
+
+• Financial market movements
+
+• Job listings
+
+• Travel schedules and advisories
+
+• Product availability and pricing
+
+• Sports outcomes
+
+• Weather conditions
+
+LLMs are not designed to track continuous real-world change. Agents must rely on external search to remain useful in fast-moving environments.
+
+Context Windows Are Limited
+LLMs cannot store or reason over everything at once. Even the largest context windows cannot hold:
+
+• Multiple long articles
+
+• Detailed blog posts
+
+• Full documentation sets
+
+• Entire website sections
+
+• Long-form reports or PDFs
+
+Agents must retrieve context dynamically rather than rely on preloaded information.
+
+Web search allows agents to continuously pull relevant pieces of knowledge, rather than trying to fit everything into a single prompt.
+
+Agents Need the Ability to Validate Information
+Effective agents do more than return answers, they check whether their answers are correct.
+
+Search lets them:
+
+• Compare multiple independent sources
+
+• Prioritize recent and reputable domains
+
+• Cross-check claims
+
+• Identify contradictions or outdated data
+
+• Confirm details before generating a final answer
+
+This mirrors how human researchers validate information and dramatically increases reliability.
+
+Search Enables Multi-Step Research Workflows
+More advanced tasks require iterative reasoning. Agents often:
+
+• Run an initial search
+
+• Inspect early results
+
+• Identify gaps or missing context
+
+• Reformulate the query
+
+• Retrieve new data
+
+• Combine findings across pages
+
+• Summarize results using LLM reasoning
+
+This multi-step loop is impossible without access to external information. Search becomes the engine that powers deep investigation, not just factual lookups.
+
+Search Expands an Agent's Understanding Beyond Pretrained Data
+Real-world tasks often require niche or domain-specific content:
+
+• Regulatory documents
+
+• Government pages
+
+• Market-specific news
+
+• Industry reports
+
+• Academic or scientific content
+
+• Niche technical guides
+
+These may not appear in the model's training data. Search ensures your agent can reach beyond what the model was originally trained on.
+
+Summary
+Agents require web search because LLMs:
+
+• Are frozen in time due to knowledge cutoffs
+
+• Hallucinate without grounding
+
+• Cannot keep up with real-world changes
+
+• Have limited context capacity
+
+• Need to validate information for accuracy
+
+• Rely on multi-step search for complex reasoning
+
+• Benefit from access to specialized or niche sources
+
+Web search is not optional for modern agents. It is a foundational capability that enables them to stay current, accurate, and trustworthy.
+
+
+
+Agents depend heavily on how they retrieve information. Understanding the three main types of search: keyword, semantic, and hybrid - helps you design smarter queries, reduce irrelevant results, and improve the accuracy of your agent's reasoning. This unit walks you through each search type, how they work, what their strengths are, and where they fall short.
+
+Keyword Search
+Keyword search is the simplest and oldest form of search. It looks for exact matches between the words a user types and the words found in documents.
+
+How it Works
+• Matches literal tokens in a query against web pages
+
+• Works best when you know the exact words or phrases you're looking for
+
+• Rankings rely on frequency, titles, headings, metadata, and URL patterns
+
+Strengths
+• Fast and efficient
+
+• Great when the keywords are unique or specific
+
+• Useful for highly factual or structured searches
+
+• Example: "Python 3.12 release date"
+
+• Example: Searching for code snippets with exact API names
+
+Limitations
+• Misses content that uses different phrasing
+
+• Fails when intent doesn't match literal wording
+
+• Struggles with vague or conceptual questions
+
+• Sensitive to synonyms, typos, and variations
+
+Example:
+
+Query: "best way to reduce website bounce rate" - A keyword search may miss pages that use "decrease exit rate" or "improve engagement."
+
+Agents relying only on keyword search often retrieve narrow, incomplete, or noisy results.
+
+Semantic Search
+Semantic search retrieves content based on meaning, not exact wording. Instead of matching characters, it compares the conceptual intent of the query with the intent of documents.
+
+How it Works
+• Uses embeddings to represent meaning
+
+• Measures similarity between query vector and document vectors
+
+• Finds content that is contextually or conceptually related
+
+Strengths
+• Understands synonyms and paraphrasing
+
+• Handles complex or conversational queries
+
+• Excellent for research tasks, explanations, comparisons, and broad topics
+
+• Returns more relevant results even when exact words are absent
+
+Examples:
+
+Query: "how to increase user retention" - semantic search can find: "improve customer loyalty", "keep users coming back", "reduce churn in SaaS products"
+
+Query: "AI tools that browse the web" - semantic search can surface articles describing agents or browser automation without using that exact wording.
+
+Limitations
+• May bring in broader or loosely related content
+
+• Requires more computing power
+
+• Quality depends heavily on the embedding model
+
+Semantic search is the foundation of modern agent search because agents often ask open-ended, contextual questions.
+
+Hybrid Search
+Hybrid search combines keyword and semantic search to deliver the best of both worlds.
+
+How it Works
+• Performs semantic matching to understand intent
+
+• Uses keyword relevance to anchor results to factual grounding
+
+• Ranks results using a weighted combination of both signals
+
+Strengths
+• More accurate than using either method alone
+
+• Great for queries that need both intent and precision
+
+• Reduces hallucination risk by grounding conceptual matches in real keywords
+
+• Particularly effective for multi-step agent workflows
+
+Example:
+
+Query: "tavily extract use cases"
+
+Hybrid search can:
+
+• Understand that "content extraction", "full-page parsing", and "clean HTML extraction" are conceptually related
+
+• Prioritize pages that actually contain the phrase "Tavily Extract" or "extract API"
+
+Limitations
+• More expensive than using a single method
+
+• Requires thoughtful tuning to balance semantic vs keyword weighting
+
+• Can still surface noise if the query is too broad
+
+When Agents Use Each Type
+Understanding when to use each method helps agents work more efficiently.
+
+Scenario	Best Search Type	Reason
+You need high precision for very specific terms	Keyword	Exact matching
+You want conceptually relevant results for broad questions	Semantic	Understands meaning
+You need both precision and strong intent matching	Hybrid	Balanced approach
+Research tasks needing deep exploration	Hybrid or Semantic	Captures broader context
+Technical or documentation-based questions	Keyword + Semantic	Finds exact API names plus explanations
+Why This Matters for Agents
+Agents need search to be:
+
+• Accurate: Retrieve exactly what the user meant
+
+• Flexible: Understand synonyms and intent
+
+• Grounded: Avoid hallucinations
+
+• Resilient: Adapt to vague or incomplete queries
+
+This combination allows agents to interpret human queries the way humans interpret information.
+
+Summary
+You've learned the three main search types:
+
+• Keyword search matches exact words but struggles with meaning
+
+• Semantic search matches concepts and intent but may be broad
+
+• Hybrid search combines both for high relevance and precision
+
+Modern agents rely heavily on semantic and hybrid approaches because they enable deeper reasoning, more diverse retrieval, and more reliable final answers.
+
+
+High-quality search means retrieving information that is complete, relevant, fresh, and trustworthy so the agent can reason accurately. When search quality drops - missing data, outdated sources, or noisy results - agent outputs degrade immediately.
+
+Recall
+Recall measures how many relevant documents are retrieved, even if some irrelevant ones appear too.
+
+Precision
+Precision measures how relevant the retrieved results are, even if the agent misses a few items.
+
+Balancing both:
+
+Agents often begin with high recall (broad search) and refine toward high precision (filtered search).
+
+Recency
+Recency determines how up-to-date your information is.
+
+For agents that deal with fast moving topics (for example news, prices, policies, and more..), stale information can lead to incorrect conclusions.
+
+Domain Filters
+Domain filters let agents control which sources they use, while domain trust scoring evaluates how credible each site is. By including or excluding specific domains, agents focus on authoritative sources and avoid wasting time or tokens on low-quality content.
+
+Depth and Exploration
+Depth determines how far a search engine explores past the initial set of results.
+
+When a task is complex, deep searches reveal more context and higher precision.
+
+Query Refinement and Expansion
+Agents rarely get the perfect answer from a single query. They must refine or expand their search based on what they find.
+
+Failure Modes
+Agents often struggle due to predictable search failures. Recognizing these helps you design better agent workflows. Some examples of failure modes:
+
+Too broad query. Fix: Add filters, specify topic, increase precision.
+
+Too narrow query. Fix: Expand the query, generalize, or increase depth.
+
+Outdated Sources. Fix: Apply recency filters or validate timestamps.
+
+Low-Quality Domains. Fix: Exclude domains or prioritize trustworthy sources.
+
+Why These Concepts Matter for Agents
+Search quality directly impacts the agent's ability to:
+
+• Ground answers in reality
+
+• Generate accurate summaries
+
+• Avoid hallucinations
+
+• Perform deep research
+
+• Produce consistent outputs across runs
+
+Good search is not just about retrieving content, it's about retrieving the right content.
+
+Summary
+In this unit, you learned the core pillars of search quality:
+
+• Recall: Gather as much relevant information as possible
+
+• Precision: Keep results highly relevant
+
+• Recency: Prioritize the newest content
+
+• Domain filters: Control where information comes from
+
+• Trust scoring: Identify credible sources
+
+• Depth, refinement, and expansion: Guide multi-step research
+
+• Failure modes: Recognize and correct common problems
+
+Mastering these concepts helps agents consistently retrieve accurate, trustworthy, and useful information.
+
+
+You've now completed Module 1: How Agents Search the Web. This module explored why agents need reliable access to real-time information, how different search methods work, and what makes search quality so important for agent performance.
+
+Before moving on to Module 2, take a moment to review the main ideas.
+
+1. Why AI Agents Need Web Search
+Agents cannot rely solely on internal reasoning because:
+
+• LLMs have knowledge cutoffs and lack real-time awareness
+
+• Hallucinations occur without grounding in external data
+
+• Many tasks require up-to-date information
+
+• LLMs cannot store all context within a single prompt
+
+• Agents must validate information against trustworthy sources
+
+Web search provides the fresh, factual, and diverse context required for reliable outputs.
+
+2. Types of Search: Keyword, Semantic, Hybrid
+You learned the differences between three major search approaches:
+
+• Keyword search: Exact matches, useful for precise terms but limited when phrasing varies.
+
+• Semantic search: Understands intent and meaning, ideal for broad or conceptual queries.
+
+• Hybrid search: Combines both methods to balance precision and relevance.
+
+Agents often rely on semantic or hybrid search to interpret natural language queries effectively.
+
+3. Search Quality Concepts
+High-quality search depends on several factors:
+
+• Recall: retrieving most relevant information
+
+• Precision: filtering results for relevance
+
+• Recency: prioritizing fresh, timely content
+
+• Domain filters: controlling which sites are included or excluded
+
+• Trust scoring: surfacing credible, authoritative sources
+
+• Depth and multi-step retrieval: expanding or refining searches
+
+• Failure modes: recognizing too-broad, too-narrow, outdated, or low-quality sources
+
+Understanding these concepts helps agents produce more reliable and grounded answers.
