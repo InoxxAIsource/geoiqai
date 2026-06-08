@@ -1138,14 +1138,6 @@ router.post("/dataforseo/competitor-research", requireAuth, async (req, res): Pr
 
   req.log.info({ domains: allDomains, dateFrom: sixMonthsAgo, dateTo: today }, "competitor-research: start");
 
-  // Build 6 monthly date slices for trend chart
-  const startMs = Date.now() - 180 * 24 * 60 * 60 * 1000;
-  const monthSlices = Array.from({ length: 6 }, (_, i) => {
-    const from = new Date(startMs + i * 30 * 24 * 60 * 60 * 1000);
-    const to   = new Date(Math.min(from.getTime() + 30 * 24 * 60 * 60 * 1000, Date.now()));
-    return { from: from.toISOString().split("T")[0]!, to: to.toISOString().split("T")[0]! };
-  });
-
   // Per-request DataForSEO call counter - hard cap prevents runaway costs
   let dfsCallCount = 0;
   const DFS_CALL_LIMIT = 30;
@@ -1200,27 +1192,7 @@ router.post("/dataforseo/competitor-research", requireAuth, async (req, res): Pr
       ? await tracked(`topics-comp:${compBrand}`, () => getLlmSearchTopics(compBrand, sixMonthsAgo, today, "include", 100))
       : { items: [], totalCount: 0, cached: false };
 
-    // Monthly trend: SEQUENTIAL across both domains and month slices.
-    // Old code: Promise.all(domains.map(Promise.all(slices.map(Promise.all(2 calls))))) = up to 24 concurrent calls.
-    // New code: one domain at a time, one slice at a time = max 2 concurrent calls at any moment.
-    // Each month-slice result is cached by getLlmKeywordAggMetrics, so reruns cost nothing.
-    const trendSeries: { domain: string; points: { date: string; mentions: number; score: number }[] }[] = [];
-    for (const d of domainResults) {
-      const monthPoints: { date: string; mentions: number; score: number }[] = [];
-      for (const slice of monthSlices) {
-        // 2 platform calls per slice are still parallel (independent, cheap burst)
-        const [g, c] = await Promise.all([
-          tracked(`trend-google:${d.bestKeyword}:${slice.from}`, () => getLlmKeywordAggMetrics(d.bestKeyword, slice.from, slice.to, "google")),
-          tracked(`trend-chatgpt:${d.bestKeyword}:${slice.from}`, () => getLlmKeywordAggMetrics(d.bestKeyword, slice.from, slice.to, "chat_gpt")),
-        ]);
-        const monthMentions = g.mentions + c.mentions;
-        monthPoints.push({ date: slice.from, mentions: monthMentions, score: calcScore(monthMentions, d.citations, d.citedPages) });
-      }
-      trendSeries.push({ domain: d.domain, points: monthPoints });
-    }
-
     req.log.info({
-      trendPoints: trendSeries.map(t => t.points.filter(p => p.mentions > 0).length),
       yourTopics: yourTopics.items.length,
       compTopics: compTopics.items.length,
       totalDfsCallsThisRequest: dfsCallCount,
@@ -1359,7 +1331,7 @@ Each insight: specific problem + specific fix. Under 60 words each. Plain text. 
     const expiresAt = new Date(now.getTime() + cacheTtlMs);
     const resultPayload = {
       domains: domainResults,
-      trend: trendSeries,
+      trend: [],
       topics: topicList,
       topicCounts,
       insights,

@@ -21,8 +21,6 @@ interface DomainResult {
   score: number;
   isYou: boolean;
 }
-interface TrendPoint { date: string; mentions: number; score: number }
-interface TrendSeries { domain: string; points: TrendPoint[] }
 type TopicStatus = "unique" | "missing" | "shared" | "weak" | "strong";
 interface TopicRow {
   topic: string;
@@ -45,7 +43,7 @@ interface PromptItem {
 }
 interface CompData {
   domains: DomainResult[];
-  trend: TrendSeries[];
+  trend?: unknown;
   topics: TopicRow[];
   topicCounts: TopicCounts;
   insights: string[];
@@ -58,83 +56,6 @@ interface CompData {
 }
 
 const DOMAIN_COLORS = [P, "#10B981", "#F59E0B", "#EF4444"];
-
-/* ───── Trend Chart ───── */
-function TrendChart({ trend }: { trend: TrendSeries[] }) {
-  if (!trend.length) return null;
-
-  const W = 560; const H = 160; const PX = 6; const PY = 12;
-  const cw = W - PX * 2; const ch = H - PY * 2 - 20;
-
-  // Collect all score points
-  const allPoints = trend.flatMap(s => s.points.map(p => p.score));
-  const maxVal = Math.max(...allPoints, 10);
-
-  // Build month labels from all dates across all series
-  const allDates = [...new Set(trend.flatMap(s => s.points.map(p => p.date)))].sort();
-  const monthLabels = allDates.map(d => {
-    const dt = new Date(d);
-    return dt.toLocaleDateString("en-US", { month: "short" });
-  });
-  // Deduplicate consecutive same months
-  const deduped: string[] = [];
-  for (const m of monthLabels) {
-    if (deduped[deduped.length - 1] !== m) deduped.push(m);
-  }
-
-  const pts = (series: TrendSeries) => {
-    if (!series.points.length) return "";
-    return series.points.map((p, i) => {
-      const x = PX + (i / Math.max(series.points.length - 1, 1)) * cw;
-      const y = PY + ch - (p.score / maxVal) * ch;
-      return `${x},${y}`;
-    }).join(" ");
-  };
-
-  const labelPositions = deduped.map((_, i) => PX + (i / Math.max(deduped.length - 1, 1)) * cw);
-
-  return (
-    <div>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", maxHeight: H }}>
-        {/* Grid lines */}
-        {[0, 25, 50, 75, 100].map(v => {
-          const y = PY + ch - (v / maxVal) * ch;
-          if (y < PY || y > PY + ch) return null;
-          return (
-            <line key={v} x1={PX} x2={PX + cw} y1={y} y2={y}
-              stroke="#F3F4F6" strokeWidth={1} />
-          );
-        })}
-        {trend.map((s, si) => {
-          const p = pts(s);
-          if (!p) return null;
-          return (
-            <polyline key={si} points={p} fill="none"
-              stroke={DOMAIN_COLORS[si % DOMAIN_COLORS.length]}
-              strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
-          );
-        })}
-        {/* Month labels - first/last anchored to edges so text doesn't clip */}
-        {labelPositions.map((x, i) => (
-          <text key={i} x={x} y={H - 4}
-            textAnchor={i === 0 ? "start" : i === deduped.length - 1 ? "end" : "middle"}
-            fontSize={10} fill={MUTED}>{deduped[i]}</text>
-        ))}
-      </svg>
-      <div style={{ display: "flex", gap: 16, marginTop: 8, flexWrap: "wrap" }}>
-        {trend.map((s, i) => (
-          <div key={s.domain} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11 }}>
-            <div style={{ width: 10, height: 10, borderRadius: "50%", background: DOMAIN_COLORS[i % DOMAIN_COLORS.length] }} />
-            <span style={{ color: "#111827" }}>{s.domain}</span>
-          </div>
-        ))}
-      </div>
-      <div style={{ fontSize: 11, color: MUTED, marginTop: 6 }}>
-        Trend lines reflect monthly AI mention volume. Historical tracking builds over time.
-      </div>
-    </div>
-  );
-}
 
 /* ───── Topics Table ───── */
 type TopicFilter = "all" | "missing" | "weak" | "shared" | "strong" | "unique";

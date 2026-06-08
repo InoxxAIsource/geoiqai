@@ -1,0 +1,106 @@
+Delete all trend chart API calls from 
+Brand Benchmarks. The chart shows flat 
+lines and costs $2-3 extra per analysis.
+
+STEP 1: DELETE TREND API CALLS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In dataforseo-extended.ts find the 
+trend loop that calls:
+getLlmKeywordAggMetrics(keyword, slice.from, slice.to, platform)
+
+It loops 6 slices × 2 platforms 
+= 12 calls per domain.
+
+DELETE the entire trend loop.
+
+Find it by searching for:
+- "slice.from" or "slice.to"
+- "monthSlices" or "monthlySlices"
+- "getLlmKeywordAggMetrics" with 
+  date parameters
+- Any array of 6 date range objects
+
+Delete:
+1. The monthSlices array definition
+2. The loop iterating over slices
+3. The getLlmKeywordAggMetrics calls 
+   inside the loop
+4. The trendData variable being built
+5. The trend field in the API response
+
+STEP 2: DELETE TREND CHART FROM FRONTEND
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In CompetitorResearch.tsx find 
+TrendChart component and delete it:
+
+Delete:
+- <TrendChart ... /> or <LineChart ... />
+- trendData state: const [trendData, setTrendData]
+- setTrendData(...) calls
+- Any useEffect that sets trend data
+- trend-related props
+
+Replace the chart section with:
+
+<div style={{
+  background: '#f8f9ff',
+  border: '1px solid #e8eaff',
+  borderRadius: 12,
+  padding: 32,
+  textAlign: 'center',
+  margin: '24px 0'
+}}>
+  <div style={{ 
+    fontSize: 24, 
+    marginBottom: 8 
+  }}>
+    📈
+  </div>
+  <p style={{
+    fontWeight: 600,
+    fontSize: 15,
+    color: '#1a1a2e',
+    marginBottom: 6
+  }}>
+    Trend tracking has started
+  </p>
+  <p style={{
+    fontSize: 13,
+    color: '#6b7280',
+    maxWidth: 300,
+    margin: '0 auto'
+  }}>
+    GeoIQ records your score each analysis.
+    After 3 scans you will see your 
+    trend vs competitors here.
+  </p>
+</div>
+
+STEP 3: CONFIRM DELETION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After deleting search entire codebase for:
+- "slice.from"
+- "slice.to" 
+- "monthSlices"
+- "TrendChart"
+- "trendData"
+
+All should return zero results.
+
+STEP 4: TEST CALL COUNT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Run one Brand Benchmarks analysis.
+Check api_cost_log in Supabase.
+
+Expected rows: maximum 16
+(4 calls × 4 domains)
+
+If rows exceed 16 — trend calls 
+still exist somewhere. Find and delete.
+
+Share api_cost_log row count 
+after one analysis run.
