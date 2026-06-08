@@ -1,0 +1,505 @@
+Fix 3 issues on AI Visibility Report:
+1. Add real AI system logos
+2. Fix Google AI Overview result parsing
+3. Professional UI redesign
+
+FIX 1: REAL AI SYSTEM LOGOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Replace colored squares with real 
+AI system brand logos using SVG icons
+or official favicon URLs.
+
+Use these official favicon/logo sources:
+
+const AI_LOGOS = {
+  chatgpt: 'https://www.google.com/s2/favicons?domain=chat.openai.com&sz=32',
+  gemini: 'https://www.google.com/s2/favicons?domain=gemini.google.com&sz=32',
+  perplexity: 'https://www.google.com/s2/favicons?domain=perplexity.ai&sz=32',
+  claude: 'https://www.google.com/s2/favicons?domain=claude.ai&sz=32',
+  grok: 'https://www.google.com/s2/favicons?domain=grok.com&sz=32',
+  google_ai: 'https://www.google.com/s2/favicons?domain=ai.google&sz=32'
+};
+
+In Platform Breakdown chips:
+<div className="platform-chip">
+  <img 
+    src={AI_LOGOS[platform.key]}
+    width={16} 
+    height={16}
+    style={{ borderRadius: 3 }}
+    onError={(e) => {
+      e.target.style.display = 'none';
+    }}
+  />
+  <span>{platform.name}</span>
+  <span className="score">
+    {platform.score}
+  </span>
+</div>
+
+In Distribution by LLM bars:
+Replace colored square with logo:
+<img 
+  src={AI_LOGOS[platform.key]}
+  width={20}
+  height={20}
+  style={{ borderRadius: 4 }}
+/>
+
+FIX 2: GOOGLE AI OVERVIEW RESULT PARSING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DataForSEO is firing and returning results
+(confirmed in Image 5 — RESULT button shown)
+but GeoIQ is not reading the response correctly.
+
+Find where Google AI Overview result 
+is parsed in the codebase.
+
+The DataForSEO SERP response contains:
+result[0].items = array of SERP elements
+
+AI Overview item has type = "ai_overview"
+
+Current code likely doing:
+const aioItem = items.find(
+  i => i.type === 'ai_overview'
+);
+
+Problem: may be looking at wrong field
+or response structure changed.
+
+Fix — log the full raw response first:
+
+console.log('DataForSEO SERP raw response:',
+  JSON.stringify(result[0].items
+    ?.slice(0,3), null, 2)
+);
+
+Then check ALL item types returned:
+const itemTypes = result[0].items
+  ?.map(i => i.type) || [];
+console.log('Item types found:', itemTypes);
+
+The AI Overview field may be:
+- type: "ai_overview"
+- type: "featured_snippet" 
+- type: "knowledge_graph"
+- Inside result[0].ai_overview directly
+
+Check all these locations:
+
+const findAIOverview = (serpResult) => {
+  // Location 1: direct field
+  if (serpResult.ai_overview) {
+    return serpResult.ai_overview;
+  }
+  
+  // Location 2: in items array
+  const aioItem = serpResult.items?.find(
+    i => i.type === 'ai_overview' ||
+         i.type === 'ai_answer' ||
+         i.type === 'featured_snippet'
+  );
+  if (aioItem) return aioItem;
+  
+  // Location 3: nested in organic
+  const organicWithAio = serpResult.items
+    ?.find(i => i.ai_overview);
+  if (organicWithAio) {
+    return organicWithAio.ai_overview;
+  }
+  
+  return null;
+};
+
+Once found, check if brand appears:
+
+const checkBrandInAIO = (aioData, domain) => {
+  if (!aioData) return {
+    cited: false,
+    mentioned: false
+  };
+  
+  const cleanDomain = domain
+    .replace('www.','').toLowerCase();
+  const brandName = cleanDomain.split('.')[0];
+  
+  // Check in text
+  const text = (
+    aioData.text || 
+    aioData.description || 
+    aioData.snippet || ''
+  ).toLowerCase();
+  
+  // Check in links/references
+  const links = aioData.links || 
+    aioData.references || 
+    aioData.items || [];
+  
+  const citedInLinks = links.some(
+    (l) => 
+      l.url?.includes(cleanDomain) ||
+      l.domain?.includes(cleanDomain)
+  );
+  
+  const mentionedInText = 
+    text.includes(cleanDomain) ||
+    text.includes(brandName);
+  
+  return {
+    cited: citedInLinks,
+    mentioned: mentionedInText || citedInLinks,
+    text: aioData.text?.slice(0, 300),
+    query: 'Coinbase review'
+  };
+};
+
+Also: the query "Coinbase review" may not
+trigger AI Overview for this brand.
+Try multiple queries:
+
+const aioQueries = [
+  `${brandName} review`,
+  `what is ${brandName}`,
+  `${brandName} cryptocurrency`,
+  `best crypto exchange ${brandName}`
+];
+
+Run the most relevant query for the brand.
+Use Claude to pick best query:
+"What query would most likely trigger 
+a Google AI Overview for ${domain}?"
+
+FIX 3: PROFESSIONAL UI REDESIGN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The current UI looks like a prototype.
+Redesign to look premium and eye-catching.
+
+SCORE GAUGES — upgrade visual:
+
+Current: plain white cards, basic gauge
+New: gradient background, bold score display
+
+.score-card {
+  background: white;
+  border: 1px solid #f0f0f0;
+  border-radius: 16px;
+  padding: 28px 24px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.score-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+.score-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--card-color);
+}
+
+AI Presence card: --card-color: #6366f1
+Site Health card: --card-color: #10b981
+AI Readiness card: --card-color: #f59e0b
+
+Score number styling:
+font-size: 48px;
+font-weight: 800;
+color: #1a1a2e;
+line-height: 1;
+
+Score label (Good/Fair/Poor):
+font-size: 12px;
+font-weight: 600;
+text-transform: uppercase;
+letter-spacing: 1px;
+color based on score:
+  >= 70: #10b981 (green)
+  >= 40: #f59e0b (orange)
+  < 40:  #ef4444 (red)
+
+PLATFORM BREAKDOWN CHIPS — upgrade:
+
+Current: plain rounded rectangles
+New: styled chips with logo + score badge
+
+.platform-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: white;
+  border: 1.5px solid #e8eaff;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.platform-chip:hover {
+  border-color: #6366f1;
+  background: #f8f9ff;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.15);
+}
+
+.platform-chip .score {
+  background: #6366f1;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 100px;
+}
+
+ERRORS AND WARNINGS — upgrade:
+
+Current: flat list items
+New: card-style with colored left border
+
+.issue-card {
+  background: white;
+  border: 1px solid #f0f0f0;
+  border-left: 4px solid var(--severity-color);
+  border-radius: 0 12px 12px 0;
+  padding: 16px 20px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.issue-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  transform: translateX(2px);
+}
+
+ERROR: --severity-color: #ef4444
+WARNING: --severity-color: #f59e0b
+NOTICE: --severity-color: #3b82f6
+
+.issue-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.severity-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+ERROR badge: bg #fef2f2, color #dc2626
+WARNING badge: bg #fffbeb, color #d97706
+
+.score-impact-badge {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: #10b981;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 3px 10px;
+  border-radius: 100px;
+}
+
+AI SYSTEM BADGES in issue expanded:
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #f8f9ff;
+  border: 1px solid #e8eaff;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #6366f1;
+  margin: 2px;
+}
+
+DISTRIBUTION BY LLM — upgrade:
+
+Current: basic bar chart
+New: clean bar chart with score callout
+
+.llm-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f9fafb;
+}
+
+.llm-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: contain;
+}
+
+.llm-name {
+  width: 90px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1a2e;
+}
+
+.llm-bar-container {
+  flex: 1;
+  height: 8px;
+  background: #f3f4f6;
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.llm-bar {
+  height: 100%;
+  border-radius: 100px;
+  transition: width 0.6s ease;
+}
+
+ChatGPT bar: background: #10b981
+Gemini bar: background: #4285f4
+Perplexity bar: background: #20b2aa
+Claude bar: background: #f97316
+Grok bar: background: #374151
+Google AI bar: background: #ea4335
+
+.llm-score {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a2e;
+  width: 40px;
+  text-align: right;
+}
+
+GOOGLE AI OVERVIEW SECTION — upgrade:
+
+Current: plain row with text
+New: card with status indicator
+
+.aio-card {
+  background: white;
+  border: 1.5px solid #e8eaff;
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+If cited:
+Border color: #bbf7d0
+Background: #f0fdf4 tint
+
+If not cited:
+Border color: #fecaca
+Background: #fff1f1 tint
+
+.aio-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+Cited: ✓ green icon + "Cited in AI Overview"
+Not cited: ✗ red icon + "Not in AI Overview"
+
+.aio-query {
+  font-size: 12px;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 3px 10px;
+  border-radius: 100px;
+}
+
+OVERALL PAGE HEADER — upgrade:
+
+Current: plain title
+New: gradient header bar
+
+.report-header {
+  background: linear-gradient(
+    135deg, 
+    #6366f1 0%, 
+    #8b5cf6 100%
+  );
+  border-radius: 16px;
+  padding: 24px 32px;
+  color: white;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.report-title {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.report-domain {
+  font-size: 22px;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+.report-date {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-top: 4px;
+}
+
+Action buttons in white on gradient:
+.header-btn {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+
+.header-btn:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Run scan on coinbase.com
+   Platform chips show real logos ✓
+   Distribution bars show real logos ✓
+
+2. Google AI Overview:
+   Check console for raw DataForSEO response
+   Should parse and show "Cited" or "Not cited"
+   correctly based on actual API data
+
+3. Visual check:
+   Page should look premium
+   Score cards have colored top border
+   Issues have colored left border
+   Platform chips have hover effect
+   Bars have smooth transition animation
+
+Share screenshot — compare with 
+previous version side by side.

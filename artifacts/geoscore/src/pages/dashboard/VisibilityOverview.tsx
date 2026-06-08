@@ -8,20 +8,60 @@ const P = "#4F46E5";
 const BORDER = "#E5E7EB";
 const MUTED = "#6B7280";
 
-function getAiLogo(key: string): string | null {
+const AI_FAVICONS: Record<string, string> = {
+  chatgpt: "https://www.google.com/s2/favicons?domain=chat.openai.com&sz=32",
+  gemini: "https://www.google.com/s2/favicons?domain=gemini.google.com&sz=32",
+  perplexity: "https://www.google.com/s2/favicons?domain=perplexity.ai&sz=32",
+  claude: "https://www.google.com/s2/favicons?domain=claude.ai&sz=32",
+  grok: "https://www.google.com/s2/favicons?domain=grok.com&sz=32",
+  google_ai: "https://www.google.com/s2/favicons?domain=ai.google&sz=32",
+};
+
+function getAiLogo(key: string): string {
   const s = key.toLowerCase();
   if (s.includes("chat_gpt") || s.includes("chatgpt") || s.includes("openai")) return "/logos/chatgpt.svg";
   if (s.includes("perplexity")) return "/logos/perplexity.svg";
   if (s.includes("claude") || s.includes("anthropic")) return "/logos/claude.png";
-  if (s.includes("gemini") || s.includes("google") || s.includes("ai_overview")) return "/logos/gemini.svg";
-  return null;
+  if (s.includes("gemini") || s.includes("ai_overview")) return "/logos/gemini.svg";
+  if (s.includes("google")) return AI_FAVICONS.google_ai ?? "/logos/gemini.svg";
+  if (s.includes("grok") || s.includes("xai")) return "/logos/grok.png";
+  return AI_FAVICONS[s] ?? `https://www.google.com/s2/favicons?domain=${s}.com&sz=32`;
+}
+
+function AiLogoImg({ k, size = 16 }: { k: string; size?: number }) {
+  const src = getAiLogo(k);
+  return (
+    <img
+      src={src}
+      alt={k}
+      width={size}
+      height={size}
+      style={{ width: size, height: size, objectFit: "contain", flexShrink: 0, borderRadius: 4 }}
+      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+    />
+  );
 }
 
 function AiLogo({ k, size = 16, fallbackColor }: { k: string; size?: number; fallbackColor?: string }) {
   const src = getAiLogo(k);
-  if (src) return <img src={src} alt={k} style={{ width: size, height: size, objectFit: "contain", flexShrink: 0, borderRadius: 3 }} />;
-  if (fallbackColor) return <span style={{ width: size, height: size, borderRadius: 3, background: fallbackColor, flexShrink: 0, display: "inline-block" }} />;
-  return null;
+  return (
+    <img
+      src={src}
+      alt={k}
+      width={size}
+      height={size}
+      style={{ width: size, height: size, objectFit: "contain", flexShrink: 0, borderRadius: 4 }}
+      onError={(e) => {
+        const el = e.target as HTMLImageElement;
+        el.style.display = "none";
+        if (fallbackColor) {
+          const span = document.createElement("span");
+          span.style.cssText = `width:${size}px;height:${size}px;border-radius:4px;background:${fallbackColor};flex-shrink:0;display:inline-block`;
+          el.parentNode?.insertBefore(span, el);
+        }
+      }}
+    />
+  );
 }
 
 /* ---- API response types ---- */
@@ -489,6 +529,7 @@ function IssuePanel({
 
   const sevColor = severity === "error" ? "#DC2626" : severity === "warning" ? "#D97706" : "#6B7280";
   const sevBg = severity === "error" ? "#FEF2F2" : severity === "warning" ? "#FFFBEB" : "#F9FAFB";
+  const sevBorderColor = severity === "error" ? "#EF4444" : severity === "warning" ? "#F59E0B" : "#3B82F6";
   const sevLabel = severity === "error" ? "Error" : severity === "warning" ? "Warning" : "Notice";
 
   const handleGenerate = async () => {
@@ -520,12 +561,12 @@ function IssuePanel({
   };
 
   return (
-    <div style={{ border: `1px solid ${BORDER}`, borderRadius: 10, background: "white", overflow: "hidden", marginBottom: 8 }}>
+    <div style={{ background: "white", border: `1px solid ${BORDER}`, borderLeft: `4px solid ${sevBorderColor}`, borderRadius: "0 10px 10px 0", overflow: "hidden", marginBottom: 8, transition: "box-shadow 0.15s, transform 0.15s" }}>
       <button
         onClick={onToggle}
         style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
       >
-        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: sevBg, color: sevColor, textTransform: "uppercase", letterSpacing: "0.04em", flexShrink: 0 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 4, background: sevBg, color: sevColor, textTransform: "uppercase", letterSpacing: "0.04em", flexShrink: 0 }}>
           {sevLabel}
         </span>
         <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "#111827" }}>{title}</span>
@@ -785,49 +826,49 @@ export function VisibilityOverview({
         </div>
       )}
 
-      {/* title row */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18, flexWrap: "wrap", gap: 10 }}>
+      {/* gradient header */}
+      <div style={{ background: "linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)", borderRadius: 16, padding: "24px 32px", color: "white", marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 4px", color: "#111827" }}>
-            {domain ? <>AI Visibility Report: <span style={{ color: P }}>{domain}</span></> : <span style={{ color: MUTED, fontWeight: 400, fontSize: 18 }}>Enter a domain to get started</span>}
-          </h1>
-          {d?.from_cache && d.cached_at && d.expires_at && (
-            <CacheIndicator
-              cachedAt={d.cached_at}
-              expiresAt={d.expires_at}
-              onForceRefresh={domain ? () => fetchData(domain, true) : undefined}
-              refreshing={rescanning}
-            />
+          <div style={{ fontSize: 13, fontWeight: 500, opacity: 0.75, marginBottom: 4 }}>AI Visibility Report</div>
+          <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em" }}>{domain}</div>
+          {d?.from_cache && d.cached_at && (
+            <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>
+              Last scanned: {new Date(d.cached_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+            </div>
           )}
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {domain && !d?.from_cache && (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {domain && (
             <button onClick={() => fetchData(domain, true)} disabled={rescanning || loading}
-              style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", border: `1px solid ${rescanning ? P : BORDER}`, borderRadius: 7, background: rescanning ? "#EEF2FF" : "white", fontSize: 12, color: rescanning ? P : MUTED, cursor: rescanning ? "not-allowed" : "pointer" }}>
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 16px", background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 8, fontSize: 13, color: "white", cursor: rescanning ? "not-allowed" : "pointer", backdropFilter: "blur(4px)", opacity: rescanning ? 0.7 : 1 }}>
               <RefreshCw size={12} style={{ animation: rescanning ? "spin 0.8s linear infinite" : "none" }} />
               {rescanning ? "Scanning..." : "Rescan"}
             </button>
           )}
           {domain && (
             <button onClick={() => setShowModal(true)}
-              style={{ padding: "7px 14px", border: `1px solid ${BORDER}`, borderRadius: 7, background: "white", fontSize: 12, color: MUTED, cursor: "pointer" }}>
+              style={{ padding: "8px 16px", background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 8, fontSize: 13, color: "white", cursor: "pointer", backdropFilter: "blur(4px)" }}>
               Change domain
             </button>
           )}
-          <button style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", border: `1px solid ${BORDER}`, borderRadius: 7, background: "white", fontSize: 12, color: MUTED, cursor: "pointer" }}>
+          <button style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 16px", background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 8, fontSize: 13, color: "white", cursor: "pointer", backdropFilter: "blur(4px)" }}>
             <Globe size={12} /> Worldwide
           </button>
-          <button style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", border: `1px solid ${BORDER}`, borderRadius: 7, background: "white", fontSize: 12, color: MUTED, cursor: "pointer" }}>
+          <button style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 16px", background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 8, fontSize: 13, color: "white", cursor: "pointer", backdropFilter: "blur(4px)" }}>
             <FileDown size={12} /> Export
           </button>
         </div>
       </div>
 
-      {/* date range chip */}
-      {d && (
-        <div style={{ fontSize: 12, color: MUTED, marginBottom: 16 }}>
-          Data from <strong>{d.dateFrom}</strong> to <strong>{d.dateTo}</strong>
-          {d.cached && <span style={{ marginLeft: 8, color: "#10B981" }}> (cached)</span>}
+      {/* cache indicator below header */}
+      {d?.from_cache && d.cached_at && d.expires_at && (
+        <div style={{ marginBottom: 12 }}>
+          <CacheIndicator
+            cachedAt={d.cached_at}
+            expiresAt={d.expires_at}
+            onForceRefresh={domain ? () => fetchData(domain, true) : undefined}
+            refreshing={rescanning}
+          />
         </div>
       )}
 
@@ -857,7 +898,8 @@ export function VisibilityOverview({
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
 
             {/* AI Presence */}
-            <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "28px 20px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+            <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "28px 20px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, position: "relative", overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "#6366F1", borderRadius: "12px 12px 0 0" }} />
               <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", display: "flex", alignItems: "center", gap: 5 }}>
                 AI Presence
                 <span title="GEO score based on AI mention frequency and citation rate across ChatGPT, Gemini, Perplexity, and more. Scale: 0-100." style={{ cursor: "help", color: "#9CA3AF", fontSize: 13, lineHeight: 1 }}>&#9432;</span>
@@ -871,7 +913,8 @@ export function VisibilityOverview({
             </div>
 
             {/* Site Health */}
-            <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "28px 20px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+            <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "28px 20px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, position: "relative", overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "#10B981", borderRadius: "12px 12px 0 0" }} />
               <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", display: "flex", alignItems: "center", gap: 5 }}>
                 Site Health
                 <span title="Technical site score including HTTPS, performance, metadata, and structured data." style={{ cursor: "help", color: "#9CA3AF", fontSize: 13, lineHeight: 1 }}>&#9432;</span>
@@ -890,7 +933,8 @@ export function VisibilityOverview({
             </div>
 
             {/* AI Readiness */}
-            <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "28px 20px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+            <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "28px 20px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, position: "relative", overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "#F59E0B", borderRadius: "12px 12px 0 0" }} />
               <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", display: "flex", alignItems: "center", gap: 5 }}>
                 AI Readiness
                 <span title="Score measuring how well your site is configured for AI crawlers: llms.txt, org schema, FAQ schema, and bot access rules." style={{ cursor: "help", color: "#9CA3AF", fontSize: 13, lineHeight: 1 }}>&#9432;</span>
@@ -921,12 +965,12 @@ export function VisibilityOverview({
             {d.platforms.length > 0 && (
               <div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>Platform Breakdown</div>
-                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {d.platforms.map(p => (
-                    <div key={p.key} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", background: "#F9FAFB", borderRadius: 8, border: `1px solid ${BORDER}` }}>
-                      <AiLogo k={p.key} size={14} fallbackColor={p.color} />
-                      <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{p.displayName}</span>
-                      <span style={{ fontSize: 12, color: MUTED }}>{fmt(p.mentions)}</span>
+                    <div key={p.key} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "white", borderRadius: 100, border: "1.5px solid #E8EAFF", fontSize: 13, fontWeight: 500, cursor: "default", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+                      <AiLogo k={p.key} size={16} fallbackColor={p.color} />
+                      <span style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>{p.displayName}</span>
+                      <span style={{ background: P, color: "white", fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 100 }}>{p.pct > 0 ? `${p.pct}%` : fmt(p.mentions)}</span>
                     </div>
                   ))}
                 </div>
@@ -935,55 +979,59 @@ export function VisibilityOverview({
           </div>
 
           {/* Google AI Overview presence row */}
-          {d.googleAio != null && (
-            <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "20px 24px", marginBottom: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "#111827", marginBottom: 16 }}>Google AI Overview</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 200 }}>
-                  <AiLogo k="ai_overview" size={20} fallbackColor="#4285F4" />
-                  <span style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Google AI Overview</span>
-                </div>
-                {d.googleAio.aioExists ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {d.googleAio.citedInAio ? (
-                      <>
-                        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", background: "#D1FAE5" }}>
-                          <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#059669" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                        </span>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: "#059669" }}>Cited in AI Overview</span>
-                        {d.googleAio.keywordChecked && (
-                          <span style={{ fontSize: 12, color: MUTED }}>for "{d.googleAio.keywordChecked}"</span>
-                        )}
-                      </>
+          {d.googleAio != null && (() => {
+            const cited = d.googleAio!.aioExists && d.googleAio!.citedInAio;
+            const exists = d.googleAio!.aioExists;
+            const aioBg = cited ? "#F0FDF4" : exists ? "#FFF1F2" : "white";
+            const aioBorder = cited ? "#BBF7D0" : exists ? "#FECACA" : BORDER;
+            return (
+              <div style={{ background: aioBg, border: `1.5px solid ${aioBorder}`, borderRadius: 12, padding: "20px 24px", marginBottom: 16 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#111827", marginBottom: 14 }}>Google AI Overview</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <AiLogo k="ai_overview" size={24} fallbackColor="#4285F4" />
+                    {exists ? (
+                      d.googleAio!.citedInAio ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, borderRadius: "50%", background: "#D1FAE5", flexShrink: 0 }}>
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#059669" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          </span>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: "#059669" }}>Cited in AI Overview</span>
+                          {d.googleAio!.keywordChecked && (
+                            <span style={{ fontSize: 12, color: MUTED, background: "#F3F4F6", padding: "3px 10px", borderRadius: 100 }}>
+                              "{d.googleAio!.keywordChecked}"
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, borderRadius: "50%", background: "#FEE2E2", flexShrink: 0 }}>
+                            <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M3 3l6 6M9 3l-6 6" stroke="#EF4444" strokeWidth="1.8" strokeLinecap="round"/></svg>
+                          </span>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: "#EF4444" }}>Not in AI Overview</span>
+                          {d.googleAio!.keywordChecked && (
+                            <span style={{ fontSize: 12, color: MUTED, background: "#F3F4F6", padding: "3px 10px", borderRadius: 100 }}>
+                              checked: "{d.googleAio!.keywordChecked}"
+                            </span>
+                          )}
+                        </div>
+                      )
                     ) : (
-                      <>
-                        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", background: "#F3F4F6" }}>
-                          <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M3 3l6 6M9 3l-6 6" stroke="#9CA3AF" strokeWidth="1.8" strokeLinecap="round"/></svg>
-                        </span>
-                        <span style={{ fontSize: 13, fontWeight: 500, color: MUTED }}>Not cited in AI Overview</span>
-                        {d.googleAio.keywordChecked && (
-                          <span style={{ fontSize: 12, color: MUTED }}>checked: "{d.googleAio.keywordChecked}"</span>
-                        )}
-                      </>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 13, color: MUTED }}>No AI Overview triggered for these queries</span>
+                      </div>
                     )}
                   </div>
-                ) : (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", background: "#F3F4F6" }}>
-                      <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M3 3l6 6M9 3l-6 6" stroke="#9CA3AF" strokeWidth="1.8" strokeLinecap="round"/></svg>
-                    </span>
-                    <span style={{ fontSize: 13, color: MUTED }}>No AI Overview found for these queries</span>
+                </div>
+                {d.googleAio!.aioText && (
+                  <div style={{ marginTop: 14, padding: "12px 16px", background: "white", borderRadius: 8, fontSize: 12, color: "#374151", lineHeight: 1.7, border: `1px solid ${aioBorder}` }}>
+                    {d.googleAio!.aioText}
+                    {d.googleAio!.aioText.length >= 250 && <span style={{ color: "#9CA3AF" }}>...</span>}
                   </div>
                 )}
               </div>
-              {d.googleAio.aioText && (
-                <div style={{ marginTop: 12, padding: "10px 14px", background: "#F9FAFB", borderRadius: 8, fontSize: 12, color: "#6B7280", lineHeight: 1.6, borderLeft: "3px solid #E5E7EB" }}>
-                  {d.googleAio.aioText}
-                  {d.googleAio.aioText.length >= 250 && <span style={{ color: "#9CA3AF" }}>...</span>}
-                </div>
-              )}
-            </div>
-          )}
+            );
+          })()}
 
           {/* Errors & Warnings */}
           {(() => {
@@ -1053,16 +1101,13 @@ export function VisibilityOverview({
                   <div style={{ textAlign: "center", padding: "24px 0", fontSize: 13, color: MUTED }}>No platform data available.</div>
                 ) : (
                   d.platforms.map(p => (
-                    <div key={p.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: `1px solid ${BORDER}` }}>
-                      <div style={{ width: 170, display: "flex", alignItems: "center", gap: 8 }}>
-                        <AiLogo k={p.key} size={16} fallbackColor={p.color} />
-                        <span style={{ fontSize: 13, fontWeight: 500, color: "#374151", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.displayName}</span>
+                    <div key={p.key} style={{ display: "flex", alignItems: "center", gap: 16, padding: "12px 0", borderBottom: `1px solid #F9FAFB` }}>
+                      <AiLogo k={p.key} size={28} fallbackColor={p.color} />
+                      <div style={{ width: 90, fontSize: 14, fontWeight: 500, color: "#111827", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flexShrink: 0 }}>{p.displayName}</div>
+                      <div style={{ flex: 1, height: 8, background: "#F3F4F6", borderRadius: 100, overflow: "hidden" }}>
+                        <div style={{ width: `${p.pct}%`, height: "100%", background: p.color, borderRadius: 100, transition: "width 0.6s ease" }} />
                       </div>
-                      <div style={{ flex: 1, height: 8, background: "#F3F4F6", borderRadius: 4, overflow: "hidden" }}>
-                        <div style={{ width: `${p.pct}%`, height: "100%", background: p.color, borderRadius: 4, transition: "width 0.6s" }} />
-                      </div>
-                      <div style={{ width: 48, textAlign: "right", fontSize: 12, color: MUTED }}>{p.pct.toFixed(1)}%</div>
-                      <div style={{ width: 48, textAlign: "right", fontSize: 13, fontWeight: 600, color: "#111827" }}>{fmt(p.mentions)}</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: "#111827", width: 48, textAlign: "right", flexShrink: 0 }}>{fmt(p.mentions)}</div>
                     </div>
                   ))
                 )}

@@ -689,27 +689,64 @@ export async function checkBrandInGoogleAio(
     for (let i = 0; i < tasks.length; i++) {
       const kw = keywords[i] ?? "";
       const result = (tasks[i]?.result as Array<Record<string, unknown>>)?.[0];
-      const items = (result?.items as Array<Record<string, unknown>>) ?? [];
-      const aiItem = items.find(it => it.type === "ai_overview");
+      if (!result) continue;
+      const items = (result.items as Array<Record<string, unknown>>) ?? [];
+
+      // Location 1: direct ai_overview field on result
+      // Location 2: items array - check multiple types
+      // Location 3: nested inside organic items
+      const aiItem: Record<string, unknown> | undefined =
+        (result.ai_overview as Record<string, unknown> | undefined) ??
+        items.find(it =>
+          it.type === "ai_overview" ||
+          it.type === "ai_answer",
+        ) ??
+        (() => {
+          const organic = items.find(it => (it as Record<string, unknown>).ai_overview);
+          return organic ? (organic.ai_overview as Record<string, unknown>) : undefined;
+        })();
+
       if (!aiItem) continue;
 
-      // AIO block found for this keyword
+      // Extract sub-items (present when type === "ai_overview")
       const subItems = (aiItem.items as Array<Record<string, unknown>>) ?? [];
       let citedInAio = false;
-      const aioText: string | null = subItems[0]
-        ? String((subItems[0] as Record<string, unknown>).content ?? "").slice(0, 250) || null
-        : null;
 
-      for (const sub of subItems) {
-        const content = String((sub as Record<string, unknown>).content ?? "");
-        const links = ((sub as Record<string, unknown>).links as Array<Record<string, unknown>>) ?? [];
-        const inLinks = links.some(l => domainMatchesTarget(String((l as Record<string, unknown>).domain ?? (l as Record<string, unknown>).url ?? ""), domain));
-        const inText = domainMatchesTarget(content, domain);
-        if (inLinks || inText) {
-          citedInAio = true;
-          break;
+      // Extract the best text snippet
+      const textContent = String(
+        (aiItem as Record<string, unknown>).text ??
+        (aiItem as Record<string, unknown>).description ??
+        (subItems[0] as Record<string, unknown> | undefined)?.content ??
+        "",
+      );
+      const aioText: string | null = textContent.slice(0, 300) || null;
+
+      // Check in top-level AIO links/references
+      const topLinks = (
+        ((aiItem as Record<string, unknown>).links ?? (aiItem as Record<string, unknown>).references ?? []) as Array<Record<string, unknown>>
+      );
+      if (topLinks.some(l => domainMatchesTarget(String(l.domain ?? l.url ?? ""), domain))) {
+        citedInAio = true;
+      }
+      // Check in AIO text
+      if (!citedInAio && domainMatchesTarget(textContent, domain)) {
+        citedInAio = true;
+      }
+      // Check inside sub-items
+      if (!citedInAio) {
+        for (const sub of subItems) {
+          const content = String((sub as Record<string, unknown>).content ?? "");
+          const links = ((sub as Record<string, unknown>).links as Array<Record<string, unknown>>) ?? [];
+          const inLinks = links.some(l => domainMatchesTarget(String((l as Record<string, unknown>).domain ?? (l as Record<string, unknown>).url ?? ""), domain));
+          const inText = domainMatchesTarget(content, domain);
+          if (inLinks || inText) { citedInAio = true; break; }
         }
       }
+
+      logger.info(
+        { domain, kw, citedInAio, aioExists: true, hasSubItems: subItems.length, topLinks: topLinks.length },
+        "checkBrandInGoogleAio: AIO block found",
+      );
 
       return {
         citedInAio,
