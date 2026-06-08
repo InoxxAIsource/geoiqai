@@ -1,0 +1,265 @@
+Fix AI Presence page — 5 remaining issues.
+All in one deployment.
+
+FIX 1: REMOVE WRONG DISCLAIMER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find and delete this text:
+"Gemini and Perplexity data coming soon"
+
+Gemini score 40 and Perplexity score 65
+already showing — disclaimer is wrong.
+
+FIX 2: URLs CITED + CITED SOURCES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Currently showing 0 for both.
+Calculate from Exa results already fetched:
+
+const cleanDomain = domain
+  .replace('www.','').toLowerCase();
+
+const urlsCited = allExaResults.filter(r =>
+  r.url?.toLowerCase().includes(cleanDomain)
+).length;
+
+const citedSources = new Set(
+  allExaResults
+    .filter(r => 
+      !r.url?.toLowerCase().includes(cleanDomain) &&
+      resultMentionsBrand(
+        `${r.title} ${r.highlights?.join(' ')}`,
+        domain,
+        brandSlug
+      )
+    )
+    .map(r => {
+      try {
+        return new URL(r.url).hostname
+          .replace('www.','');
+      } catch { return null; }
+    })
+    .filter(Boolean)
+).size;
+
+Update response to include:
+urls_cited: urlsCited,
+cited_sources: citedSources
+
+FIX 3: TOPICS AND SOURCES — POPULATE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Performing Topics tab is empty.
+Populate from Exa results:
+
+const performingTopics = allExaResults
+  .filter(r => resultMentionsBrand(
+    `${r.title} ${r.highlights?.join(' ')}`,
+    domain, brandSlug
+  ))
+  .map(r => ({
+    topic: r.title
+      ?.replace(/[|–—-].*$/, '')
+      .trim()
+      .slice(0, 80),
+    platform: detectPlatformFromUrl(r.url),
+    url: r.url,
+    date: r.publishedDate,
+    snippet: r.highlights?.[0] || ''
+  }))
+  .filter(t => t.topic && t.topic.length > 10)
+  .slice(0, 20);
+
+const detectPlatformFromUrl = (url) => {
+  if (!url) return 'Web';
+  if (url.includes('reddit.com')) 
+    return 'Reddit';
+  if (url.includes('twitter.com') || 
+      url.includes('x.com')) 
+    return 'X/Twitter';
+  if (url.includes('linkedin.com')) 
+    return 'LinkedIn';
+  if (url.includes('medium.com')) 
+    return 'Medium';
+  if (url.includes('youtube.com')) 
+    return 'YouTube';
+  return 'Web';
+};
+
+Topic Opportunities = Exa results where
+brand NOT mentioned (gaps to fill):
+
+const topicOpportunities = allExaResults
+  .filter(r => !resultMentionsBrand(
+    `${r.title} ${r.highlights?.join(' ')}`,
+    domain, brandSlug
+  ))
+  .map(r => ({
+    topic: r.title
+      ?.replace(/[|–—-].*$/, '')
+      .trim()
+      .slice(0, 80),
+    url: r.url,
+    date: r.publishedDate,
+    why: 'Competitors appear here — you do not'
+  }))
+  .slice(0, 10);
+
+Cited Sources = external domains citing brand:
+
+const citedSourcesList = [...new Set(
+  allExaResults
+    .filter(r => 
+      !r.url?.toLowerCase()
+        .includes(cleanDomain) &&
+      resultMentionsBrand(
+        `${r.title} ${r.highlights?.join(' ')}`,
+        domain, brandSlug
+      )
+    )
+    .map(r => {
+      try {
+        const host = new URL(r.url).hostname
+          .replace('www.','');
+        return {
+          domain: host,
+          title: r.title,
+          url: r.url,
+          favicon: `https://www.google.com/s2/favicons?domain=${host}&sz=32`
+        };
+      } catch { return null; }
+    })
+    .filter(Boolean)
+)].slice(0, 10);
+
+FIX 4: ADD GOOGLE AI OVERVIEW TO SCORING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Google AI Overview section shows
+"Cited in AI Overview" correctly
+but score NOT in platform breakdown
+or overall calculation.
+
+Convert AIO citation to score:
+
+const getGoogleAIOScore = (aioData) => {
+  if (!aioData) return 0;
+  if (aioData.cited === true) {
+    const queryBonus = Math.min(
+      (aioData.queries?.length || 1) * 5, 
+      19
+    );
+    return 80 + queryBonus;
+  }
+  if (aioData.mentioned === true) return 45;
+  return 10;
+};
+
+Add to platform breakdown chips:
+[ChatGPT 65][Gemini 40][Perplexity 65]
+[Google AI Overview {aioScore}]
+
+Add to Distribution by LLM:
+Google AI Overview  ████  {aioScore}
+
+Include in overall score:
+const overallScore = Math.round(
+  (chatgptScore + geminiScore + 
+   perplexityScore + claudeScore + 
+   grokScore + aioScore) / 6
+);
+
+FIX 5: ADD CLAUDE AND GROK TO BREAKDOWN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Claude and Grok scores are calculated
+but not showing in:
+- Platform breakdown chips
+- Distribution by LLM bars
+- Overall score average
+
+Add both to all three display sections.
+
+If Claude/Grok Exa searches not running:
+
+const claudeExa = await exa.search(
+  `"${cleanDomain}" Claude Anthropic
+   recommended cited mentioned 2025 2026`,
+  {
+    type: 'auto',
+    numResults: 5,
+    startPublishedDate: '2025-06-01',
+    contents: {
+      highlights: { numSentences: 1 }
+    }
+  }
+);
+
+const grokExa = await exa.search(
+  `"${cleanDomain}" Grok xAI
+   recommended cited mentioned 2025 2026`,
+  {
+    type: 'auto',
+    numResults: 5,
+    startPublishedDate: '2025-06-01',
+    contents: {
+      highlights: { numSentences: 1 }
+    }
+  }
+);
+
+Score using same scorePlatform function
+already used for other platforms.
+
+CORRECT FINAL DISPLAY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+KEY METRICS row:
+AI Presence %  |  Systems Found  |  URLs Cited  |  Cited Sources
+    57         |     4 of 6      |      8       |      12
+
+Platform Breakdown chips (6):
+[ChatGPT 65][Gemini 40][Perplexity 65]
+[Claude 35][Grok 30][Google AI 85]
+
+Distribution by LLM (6 rows):
+ChatGPT            65   21.7%  ████████
+Gemini             40   13.3%  █████
+Perplexity         65   21.7%  ████████
+Claude             35   11.7%  ████
+Grok               30   10.0%  ███
+Google AI Overview 85   28.3%  ██████████
+
+Overall: (65+40+65+35+30+85)/6 = 53/100
+
+Topics & Sources tabs populated:
+Performing Topics: real article titles
+Topic Opportunities: gaps to fill
+Cited Sources: external domains
+Cited Pages: brand own pages
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Run on namecheap.com
+
+Check:
+1. No "coming soon" disclaimer ✓
+2. URLs Cited > 0 ✓
+3. Cited Sources > 0 ✓
+4. All 6 platforms in breakdown ✓
+5. Google AI Overview score in bars ✓
+6. Performing Topics not empty ✓
+7. Overall score uses all 6 platforms ✓
+
+Run on geoiqai.com (small brand)
+Should show lower scores across all 6
+Not all zeros — honest low numbers
+
+Run on hubspot.com (big brand)
+Should show high scores 70-90 range
+Across most platforms
+
+Share screenshot showing all 6 platforms
+in Distribution by LLM.
