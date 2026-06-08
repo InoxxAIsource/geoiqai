@@ -693,20 +693,30 @@ export async function checkBrandInGoogleAio(
       const items = (result.items as Array<Record<string, unknown>>) ?? [];
 
       // Location 1: direct ai_overview field on result
-      // Location 2: items array - check multiple types
+      // Location 2: items array - ai_overview, ai_answer, featured_snippet, answer_box
       // Location 3: nested inside organic items
+      // Location 4: task.data.ai_overview
       const aiItem: Record<string, unknown> | undefined =
         (result.ai_overview as Record<string, unknown> | undefined) ??
         items.find(it =>
           it.type === "ai_overview" ||
-          it.type === "ai_answer",
+          it.type === "ai_answer" ||
+          it.type === "featured_snippet" ||
+          it.type === "answer_box",
         ) ??
         (() => {
           const organic = items.find(it => (it as Record<string, unknown>).ai_overview);
           return organic ? (organic.ai_overview as Record<string, unknown>) : undefined;
-        })();
+        })() ??
+        ((tasks[i]?.data as Record<string, unknown> | undefined)?.ai_overview as Record<string, unknown> | undefined);
 
-      if (!aiItem) continue;
+      if (!aiItem) {
+        logger.info(
+          { kw, itemTypes: items.map(it => it.type), resultKeys: Object.keys(result) },
+          "checkBrandInGoogleAio: no AIO block found for keyword",
+        );
+        continue;
+      }
 
       // Extract sub-items (present when type === "ai_overview")
       const subItems = (aiItem.items as Array<Record<string, unknown>>) ?? [];

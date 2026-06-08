@@ -8,60 +8,76 @@ const P = "#4F46E5";
 const BORDER = "#E5E7EB";
 const MUTED = "#6B7280";
 
-const AI_FAVICONS: Record<string, string> = {
-  chatgpt: "https://www.google.com/s2/favicons?domain=chat.openai.com&sz=32",
+const AI_LOGOS: Record<string, string> = {
+  chatgpt: "https://www.google.com/s2/favicons?domain=openai.com&sz=32",
   gemini: "https://www.google.com/s2/favicons?domain=gemini.google.com&sz=32",
   perplexity: "https://www.google.com/s2/favicons?domain=perplexity.ai&sz=32",
-  claude: "https://www.google.com/s2/favicons?domain=claude.ai&sz=32",
-  grok: "https://www.google.com/s2/favicons?domain=grok.com&sz=32",
-  google_ai: "https://www.google.com/s2/favicons?domain=ai.google&sz=32",
+  claude: "https://www.google.com/s2/favicons?domain=anthropic.com&sz=32",
+  grok: "https://www.google.com/s2/favicons?domain=x.ai&sz=32",
+  google_ai: "https://www.google.com/s2/favicons?domain=google.com&sz=32",
+};
+
+const FALLBACK_COLORS: Record<string, string> = {
+  chatgpt: "#10b981",
+  gemini: "#4285f4",
+  perplexity: "#20b2aa",
+  claude: "#d97706",
+  grok: "#374151",
+  google_ai: "#ea4335",
 };
 
 function getAiLogo(key: string): string {
   const s = key.toLowerCase();
-  if (s.includes("chat_gpt") || s.includes("chatgpt") || s.includes("openai")) return "/logos/chatgpt.svg";
+  if (s.includes("chat_gpt") || s.includes("chatgpt") || s.includes("openai")) return AI_LOGOS.chatgpt;
   if (s.includes("perplexity")) return "/logos/perplexity.svg";
-  if (s.includes("claude") || s.includes("anthropic")) return "/logos/claude.png";
+  if (s.includes("claude") || s.includes("anthropic")) return AI_LOGOS.claude;
   if (s.includes("gemini") || s.includes("ai_overview")) return "/logos/gemini.svg";
-  if (s.includes("google")) return AI_FAVICONS.google_ai ?? "/logos/gemini.svg";
-  if (s.includes("grok") || s.includes("xai")) return "/logos/grok.png";
-  return AI_FAVICONS[s] ?? `https://www.google.com/s2/favicons?domain=${s}.com&sz=32`;
+  if (s.includes("google")) return AI_LOGOS.google_ai;
+  if (s.includes("grok") || s.includes("xai")) return AI_LOGOS.grok;
+  return AI_LOGOS[s] ?? `https://www.google.com/s2/favicons?domain=${s}.com&sz=32`;
 }
 
-function AiLogoImg({ k, size = 16 }: { k: string; size?: number }) {
-  const src = getAiLogo(k);
-  return (
-    <img
-      src={src}
-      alt={k}
-      width={size}
-      height={size}
-      style={{ width: size, height: size, objectFit: "contain", flexShrink: 0, borderRadius: 4 }}
-      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-    />
-  );
+function getFallbackColor(key: string): string {
+  const s = key.toLowerCase();
+  for (const [k, c] of Object.entries(FALLBACK_COLORS)) {
+    if (s.includes(k)) return c;
+  }
+  return "#6B7280";
 }
 
 function AiLogo({ k, size = 16, fallbackColor }: { k: string; size?: number; fallbackColor?: string }) {
+  const [failed, setFailed] = useState(false);
   const src = getAiLogo(k);
+  const bg = fallbackColor ?? getFallbackColor(k);
+  const label = k.replace(/_/g, " ").trim()[0]?.toUpperCase() ?? "?";
+  const radius = Math.max(4, size * 0.22);
+
+  if (failed) {
+    return (
+      <span style={{
+        width: size, height: size, borderRadius: radius,
+        background: bg, display: "inline-flex", flexShrink: 0,
+        alignItems: "center", justifyContent: "center",
+        fontSize: Math.max(8, Math.floor(size * 0.45)), fontWeight: 700, color: "white",
+      }}>
+        {label}
+      </span>
+    );
+  }
   return (
     <img
       src={src}
       alt={k}
       width={size}
       height={size}
-      style={{ width: size, height: size, objectFit: "contain", flexShrink: 0, borderRadius: 4 }}
-      onError={(e) => {
-        const el = e.target as HTMLImageElement;
-        el.style.display = "none";
-        if (fallbackColor) {
-          const span = document.createElement("span");
-          span.style.cssText = `width:${size}px;height:${size}px;border-radius:4px;background:${fallbackColor};flex-shrink:0;display:inline-block`;
-          el.parentNode?.insertBefore(span, el);
-        }
-      }}
+      style={{ width: size, height: size, objectFit: "contain", flexShrink: 0, borderRadius: radius }}
+      onError={() => setFailed(true)}
     />
   );
+}
+
+function AiLogoImg({ k, size = 16 }: { k: string; size?: number }) {
+  return <AiLogo k={k} size={size} />;
 }
 
 /* ---- API response types ---- */

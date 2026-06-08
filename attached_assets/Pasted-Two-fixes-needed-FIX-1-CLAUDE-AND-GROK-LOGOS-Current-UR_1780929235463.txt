@@ -1,0 +1,261 @@
+Two fixes needed:
+
+FIX 1: CLAUDE AND GROK LOGOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current URLs failing:
+claude.ai favicon → shows orange square
+grok.com favicon → shows black square
+
+Replace with working logo URLs:
+
+const AI_LOGOS = {
+  chatgpt: 'https://www.google.com/s2/favicons?domain=openai.com&sz=32',
+  gemini: 'https://www.google.com/s2/favicons?domain=gemini.google.com&sz=32',
+  perplexity: 'https://www.google.com/s2/favicons?domain=perplexity.ai&sz=32',
+  claude: 'https://www.google.com/s2/favicons?domain=anthropic.com&sz=32',
+  grok: 'https://www.google.com/s2/favicons?domain=x.ai&sz=32',
+  google_ai: 'https://www.google.com/s2/favicons?domain=google.com&sz=32'
+};
+
+If Google favicon still fails for any:
+Use inline SVG fallback with 
+first letter of platform name.
+
+const LogoFallback = ({ name, color }) => (
+  <div style={{
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    background: color,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 12,
+    fontWeight: 700,
+    color: 'white'
+  }}>
+    {name[0]}
+  </div>
+);
+
+const FALLBACK_COLORS = {
+  chatgpt: '#10b981',
+  gemini: '#4285f4',
+  perplexity: '#20b2aa',
+  claude: '#d97706',
+  grok: '#374151',
+  google_ai: '#ea4335'
+};
+
+Use with onError:
+<img
+  src={AI_LOGOS[key]}
+  width={28}
+  height={28}
+  style={{ borderRadius: 6 }}
+  onError={(e) => {
+    e.target.style.display = 'none';
+    e.target.nextSibling.style
+      .display = 'flex';
+  }}
+/>
+<LogoFallback 
+  name={platform.name}
+  color={FALLBACK_COLORS[key]}
+  style={{ display: 'none' }}
+/>
+
+FIX 2: GOOGLE AI OVERVIEW PARSING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DataForSEO is charging $0.002 per call
+but result not showing in UI.
+
+The response IS coming back.
+The parsing is wrong.
+
+Step 1: Add this log immediately
+after DataForSEO SERP response:
+
+const serpResponse = await fetch(
+  dataforseoUrl, options
+);
+const serpData = await serpResponse.json();
+
+// ADD THESE LOGS:
+console.log('=== DataForSEO AIO Debug ===');
+console.log('Status:', serpData.status_code);
+console.log('Tasks count:', 
+  serpData.tasks?.length);
+console.log('Result items types:', 
+  serpData.tasks?.[0]?.result?.[0]?.items
+    ?.map(i => i.type)
+);
+console.log('Full first 2 items:', 
+  JSON.stringify(
+    serpData.tasks?.[0]?.result?.[0]
+      ?.items?.slice(0,2), null, 2
+  )
+);
+
+Step 2: Fix the parsing to check
+ALL possible response locations:
+
+const parseAIOResult = (serpData) => {
+  try {
+    const task = serpData.tasks?.[0];
+    if (!task) return null;
+    
+    const result = task.result?.[0];
+    if (!result) return null;
+    
+    const items = result.items || [];
+    
+    // Check every possible location
+    
+    // Location 1: direct ai_overview type
+    const aioItem = items.find(i => 
+      i.type === 'ai_overview'
+    );
+    if (aioItem) {
+      console.log('Found AIO at type ai_overview');
+      return aioItem;
+    }
+    
+    // Location 2: featured_snippet
+    const featuredSnippet = items.find(i =>
+      i.type === 'featured_snippet'
+    );
+    if (featuredSnippet) {
+      console.log('Found featured_snippet');
+      return featuredSnippet;
+    }
+    
+    // Location 3: answer_box
+    const answerBox = items.find(i =>
+      i.type === 'answer_box'
+    );
+    if (answerBox) {
+      console.log('Found answer_box');
+      return answerBox;
+    }
+    
+    // Location 4: direct on result
+    if (result.ai_overview) {
+      console.log('Found on result.ai_overview');
+      return result.ai_overview;
+    }
+    
+    // Location 5: check task extras
+    if (task.data?.ai_overview) {
+      console.log('Found on task.data');
+      return task.data.ai_overview;
+    }
+    
+    console.log('No AIO found. Item types:', 
+      items.map(i => i.type)
+    );
+    return null;
+    
+  } catch (err) {
+    console.error('AIO parse error:', err);
+    return null;
+  }
+};
+
+Step 3: If no AI Overview found
+in items, check if it is because
+the query did not trigger AIO.
+
+Try a better query for the brand:
+
+const getAIOQuery = async (domain) => {
+  const brandName = domain
+    .replace('www.','')
+    .split('.')[0];
+  
+  // Use Claude to pick best query
+  const response = await anthropic
+    .messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 50,
+      messages: [{
+        role: 'user',
+        content: `What Google search query 
+would most likely trigger an AI Overview 
+for ${domain}? 
+Return ONLY the query, nothing else.
+Examples: "what is coinbase", 
+"coinbase crypto exchange review",
+"hubspot crm software"`
+      }]
+    });
+  
+  return response.content[0].text.trim();
+};
+
+Use this smarter query instead of
+always using "${brandName} review".
+
+Step 4: Display in UI
+
+After parsing, show one of:
+
+If AIO data found AND brand cited:
+┌─────────────────────────────────┐
+│ ✓ Cited in AI Overview          │
+│ Query: "coinbase crypto exchange"│
+│ "Coinbase is a leading..."       │
+└─────────────────────────────────┘
+Background: light green #f0fdf4
+Border: #bbf7d0
+
+If AIO data found but brand NOT cited:
+┌─────────────────────────────────┐
+│ ✗ Not cited in AI Overview      │  
+│ Query: "coinbase review"        │
+│ AI Overview exists for this     │
+│ query but your brand not cited  │
+└─────────────────────────────────┘
+Background: light red #fff1f1
+Border: #fecaca
+
+If NO AIO triggered by query:
+┌─────────────────────────────────┐
+│ — No AI Overview for this query │
+│ Query: "coinbase review"        │
+│ Google did not show AI Overview │
+│ Try different query [Retry ↺]   │
+└─────────────────────────────────┘
+Background: light grey #f9fafb
+
+This third state is important —
+it tells user NO AI Overview appeared
+not that brand failed to appear.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Test 1: Logos
+Run scan on any domain.
+Claude row: shows anthropic.com favicon
+Grok row: shows x.ai favicon
+No orange or black squares.
+
+Test 2: Google AI Overview
+Run scan on hubspot.com
+Console shows DataForSEO response log.
+Share the console output — it will show
+exactly which item types are returned.
+UI shows one of 3 states correctly.
+
+Test 3: coinbase.com
+"Coinbase" is huge — likely triggers AIO.
+Should show Cited or proper Not Cited state.
+
+Share:
+1. Screenshot of logos (no colored squares)
+2. Console log of DataForSEO response
+3. Google AI Overview section state
