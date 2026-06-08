@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { getToken } from "@/lib/auth";
-import { Globe, RefreshCw, AlertCircle, FileDown, ChevronRight } from "lucide-react";
+import { Globe, RefreshCw, AlertCircle, FileDown, ChevronRight, Copy, Check, ChevronDown } from "lucide-react";
 import { UpgradeModal } from "@/components/UpgradeModal";
 import { CacheIndicator } from "@/components/CacheIndicator";
 
@@ -36,6 +36,25 @@ interface GoogleAioData {
   aioExists: boolean;
   aioText: string | null;
   keywordChecked: string | null;
+}
+
+interface SiteAuditSummary {
+  siteHealthScore: number;
+  aiHealthScore: number;
+  hasLlmsTxt: boolean;
+  hasRobotsTxt: boolean;
+  hasSitemap: boolean;
+  hasOrgSchema: boolean;
+  hasFaqSchema: boolean;
+  hasH1: boolean;
+  isHttps: boolean;
+  issues: Array<{
+    id: string;
+    title: string;
+    severity: "error" | "warning" | "notice";
+    description: string;
+    fixType: string;
+  }>;
 }
 
 interface VisibilityData {
@@ -114,6 +133,45 @@ const COUNTRY_FLAGS: Record<number, string> = {
   2704: "🇻🇳", 2710: "🇿🇦", 2104: "🇲🇲", 2050: "🇧🇩", 2144: "🇱🇰",
   2524: "🇳🇵", 2608: "🇵🇭", 2012: "🇩🇿", 2756: "🇨🇭", 2788: "🇹🇳",
 };
+
+/* ===== Small score ring for Site Health / AI Readiness ===== */
+function SmallScoreRing({ score, label, sub, loading }: { score: number; label: string; sub: string; loading?: boolean }) {
+  const size = 90;
+  const stroke = 9;
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const filled = (Math.min(score, 100) / 100) * circ;
+  const color = score >= 70 ? "#059669" : score >= 50 ? "#D97706" : "#DC2626";
+  const grade = score >= 70 ? "Good" : score >= 50 ? "Fair" : "Poor";
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+      <div style={{ position: "relative", width: size, height: size }}>
+        <svg width={size} height={size}>
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#F3F4F6" strokeWidth={stroke} />
+          {!loading && score > 0 && (
+            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+              strokeDasharray={`${filled} ${circ}`} strokeLinecap="round"
+              transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+          )}
+        </svg>
+        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+          {loading ? (
+            <div style={{ width: 16, height: 16, border: "2px solid #E5E7EB", borderTopColor: P, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+          ) : (
+            <>
+              <span style={{ fontSize: 20, fontWeight: 800, color: score > 0 ? color : MUTED, lineHeight: 1 }}>{score}</span>
+              <span style={{ fontSize: 9, color: MUTED, marginTop: 1 }}>{grade}</span>
+            </>
+          )}
+        </div>
+      </div>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{label}</div>
+        <div style={{ fontSize: 11, color: MUTED, marginTop: 1 }}>{sub}</div>
+      </div>
+    </div>
+  );
+}
 
 /* ===== Score Gauge ===== */
 function ScoreGauge({ score }: { score: number }) {
@@ -299,6 +357,320 @@ function TabBar({ tabs, active, onSelect }: { tabs: { id: string; label: string;
   );
 }
 
+/* ===== Issue maps & fix steps ===== */
+const ISSUE_AI_SYSTEMS: Record<string, string[]> = {
+  llmstxt: ["ChatGPT", "Claude", "Grok"],
+  org_schema: ["ChatGPT", "Gemini", "Perplexity", "Claude", "Grok", "Google AI Overview"],
+  faq_schema: ["Perplexity", "Google AI Overview"],
+  robots_txt: ["ChatGPT", "Gemini", "Perplexity", "Claude", "Grok", "Google AI Overview"],
+  sitemap: ["Gemini", "Google AI Overview"],
+  missing_https: ["ChatGPT", "Google AI Overview"],
+  missing_h1: ["Gemini", "Google AI Overview"],
+  missing_schema: ["ChatGPT", "Perplexity", "Gemini"],
+  missing_canonical: ["All crawlers"],
+  missing_title: ["Gemini", "Google AI Overview"],
+  slow_server: ["ChatGPT", "Perplexity"],
+  broken_page: ["All crawlers"],
+};
+
+const ISSUE_SCORE_IMPACT: Record<string, number> = {
+  org_schema: 10,
+  faq_schema: 12,
+  llmstxt: 8,
+  robots_txt: 5,
+  sitemap: 4,
+  missing_https: 6,
+  missing_h1: 3,
+  missing_schema: 8,
+  missing_canonical: 2,
+  missing_title: 3,
+  slow_server: 4,
+  broken_page: 3,
+};
+
+const FIX_STEPS: Record<string, string[]> = {
+  llmstxt: [
+    "Create a file named llms.txt at the root of your domain (e.g. yoursite.com/llms.txt).",
+    "Include your brand name, a short description, key topics, and your main URL.",
+    "Keep it under 500 words - plain text, no HTML.",
+    "Upload it to your server alongside robots.txt and sitemap.xml.",
+    "Use the Generate button below to get a draft based on your homepage content.",
+  ],
+  org_schema: [
+    "Add a <script type='application/ld+json'> block to your homepage <head>.",
+    "Use the Organization schema type with fields: name, url, logo, description.",
+    "Optionally add sameAs with your LinkedIn, Crunchbase, and Twitter profiles.",
+    "Validate with Google's Rich Results Test (search.google.com/test/rich-results).",
+    "Use the Generate button below to get a schema block pre-filled for your domain.",
+  ],
+  faq_schema: [
+    "Add FAQPage JSON-LD schema to any page with question-and-answer content.",
+    "Each FAQ entry needs a 'name' (the question) and 'acceptedAnswer' with a 'text' field.",
+    "Put the <script> block inside <head> or at the bottom of <body>.",
+    "Validate with Google's Rich Results Test.",
+    "Use the Generate button to get a ready-to-use FAQ schema block.",
+  ],
+  robots_txt: [
+    "Create a robots.txt file at the root of your domain (e.g. yoursite.com/robots.txt).",
+    "Add explicit Allow rules for GPTBot, ClaudeBot, PerplexityBot, and Google-Extended.",
+    "Always include 'Sitemap: https://yourdomain.com/sitemap.xml' at the bottom.",
+    "Test that it's accessible by visiting the URL in a browser.",
+    "Use the Generate button to get an AI-crawler-friendly robots.txt file.",
+  ],
+  sitemap: [
+    "Create an XML sitemap listing all public pages on your site.",
+    "Submit it to Google Search Console under Sitemaps.",
+    "Add a reference at the bottom of robots.txt: 'Sitemap: https://yourdomain.com/sitemap.xml'.",
+    "If you use WordPress, Yoast or Rank Math generates this automatically.",
+    "For custom sites, tools like xml-sitemaps.com can crawl and create it.",
+  ],
+  missing_https: [
+    "Get an SSL certificate - most hosts provide free Let's Encrypt certificates.",
+    "Set up automatic HTTPS redirects from http:// to https://.",
+    "Update your internal links and canonical tags to use https://.",
+    "Check your CMS settings - WordPress, Webflow, and Shopify handle this in settings.",
+  ],
+  missing_h1: [
+    "Every page should have exactly one H1 heading.",
+    "The H1 should describe what the page is about - include your primary keyword.",
+    "Do not use the H1 for decorative text or the site logo alt text.",
+    "In most CMS platforms, the page title field sets the H1 automatically.",
+  ],
+  missing_schema: [
+    "Add JSON-LD structured data to your page's <head> section.",
+    "Start with Organization schema on your homepage.",
+    "Add Article schema to blog posts and FAQPage to FAQ sections.",
+    "Use schema.org for reference on every schema type.",
+  ],
+  missing_canonical: [
+    "Add <link rel='canonical' href='https://yourdomain.com/this-page/'> in every page's <head>.",
+    "Always use the full URL including https:// and trailing slash.",
+    "If you have www and non-www versions, pick one and canonicalize all pages to it.",
+    "Check your CMS - most platforms have canonical fields built in.",
+  ],
+};
+
+type GenerateType = "llmstxt" | "org-schema" | "faq-schema" | "robots";
+
+const GENERATE_ACTIONS: Record<string, { endpoint: string; label: string; type: GenerateType }> = {
+  llmstxt: { endpoint: "/api/generate/llmstxt", label: "Generate llms.txt", type: "llmstxt" },
+  org_schema: { endpoint: "/api/generate/org-schema", label: "Generate org schema", type: "org-schema" },
+  faq_schema: { endpoint: "/api/generate/faq-schema", label: "Generate FAQ schema", type: "faq-schema" },
+  robots_txt: { endpoint: "/api/generate/robots", label: "Generate robots.txt", type: "robots" },
+};
+
+/* ===== Issue Panel ===== */
+function IssuePanel({
+  issueKey,
+  title,
+  severity,
+  description,
+  domain,
+  expanded,
+  onToggle,
+}: {
+  issueKey: string;
+  title: string;
+  severity: "error" | "warning" | "notice";
+  description: string;
+  domain: string;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const [generating, setGenerating] = useState(false);
+  const [generated, setGenerated] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
+
+  const aiSystems = ISSUE_AI_SYSTEMS[issueKey] ?? [];
+  const impact = ISSUE_SCORE_IMPACT[issueKey] ?? 0;
+  const steps = FIX_STEPS[issueKey] ?? [];
+  const action = GENERATE_ACTIONS[issueKey];
+
+  const sevColor = severity === "error" ? "#DC2626" : severity === "warning" ? "#D97706" : "#6B7280";
+  const sevBg = severity === "error" ? "#FEF2F2" : severity === "warning" ? "#FFFBEB" : "#F9FAFB";
+  const sevLabel = severity === "error" ? "Error" : severity === "warning" ? "Warning" : "Notice";
+
+  const handleGenerate = async () => {
+    if (!action) return;
+    setGenerating(true);
+    setGenError(null);
+    try {
+      const resp = await fetch(action.endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain }),
+      });
+      const data = await resp.json() as { content?: string; code?: string; error?: string };
+      if (!resp.ok || data.error) { setGenError(data.error ?? "Generation failed"); return; }
+      setGenerated(data.content ?? data.code ?? "");
+    } catch {
+      setGenError("Generation failed. Please try again.");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleCopy = () => {
+    if (!generated) return;
+    navigator.clipboard.writeText(generated).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div style={{ border: `1px solid ${BORDER}`, borderRadius: 10, background: "white", overflow: "hidden", marginBottom: 8 }}>
+      <button
+        onClick={onToggle}
+        style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
+      >
+        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: sevBg, color: sevColor, textTransform: "uppercase", letterSpacing: "0.04em", flexShrink: 0 }}>
+          {sevLabel}
+        </span>
+        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "#111827" }}>{title}</span>
+        {impact > 0 && (
+          <span style={{ fontSize: 11, color: "#D97706", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 5, padding: "2px 8px", flexShrink: 0 }}>
+            +{impact} pts if fixed
+          </span>
+        )}
+        {aiSystems.length > 0 && (
+          <span style={{ fontSize: 11, color: MUTED, flexShrink: 0, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            Affects: {aiSystems.slice(0, 3).join(", ")}{aiSystems.length > 3 ? ` +${aiSystems.length - 3}` : ""}
+          </span>
+        )}
+        <ChevronDown size={14} color={MUTED} style={{ flexShrink: 0, transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
+      </button>
+
+      {expanded && (
+        <div style={{ padding: "0 18px 18px", borderTop: `1px solid ${BORDER}` }}>
+          <p style={{ fontSize: 13, color: "#6B7280", margin: "14px 0 14px" }}>{description}</p>
+
+          {aiSystems.length > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>AI systems affected</div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {aiSystems.map(s => (
+                  <span key={s} style={{ fontSize: 11, padding: "3px 9px", borderRadius: 20, background: "#EEF2FF", color: P, fontWeight: 500 }}>{s}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {steps.length > 0 && (
+            <div style={{ marginBottom: action ? 16 : 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>How to fix</div>
+              <ol style={{ margin: 0, paddingLeft: 20 }}>
+                {steps.map((step, i) => (
+                  <li key={i} style={{ fontSize: 13, color: "#374151", lineHeight: 1.6, marginBottom: 4 }}>{step}</li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          {action && (
+            <div style={{ marginTop: 16 }}>
+              {!generated && (
+                <button
+                  onClick={handleGenerate}
+                  disabled={generating}
+                  style={{ padding: "8px 16px", background: generating ? "#EEF2FF" : P, color: "white", border: "none", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: generating ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 6 }}
+                >
+                  {generating && <div style={{ width: 12, height: 12, border: "2px solid rgba(255,255,255,0.4)", borderTopColor: "white", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />}
+                  {generating ? "Generating..." : action.label}
+                </button>
+              )}
+              {genError && <div style={{ fontSize: 12, color: "#DC2626", marginTop: 8 }}>{genError}</div>}
+              {generated && (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#10B981" }}>Generated - ready to copy</span>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button onClick={handleCopy} style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", border: `1px solid ${BORDER}`, borderRadius: 6, background: "white", fontSize: 11, color: copied ? "#10B981" : MUTED, cursor: "pointer" }}>
+                        {copied ? <Check size={11} /> : <Copy size={11} />}
+                        {copied ? "Copied" : "Copy"}
+                      </button>
+                      <button onClick={() => setGenerated(null)} style={{ padding: "5px 10px", border: `1px solid ${BORDER}`, borderRadius: 6, background: "white", fontSize: 11, color: MUTED, cursor: "pointer" }}>
+                        Regenerate
+                      </button>
+                    </div>
+                  </div>
+                  <pre style={{ background: "#F9FAFB", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "14px 16px", fontSize: 11, lineHeight: 1.6, color: "#374151", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 340, overflowY: "auto", margin: 0, fontFamily: "'Courier New', monospace" }}>
+                    {generated}
+                  </pre>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function buildAiIssues(audit: SiteAuditSummary): Array<{ key: string; title: string; severity: "error" | "warning" | "notice"; description: string }> {
+  const items: Array<{ key: string; title: string; severity: "error" | "warning" | "notice"; description: string }> = [];
+
+  if (!audit.hasOrgSchema) {
+    items.push({
+      key: "org_schema",
+      title: "Organization schema is missing",
+      severity: "error",
+      description: "No Organization JSON-LD schema detected on your homepage. This schema tells AI systems who you are as a company - without it, ChatGPT, Gemini, and others have to guess your brand identity from context alone.",
+    });
+  }
+  if (!audit.hasLlmsTxt) {
+    items.push({
+      key: "llmstxt",
+      title: "llms.txt file not found",
+      severity: "error",
+      description: "llms.txt is a plain-text file (like robots.txt) that describes your brand to AI language models. ChatGPT and Claude specifically check for it when learning about companies.",
+    });
+  }
+  if (!audit.hasFaqSchema) {
+    items.push({
+      key: "faq_schema",
+      title: "FAQ structured data is missing",
+      severity: "warning",
+      description: "FAQPage schema on your key pages boosts the chance of your content appearing in Perplexity answers and Google AI Overviews, since both scan for structured Q&A content.",
+    });
+  }
+  if (!audit.hasSitemap) {
+    items.push({
+      key: "sitemap",
+      title: "XML sitemap not found",
+      severity: "warning",
+      description: "A sitemap.xml tells Googlebot and AI crawlers which pages exist on your site. Without one, AI systems may miss large parts of your content.",
+    });
+  }
+  if (!audit.hasRobotsTxt) {
+    items.push({
+      key: "robots_txt",
+      title: "robots.txt file not found",
+      severity: "warning",
+      description: "robots.txt lets you explicitly allow AI crawlers. Without it, some AI systems treat missing rules conservatively - and you lose the ability to specifically invite GPTBot, ClaudeBot, and PerplexityBot.",
+    });
+  }
+  if (!audit.isHttps) {
+    items.push({
+      key: "missing_https",
+      title: "Site is not served over HTTPS",
+      severity: "error",
+      description: "Serving over plain HTTP is a trust signal problem. AI systems and search engines deprioritise non-HTTPS sites, and modern browsers warn visitors before they land.",
+    });
+  }
+  if (!audit.hasH1) {
+    items.push({
+      key: "missing_h1",
+      title: "Homepage is missing an H1 heading",
+      severity: "warning",
+      description: "The H1 is one of the strongest on-page signals for both search engines and AI crawlers. Without it, AI systems struggle to determine what your homepage is primarily about.",
+    });
+  }
+
+  return items;
+}
+
 /* ===== Main ===== */
 export function VisibilityOverview({
   domain,
@@ -320,6 +692,24 @@ export function VisibilityOverview({
   const [topicsTab, setTopicsTab] = useState<"performing" | "opportunities" | "pages" | "sources">("performing");
   const [pagesPage, setPagesPage] = useState(0);
   const [sourcesPage, setSourcesPage] = useState(0);
+  const [siteAudit, setSiteAudit] = useState<SiteAuditSummary | null>(null);
+  const [siteAuditLoading, setSiteAuditLoading] = useState(false);
+  const [expandedIssue, setExpandedIssue] = useState<string | null>(null);
+
+  const fetchSiteAudit = useCallback((d: string) => {
+    setSiteAuditLoading(true);
+    fetch("/api/dataforseo/onpage/quick", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ domain: d }),
+    })
+      .then(r => r.json())
+      .then((raw: SiteAuditSummary & { error?: string }) => {
+        if (!raw.error) setSiteAudit(raw);
+      })
+      .catch(() => { /* silent - site audit is supplemental */ })
+      .finally(() => setSiteAuditLoading(false));
+  }, []);
 
   const fetchData = useCallback((d: string, force = false) => {
     if (force) setRescanning(true); else setLoading(true);
@@ -348,7 +738,8 @@ export function VisibilityOverview({
     if (!domain) { setShowModal(true); return; }
     setLastDomain(domain);
     fetchData(domain, false);
-  }, [domain, fetchData]);
+    fetchSiteAudit(domain);
+  }, [domain, fetchData, fetchSiteAudit]);
 
   const handleDomain = (d: string) => { setShowModal(false); if (onDomainChange) onDomainChange(d); };
 
@@ -381,7 +772,7 @@ export function VisibilityOverview({
         <ChevronRight size={12} color="#D1D5DB" />
         <span>AI Visibility</span>
         <ChevronRight size={12} color="#D1D5DB" />
-        <span style={{ color: "#374151", fontWeight: 500 }}>AI Presence</span>
+        <span style={{ color: "#374151", fontWeight: 500 }}>AI Visibility Report</span>
       </div>
 
       {rescanBlocked && (
@@ -398,7 +789,7 @@ export function VisibilityOverview({
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18, flexWrap: "wrap", gap: 10 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 4px", color: "#111827" }}>
-            {domain ? <>AI Presence: <span style={{ color: P }}>{domain}</span></> : <span style={{ color: MUTED, fontWeight: 400, fontSize: 18 }}>Enter a domain to get started</span>}
+            {domain ? <>AI Visibility Report: <span style={{ color: P }}>{domain}</span></> : <span style={{ color: MUTED, fontWeight: 400, fontSize: 18 }}>Enter a domain to get started</span>}
           </h1>
           {d?.from_cache && d.cached_at && d.expires_at && (
             <CacheIndicator
@@ -462,51 +853,85 @@ export function VisibilityOverview({
       {/* main content */}
       {!loading && !error && domain && d && (
         <>
-          {/* hero: score + KPIs */}
-          <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 16, marginBottom: 16, alignItems: "stretch" }}>
+          {/* 3-score header */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
 
-            {/* score gauge card */}
-            <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "28px 24px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 16, display: "flex", alignItems: "center", gap: 5 }}>
-                AI Visibility Score
-                <span title="Score based on AI mention frequency and citation rate across Google AI Overview and ChatGPT. Scale: 0-100." style={{ cursor: "help", color: "#9CA3AF", fontSize: 13, lineHeight: 1 }}>&#9432;</span>
+            {/* AI Presence */}
+            <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "28px 20px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", display: "flex", alignItems: "center", gap: 5 }}>
+                AI Presence
+                <span title="GEO score based on AI mention frequency and citation rate across ChatGPT, Gemini, Perplexity, and more. Scale: 0-100." style={{ cursor: "help", color: "#9CA3AF", fontSize: 13, lineHeight: 1 }}>&#9432;</span>
               </div>
               <ScoreGauge score={d.score} />
               {d.score === 0 && d.hasData === false && (
-                <div style={{ marginTop: 12, fontSize: 11, color: "#D97706", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 6, padding: "4px 12px", textAlign: "center" }}>
-                  AI Invisible - fix this
+                <div style={{ fontSize: 11, color: "#D97706", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 6, padding: "4px 12px", textAlign: "center" }}>
+                  Not visible in AI yet
                 </div>
               )}
             </div>
 
-            {/* KPIs card */}
-            <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "24px 28px" }}>
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em" }}>Key Metrics</div>
+            {/* Site Health */}
+            <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "28px 20px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", display: "flex", alignItems: "center", gap: 5 }}>
+                Site Health
+                <span title="Technical site score including HTTPS, performance, metadata, and structured data." style={{ cursor: "help", color: "#9CA3AF", fontSize: 13, lineHeight: 1 }}>&#9432;</span>
               </div>
-              <div style={{ display: "flex", gap: 32, marginBottom: 28, flexWrap: "wrap" }}>
-                <KpiCard label="AI Presence %" value={d.score} color={P} sub="GEO score across all AI systems" showZero />
-                <KpiCard label="Systems Found" value={d.platforms.length} color="#10B981" sub="AI platforms with brand data" showZero />
-                <KpiCard label="URLs Cited" value={d.citedPagesCount} color="#8B5CF6" sub="Unique pages cited by AI" showZero />
-                <KpiCard label="Cited Sources" value={d.citedSources.length} color="#F59E0B" sub="External domains referencing brand" showZero />
-              </div>
-
-              {/* platform mini bars */}
-              {d.platforms.length > 0 && (
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12 }}>Platform Breakdown</div>
-                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                    {d.platforms.map(p => (
-                      <div key={p.key} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", background: "#F9FAFB", borderRadius: 8, border: `1px solid ${BORDER}` }}>
-                        <AiLogo k={p.key} size={14} fallbackColor={p.color} />
-                        <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{p.displayName}</span>
-                        <span style={{ fontSize: 12, color: MUTED }}>{fmt(p.mentions)}</span>
-                      </div>
-                    ))}
-                  </div>
+              <SmallScoreRing
+                score={siteAudit?.siteHealthScore ?? 0}
+                label={siteAuditLoading ? "Checking..." : `${siteAudit?.siteHealthScore ?? 0}/100`}
+                sub="Technical site score"
+                loading={siteAuditLoading}
+              />
+              {!siteAuditLoading && siteAudit && (
+                <div style={{ fontSize: 11, color: MUTED, textAlign: "center" }}>
+                  {siteAudit.isHttps ? "HTTPS" : "No HTTPS"} &middot; {siteAudit.hasRobotsTxt ? "robots.txt" : "No robots.txt"} &middot; {siteAudit.hasSitemap ? "Sitemap" : "No sitemap"}
                 </div>
               )}
             </div>
+
+            {/* AI Readiness */}
+            <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "28px 20px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", display: "flex", alignItems: "center", gap: 5 }}>
+                AI Readiness
+                <span title="Score measuring how well your site is configured for AI crawlers: llms.txt, org schema, FAQ schema, and bot access rules." style={{ cursor: "help", color: "#9CA3AF", fontSize: 13, lineHeight: 1 }}>&#9432;</span>
+              </div>
+              <SmallScoreRing
+                score={siteAudit?.aiHealthScore ?? 0}
+                label={siteAuditLoading ? "Checking..." : `${siteAudit?.aiHealthScore ?? 0}/100`}
+                sub="AI crawler readiness"
+                loading={siteAuditLoading}
+              />
+              {!siteAuditLoading && siteAudit && (
+                <div style={{ fontSize: 11, color: MUTED, textAlign: "center" }}>
+                  {siteAudit.hasLlmsTxt ? "llms.txt" : "No llms.txt"} &middot; {siteAudit.hasOrgSchema ? "Org schema" : "No org schema"} &middot; {siteAudit.hasFaqSchema ? "FAQ schema" : "No FAQ"}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* KPIs + platform chips */}
+          <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "24px 28px", marginBottom: 16 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 16 }}>Key Metrics</div>
+            <div style={{ display: "flex", gap: 32, marginBottom: d.platforms.length > 0 ? 24 : 0, flexWrap: "wrap" }}>
+              <KpiCard label="AI Presence %" value={d.score} color={P} sub="GEO score across all AI systems" showZero />
+              <KpiCard label="Systems Found" value={d.platforms.length} color="#10B981" sub="AI platforms with brand data" showZero />
+              <KpiCard label="URLs Cited" value={d.citedPagesCount} color="#8B5CF6" sub="Unique pages cited by AI" showZero />
+              <KpiCard label="Cited Sources" value={d.citedSources.length} color="#F59E0B" sub="External domains referencing brand" showZero />
+            </div>
+            {d.platforms.length > 0 && (
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>Platform Breakdown</div>
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                  {d.platforms.map(p => (
+                    <div key={p.key} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", background: "#F9FAFB", borderRadius: 8, border: `1px solid ${BORDER}` }}>
+                      <AiLogo k={p.key} size={14} fallbackColor={p.color} />
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{p.displayName}</span>
+                      <span style={{ fontSize: 12, color: MUTED }}>{fmt(p.mentions)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Google AI Overview presence row */}
@@ -559,6 +984,56 @@ export function VisibilityOverview({
               )}
             </div>
           )}
+
+          {/* Errors & Warnings */}
+          {(() => {
+            const issues = siteAudit ? buildAiIssues(siteAudit) : [];
+            if (!siteAuditLoading && issues.length === 0) return null;
+            const errors = issues.filter(i => i.severity === "error");
+            const warnings = issues.filter(i => i.severity !== "error");
+            return (
+              <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "20px 24px", marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>Errors and Warnings</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {errors.length > 0 && (
+                      <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: "#FEF2F2", color: "#DC2626" }}>
+                        {errors.length} error{errors.length !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                    {warnings.length > 0 && (
+                      <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: "#FFFBEB", color: "#D97706" }}>
+                        {warnings.length} warning{warnings.length !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                    {siteAuditLoading && (
+                      <span style={{ fontSize: 11, color: MUTED }}>Scanning site...</span>
+                    )}
+                  </div>
+                </div>
+                {siteAuditLoading && issues.length === 0 && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 0", color: MUTED, fontSize: 13 }}>
+                    <div style={{ width: 14, height: 14, border: "2px solid #E5E7EB", borderTopColor: P, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                    Running site checks for {domain}...
+                  </div>
+                )}
+                <div>
+                  {[...errors, ...warnings].map(issue => (
+                    <IssuePanel
+                      key={issue.key}
+                      issueKey={issue.key}
+                      title={issue.title}
+                      severity={issue.severity}
+                      description={issue.description}
+                      domain={domain}
+                      expanded={expandedIssue === issue.key}
+                      onToggle={() => setExpandedIssue(expandedIssue === issue.key ? null : issue.key)}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* no data state */}
           {!d.hasData && (

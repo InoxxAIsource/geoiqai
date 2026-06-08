@@ -4,7 +4,7 @@ import { useGetMe, useGetMonitoredBrands, useGetBrandScores, useGetBrandKeywords
 import { useQueryClient } from "@tanstack/react-query";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { getToken } from "@/lib/auth";
-import { BarChart2, Users, Search, TrendingUp, Brain, MessageSquare, HelpCircle, Wrench, Radio, FileText, Bot, Layers, Plus, ChevronDown, LogOut, Settings, Globe, Megaphone } from "lucide-react";
+import { BarChart2, Users, Search, TrendingUp, Brain, MessageSquare, HelpCircle, Radio, FileText, Bot, Layers, Plus, ChevronDown, LogOut, Settings, Globe, Megaphone } from "lucide-react";
 import { VisibilityOverview } from "./dashboard/VisibilityOverview";
 import { CompetitorResearch } from "./dashboard/CompetitorResearch";
 import { PromptResearch } from "./dashboard/PromptResearch";
@@ -51,7 +51,6 @@ const NAV: NavSection[] = [
   {
     section: "Optimize and Track",
     items: [
-      { id: "site-audit", label: "AI Crawler Audit", icon: <Wrench size={15} /> },
       { id: "prompt-tracking", label: "Answer Monitoring", icon: <Radio size={15} /> },
       { id: "content-creation", label: "AI Content Studio", icon: <FileText size={15} /> },
     ],

@@ -16,6 +16,7 @@ import brandPerformanceRouter from "./brand-performance";
 import contentRouter from "./content";
 import aiPrRouter from "./ai-pr";
 import { answerMonitoringRouter } from "./answer-monitoring";
+import generateRouter from "./generate";
 
 const router: IRouter = Router();
 
@@ -36,5 +37,6 @@ router.use(brandPerformanceRouter);
 router.use(contentRouter);
 router.use(aiPrRouter);
 router.use(answerMonitoringRouter);
+router.use(generateRouter);
 
 export default router;

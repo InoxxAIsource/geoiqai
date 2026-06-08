@@ -1,0 +1,514 @@
+Major restructure: merge AI Crawler Audit 
+into AI Presence. Remove AI Crawler Audit 
+from sidebar. AI Presence becomes the 
+complete AI Visibility Report.
+
+STEP 1: REMOVE AI CRAWLER AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Remove "AI Crawler Audit" from sidebar.
+Keep the route /dashboard/ai-crawler-audit
+working (redirect to AI Presence).
+
+AI Presence route: /dashboard/ai-presence
+Now handles everything.
+
+STEP 2: NEW AI PRESENCE PAGE STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+New layout — 6 sections on one page:
+
+┌─────────────────────────────────────────┐
+│ AI Visibility Report: godaddy.com       │
+│ [Rescan] [Change Domain] [Export]       │
+└─────────────────────────────────────────┘
+
+SECTION 1: THREE SCORE CARDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Row of 3 gauges:
+
+┌──────────────┬──────────────┬──────────────┐
+│ AI PRESENCE  │ SITE HEALTH  │ AI READINESS │
+│   57/100     │   53/100     │   38/100     │
+│   Medium     │    Poor      │    Poor      │
+└──────────────┴──────────────┴──────────────┘
+
+AI Presence = score across 6 AI systems
+Site Health = technical crawl score
+AI Readiness = llms.txt + schema + bots
+
+SECTION 2: PLATFORM BREAKDOWN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Keep existing platform breakdown.
+All 6 systems + Google AI Overview.
+
+Add Google AI Overview section
+showing citation query:
+"Cited in AI Overview for 
+ 'godaddy review'" ✓
+
+SECTION 3: ERRORS AND WARNINGS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Pull from site crawl + AI checks.
+Show with AI system impact + score impact.
+
+Display format:
+
+ERRORS (1)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔴 llms.txt file missing
+   Affects: ChatGPT • Claude • Grok
+   Score impact: +8 pts if fixed
+   [See Fix Steps ▼]
+
+   When expanded:
+   Step 1: Generate your llms.txt
+     [Generate llms.txt →]
+     Returns ready file content
+
+   Step 2: Upload to domain root
+     File must be at:
+     https://godaddy.com/llms.txt
+     In Replit: add to /public folder
+
+   Step 3: Verify
+     [Check llms.txt →]
+     Opens: https://godaddy.com/llms.txt
+
+WARNINGS (4)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🟡 Organization schema missing
+   Affects: All 6 AI systems
+   Score impact: +10 pts if fixed
+   [See Fix Steps ▼]
+
+   Step 1: Copy your schema
+     [Copy Schema →]
+     Auto-generates with domain filled in:
+     <script type="application/ld+json">
+     {
+       "@context": "https://schema.org",
+       "@type": "Organization",
+       "name": "GoDaddy",
+       "url": "https://godaddy.com",
+       "description": "...",
+       "sameAs": [
+         "https://twitter.com/godaddy",
+         "https://linkedin.com/company/godaddy"
+       ]
+     }
+     </script>
+
+   Step 2: Paste before </head>
+     Add to every page or homepage only
+
+   Step 3: Test it
+     [Test in Google →]
+     Opens rich results tester
+
+🟡 FAQPage schema missing
+   Affects: Perplexity • Google AI Overview
+   Score impact: +12 pts if fixed
+   [See Fix Steps ▼]
+
+   Step 1: Copy FAQ content
+     [Copy FAQ Schema →]
+     Generates 5 relevant Q&As for domain
+
+   Step 2: Add to webpage
+     Paste at bottom of main page
+     Above footer
+
+   Step 3: Verify
+     [Test Schema →]
+
+🟡 robots.txt not found
+   Affects: All 6 AI systems
+   Score impact: +5 pts if fixed
+   [See Fix Steps ▼]
+
+   Step 1: Generate robots.txt
+     [Generate robots.txt →]
+     Returns:
+     User-agent: *
+     Allow: /
+     User-agent: GPTBot
+     Allow: /
+     User-agent: ClaudeBot
+     Allow: /
+     User-agent: PerplexityBot
+     Allow: /
+     User-agent: Google-Extended
+     Allow: /
+     Sitemap: https://godaddy.com/sitemap.xml
+
+   Step 2: Upload to domain root
+   Step 3: [Verify →] opens domain/robots.txt
+
+🟡 sitemap.xml not found
+   Affects: Gemini • Google AI Overview
+   Score impact: +4 pts if fixed
+   [See Fix Steps ▼]
+
+ISSUE → AI SYSTEM MAPPING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const issueAffectsMap = {
+  llmstxt: 
+    ['ChatGPT','Claude','Grok'],
+  org_schema: 
+    ['ChatGPT','Gemini','Perplexity',
+     'Claude','Grok','Google AI Overview'],
+  faq_schema: 
+    ['Perplexity','Google AI Overview'],
+  robots_txt: 
+    ['ChatGPT','Gemini','Perplexity',
+     'Claude','Grok','Google AI Overview'],
+  sitemap: 
+    ['Gemini','Google AI Overview'],
+  https: 
+    ['ChatGPT','Google AI Overview'],
+  meta_title: 
+    ['Google AI Overview'],
+  h1_missing: 
+    ['Gemini','Google AI Overview'],
+  no_schema: 
+    ['ChatGPT','Perplexity','Gemini']
+};
+
+const scoreImpactMap = {
+  llmstxt: 8,
+  org_schema: 10,
+  faq_schema: 12,
+  robots_txt: 5,
+  sitemap: 4,
+  https: 6,
+  h1_missing: 3,
+  no_schema: 8,
+  no_canonical: 2
+};
+
+SECTION 4: FIX GENERATORS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+These generate real code/content
+when user clicks the fix buttons:
+
+GENERATE llms.txt:
+POST /api/generate/llmstxt
+Body: { domain }
+
+Claude Haiku generates:
+# GoDaddy - Domain Registration & Hosting
+> GoDaddy helps millions of entrepreneurs...
+
+## Products
+- Domain Registration
+- Web Hosting
+- Website Builder
+...
+
+Returns downloadable .txt file
++ copy button
+
+GENERATE Organization Schema:
+POST /api/generate/org-schema
+Body: { domain }
+
+Fetch domain with Tavily Extract
+Claude generates schema from content:
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "...",
+  "url": "...",
+  "description": "...",
+  "foundingDate": "...",
+  "numberOfEmployees": "...",
+  "sameAs": [...]
+}
+
+GENERATE FAQ Schema:
+POST /api/generate/faq-schema
+Body: { domain, category }
+
+Claude generates 5 relevant Q&As
+based on domain content:
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How do I register a domain?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "..."
+      }
+    }
+  ]
+}
+
+GENERATE robots.txt:
+POST /api/generate/robots
+Body: { domain }
+
+Returns standard AI-optimized robots.txt
+allowing all major AI crawlers.
+
+All generators:
+- Use Claude Haiku (cheap)
+- Fetch real domain content via Tavily
+- Return copy-ready code
+- Show character count / file size
+
+SECTION 5: THEMATIC HEALTH SCORES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Keep the thematic reports grid:
+Crawlability | HTTPS | Performance
+Internal Linking | Schema | AI Search
+
+Each card clickable → expands details
+Each shows percentage + status color
+
+SECTION 6: TOPICS AND CITATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Keep existing tabs:
+Performing Topics | Topic Opportunities
+Cited Pages | Cited Sources
+
+Populated from Exa results
+(fix from previous prompt)
+
+SECTION 7: RESCAN BEHAVIOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[Rescan] button runs BOTH:
+- AI Presence scan (Exa + Tavily)
+- Site crawl (direct fetch + Tavily)
+
+Returns all data in one response.
+One button. Complete picture.
+
+Backend: combine both scan functions
+into single endpoint:
+
+POST /api/full-scan
+{
+  domain: "godaddy.com"
+}
+
+Returns:
+{
+  ai_presence: { ... },
+  site_health: { ... },
+  ai_readiness: { ... },
+  issues: [ ... ],
+  topics: [ ... ],
+  citations: [ ... ]
+}
+
+Cache entire response for 72 hours.
+Cache key: `full_scan::${domain}`
+
+STEP 3: UPDATE SIDEBAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Remove: "AI Crawler Audit"
+
+OPTIMIZE AND TRACK now shows:
+- Answer Monitoring
+- AI Content Studio
+
+(AI Crawler Audit data lives inside 
+AI Presence now)
+
+STEP 4: UPDATE PRICING/HOMEPAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Replace references to:
+"AI Crawler Audit — check AI crawler issues"
+
+With:
+"AI Visibility Report — complete technical 
+and visibility analysis in one scan"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+GENERATE BUTTONS — BACKEND ROUTES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+app.post('/api/generate/llmstxt', 
+async (req, res) => {
+  const { domain } = req.body;
+  
+  // Fetch domain content
+  let content = '';
+  try {
+    const resp = await fetch(
+      `https://${domain}`
+    );
+    const html = await resp.text();
+    content = html
+      .replace(/<[^>]+>/g,' ')
+      .replace(/\s+/g,' ')
+      .trim()
+      .slice(0, 2000);
+  } catch(e) {}
+  
+  const response = await anthropic
+    .messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 800,
+      system: 'Generate an llms.txt file. Return plain text only, no markdown.',
+      messages: [{
+        role: 'user',
+        content: `Generate llms.txt for ${domain}.
+                  
+Content found: ${content}
+
+Format:
+# Brand Name - Tagline
+> One paragraph description
+
+## Key Topics
+- Topic 1
+- Topic 2
+
+## Products/Services  
+- Product 1
+- Product 2
+
+## Contact
+- URL: https://${domain}
+
+Keep under 500 words.
+AI-optimized: clear, factual, structured.`
+      }]
+    });
+  
+  res.json({ 
+    content: response.content[0].text,
+    filename: 'llms.txt'
+  });
+});
+
+app.post('/api/generate/org-schema',
+async (req, res) => {
+  const { domain } = req.body;
+  
+  const response = await anthropic
+    .messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 600,
+      system: 'Return only valid JSON-LD. No markdown.',
+      messages: [{
+        role: 'user',
+        content: `Generate Organization schema 
+for ${domain}.
+Return complete JSON-LD script tag.
+Include: name, url, description,
+foundingDate if known, sameAs social links.`
+      }]
+    });
+  
+  res.json({ 
+    code: response.content[0].text 
+  });
+});
+
+app.post('/api/generate/faq-schema',
+async (req, res) => {
+  const { domain } = req.body;
+  
+  const response = await anthropic
+    .messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1000,
+      system: 'Return only valid JSON-LD. No markdown.',
+      messages: [{
+        role: 'user',
+        content: `Generate FAQPage schema for ${domain}.
+Create 5 realistic FAQ questions users 
+would ask about this brand/product.
+Include clear concise answers.
+Return complete JSON-LD script tag.`
+      }]
+    });
+  
+  res.json({ 
+    code: response.content[0].text 
+  });
+});
+
+app.post('/api/generate/robots',
+async (req, res) => {
+  const { domain } = req.body;
+  
+  const content = `User-agent: *
+Allow: /
+
+# AI Crawlers - explicitly allowed
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+Sitemap: https://${domain}/sitemap.xml`;
+  
+  res.json({ 
+    content,
+    filename: 'robots.txt'
+  });
+});
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Open AI Presence for godaddy.com
+   Shows 3 score gauges at top
+   Platform breakdown (6 systems)
+   Google AI Overview citation
+   Issues section with:
+   - AI system badges per issue
+   - Score impact per issue
+   - Fix steps expandable
+   - Generate buttons working
+   Thematic health grid
+   Topics & Citations tabs
+
+2. Click [Generate llms.txt]
+   Shows generated file content
+   [Copy] button works
+
+3. Click [Generate FAQ Schema]
+   Shows JSON-LD ready to paste
+   [Copy] button works
+
+4. Sidebar: no "AI Crawler Audit" item
+
+5. AI Visibility score improves
+   when issues are marked as fixed
+   (manual toggle for now)
+
+Share screenshot of issues section
+with AI system badges and fix steps.
