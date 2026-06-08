@@ -933,6 +933,12 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
               topEvidence: scanResult.topEvidence,
               googleAio: scanResult.googleAio ?? null,
               platforms: scanResult.platforms,
+              urlsCited: scanResult.urlsCited,
+              citedSourcesCount: scanResult.citedSourcesCount,
+              performingTopics: scanResult.performingTopics,
+              topicOpportunities: scanResult.topicOpportunities,
+              citedPagesList: scanResult.citedPagesList,
+              citedSourcesList: scanResult.citedSourcesList,
             },
           }).returning();
           audit = inserted ?? null;
@@ -1019,13 +1025,68 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
 
     const mentions = activePlatforms.length;
     const aiSearchVolume = 0;
-    const citations = 0;
-    const citedPagesCount = 0;
-    const mergedPages: { url: string; mentions: number; ai_search_volume: number }[] = [];
-    const performingData = { items: [] as Array<{ question: string; platform: string; model_name: string; ai_search_volume: number; location_code: number }>, totalCount: 0, cached: false };
-    const opportunitiesData = { items: [] as Array<{ question: string; platform: string; model_name: string; ai_search_volume: number; location_code: number }>, totalCount: 0, cached: false };
+
+    // Extract rich data stored by runAIPresenceScan (present for new scans only)
+    type StoredTopic = { topic: string; platform: string; url: string; date: string | null; snippet: string };
+    type StoredOpportunity = { topic: string; platform: string; url: string; date: string | null; opportunity: string };
+    type StoredCitedPage = { url: string; title: string; snippet: string };
+    type StoredCitedSource = { domain: string; title: string; url: string; favicon: string };
+
+    const storedPerformingTopics = (rawData?.performingTopics ?? []) as StoredTopic[];
+    const storedTopicOpportunities = (rawData?.topicOpportunities ?? []) as StoredOpportunity[];
+    const storedCitedPagesList = (rawData?.citedPagesList ?? []) as StoredCitedPage[];
+    const storedCitedSourcesList = (rawData?.citedSourcesList ?? []) as StoredCitedSource[];
+    const citations = (rawData?.urlsCited as number | undefined) ?? 0;
+    const citedPagesCount = storedCitedPagesList.length;
+
+    const mergedPages = storedCitedPagesList.map(p => ({
+      url: p.url,
+      title: p.title,
+      snippet: p.snippet,
+      mentions: 1,
+      ai_search_volume: 0,
+    }));
+
+    const performingData = {
+      items: storedPerformingTopics.map(t => ({
+        question: t.topic,
+        platform: t.platform,
+        model_name: t.platform,
+        ai_search_volume: 0,
+        location_code: 0,
+        url: t.url,
+        date: t.date,
+        snippet: t.snippet,
+      })),
+      totalCount: storedPerformingTopics.length,
+      cached: false,
+    };
+
+    const opportunitiesData = {
+      items: storedTopicOpportunities.map(t => ({
+        question: t.topic,
+        platform: t.platform,
+        model_name: t.platform,
+        ai_search_volume: 0,
+        location_code: 0,
+        url: t.url,
+        date: t.date,
+        opportunity: t.opportunity,
+      })),
+      totalCount: storedTopicOpportunities.length,
+      cached: false,
+    };
+
     const countries: { code: number; name: string; mentions: number; pct: number }[] = [];
-    const citedSources: { domain: string; mentions: number; ai_search_volume: number }[] = [];
+
+    const citedSources = storedCitedSourcesList.map(s => ({
+      domain: s.domain,
+      title: s.title,
+      url: s.url,
+      favicon: s.favicon,
+      mentions: 1,
+      ai_search_volume: 0,
+    }));
     req.log.info({ domain: bareD, bestKeyword, score, hasData, platforms: activePlatforms.length, auditId: audit?.id ?? null }, "visibility-overview: done");
 
     const now = new Date();

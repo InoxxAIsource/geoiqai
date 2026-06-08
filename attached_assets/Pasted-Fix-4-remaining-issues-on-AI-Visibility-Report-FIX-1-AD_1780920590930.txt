@@ -1,0 +1,304 @@
+Fix 4 remaining issues on AI Visibility Report.
+
+FIX 1: ADD PERPLEXITY AND CLAUDE 
+TO DISTRIBUTION AND PLATFORM BREAKDOWN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Currently showing only 3 platforms:
+ChatGPT, Gemini, Grok
+
+Missing: Perplexity and Claude
+
+Find where platforms array is built
+for Distribution by LLM and 
+Platform Breakdown chips.
+
+Add Perplexity and Claude:
+
+const platforms = [
+  { name: 'ChatGPT', 
+    score: scores.chatgpt,
+    color: '#10b981',
+    icon: chatgptIcon },
+  { name: 'Gemini', 
+    score: scores.gemini,
+    color: '#4285f4',
+    icon: geminiIcon },
+  { name: 'Perplexity', 
+    score: scores.perplexity,
+    color: '#20b2aa',
+    icon: perplexityIcon },
+  { name: 'Claude', 
+    score: scores.claude,
+    color: '#f97316',
+    icon: claudeIcon },
+  { name: 'Grok', 
+    score: scores.grok,
+    color: '#000000',
+    icon: grokIcon },
+  { name: 'Google AI', 
+    score: scores.google_ai,
+    color: '#ea4335',
+    icon: googleIcon }
+];
+
+If Perplexity/Claude scores are 0 
+because Exa searches not running:
+
+Add these parallel searches in 
+getPerPlatformExaEvidence():
+
+perplexityExa = await exa.search(
+  `"${cleanDomain}" Perplexity 
+   cited recommended mentioned 2025 2026`,
+  {
+    type: 'auto',
+    numResults: 5,
+    startPublishedDate: '2025-06-01',
+    contents: {
+      highlights: { numSentences: 1 }
+    }
+  }
+)
+
+claudeExa = await exa.search(
+  `"${cleanDomain}" Claude Anthropic 
+   cited recommended mentioned 2025 2026`,
+  {
+    type: 'auto',
+    numResults: 5,
+    startPublishedDate: '2025-06-01',
+    contents: {
+      highlights: { numSentences: 1 }
+    }
+  }
+)
+
+FIX 2: URLs CITED AND CITED SOURCES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Still showing 0 for both.
+
+In the scan results combine ALL
+Exa results from all platform searches:
+
+const allExaResults = [
+  ...chatgptExa.results,
+  ...geminiExa.results,
+  ...perplexityExa.results,
+  ...claudeExa.results,
+  ...grokExa.results
+];
+
+const cleanDomain = domain
+  .replace('www.','').toLowerCase();
+
+// Pages from their own domain cited
+const urlsCited = new Set(
+  allExaResults
+    .filter(r => r.url?.toLowerCase()
+      .includes(cleanDomain))
+    .map(r => r.url)
+).size;
+
+// External domains citing the brand
+const citedSources = new Set(
+  allExaResults
+    .filter(r => 
+      !r.url?.toLowerCase()
+        .includes(cleanDomain) &&
+      resultMentionsBrand(
+        `${r.title} ${r.highlights
+          ?.join(' ')}`,
+        domain,
+        brandSlug
+      )
+    )
+    .map(r => {
+      try {
+        return new URL(r.url).hostname
+          .replace('www.','');
+      } catch { return null; }
+    })
+    .filter(Boolean)
+).size;
+
+Update response with real counts:
+urls_cited: urlsCited,
+cited_sources: citedSources
+
+FIX 3: POPULATE PERFORMING TOPICS
+AND TOPIC OPPORTUNITIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Both tabs showing empty.
+
+Performing Topics = real articles 
+where brand was mentioned.
+Pull from allExaResults:
+
+const performingTopics = allExaResults
+  .filter(r => resultMentionsBrand(
+    `${r.title} ${r.highlights?.join(' ')}`,
+    domain, brandSlug
+  ))
+  .map(r => ({
+    topic: r.title
+      ?.replace(/[|\-–—].*$/, '')
+      .trim()
+      .slice(0, 80),
+    platform: detectPlatform(r.url),
+    url: r.url,
+    date: r.publishedDate,
+    snippet: r.highlights?.[0]
+      ?.slice(0, 150) || ''
+  }))
+  .filter(t => t.topic?.length > 15)
+  .slice(0, 20);
+
+Topic Opportunities = articles where
+brand NOT found but topic is relevant.
+These are gaps to fill:
+
+const topicOpportunities = allExaResults
+  .filter(r => !resultMentionsBrand(
+    `${r.title} ${r.highlights?.join(' ')}`,
+    domain, brandSlug
+  ))
+  .map(r => ({
+    topic: r.title
+      ?.replace(/[|\-–—].*$/, '')
+      .trim()
+      .slice(0, 80),
+    platform: detectPlatform(r.url),
+    url: r.url,
+    date: r.publishedDate,
+    opportunity: 'Your brand not mentioned here'
+  }))
+  .filter(t => t.topic?.length > 15)
+  .slice(0, 15);
+
+Cited Pages = brand own pages found:
+const citedPages = allExaResults
+  .filter(r => r.url?.toLowerCase()
+    .includes(cleanDomain))
+  .map(r => ({
+    url: r.url,
+    title: r.title,
+    snippet: r.highlights?.[0] || ''
+  }))
+  .slice(0, 10);
+
+Cited Sources = external sites:
+const citedSourcesList = [...new Set(
+  allExaResults
+    .filter(r => 
+      !r.url?.toLowerCase()
+        .includes(cleanDomain) &&
+      resultMentionsBrand(
+        `${r.title} ${r.highlights
+          ?.join(' ')}`,
+        domain, brandSlug
+      )
+    )
+    .map(r => {
+      try {
+        const host = new URL(r.url)
+          .hostname.replace('www.','');
+        return {
+          domain: host,
+          title: r.title,
+          url: r.url,
+          favicon: `https://www.google.com/s2/favicons?domain=${host}&sz=32`
+        };
+      } catch { return null; }
+    })
+    .filter(Boolean)
+)].slice(0, 10);
+
+Return all in response:
+performing_topics: performingTopics,
+topic_opportunities: topicOpportunities,
+cited_pages: citedPages,
+cited_sources_list: citedSourcesList
+
+FIX 4: IMPROVE SCORE FOR KNOWN BRANDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+tryprofound.com showing 18/100 seems low.
+Profound is a well-known GEO platform.
+
+Issue: brandSlug = "tryprofound" 
+but brand name is "Profound"
+Search for "tryprofound" finds less
+than searching for "Profound"
+
+Fix: extract real brand name from domain:
+
+const extractBrandName = (domain) => {
+  const clean = domain
+    .replace('www.','')
+    .replace('https://','')
+    .toLowerCase();
+  
+  const name = clean.split('.')[0];
+  
+  // Common prefixes to strip
+  const prefixes = [
+    'try','get','use','app','my',
+    'go','join','meet','hello','hey'
+  ];
+  
+  for (const prefix of prefixes) {
+    if (name.startsWith(prefix) && 
+        name.length > prefix.length + 2) {
+      return name.slice(prefix.length);
+    }
+  }
+  
+  return name;
+};
+
+// tryprofound → profound
+// getpostman → postman
+// useintercom → intercom
+// trygeoiq → geoiq
+
+Use brandName in Exa searches:
+`"${brandName}" OR "${cleanDomain}" 
+ ChatGPT recommended cited`
+
+This finds MORE relevant results
+for brands with "try/get/use" prefixes.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Run scan on tryprofound.com
+
+Should show:
+1. All 6 platforms in breakdown:
+   ChatGPT, Gemini, Perplexity, 
+   Claude, Grok, Google AI
+   All with different scores
+
+2. URLs Cited > 0
+   Cited Sources > 0
+   Profound is heavily cited
+
+3. Performing Topics populated
+   Real article titles about Profound
+
+4. Topic Opportunities populated
+   Topics where Profound not mentioned
+
+5. Score should be higher: 40-60+
+   Profound is well known GEO tool
+
+Run also on geoiqai.com
+Score should be lower: 10-20
+New brand, less citations
+
+Share screenshot showing:
+All 6 platforms + topics populated

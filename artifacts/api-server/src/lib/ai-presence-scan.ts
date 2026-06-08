@@ -27,6 +27,35 @@ export interface AIPresencePlatform {
   evidence: string | null;
 }
 
+export interface AIPresencePerformingTopic {
+  topic: string;
+  platform: string;
+  url: string;
+  date: string | null;
+  snippet: string;
+}
+
+export interface AIPresenceTopicOpportunity {
+  topic: string;
+  platform: string;
+  url: string;
+  date: string | null;
+  opportunity: string;
+}
+
+export interface AIPresenceCitedPage {
+  url: string;
+  title: string;
+  snippet: string;
+}
+
+export interface AIPresenceCitedSource {
+  domain: string;
+  title: string;
+  url: string;
+  favicon: string;
+}
+
 export interface AIPresenceScanResult {
   score: number;
   hasData: boolean;
@@ -43,6 +72,12 @@ export interface AIPresenceScanResult {
   platforms: AIPresencePlatform[];
   evidenceCount: number;
   topEvidence: string | null;
+  urlsCited: number;
+  citedSourcesCount: number;
+  performingTopics: AIPresencePerformingTopic[];
+  topicOpportunities: AIPresenceTopicOpportunity[];
+  citedPagesList: AIPresenceCitedPage[];
+  citedSourcesList: AIPresenceCitedSource[];
   googleAio: {
     citedInAio: boolean;
     aioExists: boolean;
@@ -78,9 +113,31 @@ function getBrandSlug(domain: string): string {
   const clean = domain.replace(/^www\./, "").toLowerCase();
   const name = clean.split(".")[0] ?? clean;
   if (name.length <= 2) {
-    return clean; // "x.com", "ai.com" - full domain prevents substring garbage
+    return clean;
   }
-  return name; // "clevertap", "hubspot"
+  // Strip common SaaS URL prefixes: tryprofound -> profound, getpostman -> postman
+  const prefixes = ["try", "get", "use", "app", "my", "go", "join", "meet", "hello", "hey"];
+  for (const prefix of prefixes) {
+    if (name.startsWith(prefix) && name.length > prefix.length + 2) {
+      return name.slice(prefix.length);
+    }
+  }
+  return name;
+}
+
+function detectPlatform(url?: string | null): string {
+  if (!url) return "Web";
+  if (url.includes("reddit.com")) return "Reddit";
+  if (url.includes("linkedin.com")) return "LinkedIn";
+  if (url.includes("twitter.com") || url.includes("x.com")) return "X (Twitter)";
+  if (url.includes("youtube.com")) return "YouTube";
+  if (url.includes("medium.com")) return "Medium";
+  if (url.includes("g2.com")) return "G2";
+  if (url.includes("producthunt.com")) return "Product Hunt";
+  if (url.includes("hackernews") || url.includes("news.ycombinator")) return "Hacker News";
+  if (url.includes("techcrunch.com")) return "TechCrunch";
+  if (url.includes("capterra.com")) return "Capterra";
+  return "Web";
 }
 
 // ─── FIX 1 cont: Word-boundary matching for short slugs ───────────────────────
@@ -212,9 +269,14 @@ async function getPerPlatformExaEvidence(
   domain: string,
   brandSlug: string,
   brandName: string,
-): Promise<{ chatgpt: PerPlatformExaEvidence; gemini: PerPlatformExaEvidence; perplexity: PerPlatformExaEvidence }> {
+): Promise<{
+  chatgpt: PerPlatformExaEvidence;
+  gemini: PerPlatformExaEvidence;
+  perplexity: PerPlatformExaEvidence;
+  claude: PerPlatformExaEvidence;
+  grok: PerPlatformExaEvidence;
+}> {
   const cleanDomain = domain.replace(/^www\./, "");
-  // Use quoted domain for precision when slug is long enough; use both forms for short slugs
   const brandQuery = brandSlug.length > 2
     ? `"${cleanDomain}" OR "${brandName}"`
     : `"${cleanDomain}"`;
@@ -223,7 +285,7 @@ async function getPerPlatformExaEvidence(
   const recentMs = 30 * 24 * 60 * 60 * 1000;
   const now = Date.now();
 
-  const [chatgptRes, geminiRes, perplexityRes] = await Promise.allSettled([
+  const [chatgptRes, geminiRes, perplexityRes, claudeRes, grokRes] = await Promise.allSettled([
     exa.search(
       `${brandQuery} ChatGPT recommended suggest mentioned 2025 2026`,
       { type: "auto", numResults: 5, startPublishedDate: sinceDate },
@@ -236,6 +298,14 @@ async function getPerPlatformExaEvidence(
       `${brandQuery} Perplexity cited mentioned recommended 2025 2026`,
       { type: "auto", numResults: 5, startPublishedDate: sinceDate },
     ),
+    exa.search(
+      `${brandQuery} Claude Anthropic cited mentioned recommended 2025 2026`,
+      { type: "auto", numResults: 5, startPublishedDate: sinceDate },
+    ),
+    exa.search(
+      `${brandQuery} Grok xAI cited mentioned recommended 2025 2026`,
+      { type: "auto", numResults: 5, startPublishedDate: sinceDate },
+    ),
   ]);
 
   function extractEvidence(
@@ -245,14 +315,12 @@ async function getPerPlatformExaEvidence(
       return { mentionCount: 0, hasDirectCitation: false, recentMentions: 0 };
     }
     const results = settled.value.results ?? [];
-    // Exclude the brand's own pages - those are not third-party citations
     const thirdParty = results.filter(r => !r.url?.includes(cleanDomain));
     const mentioning = thirdParty.filter(r =>
       resultMentionsBrand(`${r.title ?? ""} ${r.url ?? ""}`, domain, brandSlug),
     );
     return {
       mentionCount: mentioning.length,
-      // Direct citation: a third-party page whose URL references the brand domain
       hasDirectCitation: mentioning.some(r => r.url?.includes(cleanDomain)),
       recentMentions: mentioning.filter(r => {
         if (!r.publishedDate) return false;
@@ -265,6 +333,8 @@ async function getPerPlatformExaEvidence(
     chatgpt: extractEvidence(chatgptRes),
     gemini: extractEvidence(geminiRes),
     perplexity: extractEvidence(perplexityRes),
+    claude: extractEvidence(claudeRes),
+    grok: extractEvidence(grokRes),
   };
 }
 
@@ -362,13 +432,15 @@ export async function runAIPresenceScan(domain: string): Promise<AIPresenceScanR
     chatgpt: PerPlatformExaEvidence;
     gemini: PerPlatformExaEvidence;
     perplexity: PerPlatformExaEvidence;
+    claude: PerPlatformExaEvidence;
+    grok: PerPlatformExaEvidence;
   } | null = null;
 
   if (exa) {
     try {
       exaPlatformEvidence = await getPerPlatformExaEvidence(exa, domain, brandSlug, brandName);
       logger.info(
-        { domain, chatgpt: exaPlatformEvidence.chatgpt, gemini: exaPlatformEvidence.gemini, perplexity: exaPlatformEvidence.perplexity },
+        { domain, chatgpt: exaPlatformEvidence.chatgpt, gemini: exaPlatformEvidence.gemini, perplexity: exaPlatformEvidence.perplexity, claude: exaPlatformEvidence.claude, grok: exaPlatformEvidence.grok },
         "ai-presence-scan: per-platform Exa evidence",
       );
     } catch (err) {
@@ -411,8 +483,8 @@ export async function runAIPresenceScan(domain: string): Promise<AIPresenceScanR
   const chatgpt = scorePlatform(chatgptRaw, domain, brandSlug, exaPlatformEvidence?.chatgpt);
   const gemini = scorePlatform(geminiRaw, domain, brandSlug, exaPlatformEvidence?.gemini);
   const perplexity = scorePlatform(perplexityRaw, domain, brandSlug, exaPlatformEvidence?.perplexity);
-  const claude = scorePlatform(claudeRaw, domain, brandSlug, undefined);
-  const grok = scorePlatform(grokRaw, domain, brandSlug, undefined);
+  const claude = scorePlatform(claudeRaw, domain, brandSlug, exaPlatformEvidence?.claude);
+  const grok = scorePlatform(grokRaw, domain, brandSlug, exaPlatformEvidence?.grok);
 
   const overallScore = Math.min(
     Math.round((chatgpt.score + gemini.score + perplexity.score) / 3),
@@ -436,6 +508,86 @@ export async function runAIPresenceScan(domain: string): Promise<AIPresenceScanR
     ...p,
     pct: totalScore > 0 ? Math.round((p.score / totalScore) * 100) : 0,
   }));
+
+  // ─── Build topics and citations from combined Tavily + Exa results ────────────
+  const allTavilyResults: TavilyResult[] = [
+    ...chatgptRaw, ...geminiRaw, ...perplexityRaw, ...claudeRaw, ...grokRaw,
+  ];
+  const cleanDomainLower = domain.replace(/^www\./, "").toLowerCase();
+
+  // Cited pages: brand's own URLs found in Exa general results
+  const citedPagesList: AIPresenceCitedPage[] = exaResults
+    .filter(r => r.url?.toLowerCase().includes(cleanDomainLower))
+    .map(r => ({
+      url: r.url ?? "",
+      title: r.title ?? "",
+      snippet: r.highlights[0]?.slice(0, 150) ?? "",
+    }))
+    .slice(0, 10);
+
+  // Performing topics: Tavily results from third-party sites that mention the brand
+  const seenPerformingUrls = new Set<string>();
+  const performingTopics: AIPresencePerformingTopic[] = allTavilyResults
+    .filter(r => {
+      if (!r.url || r.url.toLowerCase().includes(cleanDomainLower)) return false;
+      if (seenPerformingUrls.has(r.url)) return false;
+      if (!resultMentionsBrand(`${r.title ?? ""} ${r.content ?? ""}`, domain, brandSlug)) return false;
+      seenPerformingUrls.add(r.url);
+      return true;
+    })
+    .map(r => ({
+      topic: (r.title ?? "").replace(/[|\-].*$/, "").trim().slice(0, 80),
+      platform: detectPlatform(r.url),
+      url: r.url ?? "",
+      date: r.publishedDate ?? null,
+      snippet: (r.content ?? "").slice(0, 150),
+    }))
+    .filter(t => t.topic.length > 10)
+    .slice(0, 20);
+
+  // Topic opportunities: Tavily results where brand is NOT mentioned (gaps)
+  const seenOpportunityUrls = new Set<string>();
+  const topicOpportunities: AIPresenceTopicOpportunity[] = allTavilyResults
+    .filter(r => {
+      if (!r.url || r.url.toLowerCase().includes(cleanDomainLower)) return false;
+      if (seenOpportunityUrls.has(r.url)) return false;
+      if (resultMentionsBrand(`${r.title ?? ""} ${r.content ?? ""}`, domain, brandSlug)) return false;
+      seenOpportunityUrls.add(r.url);
+      return true;
+    })
+    .map(r => ({
+      topic: (r.title ?? "").replace(/[|\-].*$/, "").trim().slice(0, 80),
+      platform: detectPlatform(r.url),
+      url: r.url ?? "",
+      date: r.publishedDate ?? null,
+      opportunity: "Your brand is not mentioned here - publish content to fill this gap",
+    }))
+    .filter(t => t.topic.length > 10)
+    .slice(0, 15);
+
+  // Cited sources: unique external domains that mention the brand
+  const seenCitedDomains = new Set<string>();
+  const citedSourcesList: AIPresenceCitedSource[] = allTavilyResults
+    .filter(r => {
+      if (!r.url || r.url.toLowerCase().includes(cleanDomainLower)) return false;
+      return resultMentionsBrand(`${r.title ?? ""} ${r.content ?? ""}`, domain, brandSlug);
+    })
+    .map(r => {
+      try {
+        const host = new URL(r.url!).hostname.replace(/^www\./, "");
+        return { domain: host, title: r.title ?? "", url: r.url ?? "", favicon: `https://www.google.com/s2/favicons?domain=${host}&sz=32` };
+      } catch { return null; }
+    })
+    .filter((s): s is AIPresenceCitedSource => {
+      if (!s) return false;
+      if (seenCitedDomains.has(s.domain)) return false;
+      seenCitedDomains.add(s.domain);
+      return true;
+    })
+    .slice(0, 10);
+
+  const urlsCited = citedPagesList.length;
+  const citedSourcesCount = citedSourcesList.length;
 
   // Collect Google AIO result (was started in parallel at scan begin)
   let googleAio: AIPresenceScanResult["googleAio"] = null;
@@ -463,6 +615,11 @@ export async function runAIPresenceScan(domain: string): Promise<AIPresenceScanR
       chatgptScore: chatgpt.score,
       geminiScore: gemini.score,
       perplexityScore: perplexity.score,
+      claudeScore: claude.score,
+      grokScore: grok.score,
+      performingTopics: performingTopics.length,
+      topicOpportunities: topicOpportunities.length,
+      citedSources: citedSourcesCount,
       brandSlug,
     },
     "ai-presence-scan: complete",
@@ -484,6 +641,12 @@ export async function runAIPresenceScan(domain: string): Promise<AIPresenceScanR
     platforms,
     evidenceCount: exaResults.length,
     topEvidence,
+    urlsCited,
+    citedSourcesCount,
+    performingTopics,
+    topicOpportunities,
+    citedPagesList,
+    citedSourcesList,
     googleAio,
   };
 }
