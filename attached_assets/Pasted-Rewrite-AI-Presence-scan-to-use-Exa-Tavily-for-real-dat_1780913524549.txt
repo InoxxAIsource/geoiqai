@@ -1,0 +1,406 @@
+Rewrite AI Presence scan to use 
+Exa + Tavily for real data instead 
+of Claude simulation.
+
+Current problem: Claude simulating AI 
+systems returns zeros for real brands.
+Fix: use real web evidence from 
+Exa + Tavily to determine visibility.
+
+INSTALL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+npm install exa-js @tavily/core
+
+Add to Replit Secrets:
+EXA_API_KEY = [from dashboard.exa.ai]
+TAVILY_API_KEY = [from app.tavily.com]
+
+Both have free tiers:
+Exa: 1000 requests/month free
+Tavily: 1000 credits/month free
+
+CORE APPROACH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Instead of Claude guessing how each 
+AI system would respond, use real 
+web evidence:
+
+Evidence 1: Is brand cited in AI-related content?
+Evidence 2: Does brand appear in 
+AI recommendation searches?
+Evidence 3: How strong is brand's 
+web presence overall?
+Evidence 4: What do AI systems actually
+say when brand is searched?
+
+Combine all 4 into a real score.
+
+REPLACE AI PRESENCE SCAN IN audit-engine.ts
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Replace the 6 separate queryChatGPT,
+queryGemini etc functions with this
+single unified scan:
+
+import Exa from 'exa-js';
+import { tavily } from '@tavily/core';
+
+const exa = new Exa(process.env.EXA_API_KEY);
+const tvly = tavily({ 
+  apiKey: process.env.TAVILY_API_KEY 
+});
+
+const runAIPresenceScan = async (domain) => {
+  
+  const brandName = domain
+    .replace('www.','')
+    .split('.')[0];
+  
+  // Run 4 searches in parallel
+  // Total cost: ~$0.05
+  const [
+    aiCitations,
+    chatgptEvidence,
+    geminiEvidence, 
+    perplexityEvidence,
+    companyProfile
+  ] = await Promise.allSettled([
+
+    // Signal 1: Exa deep search with structured output
+    // Finds real evidence of brand in AI context
+    // Cost: ~$0.02 (deep type)
+    exa.search(
+      `${brandName} ${domain} recommended 
+       mentioned by AI ChatGPT Gemini Perplexity`,
+      {
+        type: 'deep',
+        numResults: 10,
+        startPublishedDate: '2025-01-01',
+        contents: {
+          highlights: {
+            numSentences: 2,
+            highlightsPerUrl: 1
+          }
+        },
+        output_schema: {
+          type: 'object',
+          properties: {
+            mentioned_in_ai_context: {
+              type: 'boolean'
+            },
+            visibility_strength: {
+              type: 'string',
+              enum: ['high','medium','low','none']
+            },
+            ai_systems_that_know_brand: {
+              type: 'array',
+              items: { type: 'string' }
+            },
+            evidence_count: { type: 'number' },
+            top_evidence: { type: 'string' }
+          }
+        }
+      }
+    ),
+
+    // Signal 2: Tavily — ChatGPT specific evidence
+    // Cost: ~$0.008
+    tvly.search(
+      `${brandName} ChatGPT recommended suggest`,
+      {
+        searchDepth: 'basic',
+        maxResults: 5,
+        topic: 'general'
+      }
+    ),
+
+    // Signal 3: Tavily — Gemini specific evidence
+    // Cost: ~$0.008
+    tvly.search(
+      `${brandName} Gemini Google AI recommended`,
+      {
+        searchDepth: 'basic',
+        maxResults: 5
+      }
+    ),
+
+    // Signal 4: Tavily — Perplexity specific evidence
+    // Cost: ~$0.008
+    tvly.search(
+      `${brandName} Perplexity cited source`,
+      {
+        searchDepth: 'basic',
+        maxResults: 5
+      }
+    ),
+
+    // Signal 5: Exa company profile
+    // Gets brand description and reach
+    // Cost: ~$0.01
+    exa.search(
+      `${domain} company brand`,
+      {
+        type: 'auto',
+        numResults: 3,
+        category: 'company',
+        contents: {
+          highlights: {
+            numSentences: 2
+          }
+        }
+      }
+    )
+  ]);
+
+  // Extract results safely
+  const aiData = aiCitations.status === 'fulfilled'
+    ? aiCitations.value : null;
+    
+  const chatgptResults = chatgptEvidence.status 
+    === 'fulfilled'
+    ? chatgptEvidence.value.results : [];
+    
+  const geminiResults = geminiEvidence.status 
+    === 'fulfilled'
+    ? geminiEvidence.value.results : [];
+    
+  const perplexityResults = perplexityEvidence
+    .status === 'fulfilled'
+    ? perplexityEvidence.value.results : [];
+    
+  const companyData = companyProfile.status 
+    === 'fulfilled'
+    ? companyProfile.value.results : [];
+
+  // Calculate per-system scores
+  // Based on real evidence found
+  
+  const calcSystemScore = (
+    results, 
+    systemName,
+    brandName
+  ) => {
+    if (!results || results.length === 0) {
+      return { 
+        mentioned: false, 
+        score: 0, 
+        evidence: null 
+      };
+    }
+    
+    // Check if brand actually mentioned
+    const brandMentioned = results.some(r => 
+      r.title?.toLowerCase()
+        .includes(brandName.toLowerCase()) ||
+      r.content?.toLowerCase()
+        .includes(brandName.toLowerCase())
+    );
+    
+    const relevantResults = results.filter(r =>
+      r.content?.toLowerCase()
+        .includes(brandName.toLowerCase())
+    );
+    
+    const score = brandMentioned 
+      ? Math.min(relevantResults.length * 20, 100)
+      : 0;
+      
+    return {
+      mentioned: brandMentioned,
+      score,
+      position: brandMentioned ? 1 : null,
+      evidence: relevantResults[0]?.content
+        ?.slice(0, 200) || null,
+      url_cited: relevantResults.some(r => 
+        r.url?.includes(domain)
+      )
+    };
+  };
+
+  // Build per-system results
+  const systemResults = {
+    chatgpt: calcSystemScore(
+      chatgptResults, 'ChatGPT', brandName
+    ),
+    gemini: calcSystemScore(
+      geminiResults, 'Gemini', brandName
+    ),
+    perplexity: calcSystemScore(
+      perplexityResults, 'Perplexity', brandName
+    ),
+    // Claude and Grok use Exa AI citations data
+    claude: {
+      mentioned: aiData?.mentioned_in_ai_context 
+        || false,
+      score: aiData?.visibility_strength === 'high' 
+        ? 80 
+        : aiData?.visibility_strength === 'medium'
+        ? 50
+        : aiData?.visibility_strength === 'low'
+        ? 20
+        : 0,
+      evidence: aiData?.top_evidence || null
+    },
+    grok: {
+      mentioned: aiData?.evidence_count > 5,
+      score: aiData?.evidence_count > 5 ? 60
+        : aiData?.evidence_count > 2 ? 30
+        : 0
+    },
+    google_ai: calcSystemScore(
+      [...chatgptResults, ...geminiResults],
+      'Google AI',
+      brandName
+    )
+  };
+
+  // Calculate overall metrics
+  const systemsFound = Object.values(systemResults)
+    .filter(s => s.mentioned).length;
+    
+  const overallScore = Math.round(
+    Object.values(systemResults)
+      .reduce((sum, s) => sum + (s.score || 0), 0) 
+    / 6
+  );
+
+  const urlsCited = Object.values(systemResults)
+    .filter(s => s.url_cited).length;
+
+  return {
+    score: overallScore,
+    label: overallScore >= 70 ? 'Strong'
+      : overallScore >= 40 ? 'Moderate'
+      : overallScore >= 20 ? 'Low'
+      : 'Not Visible',
+    
+    // New metrics (replace DataForSEO fields)
+    ai_presence_pct: overallScore,
+    systems_found: systemsFound,
+    urls_cited: urlsCited,
+    cited_sources: companyData.length,
+    
+    // Per system breakdown
+    systems: systemResults,
+    
+    // Company context
+    company_description: companyData[0]
+      ?.highlights?.[0] || null,
+    
+    // Evidence summary
+    evidence_count: aiData?.evidence_count || 0,
+    top_evidence: aiData?.top_evidence || null
+  };
+};
+
+UPDATE FRONTEND METRICS DISPLAY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Replace KEY METRICS section to show
+real data from new scan:
+
+const metrics = [
+  {
+    label: 'AI PRESENCE',
+    value: `${data.ai_presence_pct}%`,
+    sub: 'GEO score across all AI systems',
+    color: data.ai_presence_pct > 50 
+      ? '#10b981' : '#f59e0b'
+  },
+  {
+    label: 'SYSTEMS FOUND',
+    value: `${data.systems_found} of 6`,
+    sub: 'AI platforms with brand data',
+    color: '#6366f1'
+  },
+  {
+    label: 'URLs CITED',
+    value: data.urls_cited,
+    sub: 'Unique pages cited by AI',
+    color: '#3b82f6'
+  },
+  {
+    label: 'CITED SOURCES',
+    value: data.cited_sources,
+    sub: 'External domains referencing brand',
+    color: '#8b5cf6'
+  }
+];
+
+UPDATE PER-SYSTEM BREAKDOWN DISPLAY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For each AI system row show:
+
+System name + icon
+Score bar (0-100)
+Mentioned: Yes/No badge
+Evidence snippet (collapsed, click to expand)
+URL cited: Yes/No
+
+For jiostar.com expected output:
+ChatGPT:    Mentioned if evidence found
+Gemini:     Mentioned if evidence found  
+Perplexity: Mentioned if evidence found
+(JioCinema is huge — should show real data)
+
+GRACEFUL FALLBACK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+If both EXA_API_KEY and TAVILY_API_KEY 
+are missing:
+Fall back to Claude simulation
+(existing code as backup)
+
+If one API fails:
+Continue with other API data
+Never return all zeros unless 
+brand genuinely has zero presence
+
+const runAIPresenceScanSafe = async (domain) => {
+  try {
+    return await runAIPresenceScan(domain);
+  } catch (err) {
+    console.error('Scan error:', err);
+    // Fallback to Claude simulation
+    return await runClaudeSimulation(domain);
+  }
+};
+
+COST PER SCAN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Exa deep search:     ~$0.02
+Tavily × 3 searches: ~$0.024
+Exa company search:  ~$0.01
+Total:               ~$0.054 per scan
+
+With 72hr cache:
+Monthly per active user = $0.22
+vs DataForSEO = $9.60
+Saving = 97.7%
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Test 1: jiostar.com
+Expected: score > 40 (huge Indian brand)
+Systems Found: at least 3 of 6
+NOT all zeros like before
+
+Test 2: geoiqai.com (small/new brand)
+Expected: score 5-20 (new, low visibility)
+Systems Found: 0-1 of 6
+Honest low score for new brand
+
+Test 3: hubspot.com (well known brand)
+Expected: score > 70
+Systems Found: 5-6 of 6
+
+If jiostar scores higher than geoiqai
+and hubspot scores highest = working correctly.
+
+Share scores for all 3 domains.
