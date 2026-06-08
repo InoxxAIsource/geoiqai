@@ -145,7 +145,60 @@ function ScoreGauge({ score }: { score: number }) {
   );
 }
 
-/* ===== Domain input modal ===== */
+/* ===== Semrush-style landing hero ===== */
+const EXAMPLE_DOMAINS = ["notion.so", "groww.in", "razorpay.com"];
+
+function VisibilityLandingHero({ onDomain, lastDomain }: { onDomain: (d: string) => void; lastDomain?: string }) {
+  const [input, setInput] = useState("");
+  const go = () => {
+    const d = input.trim().replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0]!;
+    if (d) onDomain(d);
+  };
+  const recent = lastDomain && !EXAMPLE_DOMAINS.includes(lastDomain)
+    ? [lastDomain, ...EXAMPLE_DOMAINS.slice(0, 2)]
+    : EXAMPLE_DOMAINS;
+  return (
+    <div style={{ minHeight: "calc(100vh - 61px)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden", background: "linear-gradient(135deg, #EEF2FF 0%, #F0FDF4 55%, #FDF4FF 100%)" }}>
+      <div style={{ position: "absolute", top: "8%", left: "12%", width: 500, height: 500, background: "rgba(99,102,241,0.10)", borderRadius: "50%", filter: "blur(90px)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: "8%", right: "12%", width: 360, height: 360, background: "rgba(16,185,129,0.08)", borderRadius: "50%", filter: "blur(70px)", pointerEvents: "none" }} />
+      <div style={{ position: "relative", textAlign: "center", maxWidth: 700, padding: "0 24px", width: "100%" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "white", border: `1px solid ${BORDER}`, borderRadius: 20, padding: "5px 14px", fontSize: 11, fontWeight: 700, color: P, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 24, boxShadow: "0 2px 8px rgba(79,70,229,0.10)" }}>
+          AI Visibility
+        </div>
+        <h1 style={{ fontSize: "clamp(30px,5vw,54px)", fontWeight: 900, letterSpacing: "-0.03em", color: "#111827", lineHeight: 1.1, marginBottom: 18 }}>
+          Track your brand across<br />every AI system
+        </h1>
+        <p style={{ fontSize: 17, color: MUTED, lineHeight: 1.6, marginBottom: 40, maxWidth: 500, margin: "0 auto 40px" }}>
+          See how ChatGPT, Gemini, Perplexity, Claude, Grok and Google AI Overview mention your brand - and get exact fixes to improve your score.
+        </p>
+        <div style={{ display: "flex", maxWidth: 580, margin: "0 auto 18px", border: `2px solid ${BORDER}`, borderRadius: 12, overflow: "hidden", background: "white", boxShadow: "0 8px 32px rgba(0,0,0,0.09)" }}>
+          <input
+            type="text" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && go()}
+            placeholder="Enter your domain" autoFocus
+            style={{ flex: 1, padding: "16px 20px", border: "none", outline: "none", fontSize: 16, color: "#111827", background: "transparent" }}
+          />
+          <button onClick={go} disabled={!input.trim()}
+            style={{ padding: "16px 32px", background: input.trim() ? P : "#A5B4FC", color: "white", border: "none", cursor: input.trim() ? "pointer" : "default", fontSize: 15, fontWeight: 700, whiteSpace: "nowrap" as const, flexShrink: 0 }}>
+            Get started
+          </button>
+        </div>
+        <div style={{ fontSize: 13, color: "#9CA3AF" }}>
+          Last checked:{" "}
+          {recent.map((d, i) => (
+            <span key={d}>
+              {i > 0 && <span style={{ color: "#D1D5DB", margin: "0 6px" }}>|</span>}
+              <button onClick={() => onDomain(d)} style={{ background: "none", border: "none", color: P, cursor: "pointer", fontSize: 13, fontWeight: 500, padding: 0, textDecoration: "underline", textDecorationColor: "rgba(79,70,229,0.3)" }}>
+                {d}
+              </button>
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ===== Domain change modal (shown when domain already set and user clicks "Change domain") ===== */
 function DomainModal({ onDomain, onClose, lastDomain }: { onDomain: (d: string) => void; onClose: () => void; lastDomain?: string }) {
   const [input, setInput] = useState("");
   const go = () => {
@@ -160,11 +213,8 @@ function DomainModal({ onDomain, onClose, lastDomain }: { onDomain: (d: string) 
           &#x2715;
         </button>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#EEF2FF", borderRadius: 20, padding: "4px 12px", fontSize: 11, fontWeight: 700, color: P, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 18 }}>
-            AI Visibility
-          </div>
-          <h2 style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.25, marginBottom: 12, color: "#0F0F0F", letterSpacing: "-0.03em" }}>Check your AI Visibility</h2>
-          <p style={{ fontSize: 14, color: MUTED, lineHeight: 1.65, margin: 0 }}>Enter a domain to see how it appears across ChatGPT, Gemini, Perplexity, and AI Overview.</p>
+          <h2 style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.25, marginBottom: 10, color: "#0F0F0F", letterSpacing: "-0.03em" }}>Change domain</h2>
+          <p style={{ fontSize: 14, color: MUTED, lineHeight: 1.65, margin: 0 }}>Enter a domain to check its AI visibility across ChatGPT, Gemini, Perplexity, and AI Overview.</p>
         </div>
         <div style={{ display: "flex", border: `1.5px solid ${BORDER}`, borderRadius: 10, overflow: "hidden", boxShadow: "0 2px 10px rgba(79,70,229,0.08)", marginBottom: 14 }}>
           <input type="text" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && go()}
@@ -296,9 +346,17 @@ export function VisibilityOverview({
 
   const d = data;
 
+  if (!domain) {
+    return (
+      <div style={{ margin: "-28px -32px" }}>
+        <VisibilityLandingHero onDomain={handleDomain} lastDomain={lastDomain} />
+      </div>
+    );
+  }
+
   return (
     <div style={{ maxWidth: 1200 }}>
-      {showModal && <DomainModal onDomain={handleDomain} onClose={() => setShowModal(false)} lastDomain={lastDomain !== domain ? lastDomain : undefined} />}
+      {showModal && domain && <DomainModal onDomain={handleDomain} onClose={() => setShowModal(false)} lastDomain={lastDomain !== domain ? lastDomain : undefined} />}
 
       {upgradeError && (
         <UpgradeModal

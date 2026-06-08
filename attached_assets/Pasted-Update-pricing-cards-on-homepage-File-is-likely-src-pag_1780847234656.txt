@@ -1,0 +1,222 @@
+Update pricing cards on homepage.
+File is likely: 
+src/pages/index or landing page component.
+
+Only change text and numbers.
+Do not change design or layout.
+
+STAT BAR AT TOP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find: "Free forever"
+Replace with: "Free audit"
+
+Result: "500+ audits run · 6 AI systems · 
+Free audit · 60s results"
+
+FREE PLAN CARD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Title: keep "Free Audit $0/month"
+Subtitle: keep "Check any brand right now, 
+no card needed."
+
+Change feature list to:
+- AI visibility score (0-100)
+- 6 AI systems checked
+- Technical GEO audit
+- Download llms.txt and schema files
+- 5 audits per month
+- No signup required
+
+Remove: "2 audits per day" 
+(conflicts with 5/month)
+
+Remove: "AI engine breakdown (5 engines)"
+Replace with: "6 AI systems checked"
+
+Button: keep "Check my GEO IQ →"
+
+STARTER PLAN CARD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Title: keep "Starter $69/month"
+Subtitle: keep "Billed as ₹6,679/mo 
+via Razorpay"
+Description: keep "For founders who want 
+to stay ahead of AI search."
+
+Change feature list to:
+- Everything in Free
+- GEO Copilot — AI strategist (50 messages/mo)
+- Answer Monitoring — track 50 prompts
+- AI Crawler Audit — 2 domains
+- AI Content Studio — repurpose to 9 platforms
+- Citation Optimizer — score any page
+- Brand Benchmarks — 3 competitors
+- PR Intelligence — 50 journalist lookups/mo
+- Signal Tracker — brand performance
+- 4-week CITE fix roadmap
+- Weekly digest email
+- 1 domain monitored
+
+Remove these lines:
+- "GEO Agent - personal AI strategist 
+   powered by Claude" 
+   (replaced by GEO Copilot line above)
+- "Run live audits from conversation"
+   (included in GEO Copilot line)
+- "Generate tweets, blogs, pitches"
+   (included in AI Content Studio line)
+- "Content improvements - AI rewrites 
+   of your actual homepage copy"
+   (included in Citation Optimizer line)
+- "Full recommendations with step-by-step 
+   instructions"
+   (too vague)
+- "Citation tracking - see which sites 
+   AI cites for your keywords"
+   (replace with Brand Benchmarks line)
+- "Competition analysis - AI mention 
+   rate comparison"
+   (included in Brand Benchmarks line)
+- "Daily automated monitoring"
+   (replace with Answer Monitoring line)
+- "90 days score history"
+   (remove — not reliably built yet)
+- "100 GEO Agent messages/month"
+   (replaced by GEO Copilot 50 msg line)
+
+Button: change from
+"Start free - then $69/mo →"
+to
+"Unlock full platform →"
+
+Remove: "7-day free trial · Cancel anytime"
+Replace with: "Cancel anytime"
+
+AGENCY PLAN CARD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Title: keep "Agency $129/month"
+Subtitle: keep "Billed as ₹12,487/mo 
+via Razorpay"
+Description: keep "For agencies managing 
+multiple brands."
+
+Change feature list to:
+- Everything in Starter
+- GEO Copilot — 200 messages/month
+- Answer Monitoring — 150 prompts
+- AI Crawler Audit — 5 domains
+- Brand Benchmarks — 10 competitors
+- PR Intelligence — 200 journalist lookups/mo
+- 3 domains monitored
+- Google AI Overview tracking
+- White label PDF reports — Building now
+- Priority support
+- Team seats (3 users) — Coming July 2026
+- API access — Coming July 2026
+
+Remove:
+- "Unlimited GEO Agent messages"
+  (replace with "200 messages/month")
+- "10 brands monitored"
+  (replace with "3 domains monitored")
+
+Button: change to "Contact us →"
+Keep as is.
+
+FEATURE COMPARISON TABLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Replace entire table with this:
+
+| Feature                  | Free    | Starter    | Agency      |
+|--------------------------|---------|------------|-------------|
+| AI Presence score        | ✓       | ✓          | ✓           |
+| AI systems checked       | 6       | 6          | 6           |
+| Technical GEO audit      | ✓       | ✓          | ✓           |
+| GEO files download       | ✓       | ✓          | ✓           |
+| GEO Copilot              | ✕       | 50 msg/mo  | 200 msg/mo  |
+| Answer Monitoring        | ✕       | 50 prompts | 150 prompts |
+| AI Crawler Audit         | 1 basic | 2 domains  | 5 domains   |
+| AI Content Studio        | ✕       | ✓          | ✓           |
+| Citation Optimizer       | ✕       | ✓          | ✓           |
+| Brand Benchmarks         | ✕       | 3 rivals   | 10 rivals   |
+| PR Intelligence          | ✕       | 50/mo      | 200/mo      |
+| Signal Tracker           | ✕       | ✓          | ✓           |
+| 4-week fix roadmap       | Preview | Full       | Full        |
+| Domains monitored        | 1 audit | 1          | 3           |
+| Google AI Overview       | ✕       | ✓          | ✓           |
+| Weekly digest email      | ✕       | ✓          | ✓           |
+| White label reports      | ✕       | ✕          | Soon        |
+| Team seats               | ✕       | ✕          | Soon        |
+| API access               | ✕       | ✕          | Soon        |
+| Audits per month         | 5       | Unlimited  | Unlimited   |
+
+PRICING FOOTNOTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Keep: "Prices in USD. Charged in INR 
+via Razorpay. Supports UPI, cards, 
+Net Banking, and wallets."
+
+Keep: "Team seats and API access coming 
+July 2026. Agency subscribers get 
+priority early access."
+
+Change: "Comparable tools charge 
+$797+/month for manual GEO services. 
+GeoIQ automates everything for $69/month."
+
+To: "Semrush AI Toolkit starts at $99/month 
+for basic tracking. GeoIQ gives you 
+full AI visibility plus content tools, 
+PR Intelligence, and GEO Copilot 
+for $69/month."
+
+PRICING SECTION HEADLINE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current: "Simple pricing. Cancel any time."
+
+Change to: 
+"Simple pricing. No contracts."
+
+INCLUDED IN EVERY PAID PLAN BANNER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current: "GeoIQ Agent — A Claude-powered 
+AI strategist..."
+
+Change to: "GEO Copilot — A Claude-powered 
+AI strategist that knows your brand, 
+scores, and competitors. Ask anything, 
+run live audits, generate content — 
+all in one conversation. Included in 
+Starter and Agency plans."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After changes verify:
+
+1. Free card shows "6 AI systems" not 5
+2. Free card shows ONE audit limit not two
+3. Starter shows "GEO Copilot 50 msg/mo"
+   not "GEO Agent 100 msg/mo"
+4. Starter shows "1 domain monitored"
+5. Agency shows "3 domains monitored"
+   not "10 brands"
+6. Agency shows "200 messages/month"
+   not "Unlimited"
+7. Table shows 6 AI systems across all plans
+8. No mention of "7-day free trial"
+9. No mention of "Daily automated monitoring"
+   without context
+10. "GEO Agent" renamed to "GEO Copilot"
+    everywhere on pricing section
+
+Share screenshot of all 3 pricing cards.

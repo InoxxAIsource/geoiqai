@@ -317,15 +317,22 @@ function CwvMetricCell({ label, metric, hint }: { label: string; metric: CwvMetr
 }
 
 function BotRow({ bot }: { bot: CrawlAudit["botAccess"][0] }) {
+  const logo = getAiLogo(bot.bot + " " + bot.name);
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "white", borderRadius: 8, border: `1px solid ${BORDER}` }}>
+      <div style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${BORDER}`, background: "#F9FAFB", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        {logo
+          ? <img src={logo} alt={bot.name} style={{ width: 18, height: 18, objectFit: "contain" }} />
+          : <span style={{ fontSize: 10, fontWeight: 700, color: MUTED }}>{bot.name.slice(0, 2).toUpperCase()}</span>
+        }
+      </div>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{bot.name}</div>
         <div style={{ fontSize: 11, color: MUTED }}>User-agent: {bot.bot}</div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         {bot.allowed
-          ? <><CheckCircle size={15} color={GREEN} /><span style={{ fontSize: 12, color: GREEN, fontWeight: 600 }}>All good</span></>
+          ? <><CheckCircle size={15} color={GREEN} /><span style={{ fontSize: 12, color: GREEN, fontWeight: 600 }}>Allowed</span></>
           : <><XCircle size={15} color={RED} /><span style={{ fontSize: 12, color: RED, fontWeight: 600 }}>Blocked</span></>
         }
       </div>
@@ -391,8 +398,58 @@ export function SiteAuditSection({ domain }: { domain: string }) {
 
   const total = audit ? audit.crawledCount : 0;
 
+  const AUDIT_EXAMPLES = ["stripe.com", "notion.so", "groww.in"];
+
+  if (!audit && !loading && !error) {
+    return (
+      <div style={{ margin: "-28px -32px", minHeight: "calc(100vh - 61px)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden", background: "linear-gradient(135deg, #EEF2FF 0%, #F0FDF4 55%, #FDF4FF 100%)" }}>
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+        <div style={{ position: "absolute", top: "8%", left: "12%", width: 480, height: 480, background: "rgba(99,102,241,0.09)", borderRadius: "50%", filter: "blur(90px)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: "8%", right: "12%", width: 340, height: 340, background: "rgba(16,185,129,0.08)", borderRadius: "50%", filter: "blur(70px)", pointerEvents: "none" }} />
+        <div style={{ position: "relative", textAlign: "center", maxWidth: 700, padding: "0 24px", width: "100%" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "white", border: `1px solid ${BORDER}`, borderRadius: 20, padding: "5px 14px", fontSize: 11, fontWeight: 700, color: P, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 24, boxShadow: "0 2px 8px rgba(79,70,229,0.10)" }}>
+            AI Crawler Audit
+          </div>
+          <h1 style={{ fontSize: "clamp(28px,5vw,50px)", fontWeight: 900, letterSpacing: "-0.03em", color: "#111827", lineHeight: 1.1, marginBottom: 18 }}>
+            Audit your site for<br />AI crawlability
+          </h1>
+          <p style={{ fontSize: 16, color: MUTED, lineHeight: 1.6, marginBottom: 40, maxWidth: 500, margin: "0 auto 40px" }}>
+            Crawls up to 25 pages, checks bot access, meta tags, broken pages, Core Web Vitals, and gives you a fix-by-fix action plan.
+          </p>
+          <div style={{ display: "flex", maxWidth: 580, margin: "0 auto 18px", border: `2px solid ${BORDER}`, borderRadius: 12, overflow: "hidden", background: "white", boxShadow: "0 8px 32px rgba(0,0,0,0.09)" }}>
+            <input
+              value={inputDomain}
+              onChange={e => setInputDomain(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && runAudit()}
+              placeholder="Enter your domain" autoFocus
+              style={{ flex: 1, padding: "16px 20px", border: "none", outline: "none", fontSize: 16, color: "#111827", background: "transparent" }}
+            />
+            <button
+              onClick={() => runAudit()}
+              disabled={!inputDomain.trim()}
+              style={{ padding: "16px 32px", background: inputDomain.trim() ? P : "#A5B4FC", color: "white", border: "none", cursor: inputDomain.trim() ? "pointer" : "default", fontSize: 15, fontWeight: 700, whiteSpace: "nowrap" as const, flexShrink: 0 }}>
+              Run audit
+            </button>
+          </div>
+          <div style={{ fontSize: 13, color: "#9CA3AF" }}>
+            Try it with:{" "}
+            {AUDIT_EXAMPLES.map((d, i) => (
+              <span key={d}>
+                {i > 0 && <span style={{ color: "#D1D5DB", margin: "0 6px" }}>|</span>}
+                <button onClick={() => { setInputDomain(d); runAudit(d); }} style={{ background: "none", border: "none", color: P, cursor: "pointer", fontSize: 13, fontWeight: 500, padding: 0, textDecoration: "underline", textDecorationColor: "rgba(79,70,229,0.3)" }}>
+                  {d}
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: "24px 0", maxWidth: 1100 }}>
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: 20, fontWeight: 700, color: "#111827", margin: "0 0 4px" }}>AI Crawler Audit</h2>
@@ -416,7 +473,7 @@ export function SiteAuditSection({ domain }: { domain: string }) {
           disabled={loading || !inputDomain.trim()}
           style={{ padding: "9px 20px", background: loading ? "#9CA3AF" : P, color: "white", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}
         >
-          {loading ? <><RefreshCw size={14} style={{ animation: "spin 1s linear infinite" }} />Crawling...</> : audit ? "Re-run audit" : "Run audit"}
+          {loading ? <><RefreshCw size={14} style={{ animation: "spin 1s linear infinite" }} />Crawling...</> : "Re-run audit"}
         </button>
         {audit && (
           <div style={{ fontSize: 12, color: MUTED }}>
@@ -424,8 +481,6 @@ export function SiteAuditSection({ domain }: { domain: string }) {
           </div>
         )}
       </div>
-
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
 
       {/* Loading state */}
       {loading && (
@@ -445,15 +500,6 @@ export function SiteAuditSection({ domain }: { domain: string }) {
       {error && !loading && (
         <div style={{ background: "#FEF2F2", border: `1px solid #FECACA`, borderRadius: 10, padding: "16px 20px", color: RED, fontSize: 13 }}>
           <strong>Crawl failed:</strong> {error}. Make sure the domain is reachable from the internet.
-        </div>
-      )}
-
-      {/* Empty state */}
-      {!audit && !loading && !error && (
-        <div style={{ background: "white", border: `1.5px dashed ${BORDER}`, borderRadius: 12, padding: "48px 32px", textAlign: "center", color: MUTED }}>
-          <Globe size={32} color="#D1D5DB" style={{ marginBottom: 12 }} />
-          <div style={{ fontSize: 15, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Enter a domain above to start the audit</div>
-          <div style={{ fontSize: 13 }}>We crawl up to 25 pages and check each one for SEO issues, missing meta tags, slow response times, and AI bot access.</div>
         </div>
       )}
 

@@ -603,7 +603,7 @@ export default function Home() {
               { icon: "vs", label: "Benchmark against competitors", body: "Compare your AI visibility score against up to 10 competitors. See which topics they appear in that you do not, and get a gap analysis with specific content recommendations." },
               { icon: "AI", label: "GEO Copilot - your AI strategist", body: "A Claude-powered AI guide in your dashboard. Run live GEO audits, diagnose visibility gaps, generate content, and get a custom fix plan - all in one conversation. 50 messages per month on Starter." },
               { icon: "#", label: "AI Crawler Audit", body: "Check if AI systems can find and trust your site. GeoIQ checks robots.txt, llms.txt, schema markup, bot access, Core Web Vitals signals, and crawlability across 30 technical factors." },
-              { icon: "PR", label: "PR Intelligence", body: "Find journalists covering AI search and GEO topics. Monitor brand mentions across 150,000 news sources. Generate personalized pitch emails in one click. Powered by Exa AI search." },
+              { icon: "PR", label: "PR Intelligence", body: "Find journalists covering AI search and GEO topics. Monitor brand mentions across 150,000 news sources. Generate personalized pitch emails in one click. Powered by GeoIQ AI." },
               { icon: ">>", label: "Answer Monitoring", body: "Track exactly what AI systems say about your brand. Add prompts like 'What is the best mobile marketing platform' and see if you appear, your position, and the full AI response - updated daily." },
             ].map(feat => (
               <div key={feat.label} style={{
