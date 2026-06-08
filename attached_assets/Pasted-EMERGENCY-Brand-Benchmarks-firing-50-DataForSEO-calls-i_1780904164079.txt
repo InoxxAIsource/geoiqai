@@ -1,0 +1,222 @@
+EMERGENCY: Brand Benchmarks firing 50+ 
+DataForSEO calls in one session costing $6.
+Must fix immediately before any more calls fire.
+
+DO THIS IN ORDER:
+
+STEP 1: DISABLE AUTO-RUN ON PAGE LOAD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+File: CompetitorResearch.tsx or similar
+
+Find any useEffect that calls the 
+competitor research API on component mount.
+
+Something like:
+useEffect(() => {
+  fetchCompetitorData(domain);
+}, [domain]);
+
+OR:
+useEffect(() => {
+  if (competitors.length > 0) {
+    runAnalysis();
+  }
+}, []);
+
+DISABLE IT:
+Comment it out completely.
+
+// useEffect(() => {
+//   fetchCompetitorData(domain);  
+// }, [domain]);
+
+Data should ONLY load when user 
+explicitly clicks the [Analyze] button.
+NEVER on page load.
+NEVER automatically.
+
+STEP 2: ADD HARD CACHE CHECK BEFORE ANY CALL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+File: dataforseo-extended.ts
+
+At the VERY TOP of the competitor 
+research route handler — before ANY
+DataForSEO function is called:
+
+app.post('/api/dataforseo/competitor-research',
+async (req, res) => {
+  const { domain, competitors } = req.body;
+  
+  // BUILD CACHE KEY
+  const competitorKey = competitors
+    .slice()
+    .sort()
+    .join(',');
+  const cacheKey = `competitor::${domain
+    .toLowerCase()
+    .replace('www.','')}::${competitorKey}`;
+  
+  // CHECK CACHE FIRST — BEFORE ANYTHING ELSE
+  const { data: cached } = await supabase
+    .from('dataforseo_cache')
+    .select('response_data, created_at')
+    .eq('cache_key', cacheKey)
+    .gt('created_at', 
+      new Date(Date.now() - 72 * 60 * 60 * 1000)
+        .toISOString()
+    )
+    .single();
+  
+  if (cached) {
+    console.log(
+      `[CACHE HIT] competitor ${domain} 
+       — NO DataForSEO calls fired`
+    );
+    return res.json({
+      success: true,
+      data: cached.response_data,
+      from_cache: true,
+      cached_at: cached.created_at
+    });
+  }
+  
+  console.log(
+    `[CACHE MISS] competitor ${domain} 
+     — calling DataForSEO`
+  );
+  
+  // Only reaches here on cache miss
+  // Run actual DataForSEO calls...
+});
+
+STEP 3: LIMIT CONCURRENT CALLS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Currently all DataForSEO calls fire 
+in parallel for all competitors at once.
+This caused 52 calls simultaneously.
+
+Find where competitor data is fetched.
+Change from parallel to sequential:
+
+// BAD — fires all at once
+const results = await Promise.all(
+  competitors.map(c => fetchCompetitorData(c))
+);
+
+// GOOD — one at a time
+const results = [];
+for (const competitor of competitors) {
+  const data = await fetchCompetitorData(competitor);
+  results.push(data);
+}
+
+This limits burst to max 4 calls at once 
+instead of 52.
+
+STEP 4: ADD CALL COUNTER PROTECTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add a hard limit — if more than 20 
+DataForSEO calls would fire in one 
+request, abort and return error:
+
+let callCount = 0;
+const MAX_CALLS_PER_REQUEST = 20;
+
+const safeDataForSEOCall = async (fn) => {
+  callCount++;
+  if (callCount > MAX_CALLS_PER_REQUEST) {
+    console.error(
+      `[ABORT] DataForSEO call limit reached: 
+       ${callCount} calls attempted`
+    );
+    throw new Error(
+      'Too many API calls in one request'
+    );
+  }
+  return await fn();
+};
+
+Wrap every DataForSEO call:
+// Instead of:
+await getDomainKeywords(domain);
+
+// Use:
+await safeDataForSEOCall(
+  () => getDomainKeywords(domain)
+);
+
+STEP 5: ALSO FIX VISIBILITY OVERVIEW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The audit also showed Visibility Overview 
+hits DataForSEO on every page load:
+getLlmAggregatedMetrics × 2
+getLlmTopPagesList × 2
+getLlmSearchTopics × 2
+
+Add same cache check:
+Cache key: `visibility::${domain}`
+TTL: 72 hours
+
+Check cache before any of these calls fire.
+
+STEP 6: LOG EVERY DATAFORSEO CALL TO SUPABASE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+So you can see exactly what is being called:
+
+Create table if not exists:
+api_cost_log (
+  id uuid DEFAULT gen_random_uuid(),
+  endpoint text,
+  domain text,
+  cost_usd decimal,
+  cache_hit boolean,
+  triggered_by text,
+  created_at timestamptz DEFAULT now()
+)
+
+Log every call:
+await supabase.from('api_cost_log').insert({
+  endpoint: 'competitor_research',
+  domain: domain,
+  cost_usd: 0.101,
+  cache_hit: false,
+  triggered_by: 'manual_analyze_click',
+  created_at: new Date().toISOString()
+});
+
+This lets you see:
+- Total spend today
+- Which feature costs most
+- Whether cache is working
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFY FIXES WORKED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Test 1: Open Brand Benchmarks page
+Check Replit console
+Should see ZERO DataForSEO calls
+(no auto-run on page load)
+
+Test 2: Click Analyze button
+Should see cache check first
+"[CACHE HIT]" OR "[CACHE MISS]" in logs
+If cache miss: max 20 calls not 52
+
+Test 3: Click Analyze again immediately
+Should see "[CACHE HIT]"
+Zero new DataForSEO calls
+Zero new cost
+
+Test 4: Check DataForSEO dashboard
+app.dataforseo.com/api-usage
+Should show no new calls after fix
+
+Share Replit console showing 
+[CACHE HIT] on second Analyze click.

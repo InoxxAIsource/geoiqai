@@ -1146,20 +1146,36 @@ router.post("/dataforseo/competitor-research", requireAuth, async (req, res): Pr
     return { from: from.toISOString().split("T")[0]!, to: to.toISOString().split("T")[0]! };
   });
 
+  // Per-request DataForSEO call counter - hard cap prevents runaway costs
+  let dfsCallCount = 0;
+  const DFS_CALL_LIMIT = 30;
+  async function tracked<T>(label: string, fn: () => Promise<T>): Promise<T> {
+    dfsCallCount++;
+    if (dfsCallCount > DFS_CALL_LIMIT) {
+      req.log.error({ dfsCallCount, label }, "competitor-research: DFS call limit exceeded, aborting");
+      throw new Error("API call limit reached for this request. Data has been partially cached - try again in a moment.");
+    }
+    req.log.debug({ dfsCallCount, label }, "competitor-research: DFS call");
+    return fn();
+  }
+
   try {
-    // Per-domain: fetch keyword mentions + domain citations + cited pages in parallel
-    const domainFetches = allDomains.map(async (domain, idx) => {
+    // Per-domain: fetch sequentially (NOT parallel across domains) to avoid bursting
+    // 8 calls per domain still run in parallel since they're independent for that domain.
+    // Max concurrent at any moment: 8 (not 8 * numDomains).
+    const domainResults: { domain: string; brandName: string; bestKeyword: string; mentions: number; citations: number; citedPages: number; score: number; isYou: boolean }[] = [];
+    for (const [idx, domain] of allDomains.entries()) {
       const brandName = extractBrandName(domain);
       const candidates = brandKeywordCandidates(brandName);
       const [kw1G, kw1C, kw2G, kw2C, pagesG, pagesC, domG, domC] = await Promise.all([
-        getLlmKeywordAggMetrics(candidates[0]!, sixMonthsAgo, today, "google"),
-        getLlmKeywordAggMetrics(candidates[0]!, sixMonthsAgo, today, "chat_gpt"),
-        candidates[1] ? getLlmKeywordAggMetrics(candidates[1], sixMonthsAgo, today, "google") : Promise.resolve(null),
-        candidates[1] ? getLlmKeywordAggMetrics(candidates[1], sixMonthsAgo, today, "chat_gpt") : Promise.resolve(null),
-        getLlmTopPagesList(domain, sixMonthsAgo, today, 50, "google"),
-        getLlmTopPagesList(domain, sixMonthsAgo, today, 50, "chat_gpt"),
-        getLlmAggregatedMetrics(domain, sixMonthsAgo, today, "google"),
-        getLlmAggregatedMetrics(domain, sixMonthsAgo, today, "chat_gpt"),
+        tracked(`kw1-google:${domain}`,   () => getLlmKeywordAggMetrics(candidates[0]!, sixMonthsAgo, today, "google")),
+        tracked(`kw1-chatgpt:${domain}`,  () => getLlmKeywordAggMetrics(candidates[0]!, sixMonthsAgo, today, "chat_gpt")),
+        candidates[1] ? tracked(`kw2-google:${domain}`,  () => getLlmKeywordAggMetrics(candidates[1]!, sixMonthsAgo, today, "google"))  : Promise.resolve(null),
+        candidates[1] ? tracked(`kw2-chatgpt:${domain}`, () => getLlmKeywordAggMetrics(candidates[1]!, sixMonthsAgo, today, "chat_gpt")) : Promise.resolve(null),
+        tracked(`pages-google:${domain}`,  () => getLlmTopPagesList(domain, sixMonthsAgo, today, 50, "google")),
+        tracked(`pages-chatgpt:${domain}`, () => getLlmTopPagesList(domain, sixMonthsAgo, today, 50, "chat_gpt")),
+        tracked(`agg-google:${domain}`,    () => getLlmAggregatedMetrics(domain, sixMonthsAgo, today, "google")),
+        tracked(`agg-chatgpt:${domain}`,   () => getLlmAggregatedMetrics(domain, sixMonthsAgo, today, "chat_gpt")),
       ]);
       const kw1Total = kw1G.mentions + kw1C.mentions;
       const kw2Total = (kw2G?.mentions ?? 0) + (kw2C?.mentions ?? 0);
@@ -1167,45 +1183,47 @@ router.post("/dataforseo/competitor-research", requireAuth, async (req, res): Pr
       const bestKeyword = useKw2 ? candidates[1]! : candidates[0]!;
       const mentions  = useKw2 ? kw2Total : kw1Total;
       const citations = domG.mentions + domC.mentions;
-      // Merge pages from both platforms, deduplicate by URL (matches visibility-overview logic)
       const pageUrlSet = new Set<string>();
       for (const p of [...pagesG.pages, ...pagesC.pages]) if (p.url) pageUrlSet.add(p.url);
       const citedPages = pageUrlSet.size;
       const score = calcScore(mentions, citations, citedPages);
-      req.log.info({ domain, brandName, mentions, citations, citedPages, score }, "competitor-research: domain metrics");
-      return { domain, brandName, bestKeyword, mentions, citations, citedPages, score, isYou: idx === 0 };
-    });
+      req.log.info({ domain, brandName, mentions, citations, citedPages, score, dfsCallCount }, "competitor-research: domain metrics");
+      domainResults.push({ domain, brandName, bestKeyword, mentions, citations, citedPages, score, isYou: idx === 0 });
+    }
 
-    const domainResults = await Promise.all(domainFetches);
-
-    // Topics (parallel fetch for both brands)
+    // Topics: fetch sequentially (your brand first, then competitor)
     const yourBrand = domainResults[0]!.bestKeyword;
     const compBrand = domainResults[1]?.bestKeyword;
 
-    const [yourTopics, compTopics] = await Promise.all([
-      getLlmSearchTopics(yourBrand, sixMonthsAgo, today, "include", 100),
-      compBrand
-        ? getLlmSearchTopics(compBrand, sixMonthsAgo, today, "include", 100)
-        : Promise.resolve({ items: [], totalCount: 0, cached: false }),
-    ]);
+    const yourTopics = await tracked(`topics-yours:${yourBrand}`, () => getLlmSearchTopics(yourBrand, sixMonthsAgo, today, "include", 100));
+    const compTopics = compBrand
+      ? await tracked(`topics-comp:${compBrand}`, () => getLlmSearchTopics(compBrand, sixMonthsAgo, today, "include", 100))
+      : { items: [], totalCount: 0, cached: false };
 
-    // Monthly trend: reuse getLlmKeywordAggMetrics per 30-day slice (results are cached after first run)
-    const trendSeries = await Promise.all(domainResults.map(async (d) => {
-      const monthPoints = await Promise.all(monthSlices.map(async (slice) => {
+    // Monthly trend: SEQUENTIAL across both domains and month slices.
+    // Old code: Promise.all(domains.map(Promise.all(slices.map(Promise.all(2 calls))))) = up to 24 concurrent calls.
+    // New code: one domain at a time, one slice at a time = max 2 concurrent calls at any moment.
+    // Each month-slice result is cached by getLlmKeywordAggMetrics, so reruns cost nothing.
+    const trendSeries: { domain: string; points: { date: string; mentions: number; score: number }[] }[] = [];
+    for (const d of domainResults) {
+      const monthPoints: { date: string; mentions: number; score: number }[] = [];
+      for (const slice of monthSlices) {
+        // 2 platform calls per slice are still parallel (independent, cheap burst)
         const [g, c] = await Promise.all([
-          getLlmKeywordAggMetrics(d.bestKeyword, slice.from, slice.to, "google"),
-          getLlmKeywordAggMetrics(d.bestKeyword, slice.from, slice.to, "chat_gpt"),
+          tracked(`trend-google:${d.bestKeyword}:${slice.from}`, () => getLlmKeywordAggMetrics(d.bestKeyword, slice.from, slice.to, "google")),
+          tracked(`trend-chatgpt:${d.bestKeyword}:${slice.from}`, () => getLlmKeywordAggMetrics(d.bestKeyword, slice.from, slice.to, "chat_gpt")),
         ]);
         const monthMentions = g.mentions + c.mentions;
-        return { date: slice.from, mentions: monthMentions, score: calcScore(monthMentions, d.citations, d.citedPages) };
-      }));
-      return { domain: d.domain, points: monthPoints };
-    }));
+        monthPoints.push({ date: slice.from, mentions: monthMentions, score: calcScore(monthMentions, d.citations, d.citedPages) });
+      }
+      trendSeries.push({ domain: d.domain, points: monthPoints });
+    }
 
     req.log.info({
       trendPoints: trendSeries.map(t => t.points.filter(p => p.mentions > 0).length),
       yourTopics: yourTopics.items.length,
       compTopics: compTopics.items.length,
+      totalDfsCallsThisRequest: dfsCallCount,
     }, "competitor-research: secondary data");
 
     // Build rank maps (1-based: rank 1 = most prominent in results)
@@ -1332,7 +1350,10 @@ Each insight: specific problem + specific fix. Under 60 words each. Plain text. 
       req.log.warn({ err }, "competitor-research: insights generation failed");
     }
 
-    req.log.info({ domains: allDomains, scores: domainResults.map(d => d.score), topics: topicList.length, topicCounts, sources: sources.length }, "competitor-research: done");
+    req.log.info({ domains: allDomains, scores: domainResults.map(d => d.score), topics: topicList.length, topicCounts, sources: sources.length, totalDfsCalls: dfsCallCount }, "competitor-research: done");
+    // Log cost estimate - each DFS function has its own per-call cache so actual API calls
+    // may be fewer than dfsCallCount. Estimate: ~$0.002 per unique (non-cached) call.
+    logDfsCost("competitor-research", dfsCallCount * 0.002, allDomains.join(","), user.id ?? "unknown");
 
     const now = new Date();
     const expiresAt = new Date(now.getTime() + cacheTtlMs);
