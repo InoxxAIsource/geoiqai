@@ -887,14 +887,64 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
   req.log.info({ domain: bareD, brandName, candidates }, "visibility-overview: starting");
 
   try {
-    // DataForSEO LLM API calls removed. Pull data from the most recent GeoIQ audit instead.
+    // Pull from most recent GeoIQ audit (within 30 days). If none exists, trigger one on-demand.
+    const AUDIT_MAX_AGE_DAYS = 30;
+    const cutoff = new Date(Date.now() - AUDIT_MAX_AGE_DAYS * 24 * 60 * 60 * 1000);
     const recentAudits = await db
       .select()
       .from(auditsTable)
-      .where(eq(auditsTable.domain, bareD))
+      .where(and(eq(auditsTable.domain, bareD), gt(auditsTable.createdAt, cutoff)))
       .orderBy(desc(auditsTable.createdAt))
       .limit(1);
-    const audit = recentAudits[0] ?? null;
+    let audit = recentAudits[0] ?? null;
+
+    // No recent audit found - run one on-demand (same engine as the Audit page)
+    if (!audit) {
+      req.log.info({ domain: bareD }, "visibility-overview: no recent audit found, running on-demand");
+      try {
+        const AUDIT_TIMEOUT_MS = 90_000;
+        const engineResult = await Promise.race([
+          runAuditEngine(`https://${bareD}`, null, null, null),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("Audit timed out after 90s")), AUDIT_TIMEOUT_MS)
+          ),
+        ]);
+        if (!engineResult.unreachable) {
+          const { brandName: engBrand, category: engCat, market: engMarket, chatgpt, gemini, perplexity, technicalAudit, keywordsUsed } = engineResult;
+          const rawAiTotal = chatgpt.score + gemini.score + perplexity.score;
+          const aiVisibilityScore = Math.min(Math.round(rawAiTotal * 100 / (3 * 33)), 100);
+          const scoreTechnical = technicalAudit.overallScore;
+          const scoreTotal = Math.round(aiVisibilityScore * 0.6 + scoreTechnical * 0.4);
+          const allCompetitors = [...new Set([...chatgpt.competitors, ...gemini.competitors, ...perplexity.competitors])];
+          const [inserted] = await db.insert(auditsTable).values({
+            url: `https://${bareD}`,
+            domain: bareD,
+            brandName: engBrand,
+            category: engCat,
+            market: engMarket,
+            scoreTotal,
+            scoreChatgpt: chatgpt.score,
+            scoreGemini: gemini.score,
+            scorePerplexity: perplexity.score,
+            chatgptFound: chatgpt.found,
+            geminiFound: gemini.found,
+            perplexityFound: perplexity.found,
+            chatgptDetail: chatgpt.detail,
+            geminiDetail: gemini.detail,
+            perplexityDetail: perplexity.detail,
+            competitorsFound: allCompetitors,
+            keywordsUsed,
+            rawResults: { scoreAiVisibility: aiVisibilityScore, scoreTechnical, technicalAudit },
+          }).returning();
+          audit = inserted ?? null;
+          req.log.info({ domain: bareD, scoreTotal, chatgptFound: chatgpt.found, geminiFound: gemini.found, perplexityFound: perplexity.found }, "visibility-overview: on-demand audit complete");
+        } else {
+          req.log.warn({ domain: bareD }, "visibility-overview: on-demand audit - domain unreachable");
+        }
+      } catch (engErr) {
+        req.log.warn({ err: engErr, domain: bareD }, "visibility-overview: on-demand audit failed, returning empty state");
+      }
+    }
 
     const bestKeyword = audit?.brandName ?? candidates[0]!;
     const score = audit?.scoreTotal ?? 0;
@@ -926,7 +976,7 @@ router.get("/dataforseo/visibility-overview", requireAuth, async (req, res): Pro
     const opportunitiesData = { items: [] as Array<{ question: string; platform: string; model_name: string; ai_search_volume: number; location_code: number }>, totalCount: 0, cached: false };
     const countries: { code: number; name: string; mentions: number; pct: number }[] = [];
     const citedSources: { domain: string; mentions: number; ai_search_volume: number }[] = [];
-    req.log.info({ domain: bareD, bestKeyword, score, hasData, platforms: activePlatforms.length, auditId: audit?.id ?? null }, "visibility-overview: done (from GeoIQ audit)");
+    req.log.info({ domain: bareD, bestKeyword, score, hasData, platforms: activePlatforms.length, auditId: audit?.id ?? null }, "visibility-overview: done");
 
     const now = new Date();
     const expiresAt = new Date(now.getTime() + cacheTtlMs);
