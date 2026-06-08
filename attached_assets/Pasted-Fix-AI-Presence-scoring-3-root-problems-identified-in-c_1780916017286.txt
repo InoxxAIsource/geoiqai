@@ -1,0 +1,375 @@
+Fix AI Presence scoring — 3 root problems
+identified in code audit.
+
+PROBLEM 1: BRAND SLUG MATCHING TOO BROAD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+File: audit-engine.ts
+Function: resultMentionsBrand (line ~71)
+
+Current (broken):
+function resultMentionsBrand(text, domain, brandSlug) {
+  const t = text.toLowerCase();
+  return (
+    t.includes(brandSlug) ||    // "x" matches "next", "flex" etc
+    t.includes(domain.toLowerCase()) ||
+    ...
+  );
+}
+
+Fix — use word boundary matching:
+
+function resultMentionsBrand(
+  text: string, 
+  domain: string, 
+  brandSlug: string
+): boolean {
+  const t = text.toLowerCase();
+  const cleanDomain = domain
+    .toLowerCase()
+    .replace('www.','');
+  
+  // For very short slugs (1-2 chars)
+  // require word boundary match
+  if (brandSlug.length <= 2) {
+    const wordBoundaryRegex = new RegExp(
+      `\\b${brandSlug}\\b`, 'i'
+    );
+    return (
+      wordBoundaryRegex.test(text) ||
+      t.includes(cleanDomain)
+    );
+  }
+  
+  // For normal slugs use includes
+  // but require domain OR full brand name
+  return (
+    t.includes(` ${brandSlug} `) ||    // space-padded
+    t.includes(`"${brandSlug}"`) ||    // quoted
+    t.startsWith(brandSlug) ||
+    t.includes(cleanDomain)
+  );
+}
+
+Also fix brandSlug extraction:
+Instead of just taking first part of domain,
+build a smarter slug:
+
+const getBrandSlug = (domain: string): string => {
+  const clean = domain
+    .replace('www.','')
+    .toLowerCase();
+  
+  const name = clean.split('.')[0];
+  
+  // Short name (1-2 chars) = use full domain
+  // to avoid false matches
+  if (name.length <= 2) {
+    return clean; // use "x.com" not "x"
+  }
+  
+  return name; // "clevertap", "hubspot" etc
+};
+
+PROBLEM 2: SCORE CEILING HARDCODED AT 75
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+File: audit-engine.ts
+Function: scorePlatform (lines 84-101)
+
+Current (broken):
+const score = Math.min(matchingTavily.length * 25, 75);
+// Max is always 75 — hubspot = niche brand
+
+Fix — dynamic scoring based on evidence quality:
+
+function scorePlatform(
+  tavilyResults: TavilyResult[],
+  domain: string,
+  brandSlug: string,
+  exaEvidence?: {
+    mentionCount: number,
+    hasDirectCitation: boolean,
+    recentMentions: number
+  }
+): { found: boolean; score: number; evidence: string | null } {
+  
+  const cleanDomain = domain.replace('www.','');
+  
+  const matchingTavily = tavilyResults.filter(r =>
+    resultMentionsBrand(
+      `${r.title ?? ''} ${r.content ?? ''}`,
+      domain,
+      brandSlug
+    )
+  );
+  
+  // Base score from Tavily matches
+  // More granular than before
+  let baseScore = 0;
+  if (matchingTavily.length === 0) baseScore = 0;
+  else if (matchingTavily.length === 1) baseScore = 20;
+  else if (matchingTavily.length === 2) baseScore = 35;
+  else if (matchingTavily.length === 3) baseScore = 50;
+  else if (matchingTavily.length === 4) baseScore = 65;
+  else if (matchingTavily.length >= 5) baseScore = 75;
+  
+  // Quality bonuses (push above 75)
+  let bonus = 0;
+  
+  // Bonus: result has domain in URL
+  const hasDomainInUrl = matchingTavily
+    .some(r => r.url?.includes(cleanDomain));
+  if (hasDomainInUrl) bonus += 10;
+  
+  // Bonus: recent mentions (last 3 months)
+  const recentResults = matchingTavily.filter(r => {
+    if (!r.publishedDate) return false;
+    const age = Date.now() - 
+      new Date(r.publishedDate).getTime();
+    return age < 90 * 24 * 60 * 60 * 1000;
+  });
+  if (recentResults.length > 0) bonus += 10;
+  
+  // Bonus: authoritative source
+  const authoritativeDomains = [
+    'techcrunch.com', 'wired.com',
+    'theverge.com', 'searchengineland.com',
+    'venturebeat.com', 'bloomberg.com',
+    'reuters.com', 'forbes.com'
+  ];
+  const hasAuthoritativeSource = matchingTavily
+    .some(r => authoritativeDomains
+      .some(d => r.url?.includes(d))
+    );
+  if (hasAuthoritativeSource) bonus += 5;
+  
+  // Exa boost for very well known brands
+  if (exaEvidence) {
+    if (exaEvidence.hasDirectCitation) bonus += 10;
+    if (exaEvidence.recentMentions > 5) bonus += 5;
+  }
+  
+  const finalScore = Math.min(baseScore + bonus, 99);
+  const found = finalScore >= 20;
+  
+  const evidence = matchingTavily[0]
+    ? `${matchingTavily[0].title}: ${
+        matchingTavily[0].content?.slice(0, 150)
+      }`
+    : null;
+  
+  return { found, score: finalScore, evidence };
+}
+
+Scale now:
+0 matches = 0
+1 match = 20-45 (with bonuses)
+2 matches = 35-60
+3 matches = 50-75
+4 matches = 65-80
+5+ matches = 75-99
+Well known brand + auth sources = 85-99
+
+PROBLEM 3: EXA BOOST SAME FOR ALL PLATFORMS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+File: audit-engine.ts
+Lines: ~228-241
+
+Current (broken):
+// Same exaMatchCount drives all 3 platforms
+// = all platforms get identical scores
+
+Fix — differentiate per platform using
+platform-specific Exa searches:
+
+const getPerPlatformExaEvidence = async (
+  domain: string,
+  brandSlug: string
+) => {
+  const cleanDomain = domain.replace('www.','');
+  
+  // Run platform-specific searches in parallel
+  const [chatgptExa, geminiExa, perplexityExa] = 
+    await Promise.allSettled([
+      
+      exa.search(
+        `"${cleanDomain}" OR "${brandSlug}" 
+         ChatGPT recommended suggest 2025 2026`,
+        {
+          type: 'auto',
+          numResults: 5,
+          startPublishedDate: '2025-06-01',
+          contents: {
+            highlights: {
+              numSentences: 1
+            }
+          }
+        }
+      ),
+      
+      exa.search(
+        `"${cleanDomain}" OR "${brandSlug}" 
+         Gemini Google AI recommended 2025 2026`,
+        {
+          type: 'auto',
+          numResults: 5,
+          startPublishedDate: '2025-06-01',
+          contents: {
+            highlights: {
+              numSentences: 1
+            }
+          }
+        }
+      ),
+      
+      exa.search(
+        `"${cleanDomain}" OR "${brandSlug}" 
+         Perplexity cited mentioned 2025 2026`,
+        {
+          type: 'auto',
+          numResults: 5,
+          startPublishedDate: '2025-06-01',
+          contents: {
+            highlights: {
+              numSentences: 1
+            }
+          }
+        }
+      )
+    ]);
+  
+  const extractEvidence = (result: any) => {
+    if (result.status !== 'fulfilled') {
+      return { mentionCount: 0, 
+               hasDirectCitation: false,
+               recentMentions: 0 };
+    }
+    const results = result.value.results || [];
+    const mentioning = results.filter((r: any) =>
+      resultMentionsBrand(
+        `${r.title} ${r.highlights?.join(' ')}`,
+        domain,
+        brandSlug
+      )
+    );
+    return {
+      mentionCount: mentioning.length,
+      hasDirectCitation: mentioning
+        .some((r: any) => r.url?.includes(cleanDomain)),
+      recentMentions: mentioning.filter((r: any) => {
+        if (!r.publishedDate) return false;
+        const age = Date.now() - 
+          new Date(r.publishedDate).getTime();
+        return age < 30 * 24 * 60 * 60 * 1000;
+      }).length
+    };
+  };
+  
+  return {
+    chatgpt: extractEvidence(chatgptExa),
+    gemini: extractEvidence(geminiExa),
+    perplexity: extractEvidence(perplexityExa)
+  };
+};
+
+Then pass per-platform evidence to scorePlatform:
+
+const exaEvidence = await getPerPlatformExaEvidence(
+  domain, brandSlug
+);
+
+const chatgptScore = scorePlatform(
+  chatgptTavilyResults,
+  domain,
+  brandSlug,
+  exaEvidence.chatgpt    // platform-specific
+);
+
+const geminiScore = scorePlatform(
+  geminiTavilyResults,
+  domain,
+  brandSlug,
+  exaEvidence.gemini     // platform-specific
+);
+
+const perplexityScore = scorePlatform(
+  perplexityTavilyResults,
+  domain,
+  brandSlug,
+  exaEvidence.perplexity // platform-specific
+);
+
+ALSO FIX: TAVILY NOT BEING CALLED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Tavily dashboard shows 0 credits used.
+Tavily is not being called at all.
+
+Check if TAVILY_API_KEY is set.
+If not set — the scan falls back 
+but Tavily results are empty arrays
+causing score = 0 or pure Exa boost.
+
+Add TAVILY_API_KEY to Replit Secrets.
+Get free key from app.tavily.com.
+
+In scorePlatform when tavilyResults 
+is empty array, do NOT score 0.
+Instead use Exa evidence as primary:
+
+if (tavilyResults.length === 0 && exaEvidence) {
+  // Tavily not available, use Exa only
+  const exaScore = Math.min(
+    exaEvidence.mentionCount * 20 +
+    (exaEvidence.hasDirectCitation ? 15 : 0) +
+    (exaEvidence.recentMentions * 5),
+    99
+  );
+  return {
+    found: exaScore > 20,
+    score: exaScore,
+    evidence: 'Based on web presence signals'
+  };
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXPECTED RESULTS AFTER FIX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+x.com (Twitter/X — huge brand):
+Before: ChatGPT 75, Gemini 75, Perplexity 75
+After:  ChatGPT 88, Gemini 82, Perplexity 79
+Different scores per platform ✓
+Above 75 ceiling ✓
+x.com slug no longer matches garbage ✓
+
+hubspot.com (well known):
+Before: 75/75/75
+After:  85/78/72 (different per platform)
+
+geoiqai.com (new/small brand):
+Before: 0 or 75 (broken)
+After:  8/5/3 (honest low scores)
+
+clevertap.com (known Indian SaaS):
+Before: 75/75/75
+After:  45/38/52 (realistic mid scores)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Run these 4 domains after fix:
+1. x.com — should score 80+, 
+   platforms different from each other
+2. hubspot.com — should score 75+
+3. geoiqai.com — should score under 20
+4. clevertap.com — should score 40-60
+
+If all 4 show different scores per platform
+AND geoiqai scores much lower than hubspot
+= scoring is now real and working.
+
+Share all 4 scores in one screenshot.
