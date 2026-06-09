@@ -1,0 +1,350 @@
+# GeoIQAI – Subscription & Access Control System
+
+## Goal
+
+Fix the current loophole where users can sign up and access the dashboard without paying.
+
+Implement the following user flow exactly.
+
+---
+
+# Visitor Experience
+
+## Homepage (Public)
+
+Users can access:
+
+* Homepage
+* Pricing page
+* Documentation pages
+* Marketing pages
+* Login
+* Signup
+
+Users can perform:
+
+### Free Trial Audit
+
+Allow maximum:
+
+* 2 free audits total
+* Homepage only
+* No dashboard access required
+
+Store usage by:
+
+* User account (if logged in)
+* Browser fingerprint/cookie (if not logged in)
+
+When free audits are exhausted:
+
+Show:
+
+"Your free audits have been used. Upgrade to continue monitoring and tracking AI visibility."
+
+CTA:
+
+"Upgrade Now"
+
+---
+
+# Signup Flow
+
+Current Problem
+
+After signup, users are automatically redirected to Dashboard.
+
+This must be removed.
+
+New Flow:
+
+After signup:
+
+* Create account
+* Mark subscription_status = inactive
+* Redirect user back to homepage
+
+Show banner:
+
+"Account created successfully. Start with 2 free audits or upgrade to unlock dashboard access."
+
+DO NOT redirect to dashboard.
+
+---
+
+# Dashboard Protection
+
+Dashboard is a premium feature.
+
+Protected Routes:
+
+* Dashboard
+* Projects
+* Monitoring
+* Citation Tracking
+* Competitor Analysis
+* Reports
+* Settings
+
+Before loading any dashboard page:
+
+Check:
+
+subscription_status == active
+
+If FALSE:
+
+Redirect immediately to:
+
+/pricing
+
+Display:
+
+"Dashboard access requires an active subscription."
+
+---
+
+# Pricing Flow
+
+When user clicks:
+
+* Dashboard
+* Start Monitoring
+* Add Project
+* AI Visibility Tracking
+
+and subscription is inactive:
+
+Redirect to Pricing page.
+
+---
+
+# Payment Success Flow
+
+After successful payment:
+
+Update:
+
+subscription_status = active
+
+Store:
+
+* Stripe Customer ID
+* Plan Type
+* Subscription ID
+* Renewal Date
+
+Then redirect:
+
+/dashboard
+
+Show:
+
+"Welcome to GeoIQAI. Your subscription is active."
+
+---
+
+# Starter Plan Rules
+
+Starter Plan:
+
+Maximum domains allowed = 1
+
+Database field:
+
+domain_limit = 1
+
+When user adds first domain:
+
+Allow.
+
+When user tries to add second domain:
+
+Block action.
+
+Show modal:
+
+"You have reached your plan limit.
+
+Starter Plan includes monitoring for 1 domain only.
+
+Upgrade to Enterprise to monitor up to 3 domains."
+
+Buttons:
+
+* Upgrade to Enterprise
+* Cancel
+
+Do not allow creation of second domain.
+
+---
+
+# Enterprise Plan Rules
+
+Enterprise Plan:
+
+domain_limit = 3
+
+Allow:
+
+* Domain 1
+* Domain 2
+* Domain 3
+
+Attempting Domain 4:
+
+Show:
+
+"You have reached your Enterprise plan limit."
+
+---
+
+# Database Structure
+
+Users Table
+
+subscription_status:
+
+* inactive
+* active
+* cancelled
+
+plan_type:
+
+* free
+* starter
+* enterprise
+
+domain_limit:
+
+* 0
+* 1
+* 3
+
+free_audit_count
+
+subscription_id
+
+stripe_customer_id
+
+renewal_date
+
+---
+
+# Route Middleware
+
+Create middleware:
+
+checkSubscription()
+
+Logic:
+
+IF route starts with:
+
+/dashboard
+/projects
+/monitoring
+/reports
+/settings
+
+AND subscription_status != active
+
+THEN
+
+redirect('/pricing')
+
+---
+
+# UI Changes
+
+Navbar
+
+For non-paying users:
+
+Dashboard button → Pricing page
+
+For paying users:
+
+Dashboard button → Dashboard
+
+Show badge:
+
+Free User
+
+Starter
+
+Enterprise
+
+beside user profile.
+
+---
+
+# Anti-Abuse Protection
+
+Prevent users from bypassing free audits.
+
+Track:
+
+* Account ID
+* Browser Cookie
+* Device Fingerprint
+
+Limit:
+
+2 free audits total.
+
+After limit reached:
+
+Require payment.
+
+---
+
+# Expected Final User Journey
+
+Visitor → Homepage
+
+↓
+
+Runs 2 free audits
+
+↓
+
+Signs Up
+
+↓
+
+Remains on Homepage
+
+↓
+
+Clicks Dashboard
+
+↓
+
+Redirected to Pricing
+
+↓
+
+Pays
+
+↓
+
+Subscription Activated
+
+↓
+
+Redirected to Dashboard
+
+↓
+
+Can Add 1 Domain
+
+↓
+
+Attempts Second Domain
+
+↓
+
+Shown Enterprise Upgrade Modal
+
+This flow must be enforced on both frontend and backend so users cannot bypass restrictions using direct URLs or API calls.

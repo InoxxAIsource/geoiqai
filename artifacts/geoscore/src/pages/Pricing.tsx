@@ -44,6 +44,8 @@ export default function Pricing() {
   const [paymentDone, setPaymentDone] = useState(false);
   const [paidEmail, setPaidEmail] = useState("");
   const emailInputRef = useRef<HTMLInputElement>(null);
+  const reason = queryParams.get("reason");
+  const showUpgradeBanner = reason === "upgrade_required";
 
   useEffect(() => {
     if (requestedPlan && requestedPlan !== "free") {
@@ -196,6 +198,16 @@ export default function Pricing() {
           </div>
         ) : (
           <>
+            {showUpgradeBanner && (
+              <div style={{ background: "#EEF2FF", border: "1px solid #C7D2FE", borderRadius: 10, padding: "14px 20px", marginBottom: 32, display: "flex", alignItems: "center", gap: 12 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <p style={{ margin: 0, color: "#3730A3", fontSize: 14 }}>
+                  Dashboard access requires a paid plan. Pick a plan below to get started.
+                </p>
+              </div>
+            )}
             <div className="max-w-4xl mx-auto text-center mb-16">
               <h1 className="text-4xl md:text-5xl font-semibold text-text-primary mb-6">
                 Simple, honest pricing

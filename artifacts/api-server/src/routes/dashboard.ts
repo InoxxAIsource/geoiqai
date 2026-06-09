@@ -54,7 +54,12 @@ router.post("/dashboard/brands", requirePaidAuth, async (req, res): Promise<void
   const brandLimit = user.plan === "agency" ? 999 : user.plan === "starter" ? 1 : 0;
   const [{ value: brandCount }] = await db.select({ value: count() }).from(monitoredBrandsTable).where(eq(monitoredBrandsTable.userId, user.id));
   if (brandCount >= brandLimit) {
-    res.status(403).json({ error: `Your ${user.plan} plan allows ${brandLimit} brand${brandLimit === 1 ? "" : "s"}. Upgrade to Agency to monitor more brands.` });
+    res.status(403).json({
+      error: `Your ${user.plan} plan allows ${brandLimit} monitored domain${brandLimit === 1 ? "" : "s"}. Upgrade to the Agency plan for up to 3 domains.`,
+      limitReached: true,
+      currentLimit: brandLimit,
+      upgradeUrl: "/pricing",
+    });
     return;
   }
 

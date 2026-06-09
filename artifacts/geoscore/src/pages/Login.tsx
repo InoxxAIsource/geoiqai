@@ -46,7 +46,7 @@ export default function Login() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
       });
-      const data = await res.json() as { token?: string; error?: string; emailNotVerified?: boolean; email?: string };
+      const data = await res.json() as { token?: string; user?: { plan: string }; error?: string; emailNotVerified?: boolean; email?: string };
       if (!res.ok) {
         if (data.emailNotVerified) {
           setUnverifiedEmail(data.email ?? email);
@@ -56,8 +56,14 @@ export default function Login() {
         return;
       }
       if (data.token) {
-        localStorage.setItem("geoscore_token", data.token);
-        setLocation("/dashboard");
+        setToken(data.token);
+        setPlan(data.user?.plan ?? "free");
+        const plan = data.user?.plan ?? "free";
+        if (plan === "starter" || plan === "agency") {
+          setLocation("/dashboard");
+        } else {
+          setLocation("/pricing?reason=upgrade_required");
+        }
       }
     } catch {
       toast({ title: "Something went wrong", description: "Please try again.", variant: "destructive" });

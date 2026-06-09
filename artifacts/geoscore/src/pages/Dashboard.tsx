@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { useGetMe, useGetMonitoredBrands, useGetBrandScores, useGetBrandKeywords, useAddBrandKeyword, useAddMonitoredBrand, useRemoveMonitoredBrand, getGetMonitoredBrandsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
-import { getToken } from "@/lib/auth";
+import { getToken, getPlan } from "@/lib/auth";
 import { BarChart2, Users, Search, TrendingUp, MessageSquare, HelpCircle, Radio, FileText, Bot, Layers, Plus, ChevronDown, LogOut, Settings, Globe, Megaphone, Rocket } from "lucide-react";
 import { VisibilityOverview } from "./dashboard/VisibilityOverview";
 import { CompetitorResearch } from "./dashboard/CompetitorResearch";
@@ -279,6 +279,7 @@ export function Dashboard() {
   const [newBrandDomain, setNewBrandDomain] = useState("");
   const [newBrandName, setNewBrandName] = useState("");
   const [showSettings, setShowSettings] = useState(false);
+  const [domainLimitError, setDomainLimitError] = useState<string | null>(null);
   const [dfStatus, setDfStatus] = useState<"checking" | "connected" | "disconnected" | "error">("checking");
   const [dfBalance, setDfBalance] = useState<number | null>(null);
   const [launchedTabs, setLaunchedTabs] = useState<Set<NavId>>(new Set());
@@ -302,7 +303,14 @@ export function Dashboard() {
   }, [brands]);
 
   useEffect(() => {
-    if (!auth) setLocation("/login");
+    if (!auth) {
+      setLocation("/login?reason=login_required");
+      return;
+    }
+    const plan = getPlan();
+    if (!plan || plan === "free") {
+      setLocation("/pricing?reason=upgrade_required");
+    }
   }, [auth, setLocation]);
 
   useEffect(() => {
@@ -386,7 +394,10 @@ export function Dashboard() {
       setNewBrandDomain("");
       setNewBrandName("");
       setShowBrandDropdown(false);
-    } catch { /* ignore */ }
+    } catch (err) {
+      const message = (err as { response?: { data?: { error?: string; limitReached?: boolean } } })?.response?.data?.error ?? null;
+      if (message) setDomainLimitError(message);
+    }
     finally { setAddingBrand(false); }
   };
 
@@ -821,6 +832,25 @@ export function Dashboard() {
           </div>
         </main>
       </div>
+
+      {domainLimitError && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}
+          onClick={() => setDomainLimitError(null)}>
+          <div style={{ background: "white", borderRadius: 14, padding: 32, maxWidth: 400, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: TEXT_PRIMARY, marginBottom: 10 }}>Domain limit reached</div>
+            <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.6, marginBottom: 24 }}>{domainLimitError}</p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <a href="/pricing?plan=agency" style={{ flex: 1, display: "block", padding: "10px 0", background: P, color: "white", borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: "none", textAlign: "center" }}>
+                View Agency plan
+              </a>
+              <button onClick={() => setDomainLimitError(null)} style={{ flex: 1, padding: "10px 0", background: "none", border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 14, color: MUTED, cursor: "pointer" }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         * { box-sizing: border-box; }
