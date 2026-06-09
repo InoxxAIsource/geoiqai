@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { requireAuth, type AuthRequest } from "../lib/auth";
-import { db, usersTable, monitoredBrandsTable, dailyScoresTable, auditsTable, keywordCacheTable, sprintSessionsTable, sprintProgressTable } from "@workspace/db";
-import { eq, and, desc, gt } from "drizzle-orm";
+import { db, usersTable, monitoredBrandsTable, dailyScoresTable, auditsTable, keywordCacheTable, sprintSessionsTable, sprintProgressTable, answerMonitoringPromptsTable, answerMonitoringResultsTable } from "@workspace/db";
+import { eq, and, desc, gt, inArray } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { runAuditEngine, generateRecommendations, extractDomain } from "../lib/audit-engine";
 import { SPRINT_STEPS } from "./sprint";
@@ -615,6 +615,23 @@ interface TechnicalCheckInfo {
   detail: string;
 }
 
+interface SprintContextInfo {
+  completedCount: number;
+  totalSteps: number;
+  completedIds: string[];
+  nextStep: typeof SPRINT_STEPS[0] | null;
+  currentScore: number;
+  topPendingSteps: typeof SPRINT_STEPS;
+}
+
+interface MonitoringContextInfo {
+  tracked: number;
+  mentioned: number;
+  sov: number;
+  negativePrompts: Array<{ prompt: string; context: string | null }>;
+  bestPosition: { prompt: string; position: number } | null;
+}
+
 interface FullBrandContext {
   brandName: string;
   domain: string;
@@ -632,13 +649,17 @@ interface FullBrandContext {
   technicalChecks: TechnicalCheckInfo[];
   technicalOverallScore: number;
   auditCheckedAt: string | null;
+  sprint: SprintContextInfo | null;
+  monitoring: MonitoringContextInfo | null;
 }
 
 async function getFullBrandContext(
-  brand: { id: string; domain: string; brandName: string | null; category: string | null; market: string | null }
+  brand: { id: string; domain: string; brandName: string | null; category: string | null; market: string | null; userId?: string }
 ): Promise<FullBrandContext> {
   const now = new Date();
-  const [scoresRow, latestAudit, cachedKws] = await Promise.all([
+  const userId = brand.userId ?? "";
+
+  const [scoresRow, latestAudit, cachedKws, sprintSession, sprintProgress] = await Promise.all([
     db.select().from(dailyScoresTable)
       .where(eq(dailyScoresTable.brandId, brand.id))
       .orderBy(desc(dailyScoresTable.date))
@@ -653,7 +674,19 @@ async function getFullBrandContext(
         gt(keywordCacheTable.expiresAt, now),
       ))
       .limit(1),
+    userId ? db.select().from(sprintSessionsTable)
+      .where(and(eq(sprintSessionsTable.userId, userId), eq(sprintSessionsTable.domain, brand.domain)))
+      .limit(1) : Promise.resolve([]),
+    userId ? db.select({ stepId: sprintProgressTable.stepId })
+      .from(sprintProgressTable)
+      .where(and(eq(sprintProgressTable.userId, userId), eq(sprintProgressTable.domain, brand.domain), eq(sprintProgressTable.completed, true))) : Promise.resolve([]),
   ]);
+
+  const monPrompts = userId
+    ? await db.select().from(answerMonitoringPromptsTable)
+        .where(and(eq(answerMonitoringPromptsTable.userId, userId), eq(answerMonitoringPromptsTable.domain, brand.domain), eq(answerMonitoringPromptsTable.active, true)))
+        .limit(30)
+    : [];
 
   const scores = scoresRow[0];
   const audit = latestAudit[0];
@@ -678,6 +711,65 @@ async function getFullBrandContext(
   const technicalOverallScore = typeof techAudit?.overallScore === "number" ? techAudit.overallScore : 0;
   const auditCheckedAt = audit?.createdAt ? new Date(audit.createdAt).toISOString() : null;
 
+  // Sprint context
+  let sprint: SprintContextInfo | null = null;
+  if (sprintSession.length > 0) {
+    const completedIds = new Set(sprintProgress.map(r => r.stepId));
+    const incompleteSteps = SPRINT_STEPS.filter(s => !completedIds.has(s.id));
+    const lowestPhase = incompleteSteps.length > 0 ? Math.min(...incompleteSteps.map(s => s.phase)) : 999;
+    const phaseCandidates = incompleteSteps.filter(s => s.phase === lowestPhase);
+    const nextStep = phaseCandidates.sort((a, b) => b.score_impact - a.score_impact)[0] ?? null;
+    const topPendingSteps = incompleteSteps.sort((a, b) => b.score_impact - a.score_impact).slice(0, 3);
+
+    sprint = {
+      completedCount: completedIds.size,
+      totalSteps: SPRINT_STEPS.length,
+      completedIds: [...completedIds],
+      nextStep,
+      currentScore: sprintSession[0]?.currentScore ?? 0,
+      topPendingSteps,
+    };
+  }
+
+  // Answer monitoring context
+  let monitoring: MonitoringContextInfo | null = null;
+  if (monPrompts.length > 0) {
+    const promptIds = monPrompts.map(p => p.id);
+    const monResults = await db.select()
+      .from(answerMonitoringResultsTable)
+      .where(inArray(answerMonitoringResultsTable.promptId, promptIds))
+      .orderBy(desc(answerMonitoringResultsTable.checkedAt));
+
+    const latestByPromptLlm = new Map<string, typeof monResults[0]>();
+    for (const r of monResults) {
+      const key = `${r.promptId}:${r.llm}`;
+      if (!latestByPromptLlm.has(key)) latestByPromptLlm.set(key, r);
+    }
+
+    const latestResults = [...latestByPromptLlm.values()];
+    const mentionedCount = latestResults.filter(r => r.mentioned).length;
+    const sov = latestResults.length > 0 ? Math.round((mentionedCount / latestResults.length) * 100) : 0;
+
+    const negativeResults = latestResults.filter(r => r.sentiment === "negative" && r.brandContext);
+    const negativePrompts = negativeResults.slice(0, 3).map(r => {
+      const promptRow = monPrompts.find(p => p.id === r.promptId);
+      return { prompt: promptRow?.prompt ?? "", context: r.brandContext };
+    });
+
+    const mentionedWithPosition = latestResults.filter(r => r.mentioned && r.position != null);
+    const bestPos = mentionedWithPosition.sort((a, b) => (a.position ?? 99) - (b.position ?? 99))[0];
+    const bestPromptRow = bestPos ? monPrompts.find(p => p.id === bestPos.promptId) : null;
+    const bestPosition = bestPos && bestPromptRow ? { prompt: bestPromptRow.prompt, position: bestPos.position! } : null;
+
+    monitoring = {
+      tracked: monPrompts.length,
+      mentioned: mentionedCount,
+      sov,
+      negativePrompts,
+      bestPosition,
+    };
+  }
+
   return {
     brandName: brand.brandName ?? brand.domain,
     domain: brand.domain,
@@ -695,6 +787,8 @@ async function getFullBrandContext(
     technicalChecks,
     technicalOverallScore,
     auditCheckedAt,
+    sprint,
+    monitoring,
   };
 }
 
@@ -702,6 +796,7 @@ function buildSystemPrompt(ctx: FullBrandContext): string {
   const {
     brandName, domain, category, market, scoreTotal, scoreChatgpt, scoreGemini, scorePerplexity,
     brandDescription, keywords, competitors, hasAuditData, technicalChecks, technicalOverallScore, auditCheckedAt,
+    sprint, monitoring,
   } = ctx;
 
   const chatgptStatus = scoreChatgpt === 0 ? "Invisible" : scoreChatgpt < 12 ? "Low" : scoreChatgpt < 24 ? "Moderate" : "Strong";
@@ -731,6 +826,26 @@ function buildSystemPrompt(ctx: FullBrandContext): string {
     ? `TECHNICAL AUDIT DATA (last checked: ${checkedAgo ?? "unknown"} - use these exact scores, never say you cannot check the site):\n${technicalChecks.map(c => `- ${c.name}: ${c.score}/100 (${c.status}) - ${c.detail}`).join("\n")}\nTechnical total: ${technicalOverallScore}/100`
     : `TECHNICAL AUDIT:\nNo technical audit data yet. Use check_technical_audit or run_audit to get fresh data. Never make up technical scores.`;
 
+  const sprintBlock = sprint
+    ? `GEO SPRINT PROGRESS (live data - use this, do not call get_sprint_status unless user asks for a refresh):
+Completed: ${sprint.completedCount}/${sprint.totalSteps} steps
+Current sprint score: ${sprint.currentScore}
+Next recommended step: ${sprint.nextStep ? `${sprint.nextStep.title} (+${sprint.nextStep.score_impact} pts, ${sprint.nextStep.time}) - affects ${sprint.nextStep.affects.join(", ")}` : "All steps complete"}
+Top 3 pending steps by impact:
+${sprint.topPendingSteps.map(s => `- ${s.title} (+${s.score_impact} pts, ${s.time})`).join("\n")}
+Score prediction: completing top 3 steps would add +${sprint.topPendingSteps.reduce((sum, s) => sum + s.score_impact, 0)} pts`
+    : "";
+
+  const monitoringBlock = monitoring
+    ? `ANSWER MONITORING DATA (live - share proactively when relevant):
+Tracked prompts: ${monitoring.tracked}
+Share of Voice: ${monitoring.sov}% (mentioned in ${monitoring.mentioned} of tracked results)
+${monitoring.bestPosition ? `Best position: #${monitoring.bestPosition.position} for "${monitoring.bestPosition.prompt}"` : ""}
+${monitoring.negativePrompts.length > 0 ? `NEGATIVE SENTIMENT ALERT - ${monitoring.negativePrompts.length} prompt(s) show negative brand context:
+${monitoring.negativePrompts.map(n => `- Prompt: "${n.prompt}" | AI said: "${(n.context ?? "").slice(0, 120)}"`).join("\n")}
+Proactively flag these if the user asks about reputation or sentiment.` : "No negative sentiment detected."}`
+    : "";
+
   return `You are a GEO (Generative Engine Optimization) strategist and advisor for ${brandName} (${domain}).
 
 ${descriptionBlock}
@@ -750,6 +865,10 @@ ${technicalBlock}
 ${keywordsBlock}
 
 ${competitorsBlock}
+
+${sprintBlock}
+
+${monitoringBlock}
 
 TOOLS YOU HAVE ACCESS TO:
 run_audit: Run a live audit on any domain. Use immediately when the user asks to check, scan, audit, or re-check a domain. Never say you cannot run an audit - you have this tool. Audits take 15-20 seconds.
@@ -901,7 +1020,7 @@ router.post("/agent/chat", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const ctx = await getFullBrandContext(brand);
+  const ctx = await getFullBrandContext({ ...brand, userId: user.id });
   const systemPrompt = buildSystemPrompt(ctx);
 
   const chatMessages = [
@@ -921,7 +1040,7 @@ router.post("/agent/chat", requireAuth, async (req, res): Promise<void> => {
 
   // If an audit was run, refresh context + update lastChecked for any matching brand
   const auditTool = toolsUsed.find(t => t.name === "run_audit");
-  const finalCtx = auditTool ? await getFullBrandContext(brand) : ctx;
+  const finalCtx = auditTool ? await getFullBrandContext({ ...brand, userId: user.id }) : ctx;
 
   if (auditTool) {
     const auditedDomain = String(auditTool.domain ?? "").trim().toLowerCase();
@@ -935,6 +1054,7 @@ router.post("/agent/chat", requireAuth, async (req, res): Promise<void> => {
 
   const auditResult = toolResults.run_audit ?? null;
   const competitorResult = toolResults.get_competitor_data ?? null;
+  const generatedFileResult = toolResults.generate_geo_file ?? null;
 
   res.json({
     reply,
@@ -947,6 +1067,8 @@ router.post("/agent/chat", requireAuth, async (req, res): Promise<void> => {
     auditCheckedAt: finalCtx.auditCheckedAt,
     auditResult,
     competitorResult,
+    generatedFileResult,
+    sprintContext: finalCtx.sprint,
   });
 });
 
@@ -970,7 +1092,7 @@ router.post("/agent/briefing", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const ctx = await getFullBrandContext(brand);
+  const ctx = await getFullBrandContext({ ...brand, userId: user.id });
 
   const descriptionNote = ctx.brandDescription
     ? `Brand description (from website analysis): ${ctx.brandDescription.slice(0, 400)}`
@@ -978,17 +1100,27 @@ router.post("/agent/briefing", requireAuth, async (req, res): Promise<void> => {
 
   const systemPrompt = `You are a GEO strategist writing a daily briefing for the founder of ${ctx.brandName}. Write in plain flowing paragraphs. Never use **bold** or ## headers or markdown formatting of any kind.`;
 
+  const sprintNote = ctx.sprint
+    ? `Sprint progress: ${ctx.sprint.completedCount}/${ctx.sprint.totalSteps} steps done. Next step: ${ctx.sprint.nextStep ? `${ctx.sprint.nextStep.title} (+${ctx.sprint.nextStep.score_impact} pts)` : "all done"}.`
+    : "";
+
+  const monitoringNote = ctx.monitoring
+    ? `Answer monitoring: ${ctx.monitoring.tracked} prompts tracked, ${ctx.monitoring.sov}% share of voice.${ctx.monitoring.negativePrompts.length > 0 ? ` ${ctx.monitoring.negativePrompts.length} prompt(s) showing negative sentiment.` : ""}`
+    : "";
+
   const prompt = `${descriptionNote}
 
 Category: ${ctx.category} | Market: ${ctx.market}
 GEO IQ Score: ${ctx.scoreTotal}/100
 ChatGPT: ${ctx.scoreChatgpt}/33 | Gemini: ${ctx.scoreGemini}/33 | Perplexity: ${ctx.scorePerplexity}/33
 ${ctx.keywords.length > 0 ? `Top keywords: ${ctx.keywords.slice(0, 5).join(", ")}` : ""}
+${sprintNote}
+${monitoringNote}
 
 Write a 3-paragraph daily briefing for the founder:
 Paragraph 1: Current score status using actual numbers. Be direct about what ${ctx.scoreTotal}/100 means for this specific product in the ${ctx.category} space.
-Paragraph 2: One specific insight - what stands out in the data. Reference a specific platform gap or keyword opportunity.
-Paragraph 3: The single most important action today, written for ${ctx.brandName}'s actual audience (${ctx.category} in ${ctx.market}). Not generic - tied to the brand.
+Paragraph 2: One specific insight - what stands out in the data. If there's sprint progress or monitoring data, reference it specifically. Otherwise reference a platform gap or keyword opportunity.
+Paragraph 3: The single most important action today. If there's a clear next sprint step, name it. Otherwise pick the highest-impact GEO move for this brand specifically.
 
 End with exactly one sentence: "I understand ${ctx.brandName} is a [what it does] for [actual target audience] in [market]. Is that right?"
 
@@ -1022,7 +1154,7 @@ router.post("/agent/generate", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const ctx = await getFullBrandContext(brand);
+  const ctx = await getFullBrandContext({ ...brand, userId: user.id });
   const brandN = ctx.brandName;
   const cat = ctx.category;
   const market = ctx.market;

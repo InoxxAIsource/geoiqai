@@ -78,6 +78,12 @@ interface ToolUsed {
   domain?: string;
 }
 
+interface GeneratedFileContent {
+  fileType: string;
+  content: string;
+  domain: string;
+}
+
 interface Message {
   role: "user" | "agent";
   content: string;
@@ -89,6 +95,8 @@ interface Message {
   toolsUsed?: ToolUsed[];
   auditToolResult?: AuditToolResult;
   scoreGrid?: { chatgpt: number | null; gemini: number | null; perplexity: number | null };
+  generatedContent?: GeneratedFileContent;
+  isBriefing?: boolean;
 }
 
 const STARTER_LIMIT = 50;
@@ -354,6 +362,80 @@ function FollowUpChips({ chips, onChipClick }: { chips: string[]; onChipClick: (
   );
 }
 
+// ─── GeneratedContentBubble component ────────────────────────────────────────
+
+const FILE_TYPE_LABELS: Record<string, string> = {
+  llms_txt: "llms.txt",
+  robots_txt: "robots.txt",
+  schema_json: "Organization Schema (JSON-LD)",
+};
+
+const SPRINT_STEP_IDS: Record<string, string> = {
+  llms_txt: "llmstxt",
+  robots_txt: "robots_txt",
+  schema_json: "org_schema",
+};
+
+function GeneratedContentBubble({ content, brandId }: { content: GeneratedFileContent; brandId: string }) {
+  const [copied, setCopied] = useState(false);
+  const [marked, setMarked] = useState(false);
+  const label = FILE_TYPE_LABELS[content.fileType] ?? content.fileType;
+  const sprintStepId = SPRINT_STEP_IDS[content.fileType];
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(content.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleMarkDone = async () => {
+    if (!sprintStepId || marked) return;
+    const token = localStorage.getItem("geoscore_token");
+    try {
+      await fetch("/api/agent/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          message: `I just completed: ${content.fileType.replace("_", " ")} for ${content.domain}. Please mark it as done.`,
+          history: [],
+          brandId,
+        }),
+      });
+      setMarked(true);
+    } catch {
+      setMarked(true);
+    }
+  };
+
+  return (
+    <div style={{ marginTop: 8, border: "1px solid #C7D2FE", borderRadius: 10, overflow: "hidden", background: "white" }}>
+      <div style={{ background: "#EEF2FF", padding: "8px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: "#4338CA" }}>{label}</span>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={handleCopy}
+            style={{ fontSize: 11, color: copied ? "#059669" : "#4338CA", background: "white", border: "1px solid #C7D2FE", borderRadius: 5, padding: "3px 10px", cursor: "pointer", fontWeight: 500 }}
+          >
+            {copied ? "Copied" : "Copy"}
+          </button>
+          {sprintStepId && (
+            <button
+              onClick={handleMarkDone}
+              disabled={marked}
+              style={{ fontSize: 11, color: marked ? "#059669" : "#4338CA", background: marked ? "#D1FAE5" : "white", border: `1px solid ${marked ? "#6EE7B7" : "#C7D2FE"}`, borderRadius: 5, padding: "3px 10px", cursor: marked ? "default" : "pointer", fontWeight: 500 }}
+            >
+              {marked ? "Sprint step done" : "Mark sprint step done"}
+            </button>
+          )}
+        </div>
+      </div>
+      <pre style={{ margin: 0, padding: "12px 14px", fontSize: 11, lineHeight: 1.6, color: "#1e293b", overflowX: "auto", maxHeight: 280, whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "ui-monospace, SFMono-Regular, monospace", background: "#f8fafc" }}>
+        {content.content}
+      </pre>
+    </div>
+  );
+}
+
 // ─── Main GeoAgentTab component ───────────────────────────────────────────────
 
 export function GeoAgentTab({
@@ -411,18 +493,56 @@ export function GeoAgentTab({
 
   useEffect(() => {
     if (briefingDone || messages.length > 0) return;
+    setBriefingDone(true);
+
+    const todayKey = `geoiq_daily_briefing_${brand.id}_${new Date().toISOString().slice(0, 10)}`;
+    const alreadyShownToday = localStorage.getItem(todayKey) === "1";
+
     const score = brand.latestScore ?? 0;
     const domainLabel = brand.domain ?? brandName;
-    const greeting = score > 0
-      ? `Hi! I'm your GEO Copilot for **${domainLabel}**. Your AI visibility score is **${score}/100** across ChatGPT, Gemini, and Perplexity.`
-      : `Hi! I'm your GEO Copilot for **${domainLabel}**. Looks like we don't have audit data yet. Run a full audit to get your AI visibility score.`;
-    setMessages([{
+
+    const staticGreeting = score > 0
+      ? `Hi! I'm your GEO Copilot for ${domainLabel}. Your AI visibility score is ${score}/100 across ChatGPT, Gemini, and Perplexity.`
+      : `Hi! I'm your GEO Copilot for ${domainLabel}. Looks like we don't have audit data yet. Run a full audit to get your AI visibility score.`;
+
+    const baseMsg: Message = {
       role: "agent",
-      content: greeting,
+      content: staticGreeting,
       followUpChips: ["Why is my score low?", "What should I fix first?", "Show my sprint progress", "Check my competitors"],
       ...(score > 0 ? { scoreGrid: { chatgpt: brand.latestScoreChatgpt ?? null, gemini: brand.latestScoreGemini ?? null, perplexity: brand.latestScorePerplexity ?? null } } : {}),
-    }]);
-    setBriefingDone(true);
+    };
+
+    if (alreadyShownToday) {
+      setMessages([baseMsg]);
+      return;
+    }
+
+    // Load daily briefing from API for first open of the day
+    setMessages([{ ...baseMsg, isLoading: true, content: "", triggerUserMsg: "briefing" }]);
+    const token = localStorage.getItem("geoscore_token");
+    fetch("/api/agent/briefing", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ brandId: brand.id }),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then((data: { briefing: string } | null) => {
+        const briefingText = data?.briefing?.trim();
+        if (briefingText) {
+          localStorage.setItem(todayKey, "1");
+          setMessages([{
+            role: "agent",
+            content: briefingText,
+            isStreaming: true,
+            isBriefing: true,
+            followUpChips: ["Why is my score low?", "What should I fix first?", "Show my sprint progress", "Check my competitors"],
+            ...(score > 0 ? { scoreGrid: { chatgpt: brand.latestScoreChatgpt ?? null, gemini: brand.latestScoreGemini ?? null, perplexity: brand.latestScorePerplexity ?? null } } : {}),
+          }]);
+        } else {
+          setMessages([baseMsg]);
+        }
+      })
+      .catch(() => setMessages([baseMsg]));
   }, [brand.id, briefingDone, messages.length, brandName, brand.domain, brand.latestScore, brand.latestScoreChatgpt, brand.latestScoreGemini, brand.latestScorePerplexity]);
 
   const sendMessage = async (text: string) => {
@@ -463,6 +583,7 @@ export function GeoAgentTab({
         auditCheckedAt?: string | null;
         auditResult?: AuditToolResult | null;
         competitorResult?: { comparison: CompetitorEntry[] } | null;
+        generatedFileResult?: { fileType: string; content: string; domain: string } | null;
       };
 
       if (data.keywords && data.keywords.length > 0) setApiKeywords(data.keywords);
@@ -483,6 +604,10 @@ export function GeoAgentTab({
         window.dispatchEvent(new CustomEvent("audit-updated", { detail: { domain: auditToolResult.domain } }));
       }
 
+      const generatedContent = data.generatedFileResult?.content
+        ? ({ fileType: data.generatedFileResult.fileType, content: data.generatedFileResult.content, domain: data.generatedFileResult.domain } as GeneratedFileContent)
+        : undefined;
+
       const visualType = auditToolResult ? "audit_result" : detectVisualType(msg, data.reply);
       const followUpChips = auditToolResult ? CHIP_SETS.after_technical : getFollowUpChips(msg, data.reply);
 
@@ -495,6 +620,7 @@ export function GeoAgentTab({
         followUpChips,
         toolsUsed: data.toolsUsed ?? [],
         auditToolResult,
+        generatedContent,
       }]);
 
       if (data.remaining !== null) {
@@ -631,6 +757,12 @@ export function GeoAgentTab({
                       })}
                     </div>
                   )}
+                  {msg.role === "agent" && msg.isBriefing && !msg.isStreaming && (
+                    <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>
+                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#4F46E5", display: "inline-block" }} />
+                      Today's briefing
+                    </div>
+                  )}
                   <div style={{
                     background: msg.role === "user" ? "#6366f1" : "white",
                     color: msg.role === "user" ? "white" : "#111827",
@@ -672,6 +804,13 @@ export function GeoAgentTab({
                 </div>
               )}
             </div>
+
+            {/* Generated file content - shown inline below agent bubble */}
+            {msg.role === "agent" && !msg.isLoading && !msg.isStreaming && msg.generatedContent && (
+              <div style={{ marginLeft: 36, marginTop: 2 }}>
+                <GeneratedContentBubble content={msg.generatedContent} brandId={brand.id} />
+              </div>
+            )}
 
             {/* Visual component below agent message - only after streaming is done */}
             {msg.role === "agent" && !msg.isLoading && !msg.isStreaming && msg.visualType && msg.content && (

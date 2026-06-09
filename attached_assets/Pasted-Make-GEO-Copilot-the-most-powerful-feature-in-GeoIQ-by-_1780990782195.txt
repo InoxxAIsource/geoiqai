@@ -1,0 +1,497 @@
+Make GEO Copilot the most powerful feature
+in GeoIQ by integrating all dashboard data
+and adding 6 new capabilities.
+
+STEP 1: BUILD THE CONTEXT LOADER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create a new function that loads ALL 
+user data before each Copilot session:
+
+File: agent.ts
+
+const loadUserContext = async (
+  userId: string,
+  domain: string
+): Promise<UserContext> => {
+  
+  const [
+    aiPresence,
+    sprintProgress,
+    answerMonitoring,
+    brandPerformance,
+    competitorData
+  ] = await Promise.allSettled([
+    
+    // AI Visibility Report data
+    supabase
+      .from('geoiq_cache')
+      .select('response_json, cached_at')
+      .eq('domain', domain)
+      .eq('endpoint', 'ai_presence')
+      .order('cached_at', { ascending: false })
+      .limit(1)
+      .single(),
+    
+    // GEO Sprint progress
+    supabase
+      .from('sprint_progress')
+      .select('step_id, completed, completed_at')
+      .eq('user_id', userId)
+      .eq('domain', domain),
+    
+    // Answer Monitoring prompts
+    supabase
+      .from('tracked_prompts')
+      .select('prompt, mentioned, position, sentiment, context')
+      .eq('user_id', userId)
+      .eq('domain', domain)
+      .limit(20),
+    
+    // Brand performance / signal tracker
+    supabase
+      .from('brand_performance')
+      .select('*')
+      .eq('domain', domain)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single(),
+    
+    // Latest competitor scores
+    supabase
+      .from('geoiq_cache')
+      .select('response_json')
+      .eq('domain', domain)
+      .eq('endpoint', 'brand_benchmarks')
+      .order('cached_at', { ascending: false })
+      .limit(1)
+      .single()
+  ]);
+  
+  const presence = aiPresence.status === 'fulfilled'
+    ? aiPresence.value.data?.response_json : null;
+  
+  const sprint = sprintProgress.status === 'fulfilled'
+    ? sprintProgress.value.data : [];
+  
+  const prompts = answerMonitoring.status === 'fulfilled'
+    ? answerMonitoring.value.data : [];
+  
+  const brand = brandPerformance.status === 'fulfilled'
+    ? brandPerformance.value.data : null;
+  
+  const competitors = competitorData.status === 'fulfilled'
+    ? competitorData.value.data?.response_json : null;
+  
+  // Calculate sprint stats
+  const completedSteps = sprint
+    .filter(s => s.completed).length;
+  const totalSteps = 33;
+  
+  // Find next sprint step
+  const SPRINT_STEPS = [...]; // import from geo-sprint
+  const completedIds = new Set(
+    sprint.filter(s => s.completed).map(s => s.step_id)
+  );
+  const nextStep = SPRINT_STEPS.find(
+    s => !completedIds.has(s.id)
+  );
+  
+  // Build context string for Claude
+  return {
+    domain,
+    score: presence?.score || 0,
+    scores: {
+      chatgpt: presence?.systems?.chatgpt?.score || 0,
+      gemini: presence?.systems?.gemini?.score || 0,
+      perplexity: presence?.systems?.perplexity?.score || 0,
+      claude: presence?.systems?.claude?.score || 0,
+      grok: presence?.systems?.grok?.score || 0,
+      google_ai: presence?.aio_score || 0
+    },
+    issues: presence?.issues || [],
+    site_health: presence?.site_health_score || 0,
+    ai_readiness: presence?.ai_readiness_score || 0,
+    sprint: {
+      completed: completedSteps,
+      total: totalSteps,
+      next_step: nextStep,
+      phase: Math.floor(completedSteps / 5) + 1
+    },
+    prompts: {
+      tracked: prompts?.length || 0,
+      mentioned: prompts?.filter(p => p.mentioned).length || 0,
+      best_prompt: prompts?.find(p => p.position === 1),
+      negative_prompts: prompts?.filter(
+        p => p.sentiment === 'negative'
+      ) || []
+    },
+    competitors: competitors?.competitors || [],
+    last_scan: presence?.cached_at || null
+  };
+};
+
+STEP 2: INJECT CONTEXT INTO CLAUDE SYSTEM PROMPT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Before every message chain pass the 
+loaded context to Claude:
+
+const buildSystemPrompt = (ctx: UserContext) => `
+You are GEO Copilot — an expert AI visibility 
+strategist for ${ctx.domain}.
+
+You have full access to their current data:
+
+CURRENT AI VISIBILITY:
+- Overall score: ${ctx.score}/100
+- ChatGPT: ${ctx.scores.chatgpt}/100
+- Gemini: ${ctx.scores.gemini}/100
+- Perplexity: ${ctx.scores.perplexity}/100
+- Claude: ${ctx.scores.claude}/100
+- Grok: ${ctx.scores.grok}/100
+- Google AI Overview: ${ctx.scores.google_ai}/100
+- Site Health: ${ctx.site_health}/100
+- AI Readiness: ${ctx.ai_readiness}/100
+
+CURRENT ISSUES:
+${ctx.issues.map(i => 
+  `- [${i.severity.toUpperCase()}] ${i.title} 
+   (+${i.score_impact} pts if fixed, 
+   affects: ${i.affects.join(', ')})`
+).join('\n')}
+
+GEO SPRINT PROGRESS:
+- ${ctx.sprint.completed}/${ctx.sprint.total} steps complete
+- Current phase: ${ctx.sprint.phase}
+- Next step: ${ctx.sprint.next_step?.title || 'All done!'}
+  Action: ${ctx.sprint.next_step?.why || ''}
+
+ANSWER MONITORING:
+- Tracked prompts: ${ctx.prompts.tracked}
+- Mentioned in: ${ctx.prompts.mentioned} prompts
+- Best position: ${ctx.prompts.best_prompt 
+    ? `#1 for "${ctx.prompts.best_prompt.prompt}"` 
+    : 'No #1 positions yet'}
+${ctx.prompts.negative_prompts.length > 0 
+  ? `- ALERT: ${ctx.prompts.negative_prompts.length} 
+     prompts with negative sentiment` 
+  : ''}
+
+COMPETITORS:
+${ctx.competitors.slice(0,3).map(c => 
+  `- ${c.domain}: ${c.score}/100 AI visibility`
+).join('\n')}
+
+YOUR ROLE:
+1. Be specific — always reference real data above
+2. Never give generic advice — every recommendation 
+   must be based on their actual scores and issues
+3. When user asks what to do → recommend next 
+   sprint step with exact score impact
+4. When user asks about a platform → explain 
+   their specific score and what drives it
+5. Offer to generate fixes directly in chat
+6. Celebrate progress when scores improve
+7. Keep responses concise — 2-4 short paragraphs max
+8. Always end with 2-3 action chip suggestions
+
+TOOLS AVAILABLE:
+You can call these tools when appropriate:
+- generate_fix(type): generate llms.txt, 
+  schema, robots.txt, FAQ
+- create_content(platform, domain): generate 
+  Reddit, LinkedIn, PH, HN, X content
+- find_journalists(topic): search PR Intelligence
+- complete_sprint_step(step_id): mark step done
+- run_full_scan(domain): trigger rescan
+- get_competitor_gap(domain): competitor analysis
+`;
+
+STEP 3: ADD PROACTIVE DAILY BRIEFING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+On first message each day show briefing.
+Store last_briefing_date in localStorage.
+
+const generateDailyBriefing = (ctx: UserContext) => {
+  const parts = [];
+  
+  // Score status
+  parts.push(`Your AI visibility score is 
+    **${ctx.score}/100**`);
+  
+  // Best platform
+  const best = Object.entries(ctx.scores)
+    .sort((a,b) => b[1] - a[1])[0];
+  parts.push(`Strongest platform: ${best[0]} 
+    at ${best[1]}/100`);
+  
+  // Weakest platform
+  const worst = Object.entries(ctx.scores)
+    .filter(([,v]) => v > 0)
+    .sort((a,b) => a[1] - b[1])[0];
+  if (worst) {
+    parts.push(`Biggest gap: ${worst[0]} 
+      at ${worst[1]}/100`);
+  }
+  
+  // Sprint recommendation
+  if (ctx.sprint.next_step) {
+    parts.push(`Recommended today: 
+      ${ctx.sprint.next_step.title} 
+      (+${ctx.sprint.next_step.score_impact} pts)`);
+  }
+  
+  // Negative sentiment alert
+  if (ctx.prompts.negative_prompts.length > 0) {
+    parts.push(`⚠️ ${ctx.prompts.negative_prompts.length} 
+      prompts showing negative AI sentiment`);
+  }
+  
+  return parts.join('\n\n');
+};
+
+Show as first message if not shown today:
+{isDailyBriefingDue && (
+  <BriefingMessage 
+    content={generateDailyBriefing(ctx)}
+    chips={[
+      'Fix my biggest gap',
+      'Show sprint steps', 
+      'Check competitor gaps'
+    ]}
+  />
+)}
+
+STEP 4: SCORE PREDICTION TOOL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When user asks "what will my score be 
+if I do X" or "what should I do today":
+
+Calculate predicted score:
+
+const predictScore = (
+  currentScore: number,
+  pendingSteps: SprintStep[]
+) => {
+  const topSteps = pendingSteps
+    .sort((a,b) => b.score_impact - a.score_impact)
+    .slice(0, 3);
+  
+  const totalGain = topSteps
+    .reduce((sum, s) => sum + s.score_impact, 0);
+  
+  return {
+    current: currentScore,
+    predicted: Math.min(currentScore + totalGain, 99),
+    steps: topSteps,
+    time: topSteps.reduce(
+      (sum, s) => sum + parseInt(s.time), 0
+    )
+  };
+};
+
+Show as a card in the message:
+
+┌─────────────────────────────────┐
+│ Score Prediction                │
+│                                 │
+│ Current:   34/100               │
+│ After 3 steps: 69/100 ↑        │
+│                                 │
+│ Steps:                          │
+│ ✦ FAQ schema (+12) 15 mins     │
+│ ✦ Reddit post (+15) 30 mins    │
+│ ✦ llms.txt (+8) 5 mins         │
+│                                 │
+│ Total time: ~50 minutes         │
+└─────────────────────────────────┘
+
+STEP 5: IN-CHAT CONTENT GENERATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When Claude decides to generate content
+it calls the generate tool and shows 
+result INSIDE the chat bubble:
+
+const handleGenerateFix = async (type: string) => {
+  const result = await fetch(
+    `/api/generate/${type}`,
+    { method: 'POST',
+      body: JSON.stringify({ domain }) }
+  );
+  const data = await result.json();
+  
+  // Add generated content as a special message
+  addMessage({
+    role: 'assistant',
+    type: 'generated_content',
+    content: data.content || data.code,
+    contentType: type,
+    label: `Generated ${type}`,
+    copyButton: true,
+    markDoneButton: true,
+    sprintStepId: getSprintStepId(type)
+  });
+};
+
+GeneratedContentMessage component:
+<div style={{
+  background: '#f8fafc',
+  border: '0.5px solid #e8eaef',
+  borderRadius: 8,
+  padding: 16,
+  marginTop: 8
+}}>
+  <div style={{
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginBottom: 8
+  }}>
+    <span style={{
+      fontSize: 11,
+      fontWeight: 500,
+      color: '#94a3b8',
+      textTransform: 'uppercase'
+    }}>
+      Generated {contentType}
+    </span>
+    <button onClick={copyContent}>
+      <i className="ti ti-copy" /> Copy
+    </button>
+  </div>
+  
+  <pre style={{
+    fontSize: 12,
+    whiteSpace: 'pre-wrap',
+    color: '#374151',
+    maxHeight: 200,
+    overflow: 'auto'
+  }}>
+    {content}
+  </pre>
+  
+  <button 
+    onClick={() => markSprintDone(sprintStepId)}
+    style={{
+      marginTop: 8,
+      fontSize: 12,
+      color: '#10b981',
+      background: '#f0fdf4',
+      border: 'none',
+      padding: '5px 12px',
+      borderRadius: 6,
+      cursor: 'pointer'
+    }}
+  >
+    ✓ Mark sprint step as done
+  </button>
+</div>
+
+STEP 6: SENTIMENT ALERT MESSAGES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When context has negative sentiment prompts:
+
+Add to system prompt:
+"IMPORTANT: The following prompts show 
+negative AI sentiment about ${domain}:
+${negativePrompts.map(p => 
+  `"${p.prompt}" — AI said: "${p.context}"`
+).join('\n')}
+
+Proactively mention this when relevant
+and suggest content that addresses
+these specific objections."
+
+STEP 7: COMPETITOR COMPARISON TOOL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When user asks about competitors:
+Copilot reads Brand Benchmarks cache
+and shows comparison card:
+
+const CompetitorCard = ({ user, competitors }) => (
+  <div style={{ marginTop: 8 }}>
+    {competitors.map(c => (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '8px 0',
+        borderBottom: '0.5px solid #f1f5f9'
+      }}>
+        <span style={{ fontSize: 13 }}>
+          {c.domain}
+        </span>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8
+        }}>
+          <div style={{
+            width: 80,
+            height: 4,
+            background: '#f1f5f9',
+            borderRadius: 100
+          }}>
+            <div style={{
+              width: `${c.score}%`,
+              height: '100%',
+              background: c.score > user.score 
+                ? '#ef4444' : '#10b981',
+              borderRadius: 100
+            }} />
+          </div>
+          <span style={{
+            fontSize: 13,
+            fontWeight: 500,
+            color: c.score > user.score 
+              ? '#ef4444' : '#10b981'
+          }}>
+            {c.score}
+          </span>
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST SCENARIOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Test 1: Open Copilot fresh
+Daily briefing shows with real score.
+Chips suggest most impactful action.
+
+Test 2: "Why is my Perplexity score low?"
+Copilot shows exact score (28/100)
+Lists real issues from AI Presence data
+NOT generic advice
+
+Test 3: "Generate my FAQ schema"
+Copilot calls generate API
+Shows generated schema IN the chat bubble
+[Copy] and [Mark as done] buttons visible
+
+Test 4: "What should I do today?"
+Shows score prediction card:
+Current → predicted after top 3 steps
+Lists specific steps with time estimates
+
+Test 5: "How do I compare to competitors?"
+Shows competitor comparison mini-card
+with real scores from Brand Benchmarks
+
+Test 6: Check negative sentiment
+If negative prompts exist in monitoring
+Copilot proactively mentions them
+and suggests content to address them
+
+Share screenshot of:
+1. Daily briefing message
+2. Score prediction card
+3. Generated content inside chat bubble
