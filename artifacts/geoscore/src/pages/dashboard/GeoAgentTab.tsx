@@ -88,6 +88,7 @@ interface Message {
   followUpChips?: string[];
   toolsUsed?: ToolUsed[];
   auditToolResult?: AuditToolResult;
+  scoreGrid?: { chatgpt: number | null; gemini: number | null; perplexity: number | null };
 }
 
 const STARTER_LIMIT = 50;
@@ -164,14 +165,6 @@ const THINKING_SETS: Record<string, string[]> = {
     "Applying GEO framework...",
   ],
 };
-
-const SLASH_COMMANDS: { cmd: string; label: string; message: string }[] = [
-  { cmd: "/audit",      label: "/audit",      message: "/audit" },
-  { cmd: "/visibility", label: "/visibility", message: "/visibility" },
-  { cmd: "/authority",  label: "/authority",  message: "/authority" },
-  { cmd: "/brief",      label: "/brief",      message: "/brief" },
-  { cmd: "/watch",      label: "/watch",      message: "/watch" },
-];
 
 function getThinkingKey(msg: string): string {
   const m = msg.toLowerCase().trim();
@@ -419,16 +412,18 @@ export function GeoAgentTab({
   useEffect(() => {
     if (briefingDone || messages.length > 0) return;
     const score = brand.latestScore ?? 0;
+    const domainLabel = brand.domain ?? brandName;
     const greeting = score > 0
-      ? `Hey, I'm your GEO Agent for ${brandName}. Your current AI visibility score is ${score}/100 across ChatGPT, Gemini, and Perplexity. Hit Send below to run a full audit with CORE-EEAT and CITE scoring, or use the slash commands to dig into anything specific.`
-      : `Hey, I'm your GEO Agent for ${brandName}. Looks like we don't have audit data yet. Hit Send below to run your first GEO audit, or use /audit above to kick it off right now.`;
+      ? `Hi! I'm your GEO Copilot for **${domainLabel}**. Your AI visibility score is **${score}/100** across ChatGPT, Gemini, and Perplexity.`
+      : `Hi! I'm your GEO Copilot for **${domainLabel}**. Looks like we don't have audit data yet. Run a full audit to get your AI visibility score.`;
     setMessages([{
       role: "agent",
       content: greeting,
-      followUpChips: CHIP_SETS.default,
+      followUpChips: ["Why is my score low?", "What should I fix first?", "Show my sprint progress", "Check my competitors"],
+      ...(score > 0 ? { scoreGrid: { chatgpt: brand.latestScoreChatgpt ?? null, gemini: brand.latestScoreGemini ?? null, perplexity: brand.latestScorePerplexity ?? null } } : {}),
     }]);
     setBriefingDone(true);
-  }, [brand.id, briefingDone, messages.length, brandName, brand.latestScore]);
+  }, [brand.id, briefingDone, messages.length, brandName, brand.domain, brand.latestScore, brand.latestScoreChatgpt, brand.latestScoreGemini, brand.latestScorePerplexity]);
 
   const sendMessage = async (text: string) => {
     const msg = text.trim();
@@ -548,34 +543,41 @@ export function GeoAgentTab({
     competitorResult: apiCompetitorData,
   });
 
+  const agentLimit = plan === "agency" ? 200 : plan === "starter" ? STARTER_LIMIT : 10;
+  const agentUsed = remaining !== null ? agentLimit - remaining : (plan === "agency" ? 0 : agentLimit);
+  const score = brand.latestScore ?? 0;
+  const domainDisplay = brand.domain ?? brandName;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 180px)", minHeight: 500, maxHeight: 820 }}>
-      {/* Top bar */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+      {/* Header bar */}
+      <div style={{ padding: "14px 20px", borderBottom: "0.5px solid #e8eaef", display: "flex", alignItems: "center", justifyContent: "space-between", background: "white", borderRadius: "10px 10px 0 0", flexShrink: 0 }}>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: "#111827" }}>GEO Copilot</div>
-          <div style={{ fontSize: 12, color: "#6b7280" }}>Powered by Claude - knows your brand, scores, and competitors</div>
+          <p style={{ fontSize: 15, fontWeight: 500, color: "#0f172a", margin: 0 }}>GEO Copilot</p>
+          <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 2, margin: "2px 0 0" }}>
+            {domainDisplay} · {score}/100 AI visibility · {remaining !== null ? remaining : "Unlimited"} messages left
+          </p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {plan === "starter" && remaining !== null && (
-            <div style={{ fontSize: 11, color: remaining <= 5 ? "#DC2626" : "#9ca3af" }}>
-              {remaining} of {STARTER_LIMIT} messages left
-            </div>
-          )}
-          {plan === "agency" && (
-            <div style={{ fontSize: 11, color: "#9ca3af" }}>Unlimited messages</div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {remaining !== null && (
+            <>
+              <div style={{ width: 80, height: 4, background: "#f1f5f9", borderRadius: 100, overflow: "hidden" }}>
+                <div style={{ width: `${Math.min((agentUsed / agentLimit) * 100, 100)}%`, height: "100%", background: agentUsed / agentLimit > 0.8 ? "#ef4444" : "#6366f1", borderRadius: 100, transition: "width 0.3s" }} />
+              </div>
+              <span style={{ fontSize: 11, color: "#94a3b8" }}>{agentUsed}/{agentLimit}</span>
+            </>
           )}
           <button
             onClick={() => { setMessages([]); setBriefingDone(false); setLimitReached(false); }}
-            style={{ background: "transparent", border: "0.5px solid #e5e7eb", borderRadius: 6, padding: "4px 10px", fontSize: 11, color: "#6b7280", cursor: "pointer" }}
+            style={{ fontSize: 12, color: "#64748b", background: "none", border: "0.5px solid #e8eaef", padding: "4px 10px", borderRadius: 6, cursor: "pointer" }}
           >
-            Clear chat
+            Clear
           </button>
         </div>
       </div>
 
       {/* Chat area */}
-      <div style={{ flex: 1, overflowY: "auto", background: "#F9FAFB", borderRadius: 10, border: "0.5px solid #e5e7eb", padding: "14px 14px 8px", display: "flex", flexDirection: "column", gap: 14, marginBottom: 10 }}>
+      <div style={{ flex: 1, overflowY: "auto", background: "#f8fafc", border: "0.5px solid #e8eaef", borderTop: "none", padding: "14px 14px 8px", display: "flex", flexDirection: "column", gap: 14, marginBottom: 10 }}>
         {messages.map((msg, i) => (
           <div key={i}>
             <div style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start", gap: 8, alignItems: "flex-start" }}>
@@ -630,13 +632,13 @@ export function GeoAgentTab({
                     </div>
                   )}
                   <div style={{
-                    background: msg.role === "user" ? "#4F46E5" : "white",
+                    background: msg.role === "user" ? "#6366f1" : "white",
                     color: msg.role === "user" ? "white" : "#111827",
-                    borderRadius: msg.role === "user" ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
-                    padding: "10px 14px",
-                    fontSize: 13.5,
-                    lineHeight: 1.65,
-                    border: msg.role === "agent" ? "1px solid #E5E7EB" : "none",
+                    borderRadius: msg.role === "user" ? "12px 0 12px 12px" : "0 12px 12px 12px",
+                    padding: "14px 16px",
+                    fontSize: 13,
+                    lineHeight: 1.6,
+                    border: msg.role === "agent" ? "0.5px solid #e8eaef" : "none",
                     whiteSpace: "pre-wrap",
                   }}>
                     {msg.role === "agent" && msg.isStreaming ? (
@@ -646,6 +648,16 @@ export function GeoAgentTab({
                       />
                     ) : (
                       msg.content
+                    )}
+                    {msg.role === "agent" && msg.scoreGrid && !msg.isStreaming && (
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 12, paddingTop: 12, borderTop: "0.5px solid #e8eaef" }}>
+                        {([["ChatGPT", msg.scoreGrid.chatgpt], ["Gemini", msg.scoreGrid.gemini], ["Perplexity", msg.scoreGrid.perplexity]] as [string, number | null][]).map(([label, val]) => (
+                          <div key={label} style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 10px", textAlign: "center" }}>
+                            <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>{label}</div>
+                            <div style={{ fontSize: 20, fontWeight: 600, color: "#0f172a" }}>{val ?? "-"}</div>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                   {msg.role === "agent" && msg.content && (
@@ -685,57 +697,44 @@ export function GeoAgentTab({
         </div>
       )}
 
-      {/* Slash command chips */}
-      {!limitReached && (
-        <div style={{ display: "flex", gap: 6, marginBottom: 6, overflowX: "auto", scrollbarWidth: "none" } as React.CSSProperties}>
-          {SLASH_COMMANDS.map(sc => (
-            <button
-              key={sc.cmd}
-              onClick={() => sendMessage(sc.message)}
-              disabled={loading}
-              style={{
-                flexShrink: 0,
-                background: "white",
-                border: "1px solid #E5E7EB",
-                borderRadius: 6,
-                padding: "4px 10px",
-                fontSize: 11.5,
-                color: loading ? "#c4b5fd" : "#5B21B6",
-                fontFamily: "monospace",
-                fontWeight: 600,
-                cursor: loading ? "not-allowed" : "pointer",
-                letterSpacing: "0.02em",
-                transition: "background 0.12s, border-color 0.12s, color 0.12s",
-              }}
-              onMouseEnter={e => { if (!loading) { e.currentTarget.style.background = "#EDE9FE"; e.currentTarget.style.borderColor = "#7C3AED"; } }}
-              onMouseLeave={e => { e.currentTarget.style.background = "white"; e.currentTarget.style.borderColor = "#E5E7EB"; e.currentTarget.style.color = loading ? "#c4b5fd" : "#5B21B6"; }}
-            >
-              {sc.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Input row */}
-      <form onSubmit={handleSubmit} style={{ display: "flex", gap: 8 }}>
-        <input
-          ref={inputRef}
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          placeholder="Ask your GEO agent anything..."
-          disabled={loading || limitReached}
-          style={{ flex: 1, border: "1px solid #e5e7eb", borderRadius: 8, padding: "9px 12px", fontSize: 13, outline: "none", color: "#111827", background: limitReached ? "#F9FAFB" : "white" }}
-          onFocus={e => (e.currentTarget.style.borderColor = "#4F46E5")}
-          onBlur={e => (e.currentTarget.style.borderColor = "#e5e7eb")}
-        />
-        <button
-          type="submit"
-          disabled={loading || !input.trim() || limitReached}
-          style={{ background: loading || !input.trim() || limitReached ? "#c7d2fe" : "#4F46E5", color: "white", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 500, cursor: loading || !input.trim() || limitReached ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 5 }}
-        >
-          <Send size={13} /> Send
-        </button>
-      </form>
+      {/* Input area */}
+      <div style={{ padding: "12px 16px", borderTop: "0.5px solid #e8eaef", background: "white", borderRadius: "0 0 10px 10px", border: "0.5px solid #e8eaef", borderTopColor: "#e8eaef" }}>
+        {/* Quick actions row */}
+        {!limitReached && (
+          <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <span style={{ fontSize: 11, color: "#94a3b8", marginRight: 2 }}>Quick:</span>
+            {["Full audit", "Write content", "Find journalists", "Check competitors", "My sprint"].map(action => (
+              <button
+                key={action}
+                onClick={() => sendMessage(action)}
+                disabled={loading}
+                style={{ fontSize: 11, color: "#64748b", background: "#f8fafc", border: "0.5px solid #e8eaef", padding: "3px 10px", borderRadius: 100, cursor: loading ? "not-allowed" : "pointer" }}
+              >
+                {action}
+              </button>
+            ))}
+          </div>
+        )}
+        <form onSubmit={handleSubmit} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder="Ask anything about your AI visibility..."
+            disabled={loading || limitReached}
+            style={{ flex: 1, padding: "10px 14px", border: "0.5px solid #d1d5db", borderRadius: 8, fontSize: 13, background: "#f8fafc", outline: "none", color: "#111827" }}
+            onFocus={e => { e.currentTarget.style.borderColor = "#6366f1"; e.currentTarget.style.background = "white"; }}
+            onBlur={e => { e.currentTarget.style.borderColor = "#d1d5db"; e.currentTarget.style.background = "#f8fafc"; }}
+          />
+          <button
+            type="submit"
+            disabled={loading || !input.trim() || limitReached}
+            style={{ padding: "10px 18px", background: loading || !input.trim() || limitReached ? "#c7d2fe" : "#6366f1", color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: loading || !input.trim() || limitReached ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}
+          >
+            <Send size={13} /> Send
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

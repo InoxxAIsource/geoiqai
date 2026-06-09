@@ -65,9 +65,9 @@ function SentimentBadge({ s }: { s: string }) {
 }
 
 function TrendBadge({ trend }: { trend: "up" | "down" | "flat" }) {
-  if (trend === "up") return <span style={{ color: GREEN, fontWeight: 700, fontSize: 14 }}>+</span>;
-  if (trend === "down") return <span style={{ color: RED, fontWeight: 700, fontSize: 14 }}>-</span>;
-  return <span style={{ color: MUTED, fontWeight: 700, fontSize: 14 }}>=</span>;
+  if (trend === "up") return <span style={{ color: GREEN, fontWeight: 700, fontSize: 16 }}>↑</span>;
+  if (trend === "down") return <span style={{ color: RED, fontWeight: 700, fontSize: 16 }}>↓</span>;
+  return <span style={{ color: MUTED, fontWeight: 700, fontSize: 16 }}>→</span>;
 }
 
 function MentionBadge({ mentioned }: { mentioned: boolean }) {
@@ -215,42 +215,43 @@ export function PromptTracking({ domain, plan = "free" }: { domain: string; plan
 
   const lastChecked = prompts.flatMap(p => p.results.map(r => r.result?.checkedAt)).filter(Boolean).sort().reverse()[0];
 
-  const metricCards = [
-    { label: "AI Share of Voice", value: `${sov}%`, sub: `${totalMentions} of ${totalChecked} checks` },
-    { label: "Total Mentions", value: totalMentions, sub: "across all LLMs" },
-    { label: "Avg Position", value: avgPosition ?? "-", sub: "when mentioned" },
-    { label: "Tracked Prompts", value: `${prompts.length}/${limit}`, sub: plan === "free" ? "Free plan" : plan },
-    { label: "Last Updated", value: lastChecked ? fmtTime(lastChecked) : "Never", sub: null, action: () => load() },
-  ];
-
   return (
     <div>
       <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Answer Monitoring</div>
       <div style={{ fontSize: 13, color: MUTED, marginBottom: 20 }}>Track how AI systems answer queries about your brand</div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 20 }}>
-        {metricCards.map(k => (
-          <div key={k.label} style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: "16px 18px" }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{k.label}</div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-              <div style={{ fontSize: 26, fontWeight: 700 }}>{k.value}</div>
-              {k.action && (
-                <button onClick={k.action} title="Refresh" style={{ background: "none", border: "none", cursor: "pointer", color: MUTED, padding: 0, display: "flex" }}>
-                  <RefreshCw size={12} />
-                </button>
-              )}
+      {/* 4-column inline metrics grid */}
+      <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, marginBottom: 16, overflow: "hidden" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", borderBottom: `1px solid ${BORDER}` }}>
+          {[
+            { label: "Share of Voice", value: `${sov}%`, sub: `${totalMentions} of ${totalChecked} · add more for accuracy`, warning: prompts.length < 5 },
+            { label: "Mentions", value: totalMentions, sub: "across all AI systems" },
+            { label: "Tracked", value: `${prompts.length}/${limit}`, sub: plan === "free" ? "Free plan" : plan },
+            { label: "Last Checked", value: lastChecked ? fmtTime(lastChecked) : "Never", sub: "auto-checks daily" },
+          ].map((m, i) => (
+            <div key={m.label} style={{ padding: "16px 20px", borderRight: i < 3 ? `0.5px solid ${BORDER}` : "none" }}>
+              <p style={{ fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px", color: "#94a3b8", margin: "0 0 6px" }}>{m.label}</p>
+              <p style={{ fontSize: 28, fontWeight: 500, color: m.warning ? AMBER : "#0f172a", lineHeight: 1, margin: 0 }}>{m.value}</p>
+              <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, marginBottom: 0 }}>{m.sub}</p>
             </div>
-            {k.sub && <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{k.sub}</div>}
-          </div>
-        ))}
-      </div>
-
-      {sov > 0 && (
-        <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: "16px 20px", marginBottom: 20 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>AI Share of Voice</div>
-          <SovBar label={cleanDomain} value={sov} max={100} color={P} />
+          ))}
         </div>
-      )}
+        {/* Accuracy warning banner */}
+        {prompts.length < 10 && prompts.length > 0 && (
+          <div style={{ padding: "10px 20px", background: "#fffbeb", display: "flex", alignItems: "center", gap: 8 }}>
+            <AlertCircle size={14} color="#d97706" style={{ flexShrink: 0 }} />
+            <p style={{ fontSize: 12, color: "#92400e", flex: 1, margin: 0 }}>
+              Share of Voice shows {sov}% because only {prompts.length} prompt{prompts.length === 1 ? " is" : "s are"} tracked. Add 10+ prompts for accurate data.
+            </p>
+            <button
+              onClick={() => setShowModal(true)}
+              style={{ fontSize: 11, fontWeight: 500, color: "#d97706", background: "none", border: "none", cursor: "pointer", whiteSpace: "nowrap" }}
+            >
+              Add prompts
+            </button>
+          </div>
+        )}
+      </div>
 
       <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, padding: 20 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
@@ -293,89 +294,98 @@ export function PromptTracking({ domain, plan = "free" }: { domain: string; plan
             </button>
           </div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-              <thead>
-                <tr>
-                  {["Prompt", "LLM", "Position", "Mentioned", "Context", "Sentiment", "URL Cited", "Trend", ""].map(h => (
-                    <th key={h} style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", padding: "8px 12px", borderBottom: `1px solid ${BORDER}`, textAlign: "left", whiteSpace: "nowrap" }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {prompts.flatMap(p =>
-                  p.results.map((lr, li) => {
-                    const rowKey = `${p.id}:${lr.llm}`;
-                    const expanded = expandedRows.has(rowKey);
-                    const r = lr.result;
-                    return [
-                      <tr key={rowKey} style={{ background: expanded ? "#F8F7FF" : undefined }}>
-                        <td style={{ padding: "11px 12px", borderBottom: `1px solid ${BORDER}`, maxWidth: 260 }}>
-                          {li === 0 && (
-                            <div style={{ fontSize: 13, color: "#111827", lineHeight: 1.4 }}>{p.prompt}</div>
-                          )}
-                        </td>
-                        <td style={{ padding: "11px 12px", borderBottom: `1px solid ${BORDER}`, whiteSpace: "nowrap" }}>
-                          <span style={{ background: BG, border: `1px solid ${BORDER}`, borderRadius: 6, padding: "2px 7px", fontSize: 11, fontWeight: 600, color: "#374151" }}>{lr.llm}</span>
-                        </td>
-                        <td style={{ padding: "11px 12px", borderBottom: `1px solid ${BORDER}`, fontWeight: 600, color: r?.position != null ? "#111827" : MUTED }}>
-                          {r?.position != null ? r.position : "-"}
-                        </td>
-                        <td style={{ padding: "11px 12px", borderBottom: `1px solid ${BORDER}` }}>
-                          {r ? <MentionBadge mentioned={r.mentioned} /> : <span style={{ color: MUTED, fontSize: 11 }}>Not checked</span>}
-                        </td>
-                        <td style={{ padding: "11px 12px", borderBottom: `1px solid ${BORDER}`, maxWidth: 200, overflow: "hidden" }}>
-                          {r?.brandContext ? (
-                            <span style={{ fontSize: 11, color: "#374151", fontStyle: "italic" }}>
-                              "...{r.brandContext.length > 50 ? r.brandContext.slice(0, 50) + "..." : r.brandContext}..."
-                            </span>
-                          ) : <span style={{ color: MUTED, fontSize: 11 }}>{r ? "Not mentioned" : "-"}</span>}
-                        </td>
-                        <td style={{ padding: "11px 12px", borderBottom: `1px solid ${BORDER}` }}>
-                          {r ? <SentimentBadge s={r.sentiment} /> : <span style={{ color: MUTED, fontSize: 11 }}>-</span>}
-                        </td>
-                        <td style={{ padding: "11px 12px", borderBottom: `1px solid ${BORDER}` }}>
-                          {r ? (
-                            <span style={{ color: r.urlCited ? GREEN : MUTED, fontSize: 11, fontWeight: 600 }}>
-                              {r.urlCited ? "Yes" : "No"}
-                            </span>
-                          ) : <span style={{ color: MUTED, fontSize: 11 }}>-</span>}
-                        </td>
-                        <td style={{ padding: "11px 12px", borderBottom: `1px solid ${BORDER}` }}>
-                          <TrendBadge trend={lr.trend} />
-                        </td>
-                        <td style={{ padding: "11px 12px", borderBottom: `1px solid ${BORDER}` }}>
-                          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                            <button
-                              onClick={() => checkPrompt(p.id)}
-                              disabled={checking === p.id}
-                              style={{ padding: "4px 10px", background: "white", border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 11, color: checking === p.id ? MUTED : P, cursor: checking === p.id ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-                              {checking === p.id ? <Loader2 size={10} style={{ animation: "spin 0.8s linear infinite" }} /> : null}
-                              {checking === p.id ? "..." : "Check"}
-                            </button>
-                            {r && (
-                              <button
-                                onClick={() => toggleExpand(rowKey)}
-                                title={expanded ? "Collapse" : "View response"}
-                                style={{ padding: "4px 6px", background: expanded ? P : "white", color: expanded ? "white" : MUTED, border: `1px solid ${expanded ? P : BORDER}`, borderRadius: 6, fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center" }}>
-                                {expanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-                              </button>
-                            )}
+          <>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr>
+                    {["Prompt", "AI", "Mentioned", "Pos", "AI Said", "Sentiment", "Trend", ""].map(h => (
+                      <th key={h} style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px", padding: "8px 12px", borderBottom: "0.5px solid #e8eaef", textAlign: "left", whiteSpace: "nowrap" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {prompts.flatMap(p =>
+                    p.results.map((lr, li) => {
+                      const rowKey = `${p.id}:${lr.llm}`;
+                      const expanded = expandedRows.has(rowKey);
+                      const r = lr.result;
+                      const aiSaid = r?.fullResponse ? r.fullResponse.slice(0, 100) + (r.fullResponse.length > 100 ? "..." : "") : null;
+                      return [
+                        <tr
+                          key={rowKey}
+                          style={{ background: expanded ? "#f8fafc" : undefined, cursor: r ? "pointer" : undefined, verticalAlign: "middle" }}
+                          onMouseEnter={e => { if (!expanded) e.currentTarget.style.background = "#f8fafc"; }}
+                          onMouseLeave={e => { if (!expanded) e.currentTarget.style.background = ""; }}
+                          onClick={() => r && toggleExpand(rowKey)}
+                        >
+                          <td style={{ padding: "14px 12px", borderBottom: "0.5px solid #f1f5f9", maxWidth: 240 }}>
                             {li === 0 && (
-                              <button onClick={() => removePrompt(p.id)} style={{ padding: "4px 6px", background: "white", border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 11, color: RED, cursor: "pointer", display: "flex", alignItems: "center" }}>
-                                <X size={11} />
-                              </button>
+                              <div style={{ fontSize: 13, color: "#111827", lineHeight: 1.4 }}>{p.prompt}</div>
                             )}
-                          </div>
-                        </td>
-                      </tr>,
-                      expanded && r ? <ExpandedResponse key={`${rowKey}-exp`} result={r} domain={cleanDomain} /> : null,
-                    ];
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                          </td>
+                          <td style={{ padding: "14px 12px", borderBottom: "0.5px solid #f1f5f9", whiteSpace: "nowrap" }} onClick={e => e.stopPropagation()}>
+                            <span style={{ background: BG, border: `1px solid ${BORDER}`, borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 600, color: "#374151" }}>{lr.llm}</span>
+                          </td>
+                          <td style={{ padding: "14px 12px", borderBottom: "0.5px solid #f1f5f9" }}>
+                            {r ? <MentionBadge mentioned={r.mentioned} /> : <span style={{ color: MUTED, fontSize: 11 }}>Not checked</span>}
+                          </td>
+                          <td style={{ padding: "14px 12px", borderBottom: "0.5px solid #f1f5f9", fontWeight: 600, color: r?.position != null ? "#111827" : MUTED }}>
+                            {r?.position != null ? `#${r.position}` : "-"}
+                          </td>
+                          <td style={{ padding: "14px 12px", borderBottom: "0.5px solid #f1f5f9", maxWidth: 220 }}>
+                            {aiSaid ? (
+                              <span style={{ fontSize: 12, color: "#374151", fontStyle: "italic" }}>"{aiSaid}"</span>
+                            ) : <span style={{ color: MUTED, fontSize: 11 }}>{r ? "Not mentioned" : "-"}</span>}
+                          </td>
+                          <td style={{ padding: "14px 12px", borderBottom: "0.5px solid #f1f5f9" }} onClick={e => e.stopPropagation()}>
+                            {r ? <SentimentBadge s={r.sentiment} /> : <span style={{ color: MUTED, fontSize: 11 }}>-</span>}
+                          </td>
+                          <td style={{ padding: "14px 12px", borderBottom: "0.5px solid #f1f5f9" }} onClick={e => e.stopPropagation()}>
+                            <TrendBadge trend={lr.trend} />
+                          </td>
+                          <td style={{ padding: "14px 12px", borderBottom: "0.5px solid #f1f5f9" }} onClick={e => e.stopPropagation()}>
+                            <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                              {r && (
+                                <button
+                                  onClick={() => toggleExpand(rowKey)}
+                                  style={{ padding: "4px 10px", background: expanded ? P : "white", color: expanded ? "white" : P, border: `1px solid ${expanded ? P : BORDER}`, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>
+                                  {expanded ? "Close" : "View"}
+                                </button>
+                              )}
+                              <button
+                                onClick={() => checkPrompt(p.id)}
+                                disabled={checking === p.id}
+                                style={{ padding: "4px 10px", background: "white", border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 11, color: checking === p.id ? MUTED : "#374151", cursor: checking === p.id ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                                {checking === p.id ? <Loader2 size={10} style={{ animation: "spin 0.8s linear infinite" }} /> : <RefreshCw size={10} />}
+                                {checking === p.id ? "" : "Refresh"}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>,
+                        expanded && r ? <ExpandedResponse key={`${rowKey}-exp`} result={r} domain={cleanDomain} /> : null,
+                      ];
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {/* Empty state nudge when < 5 prompts tracked */}
+            {prompts.length < 5 && (
+              <div style={{ padding: "40px 20px", textAlign: "center", background: "#f8fafc", borderTop: "0.5px solid #e8eaef" }}>
+                <AlertCircle size={32} color="#cbd5e1" style={{ display: "block", margin: "0 auto 12px" }} />
+                <p style={{ fontSize: 14, fontWeight: 500, color: "#0f172a", marginBottom: 6 }}>Track more prompts for real data</p>
+                <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.6, maxWidth: 300, margin: "0 auto 16px" }}>
+                  Add the questions your customers ask AI about your category. You have {limit - prompts.length} slots remaining.
+                </p>
+                <button
+                  onClick={() => setShowModal(true)}
+                  style={{ padding: "8px 18px", background: P, color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
+                  + Add your first 10 prompts
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
