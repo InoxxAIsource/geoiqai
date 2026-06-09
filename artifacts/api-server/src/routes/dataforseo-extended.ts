@@ -1,5 +1,6 @@
 import { Router } from "express";
 import Exa from "exa-js";
+import { tavily } from "@tavily/core";
 import { requireAuth, verifyToken, type AuthRequest } from "../lib/auth";
 import { logger } from "../lib/logger";
 import {
@@ -1180,18 +1181,31 @@ async function scoreDomainViaExaAndClaude(
 
   if (!exa) {
     if (knownScore != null) return { score: knownScore, mentions: knownScore * 2000 };
-    try {
-      const msg = await anthropic.messages.create({
-        model: "claude-haiku-4-5",
-        max_tokens: 50,
-        system: "Return only a number 0-100. No explanation.",
-        messages: [{ role: "user", content: `Rate the AI visibility of ${domain} (0-100). How often would ChatGPT, Gemini, or Perplexity mention this brand when answering questions? Return only the number.` }],
-      });
-      const score = parseInt((msg.content[0] as { type: "text"; text: string }).text.trim()) || 10;
-      return { score: Math.min(Math.max(score, 1), 99), mentions: score * 200 };
-    } catch {
-      return { score: knownScore ?? 10, mentions: (knownScore ?? 10) * 200 };
+    // Use Tavily to count actual AI mention evidence - much more accurate than asking Claude
+    const tavilyKey = process.env.TAVILY_API_KEY;
+    if (tavilyKey) {
+      try {
+        const tvly = tavily({ apiKey: tavilyKey });
+        const cleanDomain = domain.replace(/^www\./, "");
+        const resp = await tvly.search(
+          `"${brandName}" OR "${cleanDomain}" mentioned recommended ChatGPT OR Gemini OR Perplexity 2025 2026`,
+          { maxResults: 10, searchDepth: "basic" as const },
+        );
+        const results = resp.results ?? [];
+        const recentCount = results.filter(r => {
+          const pub = (r as { publishedDate?: string }).publishedDate;
+          return pub ? Date.now() - new Date(pub).getTime() < 90 * 24 * 60 * 60 * 1000 : false;
+        }).length;
+        if (results.length === 0) return { score: 8, mentions: 0 };
+        const presenceScore = Math.min(results.length * 5, 55);
+        const freshnessBonus = Math.min(recentCount * 3, 15);
+        return { score: Math.min(presenceScore + freshnessBonus, 92), mentions: results.length * 3000 };
+      } catch {
+        return { score: knownScore ?? 8, mentions: (knownScore ?? 8) * 200 };
+      }
     }
+    // No Exa, no Tavily - default low for unknown small brands
+    return { score: knownScore ?? 8, mentions: (knownScore ?? 8) * 200 };
   }
 
   try {
