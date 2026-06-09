@@ -17,6 +17,7 @@ interface PageMeta {
   twitterTitle?: string;
   twitterDescription?: string;
   noindex?: boolean;
+  extraJsonLd?: Record<string, unknown>;
 }
 
 const BASE = "https://geoiqai.com";
@@ -211,6 +212,101 @@ const PAGE_META: Record<string, PageMeta> = {
     ogType: "website",
     noindex: true,
   },
+  "/faq": {
+    title: "FAQ - Frequently Asked Questions | GeoIQ",
+    description: "Answers to common questions about GeoIQ - how AI visibility scores work, how to improve them, what the audit checks, and pricing details.",
+    canonical: `${BASE}/faq`,
+    ogImage: DEFAULT_OG_IMAGE,
+    ogType: "website",
+    twitterTitle: "GeoIQ FAQ - AI Visibility Questions Answered",
+    twitterDescription: "How AI visibility scores work, what the audit checks, how to improve your score, and pricing details.",
+    extraJsonLd: {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is GeoIQ?",
+          "acceptedAnswer": { "@type": "Answer", "text": "GeoIQ is an AI visibility platform that shows you how your brand appears in ChatGPT, Gemini, Perplexity, Claude and Grok. Think of it like Google Search Console, but for AI search engines. You enter your domain, and within 60 seconds you get a score from 0-100, a breakdown by engine, and a list of fixes ranked by impact." },
+        },
+        {
+          "@type": "Question",
+          "name": "What is an AI visibility score?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Your AI visibility score (GEO IQ Score) is a number from 0 to 100 that measures how well AI systems know, understand, and recommend your brand. It combines two things: how often and accurately AI engines mention you (AI Memory, worth 50 points), and how well your site is technically set up for AI crawlers (Technical GEO, worth 50 points). A score above 70 is strong; below 40 means you have real gaps to fix." },
+        },
+        {
+          "@type": "Question",
+          "name": "Which AI engines does GeoIQ check?",
+          "acceptedAnswer": { "@type": "Answer", "text": "GeoIQ checks five AI systems: ChatGPT (OpenAI), Gemini (Google), Perplexity, Claude (Anthropic), and Grok (xAI). Your overall GEO IQ Score is primarily based on the three main engines - ChatGPT, Gemini, and Perplexity - since those drive the most traffic and referrals today." },
+        },
+        {
+          "@type": "Question",
+          "name": "What is GEO (Generative Engine Optimization)?",
+          "acceptedAnswer": { "@type": "Answer", "text": "GEO stands for Generative Engine Optimization. It is the practice of optimizing your brand, content, and website so that AI systems like ChatGPT and Gemini understand who you are, what you do, and when to recommend you. It is similar to SEO, but instead of optimizing for Google's ranking algorithm, you are optimizing for how large language models represent your brand in their responses." },
+        },
+        {
+          "@type": "Question",
+          "name": "How do I run a free audit?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Go to the home page, type your domain name (e.g. yourstartup.com) into the input box, and click Check my AI visibility. The audit runs in about 60 seconds and you get a full report - no signup required." },
+        },
+        {
+          "@type": "Question",
+          "name": "How long does the audit take?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Usually 30-60 seconds for the first audit. If your domain was audited recently by someone else, cached results may load instantly. Running a fresh scan from your dashboard takes about 30 seconds." },
+        },
+        {
+          "@type": "Question",
+          "name": "My score seems low. Is that normal?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Most brands score between 30 and 60 on their first audit. A score under 40 is common for early-stage startups because AI models primarily learn from large datasets of web content, and smaller brands have less representation in that training data. The good news is that technical fixes (llms.txt, structured data, schema markup) can improve your score fairly quickly." },
+        },
+        {
+          "@type": "Question",
+          "name": "What is a good GEO IQ Score?",
+          "acceptedAnswer": { "@type": "Answer", "text": "As a rough guide: 70 and above is strong, 50-70 is moderate and improving, 30-50 is weak and needs work, and below 30 means AI engines barely know you exist. Top SaaS tools typically score 80+. If you are a well-funded startup with solid press coverage, aim for 60+ as a baseline." },
+        },
+        {
+          "@type": "Question",
+          "name": "How do I improve my AI visibility score?",
+          "acceptedAnswer": { "@type": "Answer", "text": "The most impactful fixes are: (1) create an llms.txt file that describes your brand, products, use cases, and competitors clearly; (2) add structured data (JSON-LD schema) to your key pages; (3) get your brand mentioned on high-authority sites that AI models use as training sources; (4) make sure robots.txt is not blocking AI crawlers like GPTBot and ClaudeBot; (5) write clear, factual content about what your product does and who it is for. GeoIQ's dashboard gives you a ranked fix list specific to your domain." },
+        },
+        {
+          "@type": "Question",
+          "name": "What is an llms.txt file and do I need one?",
+          "acceptedAnswer": { "@type": "Answer", "text": "llms.txt is a plain text file you place at yourdomain.com/llms.txt that tells AI crawlers exactly what your brand is, what it does, and how it should be described. Think of it as a README for AI systems. It is not an official standard yet, but major crawlers like GPTBot and ClaudeBot are starting to read it. It is one of the fastest things you can do to improve your AI visibility." },
+        },
+        {
+          "@type": "Question",
+          "name": "Is the audit really free?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. The public audit tool at geoiqai.com/audit is completely free, no signup required. You get a full score breakdown, per-engine results, technical audit, and top fix recommendations. The free audit does not require a credit card." },
+        },
+        {
+          "@type": "Question",
+          "name": "What does the paid plan include?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Paid plans (Starter and Agency) add: continuous monitoring of multiple brands with daily score tracking, score history charts, a full fix action list with step-by-step instructions, competitor comparison, keyword-level AI visibility, prompt templates, and access to the GEO Agent for automated analysis. See the pricing page for the full breakdown." },
+        },
+        {
+          "@type": "Question",
+          "name": "Do you support INR pricing?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. All prices are in Indian Rupees (INR). Payments are processed securely through Razorpay. Starter plan is Rs 3,999/month and Agency plan is Rs 11,999/month." },
+        },
+        {
+          "@type": "Question",
+          "name": "Can I cancel anytime?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. There are no contracts or lock-in periods. You can cancel your subscription from your dashboard at any time. You keep access until the end of your current billing period." },
+        },
+        {
+          "@type": "Question",
+          "name": "Do you offer refunds?",
+          "acceptedAnswer": { "@type": "Answer", "text": "We offer refunds within 7 days of purchase if you are not satisfied. Reach out to hello@geoiqai.com with your registered email and we will process the refund." },
+        },
+        {
+          "@type": "Question",
+          "name": "Is GeoIQ affiliated with OpenAI, Google or Anthropic?",
+          "acceptedAnswer": { "@type": "Answer", "text": "No. GeoIQ is an independent product. We are not affiliated with, endorsed by, or sponsored by OpenAI, Google, Anthropic, or any of the AI companies whose engines we track." },
+        },
+      ],
+    },
+  },
 };
 
 function findWorkspaceRoot(): string {
@@ -392,6 +488,11 @@ function injectMeta(html: string, meta: PageMeta): string {
     }
     const jsonLdTag = `<script type="application/ld+json">\n${JSON.stringify(schema, null, 2).replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026")}\n</script>`;
     result = result.replace("</head>", `    ${jsonLdTag}\n  </head>`);
+  }
+
+  if (meta.extraJsonLd) {
+    const extraTag = `<script type="application/ld+json">\n${JSON.stringify(meta.extraJsonLd, null, 2).replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026")}\n</script>`;
+    result = result.replace("</head>", `    ${extraTag}\n  </head>`);
   }
 
   return result;
