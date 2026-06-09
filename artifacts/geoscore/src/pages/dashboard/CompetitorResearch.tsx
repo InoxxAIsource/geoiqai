@@ -112,10 +112,10 @@ function GapImpactBadge({ status }: { status: TopicStatus }) {
 }
 
 /* ───── Cache Indicator ───── */
-function CacheIndicator({ analyzedAt }: { analyzedAt?: string }) {
+function CacheIndicator({ analyzedAt, rescanHours = 48 }: { analyzedAt?: string; rescanHours?: number }) {
   if (!analyzedAt) return null;
   const hoursAgo = Math.max(0, Math.floor((Date.now() - new Date(analyzedAt).getTime()) / 3_600_000));
-  const hoursLeft = Math.max(0, 72 - hoursAgo);
+  const hoursLeft = Math.max(0, rescanHours - hoursAgo);
   return (
     <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 8, marginBottom: 0 }}>
       Data from {hoursAgo === 0 ? "just now" : `${hoursAgo}h ago`} · Refreshes in {hoursLeft}h
@@ -944,7 +944,7 @@ export function CompetitorResearch({ initialDomain, plan = "free", onNavigate }:
             </div>
           )}
 
-          <CacheIndicator analyzedAt={data.analyzedAt} />
+          <CacheIndicator analyzedAt={data.analyzedAt} rescanHours={plan === "agency" ? 24 : 48} />
 
           {/* Trend + Insights */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 16, marginBottom: 16, marginTop: 16 }}>
