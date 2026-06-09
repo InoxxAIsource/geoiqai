@@ -2480,7 +2480,7 @@ export async function getGoogleAiOverviewForAudit(
   if (!login || !password || keywords.length === 0) return unavailable;
 
   const top3 = keywords.slice(0, 3);
-  const cacheKey = `gao_audit:2840:${domain}:${top3.map(k => k.slice(0, 20).replace(/\W+/g, "_")).join("|")}`;
+  const cacheKey = `gao_audit:2841:${domain}:${top3.map(k => k.slice(0, 20).replace(/\W+/g, "_")).join("|")}`;
 
   const cached = await getDfCache(cacheKey);
   if (cached) return cached as unknown as GoogleAiOverviewAuditResult;
@@ -2503,6 +2503,7 @@ export async function getGoogleAiOverviewForAudit(
         device: "desktop",
         os: "windows",
         depth: 10,
+        load_async_ai_overview: true,
       }))),
     });
     clearTimeout(tmout);
