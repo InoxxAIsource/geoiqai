@@ -4,7 +4,7 @@ import { useGetMe, useGetMonitoredBrands, useGetBrandScores, useGetBrandKeywords
 import { useQueryClient } from "@tanstack/react-query";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { getToken } from "@/lib/auth";
-import { BarChart2, Users, Search, TrendingUp, Brain, MessageSquare, HelpCircle, Radio, FileText, Bot, Layers, Plus, ChevronDown, LogOut, Settings, Globe, Megaphone, Rocket } from "lucide-react";
+import { BarChart2, Users, Search, TrendingUp, MessageSquare, HelpCircle, Radio, FileText, Bot, Layers, Plus, ChevronDown, LogOut, Settings, Globe, Megaphone, Rocket } from "lucide-react";
 import { VisibilityOverview } from "./dashboard/VisibilityOverview";
 import { CompetitorResearch } from "./dashboard/CompetitorResearch";
 import { PromptResearch } from "./dashboard/PromptResearch";
@@ -558,11 +558,15 @@ export function Dashboard() {
 
         {/* Logo */}
         <div style={{ padding: "16px 16px 14px", borderBottom: `1px solid ${BORDER}` }}>
-          <a href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
-            <div style={{ width: 28, height: 28, background: P, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Brain size={15} color="white" />
-            </div>
-            <span style={{ fontSize: 15, fontWeight: 700, color: TEXT_PRIMARY, letterSpacing: "-0.02em" }}>GeoIQ</span>
+          <a href="/" style={{ display: "flex", alignItems: "center", gap: 7, textDecoration: "none" }}>
+            <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+              <path d="M32 20 A12 12 0 1 1 20 8" stroke="#6366f1" strokeWidth="3" strokeLinecap="round"/>
+              <path d="M20 8 L28 8 L28 16" stroke="#6366f1" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="20" cy="20" r="2.5" fill="#6366f1"/>
+            </svg>
+            <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 800, fontSize: 16, letterSpacing: "-0.04em", color: "#0f172a" }}>
+              Geo<span style={{ color: "#6366f1" }}>IQ</span>
+            </span>
           </a>
         </div>
 
