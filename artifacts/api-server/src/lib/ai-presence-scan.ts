@@ -368,6 +368,7 @@ export async function runAIPresenceScan(domain: string): Promise<AIPresenceScanR
     tavilyPerplexity,
     tavilyClaude,
     tavilyGrok,
+    tavilyTopicDiscovery,
   ] = await Promise.allSettled([
     // General Exa: used for topEvidence snippet shown in UI
     exa
@@ -423,6 +424,17 @@ export async function runAIPresenceScan(domain: string): Promise<AIPresenceScanR
       ? tvly.search(
           `Does xAI Grok recommend or mention ${brandName}? Grok AI response ${domain}`,
           { searchDepth: "advanced", maxResults: 5, topic: "general", days: 180 },
+        )
+      : Promise.resolve(null),
+
+    // Tavily: category-adjacent content for topic opportunity mining.
+    // Intentionally NOT framed around AI platforms - searches for the brand's
+    // niche/category so that "not mentioned" results are actual content gaps
+    // in the brand's space, not generic AI-monitoring articles.
+    tvly
+      ? tvly.search(
+          `best ${brandSlug} alternatives tools review 2025 2026`,
+          { searchDepth: "basic", maxResults: 12, topic: "general", days: 365 },
         )
       : Promise.resolve(null),
   ]);
@@ -513,6 +525,12 @@ export async function runAIPresenceScan(domain: string): Promise<AIPresenceScanR
   const allTavilyResults: TavilyResult[] = [
     ...chatgptRaw, ...geminiRaw, ...perplexityRaw, ...claudeRaw, ...grokRaw,
   ];
+
+  // Category-adjacent results used exclusively for topic opportunities.
+  // Falls back to allTavilyResults if the dedicated search returned nothing.
+  const discoveryRaw = extractTavily(tavilyTopicDiscovery);
+  const topicSourceResults: TavilyResult[] = discoveryRaw.length > 0 ? discoveryRaw : allTavilyResults;
+
   const cleanDomainLower = domain.replace(/^www\./, "").toLowerCase();
 
   // Cited pages: brand's own URLs found in Exa general results
@@ -545,9 +563,11 @@ export async function runAIPresenceScan(domain: string): Promise<AIPresenceScanR
     .filter(t => t.topic.length > 10)
     .slice(0, 20);
 
-  // Topic opportunities: Tavily results where brand is NOT mentioned (gaps)
+  // Topic opportunities: category-adjacent results where brand is NOT mentioned (gaps).
+  // Uses the dedicated discovery search so topics are in the brand's actual niche,
+  // not AI-monitoring articles from the per-platform mention queries.
   const seenOpportunityUrls = new Set<string>();
-  const topicOpportunities: AIPresenceTopicOpportunity[] = allTavilyResults
+  const topicOpportunities: AIPresenceTopicOpportunity[] = topicSourceResults
     .filter(r => {
       if (!r.url || r.url.toLowerCase().includes(cleanDomainLower)) return false;
       if (seenOpportunityUrls.has(r.url)) return false;
