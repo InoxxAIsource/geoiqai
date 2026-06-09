@@ -4,7 +4,7 @@ import { useGetMe, useGetMonitoredBrands, useGetBrandScores, useGetBrandKeywords
 import { useQueryClient } from "@tanstack/react-query";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { getToken, getPlan } from "@/lib/auth";
-import { BarChart2, Users, Search, TrendingUp, MessageSquare, HelpCircle, Radio, FileText, Bot, Layers, Plus, ChevronDown, LogOut, Settings, Globe, Megaphone, Rocket } from "lucide-react";
+import { BarChart2, Users, Search, TrendingUp, MessageSquare, HelpCircle, Radio, FileText, Bot, Layers, Plus, ChevronDown, LogOut, Settings, Globe, Megaphone, Rocket, Menu, X } from "lucide-react";
 import { VisibilityOverview } from "./dashboard/VisibilityOverview";
 import { CompetitorResearch } from "./dashboard/CompetitorResearch";
 import { PromptResearch } from "./dashboard/PromptResearch";
@@ -280,6 +280,8 @@ export function Dashboard() {
   const [newBrandName, setNewBrandName] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const [domainLimitError, setDomainLimitError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [dfStatus, setDfStatus] = useState<"checking" | "connected" | "disconnected" | "error">("checking");
   const [dfBalance, setDfBalance] = useState<number | null>(null);
   const [launchedTabs, setLaunchedTabs] = useState<Set<NavId>>(new Set());
@@ -312,6 +314,16 @@ export function Dashboard() {
       setLocation("/pricing?reason=upgrade_required");
     }
   }, [auth, setLocation]);
+
+  useEffect(() => {
+    const onResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) setShowMobileSidebar(false);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   useEffect(() => {
     setLandingDomain(activeDomain);
@@ -424,6 +436,7 @@ export function Dashboard() {
   function navigateTo(navId: NavId) {
     setActiveNav(navId);
     setShowBrandDropdown(false);
+    setShowMobileSidebar(false);
   }
 
   function renderContent() {
@@ -551,6 +564,14 @@ export function Dashboard() {
   return (
     <div style={{ display: "flex", height: "100vh", background: BG, fontFamily: "'Sora', sans-serif" }}>
 
+      {/* Mobile backdrop */}
+      {isMobile && showMobileSidebar && (
+        <div
+          onClick={() => setShowMobileSidebar(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 49 }}
+        />
+      )}
+
       {/* Sidebar */}
       <aside style={{
         width: SIDEBAR_W,
@@ -565,6 +586,8 @@ export function Dashboard() {
         top: 0,
         bottom: 0,
         zIndex: 50,
+        transform: isMobile && !showMobileSidebar ? `translateX(-${SIDEBAR_W}px)` : "translateX(0)",
+        transition: "transform 0.25s ease",
       }}>
 
         {/* Logo */}
@@ -749,7 +772,7 @@ export function Dashboard() {
       </aside>
 
       {/* Main content */}
-      <div style={{ marginLeft: SIDEBAR_W, flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <div style={{ marginLeft: isMobile ? 0 : SIDEBAR_W, flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
 
         {/* Topbar */}
         <header style={{
@@ -758,13 +781,21 @@ export function Dashboard() {
           zIndex: 40,
           background: "white",
           borderBottom: `1px solid ${BORDER}`,
-          padding: "0 28px",
+          padding: isMobile ? "0 14px" : "0 28px",
           height: 56,
           display: "flex",
           alignItems: "center",
-          gap: 12,
+          gap: isMobile ? 8 : 12,
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, maxWidth: 380, border: `1.5px solid ${BORDER}`, borderRadius: 8, padding: "0 12px", background: BG, height: 36 }}>
+          {isMobile && (
+            <button
+              onClick={() => setShowMobileSidebar(s => !s)}
+              style={{ background: "none", border: "none", cursor: "pointer", color: TEXT_PRIMARY, display: "flex", alignItems: "center", padding: 4, flexShrink: 0 }}
+            >
+              {showMobileSidebar ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0, border: `1.5px solid ${BORDER}`, borderRadius: 8, padding: "0 12px", background: BG, height: 36 }}>
             <Globe size={14} color={TEXT_TERTIARY} />
             <input
               type="text"
@@ -780,38 +811,42 @@ export function Dashboard() {
             )}
           </div>
 
-          <div style={{ display: "flex", gap: 4 }}>
-            {[
-              { id: "worldwide", label: "Worldwide" },
-              { id: "in", label: "IN" },
-              { id: "us", label: "US" },
-              { id: "uk", label: "UK" },
-            ].map(g => (
-              <button
-                key={g.id}
-                onClick={() => setGeo(g.id)}
-                style={{ padding: "4px 10px", fontSize: 11, fontWeight: 500, border: `1.5px solid ${g.id === geo ? P : BORDER}`, background: g.id === geo ? BRAND_LIGHT : "white", color: g.id === geo ? P : MUTED, borderRadius: 6, cursor: "pointer" }}
-              >
-                {g.label}
-              </button>
-            ))}
-          </div>
+          {!isMobile && (
+            <div style={{ display: "flex", gap: 4 }}>
+              {[
+                { id: "worldwide", label: "Worldwide" },
+                { id: "in", label: "IN" },
+                { id: "us", label: "US" },
+                { id: "uk", label: "UK" },
+              ].map(g => (
+                <button
+                  key={g.id}
+                  onClick={() => setGeo(g.id)}
+                  style={{ padding: "4px 10px", fontSize: 11, fontWeight: 500, border: `1.5px solid ${g.id === geo ? P : BORDER}`, background: g.id === geo ? BRAND_LIGHT : "white", color: g.id === geo ? P : MUTED, borderRadius: 6, cursor: "pointer" }}
+                >
+                  {g.label}
+                </button>
+              ))}
+            </div>
+          )}
 
-          <div style={{ display: "flex", gap: 4 }}>
-            {[
-              { id: "1m", label: "1M" },
-              { id: "6m", label: "6M" },
-              { id: "all", label: "All" },
-            ].map(p => (
-              <button
-                key={p.id}
-                onClick={() => setPeriod(p.id)}
-                style={{ padding: "4px 10px", fontSize: 11, fontWeight: 500, border: `1.5px solid ${p.id === period ? P : BORDER}`, background: p.id === period ? BRAND_LIGHT : "white", color: p.id === period ? P : MUTED, borderRadius: 6, cursor: "pointer" }}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+          {!isMobile && (
+            <div style={{ display: "flex", gap: 4 }}>
+              {[
+                { id: "1m", label: "1M" },
+                { id: "6m", label: "6M" },
+                { id: "all", label: "All" },
+              ].map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => setPeriod(p.id)}
+                  style={{ padding: "4px 10px", fontSize: 11, fontWeight: 500, border: `1.5px solid ${p.id === period ? P : BORDER}`, background: p.id === period ? BRAND_LIGHT : "white", color: p.id === period ? P : MUTED, borderRadius: 6, cursor: "pointer" }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div style={{ marginLeft: "auto" }}>
             {user?.plan === "free" && (
@@ -824,7 +859,7 @@ export function Dashboard() {
 
         {/* Page content */}
         <main
-          style={{ flex: 1, padding: "28px 32px", overflowY: "auto" }}
+          style={{ flex: 1, padding: isMobile ? "16px 14px" : "28px 32px", overflowY: "auto" }}
           onClick={() => showBrandDropdown && setShowBrandDropdown(false)}
         >
           <div key={activeNav} style={{ animation: "fadeInUp 0.2s ease forwards" }}>
