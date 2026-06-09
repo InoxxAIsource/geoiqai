@@ -1555,10 +1555,77 @@ router.post("/dataforseo/prompt-research", requireAuth, async (req, res): Promis
   req.log.info({ input, brandName }, "prompt-research: start");
 
   try {
-    // DataForSEO LLM Mentions API calls removed to eliminate ~$1.60/call cost.
     type PromptItem = { question: string; platform: string; model_name: string; ai_search_volume: number; location_code: number; sources: string[]; brandEntities: string[]; monthlySearches: Array<{ year: number; month: number; count: number }>; answer: string };
+
+    // Check DB cache first (7-day TTL, keyed per brand)
+    const cacheKey = `prompt_research_v2:${brandName}`;
+    const cachedResult = await getDfCache(cacheKey);
+    if (cachedResult) {
+      req.log.info({ brandName }, "prompt-research: cache hit");
+      res.json({ ...(cachedResult as unknown as Record<string, unknown>), cached: true });
+      return;
+    }
+
+    // Use llm_mentions/search/live - $0.002 per call (2 calls = ~$0.004 total, cached 7 days)
+    const dfLogin = process.env.DATAFORSEO_LOGIN ?? "";
+    const dfPassword = process.env.DATAFORSEO_PASSWORD ?? "";
     const allItems: PromptItem[] = [];
-    req.log.info({ brandName, total: 0 }, "prompt-research: LLM API calls disabled");
+
+    if (dfLogin && dfPassword) {
+      const authHeader = "Basic " + Buffer.from(`${dfLogin}:${dfPassword}`).toString("base64");
+      const dfHeaders = { "Content-Type": "application/json", Authorization: authHeader };
+      const DATAFORSEO_BASE = "https://api.dataforseo.com";
+      const platforms = ["google", "chat_gpt"] as const;
+
+      const platformResults = await Promise.allSettled(
+        platforms.map(platform =>
+          fetch(`${DATAFORSEO_BASE}/v3/ai_optimization/llm_mentions/search/live`, {
+            method: "POST",
+            headers: dfHeaders,
+            body: JSON.stringify([{
+              target: [{ keyword: brandName, search_scope: ["answer"] }],
+              platform,
+              date_from: sixMonthsAgo,
+              date_to: today,
+              language_code: "en",
+              order_by: ["ai_search_volume,desc"],
+              limit: 50,
+            }]),
+            signal: AbortSignal.timeout(25000),
+          }).then(r => r.json() as Promise<Record<string, unknown>>),
+        ),
+      );
+
+      for (let i = 0; i < platforms.length; i++) {
+        const platform = platforms[i]!;
+        const result = platformResults[i];
+        if (result?.status !== "fulfilled") continue;
+        const data = result.value;
+        const tasks = (data.tasks as Array<Record<string, unknown>>) ?? [];
+        const taskResult = (tasks[0]?.result as Array<Record<string, unknown>>)?.[0];
+        const rawItems = (taskResult?.items as Array<Record<string, unknown>>) ?? [];
+        req.log.info({ brandName, platform, itemCount: rawItems.length }, "prompt-research: llm_mentions response");
+        for (const item of rawItems) {
+          const rawSources = (item.sources as Array<Record<string, unknown>>) ?? [];
+          const rawEntities = (item.brand_entities as Array<Record<string, unknown>>) ?? [];
+          const rawMonthly = (item.monthly_searches as Array<Record<string, unknown>>) ?? [];
+          allItems.push({
+            question: String(item.se_query ?? item.question ?? item.keyword ?? ""),
+            platform,
+            model_name: "",
+            ai_search_volume: Number(item.ai_search_volume ?? 0),
+            location_code: 2840,
+            sources: rawSources.map(s => String(s.url ?? "")).filter(Boolean),
+            brandEntities: rawEntities.map(b => String(b.name ?? "")).filter(Boolean),
+            monthlySearches: rawMonthly.map(m => ({ year: Number(m.year ?? 0), month: Number(m.month ?? 0), count: Number(m.count ?? m.search_volume ?? 0) })),
+            answer: String(item.answer ?? ""),
+          });
+        }
+      }
+      req.log.info({ brandName, total: allItems.length }, "prompt-research: llm_mentions done");
+    } else {
+      req.log.info({ brandName }, "prompt-research: no DataForSEO credentials, returning empty");
+    }
 
     // Filter to brand-relevant items (brand name must appear in the question or answer)
     const brandLower = brandName.toLowerCase();
@@ -1716,7 +1783,7 @@ router.post("/dataforseo/prompt-research", requireAuth, async (req, res): Promis
 
     req.log.info({ brandName, totalItems: allItems.length, totalTopics: topics.length, totalBrands: brands.length, totalSources: sourceDomains.length, totalAiVolume }, "prompt-research: done");
 
-    res.json({
+    const responsePayload = {
       brandName,
       totalAiVolume,
       totalTopics: topics.length,
@@ -1731,7 +1798,14 @@ router.post("/dataforseo/prompt-research", requireAuth, async (req, res): Promis
       dateFrom: sixMonthsAgo,
       dateTo: today,
       cached: false,
-    });
+    };
+
+    // Cache for 7 days - cost is ~$0.004 per unique brand research
+    if (allItems.length > 0) {
+      await setDfCache(cacheKey, responsePayload as unknown as Record<string, unknown>, "0.004");
+    }
+
+    res.json(responsePayload);
   } catch (err) {
     req.log.error({ err }, "prompt-research error");
     res.status(500).json({ error: "Could not load prompt research data. Please try again." });
