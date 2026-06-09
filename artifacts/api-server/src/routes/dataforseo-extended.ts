@@ -1370,7 +1370,7 @@ router.post("/dataforseo/competitor-research", requireAuth, async (req, res): Pr
 
   const rescanHours = planLimits.rescan_hours < 999 ? planLimits.rescan_hours : 72;
   const cacheTtlMs = rescanHours * 60 * 60 * 1000;
-  const topCacheKey = `comp_res_v1:${allDomains.join(":")}`;
+  const topCacheKey = `comp_res_v2:${allDomains.join(":")}`;
 
   // Top-level cache
   if (!force) {
